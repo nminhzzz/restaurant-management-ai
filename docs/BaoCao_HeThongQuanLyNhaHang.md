@@ -38,7 +38,7 @@ MỤC LỤC
 
 ### 1.1. Giới thiệu chung
 
-Đề tài xây dựng hệ thống quản lý nhà hàng dạng ứng dụng web, tích hợp khối AI Assistant hỗ trợ hỏi đáp và phân tích dữ liệu kinh doanh bằng ngôn ngữ tự nhiên tiếng Việt. Tài liệu đặc tả yêu cầu chức năng (Feature List) làm cơ sở để đội phát triển (Dev, QA, Design) thống nhất phạm vi xây dựng sản phẩm và để giảng viên hướng dẫn xác nhận yêu cầu trước khi triển khai.
+Đề tài xây dựng hệ thống quản lý nhà hàng dạng ứng dụng web, phục vụ một nhà hàng/quán ăn quy mô vừa và nhỏ, bao quát các nghiệp vụ vận hành cốt lõi từ danh mục món, gọi món, thanh toán đến quản lý kho nguyên liệu và báo cáo doanh thu. Điểm khác biệt của hệ thống là tích hợp khối AI Assistant cho phép chủ nhà hàng/người quản lý đặt câu hỏi bằng tiếng Việt tự nhiên và nhận lại câu trả lời được tổng hợp trực tiếp từ dữ liệu kinh doanh thực tế, thay vì phải tự tra cứu và tổng hợp thủ công như với các phần mềm quản lý truyền thống.
 
 ### 1.2. Mục đích đề tài
 
@@ -126,7 +126,7 @@ Dựa trên kết quả khảo sát và phân tích đối thủ, nhóm đề xu
 
 #### 1.7.1. Mục đích khảo sát
 
-Khảo sát người dùng nhằm ba mục đích chính: (1) nắm bắt thực trạng vận hành của nhà hàng quy mô vừa và nhỏ hiện nay — cách tổ chức order, quản lý kho nguyên liệu, thanh toán, báo cáo doanh thu; (2) xác định các điểm nghẽn, khó khăn và nhu cầu thực sự của chủ quán/nhân viên khi chưa có công cụ quản lý số hóa hỗ trợ; (3) làm căn cứ thực tế để xây dựng và điều chỉnh tài liệu đặc tả yêu cầu chức năng (Feature List), tránh việc xác định yêu cầu chỉ dựa trên suy đoán chủ quan của nhóm phát triển.
+Khảo sát người dùng nhằm ba mục đích chính: (1) nắm bắt thực trạng vận hành của nhà hàng quy mô vừa và nhỏ hiện nay — cách tổ chức order, quản lý kho nguyên liệu, thanh toán, báo cáo doanh thu; (2) xác định các điểm nghẽn, khó khăn và nhu cầu thực sự của chủ quán/nhân viên khi chưa có công cụ quản lý số hóa hỗ trợ; (3) làm căn cứ thực tế để xây dựng và điều chỉnh tài liệu đặc tả yêu cầu chức năng, tránh việc xác định yêu cầu chỉ dựa trên suy đoán chủ quan của nhóm phát triển.
 
 #### 1.7.2. Phương pháp khảo sát
 
@@ -258,25 +258,25 @@ Các chức năng nghiệp vụ được gom thành 6 nhóm (module), tương �
 
 #### 2.1.2. Sơ đồ phân rã chức năng (BFD)
 
-[Cần bổ sung — nội dung này không có sẵn trong tài liệu Feature List, cần khảo sát/thiết kế thêm]
+Hình 2.1. Sơ đồ phân rã chức năng (BFD) của hệ thống
 
 ### 2.2. Mô hình hóa tiến trình nghiệp vụ
 
 #### 2.2.1. Ký hiệu sử dụng
 
-[Cần bổ sung — nội dung này không có sẵn trong tài liệu Feature List, cần khảo sát/thiết kế thêm]
+[Cần bổ sung — nội dung này chưa được khảo sát/thiết kế đầy đủ, cần bổ sung thêm]
 
 #### 2.2.2. Sơ đồ luồng dữ liệu (DFD) mức ngữ cảnh
 
-[Cần bổ sung — nội dung này không có sẵn trong tài liệu Feature List, cần khảo sát/thiết kế thêm]
+[Cần bổ sung — nội dung này chưa được khảo sát/thiết kế đầy đủ, cần bổ sung thêm]
 
 #### 2.2.3. DFD mức đỉnh (DFD1)
 
-[Cần bổ sung — nội dung này không có sẵn trong tài liệu Feature List, cần khảo sát/thiết kế thêm]
+[Cần bổ sung — nội dung này chưa được khảo sát/thiết kế đầy đủ, cần bổ sung thêm]
 
 #### 2.2.4. DFD mức dưới đỉnh (DFD2)
 
-[Cần bổ sung — nội dung này không có sẵn trong tài liệu Feature List, cần khảo sát/thiết kế thêm]
+[Cần bổ sung — nội dung này chưa được khảo sát/thiết kế đầy đủ, cần bổ sung thêm]
 
 ### 2.3. Đặc tả chức năng
 
@@ -513,7 +513,9 @@ Cơ sở dữ liệu được thiết kế trên hệ quản trị MySQL theo m�
 
 #### 3.2.1. Xác định tập thực thể và thuộc tính
 
-Từ các mô hình nghiệp vụ ở Chương 2, hệ thống xác định được 28 thực thể, chia thành năm nhóm tương ứng với các module chức năng. Bảng 3.1 tổng hợp danh sách thực thể và vai trò của từng thực thể.
+Từ các mô hình nghiệp vụ ở Chương 2, hệ thống xác định được 29 thực thể, chia thành năm nhóm tương ứng với các module chức năng. Bảng 3.1 tổng hợp danh sách thực thể và vai trò của từng thực thể.
+
+Một số quy ước trình bày được áp dụng thống nhất trong toàn mục 3.2: (1) mọi cột khóa ngoại nếu không ghi rõ NULL đều mặc định là NOT NULL — ví dụ CHI_TIET_ORDER.MaOrder, CHI_TIET_ORDER.MaMon, PHIEU_BEP.MaOrder đều là NOT NULL (dòng chi tiết/phiếu luôn phải gắn với order và món cụ thể); cột nào cho phép NULL được ghi chú riêng (như GIAO_DICH_KHO.NguoiThucHien, GIAO_DICH_KHO.MaLoNguyenLieu ở trên); (2) GENERATED COLUMN chỉ dùng khi giá trị được tính từ đúng các cột khác trong cùng dòng bằng một biểu thức đơn giản và không cần lưu lịch sử thay đổi — MON_AN.TrangThai và BAN.TenBan_Active thỏa điều kiện này; CHI_TIET_KIEM_KE.ChenhLech (SoLuongThucTe trừ SoLuongHeThong) cũng thỏa điều kiện tương tự nên được đồng bộ thành GENERATED COLUMN thay vì cột lưu trực tiếp, để tránh sai lệch nếu ứng dụng quên tính lại; (3) GIA_BINH_QUAN_THANG.Thang hiện dùng CHAR(7) (định dạng YYYY-MM) làm một phần khóa chính — nên đổi sang kiểu INT theo định dạng YYYYMM (hoặc DATE là ngày đầu tháng) để so sánh/range query theo tháng hiệu quả hơn so với so sánh chuỗi, đồng thời tránh rủi ro định dạng chuỗi không hợp lệ.
 
 Bảng 3.1. Danh sách thực thể của hệ thống
 
@@ -530,6 +532,8 @@ a2. Thực thể NGUOI_DUNG
 Tài khoản đăng nhập của nhân sự nhà hàng.
 
 Bảng 3.3. Thuộc tính của thực thể NGUOI_DUNG
+
+Toàn bộ khóa ngoại trong thiết kế cần công bố rõ hành vi ON DELETE/ON UPDATE, hiện chưa được nêu ở bảng nào. Nguyên tắc áp dụng: RESTRICT cho các FK trỏ tới thực thể danh mục/định danh còn đang được tham chiếu bởi chứng từ lịch sử (ví dụ NGUYEN_LIEU, MON_AN, BAN — không cho xóa cứng khi còn dữ liệu liên quan, phải dùng xóa mềm qua DaXoa); SET NULL cho các FK không bắt buộc về nghiệp vụ khi thực thể cha bị xóa (ví dụ GIAO_DICH_KHO.NguoiThucHien khi tài khoản người thực hiện bị xóa cứng — vẫn giữ lại lịch sử giao dịch); CASCADE chỉ dùng cho quan hệ chi tiết phụ thuộc hoàn toàn vào chứng từ cha trong cùng một giao dịch nghiệp vụ (ví dụ CHI_TIET_ORDER theo ORDER, CHI_TIET_PHIEU_NHAP theo PHIEU_NHAP_KHO). Riêng NGUOI_DUNG — không có cột DaXoa và bị tham chiếu ở khoảng 10 bảng (ORDER, GIAO_DICH_KHO, NHAT_KY_HE_THONG, PHIEN_CHAT_AI...) — không được xóa cứng trong mọi trường hợp; khi khóa tài khoản, thao tác chỉ là đổi TrangThai (hoặc cờ tương đương) sang "Đã khóa", các FK liên quan giữ nguyên giá trị (không SET NULL, không CASCADE) để bảo toàn lịch sử ai đã thực hiện giao dịch nào.
 
 a3. Thực thể CAU_HINH_HE_THONG
 
@@ -551,7 +555,7 @@ Bảng 3.6. Thuộc tính của thực thể NHOM_MON
 
 a6. Thực thể MON_AN
 
-Món ăn; giá và công thức hiện hành được suy ra từ hai bảng lịch sử tương ứng.
+Món ăn; giá và công thức hiện hành được suy ra từ hai bảng lịch sử tương ứng. AnThuCong là trạng thái hiển thị do Quản lý thao tác trực tiếp (CRUD); HetNLThuCong và HetNLTuDong là cờ suy ra từ tồn kho/công thức, không phải trạng thái CRUD độc lập; TrangThai chỉ tổng hợp hiển thị từ ba thuộc tính trên, không được ghi trực tiếp.
 
 Bảng 3.7. Thuộc tính của thực thể MON_AN
 
@@ -573,11 +577,15 @@ Thực thể trung gian giữa CONG_THUC và NGUYEN_LIEU.
 
 Bảng 3.10. Thuộc tính của thực thể CHI_TIET_CONG_THUC
 
+Không lưu DonViTinh riêng tại CHI_TIET_CONG_THUC: công thức luôn dùng đúng đơn vị tính chuẩn hóa của NGUYEN_LIEU (đã khóa qua DaKhoaDonVi sau khi được tham chiếu — FR-CAT-14), nên đơn vị tính của một dòng công thức được suy ra trực tiếp qua join tới NGUYEN_LIEU.DonViTinh, tránh lưu trùng và nguy cơ lệch dữ liệu giữa công thức và kho.
+
 a10. Thực thể NGUYEN_LIEU
 
 Nguyên liệu kho; SoLuongTon được cập nhật bởi mọi giao dịch kho.
 
 Bảng 3.11. Thuộc tính của thực thể NGUYEN_LIEU
+
+Hệ thống hiện có ba tầng lưu trữ tồn kho: GIAO_DICH_KHO (sổ cái, nguồn sự thật) → LO_NGUYEN_LIEU.SoLuongConLai (cache theo từng lô) → NGUYEN_LIEU.SoLuongTon (cache tổng, bằng tổng SoLuongConLai của các lô còn hiệu lực). Cột Version trên NGUYEN_LIEU chỉ bảo vệ bằng optimistic locking việc ghi đè lẫn nhau lên chính SoLuongTon, nhưng không tự đảm bảo thứ tự ghi đúng của TonSauGiaoDich trên GIAO_DICH_KHO khi nhiều giao dịch trừ kho cùng một nguyên liệu xảy ra gần như đồng thời — hai giao dịch đọc SoLuongConLai cùng lúc rồi ghi lại có thể tính sai TonSauGiaoDich hoặc ghi đè kết quả của nhau. Do đó, tầng ứng dụng cần khóa hoặc serialize theo nguyên liệu khi ghi giao dịch kho, ví dụ dùng SELECT ... FOR UPDATE trên dòng NGUYEN_LIEU (hoặc trên các dòng LO_NGUYEN_LIEU liên quan) trong cùng transaction với việc ghi GIAO_DICH_KHO, để đảm bảo các giao dịch trên cùng nguyên liệu được xử lý tuần tự. Đồng thời, một transaction ghi kho phải bao trọn cả ba lần cập nhật (GIAO_DICH_KHO, LO_NGUYEN_LIEU.SoLuongConLai, NGUYEN_LIEU.SoLuongTon) để ba tầng luôn khớp nhau; nếu vì lý do hiệu năng mà tách rời, cần bổ sung một job đối chiếu định kỳ (reconciliation job) so sánh tổng SoLuongConLai với SoLuongTon và với số dư tính từ GIAO_DICH_KHO, cảnh báo khi phát hiện lệch.
 
 a11. Thực thể NHA_CUNG_CAP
 
@@ -597,11 +605,15 @@ a13. Thực thể ORDER
 
 Bảng 3.14. Thuộc tính của thực thể ORDER
 
+Business Rule (BR-ORDER-01): MaBan IS NOT NULL khi LoaiDon = 'Tại chỗ'; MaBan IS NULL khi LoaiDon = 'Mang về'. Ràng buộc này được hiện thực bằng CHECK constraint ở tầng CSDL (MySQL 8.0.16 trở lên hỗ trợ CHECK) và được validate lại ở tầng ứng dụng khi Submit order.
+
 a14. Thực thể CHI_TIET_ORDER
 
 Dòng món trong order, neo vào phiên bản giá và công thức tại thời điểm tạo.
 
 Bảng 3.15. Thuộc tính của thực thể CHI_TIET_ORDER
+
+Business Rule (BR-CTO-01): MaPhienBanGia phải thuộc đúng LICH_SU_GIA_MON.MaMon = MaMon của chính dòng CHI_TIET_ORDER; tương tự, MaCongThuc phải thuộc đúng CONG_THUC.MaMon = MaMon của dòng đó. Ràng buộc này đảm bảo một dòng bán hàng không thể tham chiếu phiên bản giá hoặc công thức của món khác; do MySQL không hỗ trợ ràng buộc liên bảng dạng composite FK bắc cầu qua MaMon, ràng buộc được kiểm tra ở tầng ứng dụng khi ghi dòng order.
 
 a15. Thực thể LICH_SU_DOI_BAN
 
@@ -621,6 +633,8 @@ Lần thử thanh toán của order, gồm vòng đời mã QR và kết quả w
 
 Bảng 3.18. Thuộc tính của thực thể GIAO_DICH_THANH_TOAN
 
+HOA_DON, GIAO_DICH_THANH_TOAN và GIAO_DICH_KHO hiện chỉ lưu ThoiDiem thực (giờ hệ thống), không có cột BusinessDate như ORDER. Vì báo cáo doanh thu/giá vốn "theo ngày kinh doanh" (BusinessDate, không phải theo ngày lịch) phải suy diễn lại từ ThoiDiem mỗi lần join, và cách quy đổi có thể sai lệch nếu giờ bắt đầu ngày kinh doanh (business-day cutoff) từng thay đổi theo thời gian, ba bảng này cần bổ sung cột BusinessDate riêng — denormalize có kiểm soát, tuân theo đúng nguyên tắc đã nêu ở đầu mục 3.2: BusinessDate được ghi (copy) tại thời điểm tạo dòng, dựa trên cutoff đang áp dụng, thay vì tính lại từ ThoiDiem mỗi lần truy vấn.
+
 a18. Thực thể PHIEU_BEP
 
 Các lượt in phiếu bếp, phục vụ in lại khi máy in lỗi.
@@ -639,79 +653,119 @@ Dòng nguyên liệu của phiếu nhập, là nguồn tính đơn giá bình qu
 
 Bảng 3.21. Thuộc tính của thực thể CHI_TIET_PHIEU_NHAP
 
-a21. Thực thể PHIEU_XUAT_KHO
+a21. Thực thể LO_NGUYEN_LIEU
+
+Từng lô nguyên liệu, tạo tự động khi ghi nhận một dòng nhập; theo dõi số lượng còn lại và hạn sử dụng riêng cho từng lô, làm căn cứ để xuất kho theo nguyên tắc nhập trước xuất trước (FIFO) và cảnh báo khi sắp/đã hết hạn.
+
+Bảng 3.22. Thuộc tính của thực thể LO_NGUYEN_LIEU
+
+Business Rule (BR-LOT-01): mỗi khi ghi nhận một dòng nhập (CHI_TIET_PHIEU_NHAP), hệ thống tự động tạo một bản ghi LO_NGUYEN_LIEU với NgayNhap lấy từ PHIEU_NHAP_KHO.NgayNhap và HanSuDung tính bằng NgayNhap + NGUYEN_LIEU.SoNgayBaoQuan, không cần nhân viên kho nhập tay. Khi trừ kho do bán hàng, xuất thủ công hoặc hoàn kho, hệ thống ưu tiên trừ vào lô có NgayNhap sớm nhất còn SoLuongConLai > 0 (FIFO); nếu số lượng cần trừ vượt quá một lô, hệ thống tách thành nhiều bản ghi GIAO_DICH_KHO tương ứng với từng lô bị ảnh hưởng. TrangThai của lô được cập nhật dựa trên HanSuDung và SoLuongConLai, làm cơ sở để cảnh báo sắp hết hạn hoặc đã dùng hết lô.
+
+a22. Thực thể PHIEU_XUAT_KHO
 
 Phiếu xuất kho thủ công cho hao hụt, hư hỏng, hết hạn.
 
-Bảng 3.22. Thuộc tính của thực thể PHIEU_XUAT_KHO
+Bảng 3.23. Thuộc tính của thực thể PHIEU_XUAT_KHO
 
-a22. Thực thể CHI_TIET_PHIEU_XUAT
+a23. Thực thể CHI_TIET_PHIEU_XUAT
 
 Dòng nguyên liệu xuất thủ công, tính vào chi phí hao hụt.
 
-Bảng 3.23. Thuộc tính của thực thể CHI_TIET_PHIEU_XUAT
+Bảng 3.24. Thuộc tính của thực thể CHI_TIET_PHIEU_XUAT
 
-a23. Thực thể PHIEU_KIEM_KE
+GiaVonUocTinh mặc định = 0 khi GIA_BINH_QUAN_THANG của tháng phát sinh chưa được chốt tại thời điểm ghi phiếu xuất, và hệ thống hiện chưa có job/trigger nào tự động tính lại (backfill) giá trị này sau khi đơn giá bình quân của tháng đó được chốt. Đây là một giới hạn đã biết của thiết kế: báo cáo hao hụt (FR-REP-05b) có thể tạm thấp hơn thực tế đối với các phiếu xuất ghi nhận trước khi giá bình quân tháng được chốt. Xử lý đề xuất: bổ sung job định kỳ chạy sau khi GIA_BINH_QUAN_THANG của một tháng được chốt, quét lại các dòng CHI_TIET_PHIEU_XUAT thuộc tháng đó có GiaVonUocTinh = 0 và cập nhật lại theo đơn giá vừa chốt; nếu chưa triển khai job này trong phạm vi MVP, cần cảnh báo rõ trên báo cáo hao hụt khi có dòng chưa được tính lại, để người quản lý biết số liệu là tạm tính.
+
+a24. Thực thể PHIEU_KIEM_KE
 
 Phiếu kiểm kê định kỳ, cơ chế duy nhất để điều chỉnh sai lệch tồn.
 
-Bảng 3.24. Thuộc tính của thực thể PHIEU_KIEM_KE
+Bảng 3.25. Thuộc tính của thực thể PHIEU_KIEM_KE
 
-a24. Thực thể CHI_TIET_KIEM_KE
+a25. Thực thể CHI_TIET_KIEM_KE
 
 Chênh lệch tồn của từng nguyên liệu trong một lần kiểm kê.
 
-Bảng 3.25. Thuộc tính của thực thể CHI_TIET_KIEM_KE
+Bảng 3.26. Thuộc tính của thực thể CHI_TIET_KIEM_KE
 
-a25. Thực thể GIAO_DICH_KHO
+a26. Thực thể GIAO_DICH_KHO
 
 Sổ cái biến động kho; mọi thay đổi tồn đều sinh một bản ghi tại đây.
 
-Bảng 3.26. Thuộc tính của thực thể GIAO_DICH_KHO
+Bốn cột FK ở trên là các khóa ngoại rời rạc theo từng loại chứng từ nguồn, thay cho cặp LoaiChungTu/MaChungTu polymorphic ở thiết kế trước — mỗi cột trỏ đúng một bảng nên MySQL ràng buộc được toàn vẹn tham chiếu ở tầng CSDL, và AI Assistant chỉ cần join theo đúng cột tương ứng với LoaiGiaoDich thay vì suy luận theo chuỗi. Ràng buộc CHECK (hoặc trigger ứng dụng) đảm bảo đúng một trong bốn cột chứng từ nguồn (MaChiTietNhap / MaChiTietOrder / MaChiTietXuat / MaChiTietKiemKe) khác NULL, tương ứng với giá trị LoaiGiaoDich của dòng đó. Riêng MaLoNguyenLieu là ngoại lệ nằm ngoài ràng buộc "đúng một trong bốn" này: cột này khác NULL trong mọi giao dịch có liên quan tới lô, và theo BR-LOT-01, khi LoaiGiaoDich = Trừ tự động thì cả MaChiTietOrder và MaLoNguyenLieu cùng khác NULL đồng thời (một cột xác định chứng từ nguồn, một cột xác định lô bị trừ theo FIFO). Khi LoaiGiaoDich = Nhập, MaLoNguyenLieu cũng bắt buộc khác NULL vì lô mới được tạo cùng lúc với giao dịch nhập.
 
-a26. Thực thể GIA_BINH_QUAN_THANG
+Bảng 3.27. Thuộc tính của thực thể GIAO_DICH_KHO
+
+a27. Thực thể GIA_BINH_QUAN_THANG
 
 Đơn giá bình quân gia quyền theo tháng, đầu vào tính giá vốn và biên lợi nhuận.
 
-Bảng 3.27. Thuộc tính của thực thể GIA_BINH_QUAN_THANG
+Bảng 3.28. Thuộc tính của thực thể GIA_BINH_QUAN_THANG
 
-a27. Thực thể PHIEN_CHAT_AI
+a28. Thực thể PHIEN_CHAT_AI
 
 Phiên hội thoại với trợ lý AI, gắn với vai trò để giới hạn phạm vi dữ liệu.
 
-Bảng 3.28. Thuộc tính của thực thể PHIEN_CHAT_AI
+Bảng 3.29. Thuộc tính của thực thể PHIEN_CHAT_AI
 
-a28. Thực thể TRUY_VAN_AI
+a29. Thực thể TRUY_VAN_AI
 
 Nhật ký từng lượt hỏi–đáp, phục vụ chức năng 'Xem chi tiết' và đánh giá thực nghiệm.
 
-Bảng 3.29. Thuộc tính của thực thể TRUY_VAN_AI
+Bảng 3.30. Thuộc tính của thực thể TRUY_VAN_AI
+
+PhamViDuLieu được ghi lại tại thời điểm xử lý câu hỏi, giúp truy vết chính xác AI đã được cấp quyền truy cập tập dữ liệu nào khi trả lời — hỗ trợ kiểm tra tuân thủ phân quyền (mục 3.4.1) mà không làm thay đổi cấu trúc hay luồng xử lý hiện có.
 
 #### 3.2.2. Mô hình thực thể liên kết
 
-Các mối liên kết giữa những thực thể đã xác định ở mục 3.2.1 được tổng hợp trong Bảng 3.30. Các quan hệ nhiều–nhiều đều được hiện thực bằng thực thể trung gian để lưu thêm thuộc tính của chính mối quan hệ đó (định lượng trong công thức, số lượng và đơn giá trong phiếu nhập, chênh lệch trong phiếu kiểm kê).
+Các mối liên kết giữa những thực thể đã xác định ở mục 3.2.1 được tổng hợp trong Bảng 3.31. Các quan hệ nhiều–nhiều đều được hiện thực bằng thực thể trung gian để lưu thêm thuộc tính của chính mối quan hệ đó (định lượng trong công thức, số lượng và đơn giá trong phiếu nhập, chênh lệch trong phiếu kiểm kê).
 
-Bảng 3.30. Các mối quan hệ chính giữa các thực thể
+Bảng 3.31. Các mối quan hệ chính giữa các thực thể
 
 Trên cơ sở đó, mô hình thực thể liên kết (ERD) của hệ thống được thể hiện ở Hình 3.1. Các thực thể được nhóm theo module nghiệp vụ; mỗi ô hiển thị tên thực thể cùng khóa chính, khóa ngoại và một số thuộc tính tiêu biểu; nhãn trên mỗi đường nối thể hiện bản số của mối quan hệ.
 
 Hình 3.1. Mô hình thực thể liên kết (ERD) của hệ thống
 
-Mô hình cho thấy ba trục dữ liệu chính của hệ thống. Trục danh mục – bán hàng liên kết NHOM_MON, MON_AN, ORDER và HOA_DON, trong đó CHI_TIET_ORDER là điểm hội tụ vì vừa tham chiếu món, vừa tham chiếu phiên bản giá và phiên bản công thức. Trục kho gắn NGUYEN_LIEU với các chứng từ nhập, xuất, kiểm kê và quy tụ về sổ cái GIAO_DICH_KHO. Hai trục này gặp nhau tại CHI_TIET_CONG_THUC, nơi mỗi món ăn được quy đổi thành định lượng nguyên liệu, nhờ đó hệ thống thực hiện được việc trừ kho tự động khi bán hàng và tính giá vốn nguyên liệu tiêu hao theo tháng. Trục thứ ba gồm NGUOI_DUNG, VAI_TRO, NHAT_KY_HE_THONG và hai thực thể của AI Assistant, đóng vai trò kiểm soát truy cập và lưu vết toàn bộ hoạt động khai thác dữ liệu.
+#### 3.2.3. Chiến lược Index
+
+NFR-03 đặt yêu cầu cụ thể về khối lượng dữ liệu vận hành (khoảng 15.000–20.000 đơn/năm, sổ cái kho và nhật ký truy vấn AI phình to theo thời gian). Để đáp ứng thời gian phản hồi cho cả màn hình vận hành lẫn AI Assistant, các index sau được bổ sung vào thiết kế:
+
+• ORDER(BusinessDate, MaBan): phục vụ tra cứu order theo ngày kinh doanh và theo bàn — thao tác vận hành chính của thu ngân.
+
+• CHI_TIET_ORDER(MaMon, MaOrder): phục vụ báo cáo món bán chạy (FR-REP) và truy vấn tổng hợp doanh thu theo món của AI Assistant.
+
+• GIAO_DICH_KHO(MaNguyenLieu, ThoiDiem): composite index hỗ trợ tra cứu lịch sử biến động của một nguyên liệu theo thời gian — truy vấn lõi cho cả màn hình kho và AI Assistant.
+
+• LO_NGUYEN_LIEU(MaNguyenLieu, TrangThai, NgayNhap): bắt buộc theo BR-LOT-01 — mọi giao dịch Trừ tự động phải tìm lô còn TrangThai đang hoạt động, NgayNhap sớm nhất, SoLuongConLai > 0 cho một nguyên liệu; truy vấn này xảy ra ở mọi dòng order nên cần index composite này để không phải quét toàn bảng.
+
+• GIAO_DICH_THANH_TOAN(MaOrder, TrangThai): phục vụ tra cứu nhanh các giao dịch đang ở trạng thái "Chờ xác nhận" hoặc "Tranh chấp" theo order.
+
+• NGUOI_DUNG(MaVaiTro): phục vụ lọc/tổng hợp người dùng theo vai trò, dùng ở màn hình quản lý tài khoản và các view phân quyền VW_AI_*.
+
+• NHAT_KY_HE_THONG(ThoiDiem): bảng này cũng phình to theo thời gian tương tự GIAO_DICH_KHO/TRUY_VAN_AI nhưng hiện chưa có index nào; bổ sung index theo thời điểm để hỗ trợ tra cứu/lọc theo khoảng thời gian và làm cơ sở cho partition nếu cần mở rộng sau này.
+
+• HOA_DON(ThoiDiemXuat): phục vụ báo cáo doanh thu theo khoảng thời gian.
+
+• TRUY_VAN_AI(MaPhien, ThoiDiem): phục vụ tải lại lịch sử hội thoại theo phiên.
+
+• Partition theo tháng (RANGE trên ThoiDiem/BusinessDate) cho GIAO_DICH_KHO và TRUY_VAN_AI: với quy mô 15.000–20.000 order/năm như NFR-03 đặt ra, hai bảng này chưa đạt ngưỡng cần partition ngay trong phạm vi MVP; do đó partition được đề xuất như một phương án mở rộng/khả năng scale trong tương lai (khi khối lượng dữ liệu tích lũy nhiều năm) chứ không phải yêu cầu bắt buộc phải triển khai từ đầu.
 
 ### 3.3. Thiết kế giao diện
 
-[Cần bổ sung — nội dung này không có sẵn trong tài liệu Feature List, cần khảo sát/thiết kế thêm]
+[Cần bổ sung — nội dung này chưa được khảo sát/thiết kế đầy đủ, cần bổ sung thêm]
 
 ### 3.4. Thiết kế kiểm soát
 
 #### 3.4.1. Phân định quyền hạn về dữ liệu
 
-Dựa trên FR-SET-03 và NFR-05/NFR-06: phân quyền được kiểm soát ở tầng backend/API theo 3 vai trò (Chủ nhà hàng/Quản lý, Thu ngân/Nhân viên order, Nhân viên kho). Chi tiết ma trận quyền theo dữ liệu cần được thiết kế cụ thể ở giai đoạn thiết kế kỹ thuật.
+Dựa trên FR-SET-03 và NFR-05/NFR-06, phân quyền được thiết kế ở hai lớp: (1) view MySQL riêng theo vai trò để giới hạn phạm vi dữ liệu mà AI Assistant được truy vấn (NFR-06, NFR-12), và (2) kiểm tra bổ sung ở tầng backend/API cho các thao tác ghi. Bảng 3.32 tổng hợp ma trận quyền theo dữ liệu cho ba vai trò.
+
+Bảng 3.32. Ma trận quyền hạn theo dữ liệu và vai trò
+
+Mỗi view AI (VW_AI_*) được tạo trên các bảng gốc kèm điều kiện lọc cột/hàng tương ứng vai trò; PHIEN_CHAT_AI.MaVaiTro xác định view nào được dùng khi sinh câu SQL cho phiên chat đó, đáp ứng trực tiếp NFR-06 và NFR-12. Đặc tả cụ thể của từng view như sau: (1) VW_AI_QUANLY (vai trò Chủ nhà hàng/Quản lý) — full quyền đọc trên toàn bộ các bảng nghiệp vụ (danh mục, order, hóa đơn, kho, báo cáo), không lọc cột hay hàng, tương ứng cột "Toàn quyền" trong Bảng 3.32; (2) VW_AI_THUNGAN (vai trò Thu ngân/NV order) — chỉ join các bảng ORDER, CHI_TIET_ORDER, HOA_DON, GIAO_DICH_THANH_TOAN, MON_AN, BAN; loại bỏ hoàn toàn các cột/bảng giá vốn, lợi nhuận và toàn bộ nhóm bảng kho (NGUYEN_LIEU, GIAO_DICH_KHO, GIA_BINH_QUAN_THANG...); (3) VW_AI_KHO (vai trò Nhân viên kho) — chỉ join các bảng NGUYEN_LIEU, LO_NGUYEN_LIEU, PHIEU_NHAP_KHO, PHIEU_XUAT_KHO, PHIEU_KIEM_KE, GIAO_DICH_KHO; loại bỏ cột GiaVonUocTinh, GIA_BINH_QUAN_THANG và toàn bộ bảng doanh thu (HOA_DON, GIAO_DICH_THANH_TOAN), khớp với dòng "Không có doanh thu/giá vốn" trong Bảng 3.32. Cả ba view đều là read-only (không hỗ trợ INSERT/UPDATE/DELETE), vì AI Assistant chỉ được phép sinh câu SELECT (đã kiểm duyệt qua sqlglot, mục 4.1.1).
 
 #### 3.4.2. Phân định quyền hạn về chức năng
 
-[Cần bổ sung — nội dung này không có sẵn trong tài liệu Feature List, cần khảo sát/thiết kế thêm]
+[Cần bổ sung — nội dung này chưa được khảo sát/thiết kế đầy đủ, cần bổ sung thêm]
 
 #### 3.4.3. Phân định trách nhiệm và thẩm quyền theo từng vai trò
 
@@ -761,7 +815,7 @@ Kết quả cụ thể về mức độ hoàn thành các module, số liệu th
 
 ## PHỤ LỤC
 
-Phụ lục 1 — Quy tắc nghiệp vụ chung (Business Rules tổng hợp), trích từ tài liệu Feature List:
+Phụ lục 1 — Quy tắc nghiệp vụ chung (Business Rules tổng hợp):
 
 - 1. Hệ thống phục vụ một nhà hàng/quán ăn đơn lẻ, chưa hỗ trợ đa chi nhánh.
 - 2. Ba vai trò người dùng cố định, mỗi vai trò có phạm vi truy cập dữ liệu riêng.
@@ -788,7 +842,7 @@ Phụ lục 1 — Quy tắc nghiệp vụ chung (Business Rules tổng hợp), t
 - 23. Mỗi món trong order có thể kèm ghi chú riêng dạng văn bản tự do, không ảnh hưởng công thức hay trừ kho.
 - 24. Người dùng tự đăng nhập/đăng xuất/đổi mật khẩu; khi in phiếu bếp thất bại, nhân viên chủ động in lại sau khi khắc phục sự cố máy in.
 
-Phụ lục 2 — Các nội dung cần bổ sung thêm (trích từ tài liệu Feature List):
+Phụ lục 2 — Các nội dung cần bổ sung thêm:
 
 - Vấn đề #1 — Cách xác định 'nguyên liệu sắp hết' cụ thể hơn: cần phỏng vấn thêm để xác định mức tồn tối thiểu hợp lý cho từng nhóm nguyên liệu trước khi cấu hình FR-INV-07.
 - Vấn đề #2 — Dữ liệu khảo sát từ các vai trò khác: cần bổ sung khảo sát với thu ngân, phục vụ và nhân viên kho.
@@ -797,7 +851,7 @@ Phụ lục 2 — Các nội dung cần bổ sung thêm (trích từ tài liệu
 - Vấn đề #5 — Cơ chế kỹ thuật đảm bảo 'submit trước được trước' khi tranh chấp tồn kho: chưa đặc tả ở tài liệu nghiệp vụ, cần chuyển sang tài liệu thiết kế kỹ thuật.
 - Vấn đề #6 — Khung giờ 06:00 của Business Date có phù hợp thực tế vận hành không: cần xác nhận lại với chủ quán.
 
-Phụ lục 3 — Dữ liệu thử nghiệm và phương pháp đánh giá (trích từ Đề cương khóa luận):
+Phụ lục 3 — Dữ liệu thử nghiệm và phương pháp đánh giá:
 
 Dữ liệu thử nghiệm: kết hợp phỏng vấn bán cấu trúc với 3–5 người từng quản lý ca, làm thu ngân hoặc là chủ quán quy mô nhỏ, cùng dữ liệu mô phỏng khoảng 12 tháng, 15.000–20.000 đơn hàng trên 60–80 món, theo các đặc trưng thật của ngành (hai đỉnh trong ngày, cuối tuần cao hơn, mùa vụ, phân bố món theo quy luật lũy thừa).
 
@@ -807,7 +861,7 @@ Tiêu chí định lượng: độ chính xác thực thi, tỷ lệ SQL lỗi, 
 
 Đánh giá định tính: khảo sát SUS (System Usability Scale) với 3–5 người đóng vai chủ nhà hàng/quản lý, kết hợp phỏng vấn ngắn. Với cỡ mẫu này, kết quả chỉ có giá trị định tính, tham khảo.
 
-Phụ lục 4 — Rủi ro và giải pháp giảm thiểu (trích từ Đề cương khóa luận):
+Phụ lục 4 — Rủi ro và giải pháp giảm thiểu:
 
 - LLM sinh câu lệnh làm thay đổi dữ liệu: chỉ chấp nhận SELECT đã kiểm tra cú pháp, dùng tài khoản chỉ đọc trên view được chỉ định.
 - LLM diễn giải sai lệch kết quả (hallucination): luôn hiển thị kèm bảng số liệu gốc và câu lệnh SQL để người dùng đối chiếu.
@@ -907,6 +961,7 @@ Phụ lục 4 — Rủi ro và giải pháp giảm thiểu (trích từ Đề c�
 |  | PHIEU_BEP | Các lượt in phiếu bếp và kết quả in (FR-SALE-26, FR-SALE-27). |
 | Kho | PHIEU_NHAP_KHO | Phiếu nhập hàng gắn với một nhà cung cấp. |
 |  | CHI_TIET_PHIEU_NHAP | Chi tiết nguyên liệu, số lượng, đơn giá của phiếu nhập. |
+|  | LO_NGUYEN_LIEU | Từng lô nguyên liệu tạo ra từ một dòng nhập, theo dõi số lượng còn lại và hạn sử dụng riêng để hỗ trợ FIFO và cảnh báo hết hạn. |
 |  | PHIEU_XUAT_KHO | Phiếu xuất kho thủ công cho hao hụt, hư hỏng, hết hạn. |
 |  | CHI_TIET_PHIEU_XUAT | Chi tiết nguyên liệu và số lượng xuất thủ công. |
 |  | PHIEU_KIEM_KE | Phiếu kiểm kê định kỳ đối chiếu tồn thực tế với tồn hệ thống. |
@@ -935,7 +990,7 @@ Phụ lục 4 — Rủi ro và giải pháp giảm thiểu (trích từ Đề c�
 
 | Thuộc tính | Kiểu dữ liệu | Ràng buộc | Mô tả |
 | --- | --- | --- | --- |
-| MaCauHinh | SMALLINT | PK | Định danh bản ghi cấu hình |
+| MaCauHinh | SMALLINT | PK, CHECK (MaCauHinh = 1) | Định danh bản ghi cấu hình — cố định = 1, ép DB chỉ cho một bản ghi hiệu lực |
 | TenNhaHang | VARCHAR(150) | NOT NULL | Tên nhà hàng in trên hóa đơn |
 | DiaChi | VARCHAR(255) | NULL | Địa chỉ nhà hàng |
 | MauHoaDon | TEXT | NULL | Cấu hình mẫu hóa đơn |
@@ -969,7 +1024,7 @@ Phụ lục 4 — Rủi ro và giải pháp giảm thiểu (trích từ Đề c�
 | MaNhomMon | INT | FK → NHOM_MON | Nhóm món (đúng một nhóm) |
 | HinhAnh | VARCHAR(255) | NULL | Đường dẫn ảnh món |
 | GiaHienTai | DECIMAL(12,2) | NULL | Giá đang áp dụng (dữ liệu dẫn xuất) |
-| TrangThai | VARCHAR(20) | NOT NULL | Nháp / Hoạt động / Hết nguyên liệu |
+| TrangThai | VARCHAR(20) | GENERATED ALWAYS AS (...) STORED | Suy diễn tự động từ AnThuCong, HetNLThuCong, HetNLTuDong — không ghi trực tiếp, tránh mâu thuẫn dữ liệu |
 | AnThuCong | TINYINT(1) | NOT NULL | Quản lý ẩn thủ công (FR-CAT-26) |
 | HetNLThuCong | TINYINT(1) | NOT NULL | Cờ hết nguyên liệu do Quản lý bật (FR-CAT-27b) |
 | HetNLTuDong | TINYINT(1) | NOT NULL | Cờ hết nguyên liệu do tồn kho (FR-CAT-27a) |
@@ -1006,7 +1061,6 @@ Phụ lục 4 — Rủi ro và giải pháp giảm thiểu (trích từ Đề c�
 | MaCongThuc | BIGINT | PK, FK → CONG_THUC | Phiên bản công thức |
 | MaNguyenLieu | INT | PK, FK → NGUYEN_LIEU | Nguyên liệu sử dụng |
 | DinhLuong | DECIMAL(12,3) | NOT NULL, > 0 | Định lượng cho một suất |
-| DonViTinh | VARCHAR(20) | NOT NULL | Đơn vị tính (theo nguyên liệu) |
 
 | Thuộc tính | Kiểu dữ liệu | Ràng buộc | Mô tả |
 | --- | --- | --- | --- |
@@ -1015,7 +1069,9 @@ Phụ lục 4 — Rủi ro và giải pháp giảm thiểu (trích từ Đề c�
 | DonViTinh | VARCHAR(20) | NOT NULL | Đơn vị tính chuẩn hóa |
 | DaKhoaDonVi | TINYINT(1) | NOT NULL | Khóa sửa đơn vị sau khi đã tham chiếu (FR-CAT-14) |
 | MucTonToiThieu | DECIMAL(12,3) | NOT NULL | Ngưỡng cảnh báo tồn (FR-INV-07) |
-| SoLuongTon | DECIMAL(12,3) | NOT NULL, ≥ 0 | Tồn khả dụng hiện tại |
+| SoNgayBaoQuan | SMALLINT | NULL | Số ngày bảo quản chuẩn kể từ ngày nhập; để trống nếu nguyên liệu không quản lý hạn sử dụng |
+| SoLuongTon | DECIMAL(12,3) | NOT NULL, ≥ 0 | Tồn khả dụng hiện tại — giá trị tổng hợp (cache) bằng tổng SoLuongConLai của các lô còn hiệu lực trong LO_NGUYEN_LIEU, dùng để tối ưu truy vấn cho màn hình vận hành và AI Assistant; GIAO_DICH_KHO vẫn là sổ cái ghi nhận lịch sử biến động và là nguồn sự thật. |
+| Version | INT | NOT NULL, DEFAULT 0 | Số phiên bản, tăng mỗi lần ghi — dùng cho optimistic locking khi tranh chấp tồn kho (NFR-08) |
 | DaXoa | TINYINT(1) | NOT NULL | Cờ xóa mềm |
 
 | Thuộc tính | Kiểu dữ liệu | Ràng buộc | Mô tả |
@@ -1031,7 +1087,8 @@ Phụ lục 4 — Rủi ro và giải pháp giảm thiểu (trích từ Đề c�
 | Thuộc tính | Kiểu dữ liệu | Ràng buộc | Mô tả |
 | --- | --- | --- | --- |
 | MaBan | INT | PK | Định danh bàn |
-| TenBan | VARCHAR(50) | NOT NULL, UNIQUE | Tên/số hiệu bàn |
+| TenBan | VARCHAR(50) | NOT NULL | Tên/số hiệu bàn |
+| TenBan_Active | VARCHAR(50) | GENERATED (IF DaXoa=0 THEN TenBan ELSE NULL), UNIQUE | Cột suy sinh chỉ ràng buộc UNIQUE khi bàn chưa xóa mềm — cho phép đặt lại tên bàn đã xóa (MySQL không có partial index) |
 | KhuVuc | VARCHAR(50) | NULL | Khu vực bố trí |
 | SoChoNgoi | SMALLINT | NULL | Sức chứa |
 | TrangThai | VARCHAR(20) | NOT NULL | Trống / Đang phục vụ (FR-CAT-18) |
@@ -1042,7 +1099,7 @@ Phụ lục 4 — Rủi ro và giải pháp giảm thiểu (trích từ Đề c�
 | MaOrder | BIGINT | PK | Định danh order |
 | MaOrderHienThi | VARCHAR(20) | NOT NULL, UNIQUE | Mã tra cứu dạng ORD-ddMMyy-nnn (FR-SALE-04) |
 | BusinessDate | DATE | NOT NULL | Business Date của order |
-| MaBan | INT | FK → BAN, NULL | Bàn phục vụ; rỗng với đơn mang về |
+| MaBan | INT | FK → BAN, NULL (NULL khi LoaiDon = Mang về) | Bàn phục vụ; BẮT BUỘC (NOT NULL) khi LoaiDon = Tại chỗ, để trống (NULL) khi LoaiDon = Mang về |
 | LoaiDon | VARCHAR(20) | NOT NULL | Tại chỗ / Mang về |
 | TrangThai | VARCHAR(30) | NOT NULL | Đang mở / Chờ xác nhận thanh toán / Đã thanh toán / Chờ đối soát / Đã hủy / Tự động đóng |
 | TongTien | DECIMAL(14,2) | NOT NULL | Tổng tiền tạm tính |
@@ -1056,8 +1113,8 @@ Phụ lục 4 — Rủi ro và giải pháp giảm thiểu (trích từ Đề c�
 | MaChiTietOrder | BIGINT | PK | Định danh dòng món |
 | MaOrder | BIGINT | FK → ORDER | Order chứa dòng món |
 | MaMon | INT | FK → MON_AN | Món được gọi |
-| MaPhienBanGia | BIGINT | FK → LICH_SU_GIA_MON | Phiên bản giá áp dụng |
-| MaCongThuc | BIGINT | FK → CONG_THUC | Phiên bản công thức áp dụng (FR-REP-05a) |
+| MaPhienBanGia | BIGINT | FK → LICH_SU_GIA_MON, cùng MaMon với dòng order | Phiên bản giá áp dụng |
+| MaCongThuc | BIGINT | FK → CONG_THUC, cùng MaMon với dòng order | Phiên bản công thức áp dụng (FR-REP-05a) |
 | SoLuong | SMALLINT | NOT NULL, > 0 | Số suất |
 | DonGia | DECIMAL(12,2) | NOT NULL | Đơn giá tại thời điểm gọi |
 | ThanhTien | DECIMAL(14,2) | NOT NULL | Thành tiền dòng món |
@@ -1078,6 +1135,7 @@ Phụ lục 4 — Rủi ro và giải pháp giảm thiểu (trích từ Đề c�
 | --- | --- | --- | --- |
 | MaHoaDon | BIGINT | PK | Định danh hóa đơn |
 | MaOrder | BIGINT | FK → ORDER, UNIQUE | Order tương ứng (1–1) |
+| MaGiaoDichThanhToan | BIGINT | FK → GIAO_DICH_THANH_TOAN | Giao dịch thanh toán thành công đã chốt hóa đơn này (truy vết khi có nhiều lần thử) |
 | SoHoaDon | VARCHAR(20) | NOT NULL, UNIQUE | Số hóa đơn |
 | ThoiDiemXuat | DATETIME | NOT NULL | Thời điểm xuất hóa đơn |
 | TongTien | DECIMAL(14,2) | NOT NULL | Tổng tiền thanh toán |
@@ -1123,8 +1181,22 @@ Phụ lục 4 — Rủi ro và giải pháp giảm thiểu (trích từ Đề c�
 | MaPhieuNhap | BIGINT | FK → PHIEU_NHAP_KHO | Phiếu nhập |
 | MaNguyenLieu | INT | FK → NGUYEN_LIEU | Nguyên liệu nhập |
 | SoLuong | DECIMAL(12,3) | NOT NULL, > 0 | Số lượng theo đơn vị chuẩn |
+| DonViMuaGoc | VARCHAR(20) | NOT NULL | Đơn vị tính ghi trên hóa đơn nhà cung cấp (trước quy đổi) |
+| HeSoQuyDoi | DECIMAL(10,4) | NOT NULL, > 0 | Hệ số quy đổi từ DonViMuaGoc sang DonViTinh chuẩn hóa của NGUYEN_LIEU |
 | DonGia | DECIMAL(12,2) | NOT NULL | Đơn giá nhập |
 | ThanhTien | DECIMAL(14,2) | NOT NULL | Thành tiền dòng nhập |
+
+| Thuộc tính | Kiểu dữ liệu | Ràng buộc | Mô tả |
+| --- | --- | --- | --- |
+| MaLoNguyenLieu | BIGINT | PK | Định danh lô nguyên liệu |
+| MaNguyenLieu | INT | FK → NGUYEN_LIEU | Nguyên liệu của lô |
+| MaChiTietNhap | BIGINT | FK → CHI_TIET_PHIEU_NHAP, UNIQUE | Dòng nhập đã tạo ra lô này (1–1) |
+| NgayNhap | DATE | NOT NULL | Ngày nhập của lô — lấy tự động từ PHIEU_NHAP_KHO.NgayNhap tại thời điểm ghi nhận dòng nhập, dùng để sắp xếp thứ tự xuất theo FIFO |
+| HanSuDung | DATE | NULL | Hạn sử dụng của lô — hệ thống tự tính bằng NgayNhap + NGUYEN_LIEU.SoNgayBaoQuan ngay khi tạo lô; để trống nếu SoNgayBaoQuan của nguyên liệu đó cũng để trống (không quản lý hạn dùng) |
+| SoLuongNhap | DECIMAL(12,3) | NOT NULL, > 0 | Số lượng ban đầu của lô |
+| SoLuongConLai | DECIMAL(12,3) | NOT NULL, ≥ 0 | Số lượng còn lại chưa xuất dùng của lô |
+| DonGia | DECIMAL(12,2) | NOT NULL | Đơn giá nhập của lô |
+| TrangThai | VARCHAR(20) | NOT NULL | Còn hạn / Sắp hết hạn / Hết hạn / Đã dùng hết |
 
 | Thuộc tính | Kiểu dữ liệu | Ràng buộc | Mô tả |
 | --- | --- | --- | --- |
@@ -1140,7 +1212,7 @@ Phụ lục 4 — Rủi ro và giải pháp giảm thiểu (trích từ Đề c�
 | MaPhieuXuat | BIGINT | FK → PHIEU_XUAT_KHO | Phiếu xuất |
 | MaNguyenLieu | INT | FK → NGUYEN_LIEU | Nguyên liệu xuất |
 | SoLuong | DECIMAL(12,3) | NOT NULL, > 0 | Số lượng xuất |
-| GiaVonUocTinh | DECIMAL(14,2) | NULL | Giá trị hao hụt theo đơn giá bình quân (FR-REP-05b) |
+| GiaVonUocTinh | DECIMAL(14,2) | NOT NULL, DEFAULT 0 | Giá trị hao hụt theo đơn giá bình quân (FR-REP-05b); 0 nếu chưa có GIA_BINH_QUAN_THANG cho tháng đó, ứng dụng cảnh báo "thiếu dữ liệu giá vốn" |
 
 | Thuộc tính | Kiểu dữ liệu | Ràng buộc | Mô tả |
 | --- | --- | --- | --- |
@@ -1166,15 +1238,18 @@ Phụ lục 4 — Rủi ro và giải pháp giảm thiểu (trích từ Đề c�
 | LoaiGiaoDich | VARCHAR(30) | NOT NULL | Nhập / Trừ tự động / Hoàn kho / Xuất thủ công / Điều chỉnh kiểm kê |
 | SoLuongThayDoi | DECIMAL(12,3) | NOT NULL | Lượng tăng (+) hoặc giảm (−) |
 | TonSauGiaoDich | DECIMAL(12,3) | NOT NULL | Tồn sau khi ghi nhận |
-| LoaiChungTu | VARCHAR(30) | NOT NULL | Loại chứng từ nguồn |
-| MaChungTu | BIGINT | NOT NULL | Khóa của chứng từ nguồn |
+| MaChiTietNhap | BIGINT | FK → CHI_TIET_PHIEU_NHAP, NULL | Dòng nhập nguồn (khi LoaiGiaoDich = Nhập) |
+| MaChiTietOrder | BIGINT | FK → CHI_TIET_ORDER, NULL | Dòng order nguồn (khi LoaiGiaoDich = Trừ tự động / Hoàn kho) |
+| MaChiTietXuat | BIGINT | FK → CHI_TIET_PHIEU_XUAT, NULL | Dòng xuất thủ công nguồn (khi LoaiGiaoDich = Xuất thủ công) |
+| MaChiTietKiemKe | BIGINT | FK → CHI_TIET_KIEM_KE, NULL | Dòng chênh lệch kiểm kê nguồn (khi LoaiGiaoDich = Điều chỉnh kiểm kê) |
+| MaLoNguyenLieu | BIGINT | FK → LO_NGUYEN_LIEU, NULL | Lô nguyên liệu bị ảnh hưởng — gắn lô mới tạo khi Nhập, hoặc lô bị trừ theo FIFO khi Trừ tự động/Xuất thủ công/Hoàn kho |
 | ThoiDiem | DATETIME | NOT NULL | Thời điểm phát sinh |
 | NguoiThucHien | INT | FK → NGUOI_DUNG, NULL | Người thực hiện; rỗng nếu do hệ thống |
 
 | Thuộc tính | Kiểu dữ liệu | Ràng buộc | Mô tả |
 | --- | --- | --- | --- |
 | MaNguyenLieu | INT | PK, FK → NGUYEN_LIEU | Nguyên liệu |
-| Thang | DATE | PK | Tháng tính giá (ngày đầu tháng) |
+| Thang | INT | PK | Tháng tính giá, định dạng YYYYMM (ví dụ 202609) |
 | DonGiaBinhQuan | DECIMAL(12,2) | NOT NULL | Đơn giá bình quân gia quyền trong tháng |
 | TongSoLuongNhap | DECIMAL(12,3) | NOT NULL | Tổng lượng nhập trong tháng |
 | ThoiDiemTinh | DATETIME | NOT NULL | Thời điểm tính toán gần nhất |
@@ -1191,6 +1266,7 @@ Phụ lục 4 — Rủi ro và giải pháp giảm thiểu (trích từ Đề c�
 | --- | --- | --- | --- |
 | MaTruyVan | BIGINT | PK | Định danh lượt truy vấn |
 | MaPhien | BIGINT | FK → PHIEN_CHAT_AI | Phiên chat tương ứng |
+| PhamViDuLieu | VARCHAR(50) | NULL | Tên view phân quyền (VW_AI_QUANLY / VW_AI_THUNGAN / VW_AI_KHO) thực tế được dùng để sinh SQL cho lượt truy vấn này — phục vụ audit quyền truy cập dữ liệu (NFR-06, NFR-12) |
 | CauHoi | TEXT | NOT NULL | Câu hỏi tiếng Việt của người dùng |
 | CauSQLSinhRa | TEXT | NULL | Câu SQL do LLM sinh sau kiểm duyệt |
 | TrangThai | VARCHAR(30) | NOT NULL | Thành công / Yêu cầu làm rõ / Từ chối / Lỗi |
@@ -1225,3 +1301,16 @@ Phụ lục 4 — Rủi ro và giải pháp giảm thiểu (trích từ Đề c�
 | NGUYEN_LIEU | GIA_BINH_QUAN_THANG | 1 – N | Mỗi nguyên liệu có một đơn giá bình quân cho mỗi tháng. |
 | NGUOI_DUNG | PHIEN_CHAT_AI | 1 – N | Một người dùng mở nhiều phiên hội thoại. |
 | PHIEN_CHAT_AI | TRUY_VAN_AI | 1 – N | Một phiên gồm nhiều lượt hỏi–đáp. |
+| NGUYEN_LIEU | LO_NGUYEN_LIEU | 1 – N | Một nguyên liệu có nhiều lô nhập theo thời gian. |
+| CHI_TIET_PHIEU_NHAP | LO_NGUYEN_LIEU | 1 – 1 | Mỗi dòng nhập tạo ra đúng một lô. |
+| LO_NGUYEN_LIEU | GIAO_DICH_KHO | 1 – N | Một lô có thể bị trừ qua nhiều giao dịch kho khác nhau. |
+| CHI_TIET_ORDER | GIAO_DICH_KHO | 1 – N | Từ khi có LO_NGUYEN_LIEU, một dòng CHI_TIET_ORDER có thể sinh nhiều dòng GIAO_DICH_KHO nếu bị trừ qua nhiều lô theo FIFO (không còn là 1–1 như thiết kế trước khi thêm lô). |
+
+| Nhóm dữ liệu | Chủ nhà hàng/Quản lý | Thu ngân/NV order | Nhân viên kho |
+| --- | --- | --- | --- |
+| Danh mục món, giá, công thức | Toàn quyền (CRUD) | Chỉ đọc | Không truy cập |
+| Order, hóa đơn, thanh toán | Toàn quyền, mọi chi nhánh | CRUD trên order/hóa đơn đang xử lý | Không truy cập |
+| Kho: nguyên liệu, phiếu nhập/xuất/kiểm kê, GIAO_DICH_KHO | Toàn quyền | Chỉ đọc SoLuongTon (cảnh báo hết món) | Toàn quyền |
+| Báo cáo doanh thu, giá vốn, lợi nhuận | Toàn quyền | Không truy cập | Không truy cập |
+| Cấu hình hệ thống, tài khoản, nhật ký hệ thống | Toàn quyền | Không truy cập | Không truy cập |
+| AI Assistant — phạm vi truy vấn tương ứng | VW_AI_QUANLY (toàn bộ) | VW_AI_THUNGAN (order/hóa đơn) | VW_AI_KHO (kho, không có doanh thu/giá vốn) |
