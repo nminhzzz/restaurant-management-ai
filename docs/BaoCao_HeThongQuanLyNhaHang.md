@@ -605,6 +605,8 @@ Hình 9. Ký hiệu sử dụng trong DFD
 
 #### 2.2.2. Sơ đồ luồng dữ liệu (DFD) mức ngữ cảnh
 
+![Hình 11](images/image_11.png)
+
 Hình 9. DFD mức ngữ cảnh (DFD0)
 
 #### 2.2.3. DFD mức đỉnh (DFD1)
@@ -623,23 +625,23 @@ Hình 13. DFD mức dưới đỉnh (DFD2) - 3
 
 Năm sơ đồ tuần tự dưới đây mô tả luồng xử lý của các use case chính, tương ứng với đặc tả chức năng tại mục 2.3.
 
-![Hình 11](images/image_11.png)
+![Hình 12](images/image_12.png)
 
 Hình 2. SD-01 — Đăng nhập và phân quyền theo vai trò
 
-![Hình 12](images/image_12.png)
+![Hình 13](images/image_13.png)
 
 Hình 3. SD-02 — Lập và gửi order xuống bếp
 
-![Hình 13](images/image_13.png)
+![Hình 14](images/image_14.png)
 
 Hình 4. SD-03 — Thanh toán bằng mã QR và phát hành hóa đơn
 
-![Hình 14](images/image_14.png)
+![Hình 15](images/image_15.png)
 
 Hình 5. SD-04 — Nhập kho và tạo lô nguyên liệu
 
-![Hình 15](images/image_15.png)
+![Hình 16](images/image_16.png)
 
 Hình 6. SD-05 — Hỏi AI Assistant
 
