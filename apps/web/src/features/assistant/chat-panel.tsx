@@ -3,25 +3,75 @@
 import { useState } from "react";
 
 import { ApiError, apiFetch } from "@/lib/api-client";
-import type { ChatResponse } from "@/types/api";
+import type { ChatResponse, QueryDetail } from "@/types/api";
+
+function ResultTable({ rows }: { rows: Record<string, unknown>[] }) {
+  if (rows.length === 0) {
+    return null;
+  }
+  const columns = Object.keys(rows[0]);
+  return (
+    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      <table className="w-full text-left text-sm">
+        <thead className="bg-slate-50 text-slate-600">
+          <tr>
+            {columns.map((column) => (
+              <th key={column} className="px-3 py-2 font-medium">
+                {column}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, index) => (
+            <tr key={index} className="border-t border-slate-100">
+              {columns.map((column) => (
+                <td key={column} className="px-3 py-2">
+                  {String(row[column] ?? "")}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function SqlDetail({ detail }: { detail: QueryDetail }) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+      <p>
+        View <code>{detail.view}</code> · {detail.row_count} dòng ·{" "}
+        {Math.round(detail.elapsed_ms)} ms
+      </p>
+      <details className="mt-2">
+        <summary className="cursor-pointer">Câu SQL đã chạy</summary>
+        <pre className="mt-2 overflow-x-auto whitespace-pre-wrap">
+          {detail.sql}
+        </pre>
+      </details>
+    </div>
+  );
+}
 
 export function ChatPanel() {
   const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState<string | null>(null);
+  const [result, setResult] = useState<ChatResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPending(true);
-    setAnswer(null);
+    setResult(null);
     setError(null);
     try {
       const response = await apiFetch<ChatResponse>("/assistant/chat", {
         method: "POST",
         body: { question },
       });
-      setAnswer(response.answer);
+      setResult(response);
     } catch (cause) {
       setError(
         cause instanceof ApiError
@@ -57,10 +107,14 @@ export function ChatPanel() {
         {pending ? "Đang xử lý…" : "Gửi câu hỏi"}
       </button>
       {error === null ? null : <p className="text-sm text-red-600">{error}</p>}
-      {answer === null ? null : (
-        <p className="rounded-lg border border-slate-200 bg-white p-3 text-sm">
-          {answer}
-        </p>
+      {result === null ? null : (
+        <div className="space-y-3">
+          <p className="rounded-lg border border-slate-200 bg-white p-3 text-sm">
+            {result.answer}
+          </p>
+          <ResultTable rows={result.data} />
+          {result.detail === null ? null : <SqlDetail detail={result.detail} />}
+        </div>
       )}
     </form>
   );
