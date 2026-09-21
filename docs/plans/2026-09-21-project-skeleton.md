@@ -15,7 +15,7 @@ triển khai song song sáu module.
 
 | Hạng mục | Chọn | Lý do |
 | --- | --- | --- |
-| DBMS | PostgreSQL 18 | Khớp §1.4.2 và §4.1.2 của báo cáo; `sqlglot` dialect postgres; `GRANT` chỉ-đọc chặt cho tài khoản của trợ lý AI |
+| DBMS | MySQL 8.4 | Khớp báo cáo (mọi mục đều ghi MySQL); `sqlglot` dialect mysql; tài khoản CSDL chỉ-đọc qua `GRANT SELECT` trên ba view |
 | Cấu trúc | Monorepo `apps/api` + `apps/web` | Backend và frontend tiến hoá cùng nhịp, chia sẻ tài liệu và CI |
 | Backend | FastAPI + SQLAlchemy 2 async + Alembic | Đúng §4.1.1 |
 | Frontend | Next.js 16 App Router + TS + Tailwind 4 | Đúng §1.4.2 |
@@ -32,8 +32,9 @@ triển khai song song sáu module.
   dependency xác thực và `require_roles`, error handler trả thông báo tiếng Việt);
   `shared/` (declarative base, soft delete, Business Date 06:00, audit log `NHAT_KY_HE_THONG`,
   pagination, enum vai trò).
-- **Module AI**: `scope.py` (vai trò → view), `guard.py` (kiểm duyệt SQL bằng `sqlglot`:
-  một câu lệnh, chỉ `SELECT`, chỉ quan hệ trong danh sách view cho phép, luôn áp trần số dòng),
+- **Module AI**: `scope.py` (vai trò → view), `guard.py` (kiểm duyệt SQL bằng `sqlglot` dialect
+  mysql: một câu lệnh, chỉ `SELECT`, chỉ quan hệ trong danh sách view cho phép, chặn hàm
+  file/khóa/DoS, và ép trần số dòng thật sự — cắt `LIMIT` vượt ngưỡng, giữ `LIMIT` nhỏ hơn),
   `pipeline/` với `normalize` đã hoàn chỉnh và bốn bước còn lại là interface chờ triển khai,
   endpoint `POST /assistant/chat` trả 501 để frontend tích hợp được ngay.
 - **Frontend**: route group `(app)` với 6 trang module + `/login`, app shell, registry module
@@ -46,7 +47,7 @@ triển khai song song sáu module.
 | Cổng | Kết quả |
 | --- | --- |
 | `ruff format --check` · `ruff check` · `mypy` | xanh (46 file nguồn) |
-| `pytest` | 43 test xanh |
+| `pytest` | 51 test xanh |
 | `prettier --check` · `eslint` · `tsc --noEmit` | xanh |
 | `vitest` | 4 test xanh |
 | `next build` | xanh, 8 route tĩnh |
@@ -64,7 +65,8 @@ triển khai song song sáu module.
 
 ## Rủi ro
 
-- **Báo cáo mâu thuẫn DBMS**: §3.2 ghi MySQL trong khi §1.4.2 và §4.1.2 ghi PostgreSQL. Cần sửa
-  §3.2 cho thống nhất trước khi viết DDL, nếu không phần thiết kế CSDL sẽ lệch với sản phẩm.
+- **DBMS đã chốt MySQL 8.4**: báo cáo ghi MySQL xuyên suốt (§1.4.2, §3.1.1, §3.2, §3.4.1,
+  §4.1.2) và sản phẩm dùng đúng MySQL — không còn lệch. Giữ cú pháp MySQL (`TINYINT(1)`, `DATETIME`,
+  `JSON`, `utf8mb4`), không đưa cú pháp PostgreSQL vào báo cáo hay mã nguồn.
 - **Prompt của trợ lý AI phụ thuộc lược đồ**: bước `prompt.py` chỉ nên triển khai sau khi DDL ổn định.
 - **Phụ thuộc mạng khi build**: đã bỏ `next/font/google` để `next build` chạy được cả khi offline.
