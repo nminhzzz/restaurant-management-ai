@@ -8,7 +8,7 @@ và **khối trợ lý AI** cho phép hỏi đáp, phân tích dữ liệu kinh 
 ## Kiến trúc
 
 ```
-Next.js (web)  ──HTTP──▶  FastAPI (api)  ──SQL──▶  PostgreSQL
+Next.js (web)  ──HTTP──▶  FastAPI (api)  ──SQL──▶  MySQL
                                 │
                                 └──▶  LLM (API thương mại, dự phòng Ollama)
 ```
@@ -33,13 +33,13 @@ Next.js (web)  ──HTTP──▶  FastAPI (api)  ──SQL──▶  PostgreSQ
 
 - Python 3.12+ và [uv](https://docs.astral.sh/uv/)
 - Node.js 20+ và pnpm 9+
-- Docker (chạy PostgreSQL)
+- Docker (chạy MySQL)
 
 ## Bắt đầu
 
 ```bash
 make setup      # cài dependencies cho cả api và web
-make db-up      # khởi động PostgreSQL bằng docker compose
+make db-up      # khởi động MySQL bằng docker compose
 make env        # tạo tập biến môi trường cục bộ từ file mẫu
 make migrate    # tạo schema (khi có migration đầu tiên)
 make api        # http://localhost:8000/docs
@@ -54,7 +54,10 @@ make web        # http://localhost:3000
 | `make lint` / `make fmt` | Kiểm tra / tự sửa định dạng và lint |
 | `make typecheck` | mypy (api) và tsc (web) |
 | `make test` | pytest (api) và vitest (web) |
-| `make db-up` / `make db-down` | Bật / tắt PostgreSQL |
+| `make db-up` / `make db-down` | Bật / tắt MySQL |
+
+Cài hook cục bộ (ruff + prettier) một lần bằng `pipx install pre-commit && pre-commit install`;
+hook chỉ là lớp nhanh, `make gate` và CI vẫn là cổng kiểm tra đầy đủ.
 
 ## Phân quyền
 

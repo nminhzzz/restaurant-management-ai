@@ -9,6 +9,11 @@ một view chỉ-đọc, và tài khoản CSDL dùng để thực thi truy vấn
 | Thu ngân/NV order | `vw_ai_thungan` | `ORDER`, `CHI_TIET_ORDER`, `HOA_DON`, `GIAO_DICH_THANH_TOAN`, `MON_AN`, `BAN` | toàn bộ nhóm bảng kho, giá vốn, lợi nhuận |
 | Nhân viên kho | `vw_ai_kho` | `NGUYEN_LIEU`, `LO_NGUYEN_LIEU`, `PHIEU_NHAP_KHO`, `PHIEU_XUAT_KHO`, `PHIEU_KIEM_KE`, `GIAO_DICH_KHO` | `HOA_DON`, `GIAO_DICH_THANH_TOAN`, `GIA_BINH_QUAN_THANG` |
 
+Tên view viết **chữ thường** (`vw_ai_*`) ở tầng CSDL và trong mã nguồn; ký hiệu `VW_AI_*` trong
+báo cáo là cùng đối tượng được viết hoa theo quy ước tài liệu. MySQL trên Linux phân biệt
+hoa/thường tên bảng/view (`lower_case_table_names=0`), nên DDL phải tạo đúng chữ thường để khớp
+`apps/api/src/app/modules/ai/scope.py` và bộ dữ liệu đánh giá.
+
 ## Trạng thái
 
 Thư mục này hiện chỉ ghi lại **hợp đồng** của ba view. Câu lệnh `CREATE VIEW` sẽ được thêm cùng

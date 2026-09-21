@@ -2,20 +2,34 @@ name: restaurant-management-ai
 
 services:
   db:
-    image: postgres:18-alpine
+    image: mysql:8.4
     container_name: restaurant-db
     restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-restaurant}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-restaurant}
-      POSTGRES_DB: ${POSTGRES_DB:-restaurant}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-restaurant-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-restaurant}
+      MYSQL_USER: ${MYSQL_USER:-restaurant}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-restaurant}
       TZ: Asia/Ho_Chi_Minh
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${MYSQL_PORT:-3306}:3306"
     volumes:
-      - db-data:/var/lib/postgresql/data
+      - db-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-restaurant} -d ${POSTGRES_DB:-restaurant}"]
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "127.0.0.1",
+          "-u",
+          "root",
+          "-p${MYSQL_ROOT_PASSWORD:-restaurant-root}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 10

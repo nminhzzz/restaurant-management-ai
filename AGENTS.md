@@ -9,7 +9,7 @@ Quy tắc chung trong `~/.codex/AGENTS.md` vẫn áp dụng đầy đủ; file n
 | --- | --- |
 | Web | Next.js 16 (App Router), React 19, TypeScript, Tailwind 4, Vitest |
 | API | Python 3.12, FastAPI, SQLAlchemy 2 (async), Alembic, pytest, ruff, mypy |
-| Dữ liệu | PostgreSQL 18, view phân quyền `VW_AI_*` |
+| Dữ liệu | MySQL 8.4, view phân quyền `VW_AI_*` |
 | AI | LLM qua API thương mại (mặc định), dự phòng Ollama; kiểm duyệt SQL bằng `sqlglot` |
 
 ## Bản đồ repository
@@ -66,8 +66,9 @@ Chạy riêng: `cd apps/api && uv run pytest`, `cd apps/web && pnpm test`.
 
 ## Cạm bẫy đã biết
 
-- Báo cáo đang **mâu thuẫn về DBMS**: §1.4.2 và §4.1.2 ghi PostgreSQL, §3.2 ghi MySQL. Dự án đã chọn
-  PostgreSQL; khi sửa tài liệu phải đồng bộ lại §3.2.
+- DBMS đã chốt là **MySQL 8.4** và báo cáo cũng ghi MySQL — giữ nhất quán khi thêm nội dung CSDL,
+  đừng đưa vào cú pháp PostgreSQL. Định danh giữ tiếng Việt theo ERD (`NGUYEN_LIEU`, `MaNguyenLieu`,
+  `DaXoa`, kiểu `TINYINT(1)`/`DATETIME`/`JSON` theo đúng báo cáo).
 - `next-env.d.ts` bị gitignore; `pnpm typecheck` trên bản clone mới không có file này vẫn phải xanh —
   đừng dùng `LayoutProps`/`PageProps` sinh tự động trong code.
 - `apps/web/AGENTS.md` do chính `next dev` sinh và ghi lại; không sửa file đó.

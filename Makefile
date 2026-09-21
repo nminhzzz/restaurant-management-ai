@@ -21,10 +21,10 @@ env: ## Tạo tập biến môi trường cục bộ từ file mẫu nếu chưa
 	@test -f $(ENV_FILE) || cp $(ENV_TEMPLATE) $(ENV_FILE)
 	@echo "$(ENV_FILE) đã sẵn sàng"
 
-db-up: ## Bật PostgreSQL bằng docker compose
+db-up: ## Bật MySQL bằng docker compose
 	docker compose up -d db
 
-db-down: ## Tắt PostgreSQL
+db-down: ## Tắt MySQL
 	docker compose down
 
 api: ## Chạy backend ở chế độ phát triển (cổng 8000)
@@ -58,8 +58,12 @@ typecheck: ## mypy (api) và tsc (web)
 	cd $(API) && uv run mypy .
 	cd $(WEB) && pnpm typecheck
 
-test: ## pytest (api) và vitest (web)
+test: test-api test-web ## pytest (api) và vitest (web)
+
+test-api: ## Chạy kiểm thử backend
 	cd $(API) && uv run pytest
+
+test-web: ## Chạy kiểm thử frontend
 	cd $(WEB) && pnpm test
 
 build: ## Build production bundle của web

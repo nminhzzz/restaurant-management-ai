@@ -36,6 +36,27 @@ def test_existing_limit_is_kept() -> None:
     assert "LIMIT 100" not in result
 
 
+def test_limit_above_the_ceiling_is_clamped() -> None:
+    result = guard("SELECT * FROM vw_ai_kho LIMIT 1000000000")
+
+    assert "LIMIT 100" in result
+    assert "1000000000" not in result
+
+
+def test_missing_limit_is_added_while_offset_survives() -> None:
+    result = guard("SELECT * FROM vw_ai_kho OFFSET 3")
+
+    assert "LIMIT 100" in result
+    assert "OFFSET 3" in result
+
+
+def test_small_limit_keeps_its_offset() -> None:
+    result = guard("SELECT * FROM vw_ai_kho LIMIT 5 OFFSET 2")
+
+    assert "LIMIT 5" in result
+    assert "OFFSET 2" in result
+
+
 def test_joins_within_the_role_scope_are_accepted() -> None:
     result = guard("SELECT a.x FROM vw_ai_kho a JOIN vw_ai_kho b ON a.id = b.id")
 
@@ -94,6 +115,26 @@ def test_select_into_is_rejected() -> None:
 def test_sql_of_another_role_is_rejected() -> None:
     with pytest.raises(BusinessRuleError):
         guard("SELECT * FROM vw_ai_quanly")
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "SELECT LOAD_FILE('/etc/passwd') FROM vw_ai_kho",
+        "SELECT SLEEP(100) FROM vw_ai_kho",
+        "SELECT BENCHMARK(1000000, MD5('a')) FROM vw_ai_kho",
+        "SELECT GET_LOCK('x', 10) FROM vw_ai_kho",
+        "SELECT sys_exec('id') FROM vw_ai_kho",
+    ],
+)
+def test_dangerous_functions_are_rejected(sql: str) -> None:
+    with pytest.raises(BusinessRuleError):
+        guard(sql)
+
+
+def test_into_outfile_is_rejected() -> None:
+    with pytest.raises(BusinessRuleError):
+        guard("SELECT * FROM vw_ai_kho INTO OUTFILE '/tmp/dump'")
 
 
 @pytest.mark.parametrize("sql", ["", "   ", "not sql at all"])
