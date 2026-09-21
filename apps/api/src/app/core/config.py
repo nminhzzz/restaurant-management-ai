@@ -20,9 +20,11 @@ class Settings(BaseSettings):
     api_prefix: str = "/api/v1"
     cors_origins: list[str] = Field(default=["http://localhost:3000"])
 
-    database_url: str = "postgresql+psycopg://restaurant:restaurant@localhost:5432/restaurant"
+    database_url: str = (
+        "mysql+asyncmy://restaurant:restaurant@localhost:3306/restaurant?charset=utf8mb4"
+    )
 
-    jwt_secret: str = "dev-only-secret-replace-me-in-dotenv-0123456789"
+    jwt_secret: str = "dev-only-secret-replace-me-0123456789"
     jwt_algorithm: str = "HS256"
     access_token_ttl_minutes: int = 480
 
