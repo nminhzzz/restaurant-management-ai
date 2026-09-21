@@ -2,7 +2,7 @@
 
 KHOA CÔNG NGHỆ THÔNG TIN
 
-![Hình 1](images/image_1.png)
+![Hình 1](Images/image_1.png)
 
 Lê Nam Khánh – Nguyễn Mạnh Hùng – Lê Nho Minh
 
@@ -18,7 +18,7 @@ Hà Nội – Năm 2026
 
 KHOA CÔNG NGHỆ THÔNG TIN
 
-![Hình 2](images/image_2.png)
+![Hình 2](Images/image_2.png)
 
 Lê Nam Khánh – Nguyễn Mạnh Hùng – Lê Nho Minh
 
@@ -561,7 +561,7 @@ Các chức năng nghiệp vụ được gom thành 6 nhóm (module), tương �
 
 #### 2.1.2. Sơ đồ phân rã chức năng (BFD)
 
-![Hình 3](images/image_3.png)
+![Hình 3](Images/image_3.png)
 
 Hình 1. Sơ đồ phân rã chức năng (BFD) của hệ thống
 
@@ -569,31 +569,31 @@ Hình 1. Sơ đồ phân rã chức năng (BFD) của hệ thống
 
 Các sơ đồ Use Case dưới đây gồm một sơ đồ tổng quan và sáu sơ đồ chi tiết theo từng module, tương ứng với đặc tả chức năng tại mục 2.3. Hệ thống có ba tác nhân người dùng là Quản lý, Thu ngân / NV order và Nhân viên kho, cùng hai hệ thống ngoài là Cổng thanh toán và LLM API; Quản lý kế thừa quyền của hai vai trò còn lại. Các hành vi tự động của hệ thống (trừ/hoàn kho, in phiếu, cảnh báo, ghi audit) là business rule nên không vẽ thành use case.
 
-![Hình 4](images/image_4.png)
+![Hình 4](Images/image_4.png)
 
 Hình 2. Use Case tổng quan
 
-![Hình 5](images/image_5.png)
+![Hình 5](Images/image_5.png)
 
 Hình 3. Use Case quản lý danh mục
 
-![Hình 6](images/image_6.png)
+![Hình 6](Images/image_6.png)
 
 Hình 4. Use Case bán hàng
 
-![Hình 7](images/image_7.png)
+![Hình 7](Images/image_7.png)
 
 Hình 5. Use Case quản lý kho
 
-![Hình 8](images/image_8.png)
+![Hình 8](Images/image_8.png)
 
 Hình 6. Use Case báo cáo
 
-![Hình 9](images/image_9.png)
+![Hình 9](Images/image_9.png)
 
 Hình 7. Use Case cài đặt
 
-![Hình 10](images/image_10.png)
+![Hình 10](Images/image_10.png)
 
 Hình 8. Use Case AI Assistant
 
@@ -605,7 +605,7 @@ Hình 9. Ký hiệu sử dụng trong DFD
 
 #### 2.2.2. Sơ đồ luồng dữ liệu (DFD) mức ngữ cảnh
 
-![Hình 11](images/image_11.png)
+![Hình 11](Images/image_11.png)
 
 Hình 9. DFD mức ngữ cảnh (DFD0)
 
@@ -625,23 +625,23 @@ Hình 13. DFD mức dưới đỉnh (DFD2) - 3
 
 Năm sơ đồ tuần tự dưới đây mô tả luồng xử lý của các use case chính, tương ứng với đặc tả chức năng tại mục 2.3.
 
-![Hình 12](images/image_12.png)
+![Hình 12](Images/image_12.png)
 
 Hình 2. SD-01 — Đăng nhập và phân quyền theo vai trò
 
-![Hình 13](images/image_13.png)
+![Hình 13](Images/image_13.png)
 
 Hình 3. SD-02 — Lập và gửi order xuống bếp
 
-![Hình 14](images/image_14.png)
+![Hình 14](Images/image_14.png)
 
 Hình 4. SD-03 — Thanh toán bằng mã QR và phát hành hóa đơn
 
-![Hình 15](images/image_15.png)
+![Hình 15](Images/image_15.png)
 
 Hình 5. SD-04 — Nhập kho và tạo lô nguyên liệu
 
-![Hình 16](images/image_16.png)
+![Hình 16](Images/image_16.png)
 
 Hình 6. SD-05 — Hỏi AI Assistant
 
@@ -1163,7 +1163,7 @@ Dòng món trong order, neo vào phiên bản giá và công thức tại thời
 
 Bảng 15. Thuộc tính của thực thể CHI_TIET_ORDER
 
-Business Rule (BR-CTO-01): MaPhienBanGia phải thuộc đúng LICH_SU_GIA_MON.MaMon = MaMon của chính dòng CHI_TIET_ORDER; tương tự, MaCongThuc phải thuộc đúng CONG_THUC.MaMon = MaMon của dòng đó. Ràng buộc này đảm bảo một dòng bán hàng không thể tham chiếu phiên bản giá hoặc công thức của món khác; do MySQL không hỗ trợ ràng buộc liên bảng dạng composite FK bắc cầu qua MaMon, ràng buộc được kiểm tra ở tầng ứng dụng khi ghi dòng order.
+Business Rule (BR-CTO-01): MaPhienBanGia phải thuộc đúng LICH_SU_GIA_MON.MaMon = MaMon của chính dòng CHI_TIET_ORDER; tương tự, MaCongThuc phải thuộc đúng CONG_THUC.MaMon = MaMon của dòng đó. Ràng buộc này đảm bảo một dòng bán hàng không thể tham chiếu phiên bản giá hoặc công thức của món khác; để tránh khóa ngoại ghép bắc cầu qua MaMon làm phức tạp thiết kế, ràng buộc được kiểm tra ở tầng ứng dụng khi ghi dòng order.
 
 a15. Thực thể LICH_SU_DOI_BAN
 
