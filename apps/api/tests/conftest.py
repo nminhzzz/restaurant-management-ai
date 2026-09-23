@@ -13,9 +13,15 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
+import app.modules.ai.models
+import app.modules.catalog.models
+import app.modules.inventory.models
+import app.modules.sales.models
+import app.modules.settings.models
+import app.shared.audit  # noqa: F401
 from app.core.config import get_settings
 from app.core.security import create_access_token
-from app.main import app
+from app.main import app as fastapi_app
 from app.shared import business_date
 from app.shared.base import Base
 from app.shared.roles import Role
@@ -29,7 +35,7 @@ def freeze_clock(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.fixture
 def client() -> Iterator[TestClient]:
-    with TestClient(app) as test_client:
+    with TestClient(fastapi_app) as test_client:
         yield test_client
 
 

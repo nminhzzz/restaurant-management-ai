@@ -7,10 +7,10 @@ if (-not $env:AI_READONLY_PASSWORD_WAREHOUSE) { throw "Set AI_READONLY_PASSWORD_
 $rootPwd = if ($env:MYSQL_ROOT_PASSWORD) { $env:MYSQL_ROOT_PASSWORD } else { "restaurant-root" }
 
 foreach ($view in @("db/views/vw_ai_quanly.sql","db/views/vw_ai_thungan.sql","db/views/vw_ai_kho.sql")) {
-  Get-Content $view | docker compose exec -T db mysql -uroot -p"$rootPwd" restaurant
+  Get-Content $view -Encoding utf8 | docker compose exec -T db mysql -uroot -p"$rootPwd" restaurant
 }
 
-$t = Get-Content db/views/grants.sql.template -Raw
+$t = Get-Content db/views/grants.sql.template -Raw -Encoding utf8
 $t = $t.Replace("__AI_READONLY_PASSWORD_MANAGER__", $env:AI_READONLY_PASSWORD_MANAGER)
 $t = $t.Replace("__AI_READONLY_PASSWORD_CASHIER__", $env:AI_READONLY_PASSWORD_CASHIER)
 $t = $t.Replace("__AI_READONLY_PASSWORD_WAREHOUSE__", $env:AI_READONLY_PASSWORD_WAREHOUSE)

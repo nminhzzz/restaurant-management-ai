@@ -9,6 +9,8 @@ class UserStatus(StrEnum):
 
 
 class DishStatus(StrEnum):
+    # NHAP is application-derived (no effective CONG_THUC) — not stored in
+    # MON_AN.TrangThai (see phase-0 decision #1).
     NHAP = "Nháp"
     HOAT_DONG = "Hoạt động"
     HET_NGUYEN_LIEU = "Hết nguyên liệu"

@@ -90,7 +90,7 @@ async def active_recipe(session: AsyncSession, dish_id: int) -> object | None:
 
     try:
         r = await session.execute(
-            text("SELECT * FROM CONG_THUC WHERE MaMon=:id AND TrangThai='HieuLuc' LIMIT 1"),
+            text("SELECT * FROM CONG_THUC WHERE MaMon=:id AND TrangThai='Hiệu lực' LIMIT 1"),
             {"id": dish_id},
         )
         return r.mappings().first()
@@ -103,7 +103,7 @@ async def active_price(session: AsyncSession, dish_id: int) -> object | None:
 
     try:
         r = await session.execute(
-            text("SELECT * FROM LICH_SU_GIA_MON WHERE MaMon=:id AND TrangThai='HieuLuc' LIMIT 1"),
+            text("SELECT * FROM LICH_SU_GIA_MON WHERE MaMon=:id AND TrangThai='Hiệu lực' LIMIT 1"),
             {"id": dish_id},
         )
         return r.mappings().first()

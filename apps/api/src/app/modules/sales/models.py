@@ -14,7 +14,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.shared.base import Base
+from app.shared.base import Base  # PaymentTransaction defaults match enums.PaymentStatus values
 
 
 class Order(Base):

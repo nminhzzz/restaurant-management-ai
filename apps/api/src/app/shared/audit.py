@@ -6,7 +6,7 @@ Append-only: the table is never updated or deleted by application code.
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import JSON, BigInteger, DateTime, ForeignKey, Index, Integer, String, func
+from sqlalchemy import JSON, BigInteger, DateTime, ForeignKey, Index, String, func
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from app.shared.base import Base
@@ -17,7 +17,7 @@ class SystemAuditLog(Base):
 
     id: Mapped[int] = mapped_column("MaNhatKy", BigInteger, primary_key=True)
     user_id: Mapped[int] = mapped_column(
-        "MaNguoiDung", Integer, ForeignKey("NGUOI_DUNG.MaNguoiDung"), nullable=False
+        "MaNguoiDung", BigInteger, ForeignKey("NGUOI_DUNG.MaNguoiDung"), nullable=False
     )
     occurred_at: Mapped[datetime] = mapped_column(
         "ThoiDiem", DateTime, server_default=func.now(), nullable=False

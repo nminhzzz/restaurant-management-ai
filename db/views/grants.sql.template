@@ -3,10 +3,6 @@ CREATE USER IF NOT EXISTS 'ai_manager'@'%' IDENTIFIED BY '__AI_READONLY_PASSWORD
 CREATE USER IF NOT EXISTS 'ai_cashier'@'%' IDENTIFIED BY '__AI_READONLY_PASSWORD_CASHIER__';
 CREATE USER IF NOT EXISTS 'ai_warehouse'@'%' IDENTIFIED BY '__AI_READONLY_PASSWORD_WAREHOUSE__';
 
-GRANT SELECT ON restaurant.vw_ai_quanly TO 'ai_manager'@'%';
-GRANT SELECT ON restaurant.vw_ai_thungan TO 'ai_cashier'@'%';
-GRANT SELECT ON restaurant.vw_ai_kho TO 'ai_warehouse'@'%';
-
 REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'ai_manager'@'%';
 GRANT SELECT ON restaurant.vw_ai_quanly TO 'ai_manager'@'%';
 REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'ai_cashier'@'%';
