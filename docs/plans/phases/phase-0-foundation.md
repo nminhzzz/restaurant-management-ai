@@ -38,7 +38,8 @@ quy ước vật lý), §3.2.3 (index), §3.4.1 (ma trận quyền dữ liệu).
 | File | Trách nhiệm |
 | --- | --- |
 | `apps/api/src/app/shared/enums.py` | Toàn bộ trạng thái nghiệp vụ dùng chung (đơn, món, giao dịch, lô, phiếu…). |
-| `apps/api/src/app/shared/base.py` | Đã có: `Base`, naming convention, `CreatedAtMixin`, `SoftDeleteMixin`. Bổ sung mixin `BusinessDateMixin`. |
+| `apps/api/src/app/shared/base.py` | Đã có: `Base`, naming convention, `CreatedAtMixin`, `SoftDeleteMixin`. Bổ sung khoá `ck` vào naming convention và mixin `BusinessDateMixin`. |
+| `apps/api/src/app/shared/business_date.py` | Đã có: `business_date_of`, `business_date_start`, `business_date_range`, `next_business_date`. Bổ sung `now()` — seam đồng hồ duy nhất (Task 0 Step 4). |
 | `apps/api/src/app/modules/settings/models.py` | `VAI_TRO`, `NGUOI_DUNG`, `CAU_HINH_HE_THONG`. |
 | `apps/api/src/app/shared/audit.py` | Đã có `NHAT_KY_HE_THONG`; chỉnh kiểu cột theo quyết định #3. |
 | `apps/api/src/app/modules/catalog/models.py` | `NHOM_MON`, `MON_AN`, `LICH_SU_GIA_MON`, `CONG_THUC`, `CHI_TIET_CONG_THUC`, `NGUYEN_LIEU`, `NHA_CUNG_CAP`, `BAN`. |
@@ -47,7 +48,8 @@ quy ước vật lý), §3.2.3 (index), §3.4.1 (ma trận quyền dữ liệu).
 | `apps/api/src/app/modules/ai/models.py` | `PHIEN_CHAT_AI`, `TRUY_VAN_AI`. |
 | `apps/api/migrations/versions/<rev>_initial_schema.py` | Migration đầu tiên: 29 bảng + index §3.2.3. |
 | `db/views/vw_ai_quanly.sql`, `vw_ai_thungan.sql`, `vw_ai_kho.sql` | DDL ba view phân quyền. |
-| `db/views/grants.sql` | Tạo ba tài khoản chỉ-đọc + `GRANT SELECT` trên đúng view của mình. |
+| `db/views/grants.sql.template` | Mẫu `CREATE USER` + `GRANT SELECT`; mật khẩu là placeholder, **không** chứa giá trị thật. |
+| `scripts/apply_grants.sh` | Sinh SQL từ template + biến môi trường rồi pipe vào `mysql`; không ghi mật khẩu ra file. |
 | `apps/api/tests/schema/test_schema_contract.py` | Kiểm thử ràng buộc lược đồ (§3.2.2) trên metadata. |
 
 ## Thứ tự phụ thuộc khi tạo bảng
@@ -89,6 +91,11 @@ quy ước vật lý), §3.2.3 (index), §3.4.1 (ma trận quyền dữ liệu).
    `GIAO_DICH_THANH_TOAN(MaOrder, TrangThai)`, `NGUOI_DUNG(MaVaiTro)`, `NHAT_KY_HE_THONG(ThoiDiem)`,
    `HOA_DON(ThoiDiemXuat)`, `TRUY_VAN_AI(MaPhien, ThoiDiem)`.
 7. **`GIA_BINH_QUAN_THANG`**: khoá chính ghép `(MaNguyenLieu, Thang)`, `Thang` lưu `YYYYMM` dạng `INT`.
+8. **Naming convention phải có khoá `ck`**: `NAMING_CONVENTION` hiện tại ở `shared/base.py` chỉ có
+   `ix`/`uq`/`fk`/`pk`, nên `CheckConstraint` không được đặt tên và SQL sinh ra là `CHECK (...)` trần.
+   Thêm `"ck": "ck_%(table_name)s_%(constraint_name)s"` và **đặt tên cho mọi CHECK** khi khai báo
+   (`CheckConstraint(..., name="dine_in_needs_a_table")`). Không có bước này thì mọi test lọc
+   constraint theo tiền tố `ck_` sẽ nhận tập rỗng và pass một cách vô nghĩa.
 
 ## Quyết định cần chốt
 
@@ -100,6 +107,268 @@ quy ước vật lý), §3.2.3 (index), §3.4.1 (ma trận quyền dữ liệu).
 
 Ba điểm này là **phát hiện khi đối chiếu báo cáo với chính nó**, không phải bất đồng kỹ thuật —
 nêu ra để bạn xác nhận, không tự ý sửa báo cáo.
+
+---
+
+## Task 0: Hạ tầng kiểm thử (fixture, dependency, marker)
+
+**Files:**
+- Modify: `apps/api/pyproject.toml`
+- Modify: `apps/api/src/app/shared/business_date.py` (thêm `now()` — seam duy nhất cho đồng hồ)
+- Modify: `apps/api/tests/conftest.py`
+- Create: `apps/api/tests/factories.py`
+- Create: `apps/api/tests/helpers.py`
+
+**Interfaces:**
+- Consumes: `Base.metadata` (Task 1–5 mới đăng ký bảng, nên fixture ở đây phải chịu được metadata rỗng).
+- Produces: fixture `engine`, `session`, `session_factory`, `db_session`, `client`, `manager_token`,
+  `cashier_token`, `warehouse_token`, `active_user`, `locked_user`, `fake_llm`, `seed_views`,
+  `mysql_engine_factory`, `mysql_session_factory`, `freeze_clock` (autouse); `factories.py` (hàm tạo
+  dữ liệu dùng chung);
+  `helpers.py` (`today`, `tomorrow`, `reload`, `active_recipe`, `active_price`, `counter_for`,
+  `audit_count`, `latest_audit`, `monthly_cost_count`, `ingredient_total`…).
+
+**Vì sao task này đứng trước tất cả:** 272 test trong bảy phase sau đều dùng các fixture và helper ở
+trên. `tests/conftest.py` hiện chỉ có `client` và `token_for`, nên nếu không dựng tầng này trước thì
+bước "Chạy test cho đỏ" ở mọi task sẽ đỏ vì `fixture 'db_session' not found` chứ không phải vì thiếu
+code — vòng red→green mất giá trị ngay từ task đầu tiên.
+
+**Ba nhóm phải có đủ, nếu thiếu một nhóm là cả bảy phase sau đứng:**
+
+1. **Fixture CSDL** (`engine`, `session`, `db_session`, `session_factory`, `mysql_*`).
+2. **Fixture xác thực** (`client`, `manager_token`, `cashier_token`, `warehouse_token`, `active_user`,
+   `locked_user`).
+3. **Helper đọc dữ liệu** (`reload`, `active_recipe`, `active_price`, `counter_for`, `audit_count`,
+   `latest_audit`, `monthly_cost_count`, `ingredient_total`, `negative_stock_count`…). Đây là nhóm dễ
+   bị bỏ sót nhất: test gọi chúng như thể chúng có sẵn, nhưng chúng là **hàm của tầng test**, không
+   phải của tầng ứng dụng.
+
+**Đồng hồ phải cắm được, và phải là *một* seam.** Không test nào được gọi `date.today()`/
+`datetime.now()`, và **không service nào** được gọi chúng trực tiếp. Thêm vào
+`app/shared/business_date.py`:
+
+```python
+def now() -> datetime:
+    """The single clock seam. Every service reads 'now' through this function, so a
+    test can pin it without patching the stdlib."""
+    return datetime.now()
+```
+
+`business_date_of(now())` là cách duy nhất để biết Business Date hôm nay. Nếu một service gọi
+`datetime.now()` trực tiếp, `today()` trong test sẽ **không** khớp với giá trị service tính ra —
+`test_the_counter_starts_at_one_for_each_business_date` (Phase 4) sẽ đỏ một cách khó hiểu, và mọi
+test quanh Business Date trở thành phụ thuộc đồng hồ thật.
+
+`helpers.py` neo vào một mốc cố định:
+
+```python
+FIXED_NOW = datetime(2026, 9, 24, 10, 0)  # a Thursday, inside the business day
+
+
+def today() -> date:
+    return business_date_of(FIXED_NOW)
+
+
+def tomorrow() -> date:
+    return today() + timedelta(days=1)
+```
+
+Chỉ hai hàm. `next_business_date` **không** có ở đây — xem ghi chú về va chạm tên bên dưới.
+
+Và `conftest.py` có một fixture **autouse** cắm seam đó cho mọi test (`FIXED_NOW` import từ
+`tests/helpers.py`):
+
+```python
+@pytest.fixture(autouse=True)
+def freeze_clock(monkeypatch):
+    """Pin the clock for every test. A suite on the real clock goes red between
+    05:59 and 06:01, and again whenever a run crosses midnight."""
+    monkeypatch.setattr(business_date, "now", lambda: FIXED_NOW)
+```
+
+Vì sao mốc `2026-09-24 10:00`: nó nằm giữa Business Date, cách xa ranh giới 06:00, nên không bao giờ
+rơi vào vùng mập mờ. Test nào cần một mốc khác thì `monkeypatch` lại seam này tại chỗ, chứ **không**
+gọi đồng hồ thật — vi phạm §4 của quy tắc chung ("no real clock without a controllable seam").
+
+Endpoint nhận `anchor`/`on` trong test luôn truyền mốc lấy từ `today()`/`tomorrow()`; endpoint không
+nhận tham số ngày thì đọc `business_date.now()` bên trong.
+
+- [ ] **Step 1: Thêm dependency và cấu hình pytest**
+
+Thêm vào `[dependency-groups] dev` của `apps/api/pyproject.toml`: `aiosqlite>=0.20` (test ràng buộc
+`CHECK` trên CSDL tạm) và `asgi-lifespan>=2.1` (chạy app trong test async). Thêm vào
+`[tool.pytest.ini_options]`:
+
+```toml
+markers = [
+    "integration: needs a real MySQL instance (make db-up)",
+    "slow: seeds a full year of data; run explicitly, not in the gate",
+]
+pythonpath = ["../.."]  # so `import data.eval.harness` resolves from tests/
+addopts = "-q --strict-markers -m 'not integration and not slow'"
+```
+
+Ba việc cùng lúc, và cả ba đều cần:
+
+1. **Đăng ký marker.** Thiếu bước này thì `@pytest.mark.integration` sinh `PytestUnknownMarkWarning`.
+2. **`--strict-markers`.** Một marker gõ sai (`@pytest.mark.integraton`) sẽ bị bắt ngay thay vì lặng
+   lẽ bỏ qua cả bài test — đúng loại thất bại im lặng mà §4 của quy tắc chung cấm coi là xanh.
+3. **`-m 'not integration and not slow'`.** `make gate` không được đòi MySQL đang chạy, cũng không
+   được seed 12 tháng dữ liệu. Chạy đầy đủ bằng tay:
+   `./.venv/bin/pytest -m integration` (sau `make db-up`) và `./.venv/bin/pytest -m slow`.
+
+`addopts` hiện tại trong `apps/api/pyproject.toml` là `"-q"`; thay bằng dòng trên.
+
+- [ ] **Step 2: Viết test khẳng định fixture chạy được**
+
+```python
+def test_the_async_session_fixture_yields_a_working_session(session) -> None:
+    assert session is not None
+
+
+async def test_the_session_can_execute_a_statement(session) -> None:
+    result = await session.execute(text("SELECT 1"))
+    assert result.scalar_one() == 1
+
+
+def test_each_role_gets_its_own_token(manager_token, cashier_token, warehouse_token) -> None:
+    assert len({manager_token, cashier_token, warehouse_token}) == 3
+
+
+def test_the_fake_llm_returns_what_it_was_told(fake_llm) -> None:
+    fake_llm.reply("SELECT 1")
+
+    assert fake_llm.complete("bất kỳ") == "SELECT 1"
+    assert fake_llm.calls == 1
+
+
+def test_the_fake_llm_replays_a_sequence_then_repeats_the_last(fake_llm) -> None:
+    fake_llm.reply_sequence(["a", "b"])
+
+    assert [fake_llm.complete("x") for _ in range(3)] == ["a", "b", "b"]
+
+
+def test_the_test_clock_is_pinned_to_a_fixed_instant() -> None:
+    """A suite on the real clock goes red between 05:59 and 06:01."""
+    assert today() == date(2026, 9, 24)
+    assert tomorrow() == date(2026, 9, 25)
+
+
+def test_the_test_clock_is_inside_a_business_day() -> None:
+    """The anchor must not sit on the 06:00 boundary, or the date it maps to is ambiguous."""
+    assert FIXED_NOW.hour > 6
+
+
+def test_the_autouse_fixture_pins_the_production_clock() -> None:
+    """`freeze_clock` must reach the seam the services actually read."""
+    assert business_date.now() == FIXED_NOW
+    assert business_date_of(business_date.now()) == today()
+
+
+async def test_the_two_mysql_fixtures_agree(mysql_engine_factory, mysql_session_factory) -> None:
+    """integration: both point at the same DATABASE_URL, or the isolation tests lie."""
+    async with mysql_session_factory() as session:
+        assert await session.scalar(text("SELECT 1")) == 1
+```
+
+- [ ] **Step 3: Chạy test cho đỏ**
+
+Run: `cd apps/api && ./.venv/bin/pytest tests/test_conftest.py -v`
+Expected: FAIL — `fixture 'session' not found` (và `ModuleNotFoundError: tests.helpers`)
+
+- [ ] **Step 4: Viết `conftest.py` và `factories.py`**
+
+`engine` dựng engine SQLite in-memory **async** (`sqlite+aiosqlite:///:memory:`) và tạo schema từ
+`Base.metadata`. Vì SQLite không có `SELECT ... FOR UPDATE` và bỏ qua nhiều `CHECK`, mọi test cần
+hành vi MySQL thật phải đánh dấu `@pytest.mark.integration` và dùng `mysql_engine_factory` (đọc
+`DATABASE_URL`).
+
+`session` là `AsyncSession` trong một transaction được **rollback** khi hết test — để test không
+nhiễm dữ liệu của nhau. `db_session` là alias của `session` cho những test cần truy vấn kiểm chứng
+sau khi gọi API.
+
+`freeze_clock` là **autouse**: mọi test đều chạy trên `FIXED_NOW`. Nó `monkeypatch`
+`app.shared.business_date.now` — seam mà service đọc — chứ không chỉ sửa helper của tầng test. Thiếu
+autouse thì `today()` trong test và Business Date mà service tính ra sẽ là hai giá trị khác nhau.
+
+`fake_llm` là đối tượng ghi lại prompt và trả về kịch bản đã định; nó thoả `LlmClient` của Phase 6
+nên Phase 6 chỉ cần `monkeypatch` `get_client` để trả về nó. Khai báo ở đây (không phải Phase 6) vì
+Phase 2–5 không dùng, nhưng Phase 6 dùng xuyên suốt và tầng fixture phải nằm một chỗ.
+
+`seed_views` tạo ba view rỗng trên SQLite để test prompt/guard chạy được mà không cần MySQL.
+
+`mysql_session_factory` (khác `mysql_engine_factory`) trả về **session** trên MySQL thật — Phase 3
+Task 1 và Phase 0 Task 8 cần nó để mở hai transaction song song và thử khoá dòng. Cả hai fixture đọc
+cùng `DATABASE_URL`, nên không có chuyện test cách ly chạy nhầm vào CSDL khác với test khoá dòng.
+
+**`active_user` cần một dòng `VAI_TRO` để trỏ tới**, mà bảng đó mới có model ở Task 1 của phase này
+và chưa có hàm seed nào (Phase 1 Task 1 mới thêm `seed_reference_data()`). Nên ở đây `conftest.py`
+tự chèn thẳng ba dòng vai trò bằng ORM:
+
+```python
+@pytest.fixture
+async def active_user(session):
+    """A signed-in cashier. Phase 1 Task 1 replaces this direct insert with
+    settings.service.seed_reference_data() once that function exists."""
+    session.add_all([
+        RoleTable(ma_vai_tro=role.value, ten_vai_tro=label) for role, label in ROLE_LABELS.items()
+    ])
+    await session.flush()
+    ...
+```
+
+Đây là **ngoại lệ có chủ đích** cho quy tắc "mọi thao tác ghi qua service": tầng test phải tự dựng
+được dữ liệu tham chiếu trước khi tầng service của Phase 1 tồn tại. Khi Phase 1 Task 1 xong, sửa
+fixture này gọi `seed_reference_data(session)` và xoá phần chèn tay — để hai đường không tồn tại
+song song. Ghi việc đó vào Step 0 của Phase 1 Task 1 (đã có).
+
+`helpers.py` gom các hàm đọc dữ liệu mà test dùng ở nhiều phase. Chúng là **hàm thuần đọc**, không
+chứa logic nghiệp vụ — nếu một helper bắt đầu có nhánh `if`, nó đã trở thành code sản phẩm và phải
+nằm trong `src/`.
+
+Đây là **danh sách đầy đủ** mà bảy phase sau gọi tên; thiếu một hàm là một test không viết được:
+
+| Nhóm | Hàm |
+| --- | --- |
+| Đồng hồ | `today`, `tomorrow`, `FIXED_NOW` (không có `next_business_date` — trùng tên với hàm ứng dụng) |
+| Nạp lại | `reload`, `reload_lot`, `reload_issue_line` |
+| Danh mục | `active_recipe`, `active_price`, `display_status`, `pending_price_versions`, `pending_recipe_versions`, `recipe_items` |
+| Kho | `ingredient_total`, `lot_total`, `ledger_total`, `lots_for`, `lot_of`, `movements_for`, `negative_stock_count`, `negative_lot_count`, `record_counts`, `monthly_cost_count`, `ingredient_ids` |
+| Bán hàng | `counter_for`, `payment_status`, `payment_row`, `order_status`, `line_status`, `invoice_count`, `invoice_business_date`, `payment_business_date`, `order_count`, `order_table`, `order_updated_at`, `tickets_for`, `ticket_by_id`, `rejected_webhook_count` |
+| Cài đặt | `audit_count`, `latest_audit`, `role_count`, `role_codes`, `config_count`, `get_config_row` |
+| AI | `latest_query`, `session_count` |
+| Seed | `ingredient_ids`, `order_status_counts`, `order_count_between`, `lot_cache_mismatch_count`, `ledger_mismatch_count` |
+
+Quy ước: mọi hàm nhận `session` là tham số **đầu tiên**; không hàm nào nhận `client`. Nếu một test
+gọi helper không có trong bảng này, đó là helper cần bổ sung vào `helpers.py`, không phải một hàm mới
+của tầng ứng dụng.
+
+**Một va chạm tên cần xử lý ngay.** `app.shared.business_date.next_business_date(moment, start_hour)`
+đã tồn tại và **nhận tham số**; helper trong test lại không nhận tham số nào. Đừng để hai cái cùng
+tên trong một file test.
+
+**Quyết định: bỏ `next_business_date()` khỏi `helpers.py`.** Test Phase 2 dùng `tomorrow()` —
+`test_the_default_target_is_the_next_business_date` khẳng định `BusinessDateApDung == tomorrow()`,
+đúng nghĩa "Business Date kế tiếp" và không tạo ra cái bẫy hai hàm cùng tên. Nếu sau này cần phân
+biệt (ví dụ Business Date kế tiếp của một mốc bất kỳ), gọi thẳng hàm của ứng dụng với tham số.
+
+Sửa ở Phase 2: `assert created.json()["BusinessDateApDung"] == tomorrow().isoformat()`.
+
+Fixture của từng phase nằm ở `apps/api/tests/modules/conftest.py` (Phase 2–6) và
+`apps/api/tests/seed/conftest.py` (Phase 7) — **không** dồn hết vào `tests/conftest.py`. Chỉ những
+fixture dùng ở ba phase trở lên mới thuộc file gốc; còn lại để gần chỗ dùng.
+
+- [ ] **Step 5: Chạy test cho xanh**
+
+Run: `cd apps/api && ./.venv/bin/pytest tests/test_conftest.py -v`
+Expected: PASS. Test `mysql_*` bị `addopts` loại khỏi lượt mặc định; chạy riêng bằng
+`./.venv/bin/pytest tests/test_conftest.py -v -m integration` sau `make db-up`, và ghi rõ kết quả
+trong báo cáo.
+
+- [ ] **Step 6: Kiểm tra kiểu, lint, commit**
+
+Run: `cd apps/api && ./.venv/bin/ruff format . && ./.venv/bin/ruff check . && ./.venv/bin/mypy .`
+Expected: xanh. Commit: `test(api): add the shared fixture layer and pytest markers`
 
 ---
 
@@ -121,8 +390,10 @@ nêu ra để bạn xác nhận, không tự ý sửa báo cáo.
 
 ```python
 from app.modules.settings.models import SystemConfig, User
-from app.shared.base import Base
+from app.shared.base import NAMING_CONVENTION, Base
 
+# NGUOI_DUNG deliberately has no DaXoa column: accounts are locked, never deleted
+# (FR-SET-01), so the soft-delete mixin does not apply here.
 EXPECTED = {
     "VAI_TRO": {"MaVaiTro", "TenVaiTro", "MoTa"},
     "NGUOI_DUNG": {"MaNguoiDung", "TenDangNhap", "MatKhauHash", "HoTen",
@@ -142,6 +413,12 @@ def test_user_is_restricted_by_role() -> None:
     fk = next(iter(User.__table__.foreign_keys))
     assert fk.target_fullname == "VAI_TRO.MaVaiTro"
     assert fk.ondelete == "RESTRICT"
+
+
+def test_check_constraints_get_a_name_from_the_convention() -> None:
+    """Without the ck key every CHECK is anonymous and cannot be asserted on."""
+    assert "ck" in NAMING_CONVENTION
+    assert NAMING_CONVENTION["ck"].startswith("ck_")
 ```
 
 - [ ] **Step 2: Chạy test cho đỏ**
@@ -180,6 +457,8 @@ Expected: `All checks passed!` và `Success: no issues found`
 - Consumes: `User`, `SystemConfig`, các enum ở Task 1.
 - Produces: `DishGroup`, `Dish`, `DishPriceVersion`, `Recipe`, `RecipeItem`, `Ingredient`,
   `Supplier`, `DiningTable`.
+  `NHOM_MON.ThuTuHienThi` là `int` **không UNIQUE** — `reorder_groups` (Phase 2 Task 1) gán lại 1..n
+  trong một transaction, nên giữa chừng có hai nhóm cùng số; `UNIQUE` sẽ làm thao tác đó fail.
 
 - [ ] **Step 1: Viết test cho các ràng buộc đặc thù của nhóm này**
 
@@ -271,8 +550,10 @@ def test_order_lines_reference_a_price_and_a_recipe_version() -> None:
 ```
 
 Kèm một test hành vi trên SQLite in-memory (dùng `aiosqlite`) khẳng định chèn order "Tại chỗ"
-không có `MaBan` thì `IntegrityError`. Nếu `CHECK` không chạy được trên SQLite, chuyển test này
-sang đánh dấu `@pytest.mark.integration` và chạy trên MySQL ở Task 6.
+không có `MaBan` thì `IntegrityError`. SQLite **có** thực thi `CHECK` (đã kiểm chứng bằng
+`sqlite3` cục bộ), nên test này chạy được trong `session` mặc định; nhưng `IntegrityError` của
+SQLAlchemy chỉ ném ra ở `flush()`, nên test phải `await session.flush()` trong `pytest.raises` chứ
+không chỉ `session.add()`.
 
 - [ ] **Step 2: Chạy test cho đỏ**
 
@@ -416,6 +697,8 @@ EXPECTED_INDEXES = {
 
 
 def test_the_schema_has_exactly_the_29_tables_of_the_report() -> None:
+    """Phase 4 Task 1 adds DEM_ORDER (the order-number counter) to this set — it is
+    not in the report, so it is not listed here until that task lands."""
     assert set(Base.metadata.tables) == EXPECTED_TABLES
 
 
@@ -493,7 +776,8 @@ Expected: cả hai chiều chạy sạch — migration lùi được là điều
 
 **Files:**
 - Create: `db/views/vw_ai_quanly.sql`, `db/views/vw_ai_thungan.sql`, `db/views/vw_ai_kho.sql`
-- Create: `db/views/grants.sql`
+- Create: `db/views/grants.sql.template`
+- Create: `scripts/apply_grants.sh`
 - Modify: `db/views/README.md` (ghi cách chạy)
 - Test: `apps/api/tests/schema/test_ai_views.py` (đánh dấu `integration`, cần MySQL)
 
@@ -501,7 +785,7 @@ Expected: cả hai chiều chạy sạch — migration lùi được là điều
 - Consumes: lược đồ ở Task 6, `app.modules.ai.scope.ROLE_VIEWS`, `app.modules.ai.accounts`.
 - Produces: ba view + ba tài khoản, khớp đúng `views_for(role)`.
 
-- [ ] **Step 1: Viết test khẳng định view chỉ chứa bảng thuộc phạm vi vai trò**
+- [ ] **Step 1: Viết test khẳng định view chỉ chứa bảng thuộc phạm vi vai trò (NFR-12)**
 
 Test đọc `information_schema.view_table_usage` và khẳng định:
 `vw_ai_thungan` không tham chiếu bảng nào thuộc nhóm kho (`NGUYEN_LIEU`, `LO_NGUYEN_LIEU`,
@@ -516,15 +800,59 @@ Expected: FAIL — view chưa tồn tại
 
 - [ ] **Step 3: Viết DDL view và grants**
 
-Ba file `.sql` tạo view **chữ thường** (`vw_ai_*`) đúng như `scope.py`; `grants.sql` tạo ba user
-`ai_manager` / `ai_cashier` / `ai_warehouse` và `GRANT SELECT` trên **đúng một view** mỗi user —
-không dùng chung tài khoản (NFR-06).
+Ba file `.sql` tạo view **chữ thường** (`vw_ai_*`) đúng như `scope.py`.
+
+**Không commit mật khẩu tài khoản CSDL.** §0 và §5 của quy tắc chung cấm commit credential, nên
+`db/views/grants.sql` **không tồn tại** dưới dạng file có mật khẩu thật. Thay vào đó:
+
+`db/views/grants.sql.template` — placeholder, commit được:
+
+```sql
+-- Rendered by scripts/apply_grants.sh; the passwords never touch a file on disk.
+CREATE USER IF NOT EXISTS 'ai_manager'@'%' IDENTIFIED BY '__AI_READONLY_PASSWORD_MANAGER__';
+CREATE USER IF NOT EXISTS 'ai_cashier'@'%' IDENTIFIED BY '__AI_READONLY_PASSWORD_CASHIER__';
+CREATE USER IF NOT EXISTS 'ai_warehouse'@'%' IDENTIFIED BY '__AI_READONLY_PASSWORD_WAREHOUSE__';
+
+GRANT SELECT ON restaurant.vw_ai_quanly TO 'ai_manager'@'%';
+GRANT SELECT ON restaurant.vw_ai_thungan TO 'ai_cashier'@'%';
+GRANT SELECT ON restaurant.vw_ai_kho TO 'ai_warehouse'@'%';
+
+-- Belt and braces: the account must not reach anything else, now or later.
+REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'ai_manager'@'%';
+GRANT SELECT ON restaurant.vw_ai_quanly TO 'ai_manager'@'%';
+```
+
+`scripts/apply_grants.sh` đọc ba biến môi trường `AI_READONLY_PASSWORD_MANAGER` / `_CASHIER` /
+`_WAREHOUSE`, thay vào template bằng `sed` trong ống dẫn, rồi pipe thẳng vào `mysql`:
+
+```bash
+#!/usr/bin/env bash
+# Applies the view grants without ever writing a password to disk.
+set -euo pipefail
+
+: "${AI_READONLY_PASSWORD_MANAGER:?set this in your shell profile}"
+: "${AI_READONLY_PASSWORD_CASHIER:?set this in your shell profile}"
+: "${AI_READONLY_PASSWORD_WAREHOUSE:?set this in your shell profile}"
+
+for view in db/views/vw_ai_quanly.sql db/views/vw_ai_thungan.sql db/views/vw_ai_kho.sql; do
+  docker compose exec -T db mysql -uroot -p"$MYSQL_ROOT_PASSWORD" restaurant < "$view"
+done
+
+sed -e "s|__AI_READONLY_PASSWORD_MANAGER__|$AI_READONLY_PASSWORD_MANAGER|" \
+    -e "s|__AI_READONLY_PASSWORD_CASHIER__|$AI_READONLY_PASSWORD_CASHIER|" \
+    -e "s|__AI_READONLY_PASSWORD_WAREHOUSE__|$AI_READONLY_PASSWORD_WAREHOUSE|" \
+    db/views/grants.sql.template \
+  | docker compose exec -T db mysql -uroot -p"$MYSQL_ROOT_PASSWORD" restaurant
+```
+
+Ba biến này khai báo trong shell profile (không nằm trong repo), và **cùng giá trị** phải điền vào
+`AI_READONLY_URL_*` của `.env` để tầng ứng dụng đăng nhập được bằng chúng.
 
 - [ ] **Step 4: Áp view và grants**
 
-Run: `docker compose exec -T db mysql -uroot -prestaurant-root restaurant < db/views/vw_ai_quanly.sql`
-(lặp lại cho hai view còn lại và `grants.sql`)
-Expected: không lỗi.
+Run: `./scripts/apply_grants.sh`
+Expected: không lỗi. Nếu script báo `set this in your shell profile`, đặt ba biến rồi chạy lại — không
+điền giá trị vào file trong repo.
 
 - [ ] **Step 5: Chạy test cho xanh**
 
@@ -533,7 +861,7 @@ Expected: PASS
 
 - [ ] **Step 6: Kiểm chứng cách ly bằng tay**
 
-Run: `docker compose exec db mysql -uai_cashier -p<pass> restaurant -e "SELECT COUNT(*) FROM vw_ai_kho"`
+Run: `docker compose exec db mysql -uai_cashier -p"$AI_READONLY_PASSWORD_CASHIER" restaurant -e "SELECT COUNT(*) FROM vw_ai_kho"`
 Expected: `SELECT command denied` — chứng minh tài khoản của Thu ngân không chạm được view của Kho.
 
 ---
@@ -549,6 +877,11 @@ Expected: `SELECT command denied` — chứng minh tài khoản của Thu ngân 
 
 Task này **không** viết `executor.py` — bước thực thi SQL thuộc Phase 6 Task 3, nơi có đủ ngữ cảnh về
 hạn mức, timeout và vòng thử lại. Ở đây chỉ chứng minh lớp cách ly dữ liệu đã đúng.
+
+**NFR-12 (tách biệt tập view AI khỏi bảng lõi)** có ba lớp, và phase này chứng minh hai lớp ngoài:
+view chỉ được `SELECT` từ bảng lõi (Task 7 Step 1, đọc `information_schema.view_table_usage`) và
+`GRANT` không cho tài khoản vai trò chạm bảng lõi (Task 8). Lớp thứ ba — prompt chỉ chứa đúng một
+view — thuộc Phase 6 Task 1. Ba lớp độc lập nhau: hỏng một lớp thì hai lớp còn lại vẫn chặn.
 
 - [ ] **Step 1: Viết test cách ly ba lớp**
 
@@ -585,11 +918,11 @@ async def test_every_role_account_can_read_its_own_view(mysql_engine_factory) ->
 - [ ] **Step 2: Chạy test cho đỏ**
 
 Run: `cd apps/api && ./.venv/bin/pytest tests/schema/test_ai_isolation.py -v`
-Expected: FAIL nếu `grants.sql` chưa áp, hoặc PASS nếu Task 7 đã xong — ghi lại kết quả thực tế.
+Expected: FAIL nếu grants chưa áp, hoặc PASS nếu Task 7 đã xong — ghi lại kết quả thực tế.
 
 - [ ] **Step 3: Áp view và grants nếu chưa**
 
-Run: `for f in db/views/vw_ai_*.sql db/views/grants.sql; do docker compose exec -T db mysql -uroot -p*** restaurant < "$f"; done`
+Run: `./scripts/apply_grants.sh`
 Expected: không lỗi.
 
 - [ ] **Step 4: Chạy test cho xanh**
@@ -621,7 +954,10 @@ do chạm `GATE_BUDGET`, chạy lại bằng tay và nói rõ — không coi unf
 - **Autogenerate không sinh `CHECK`/`Computed`/`ON DELETE`**: Alembic bỏ qua những thứ này. Phải soát
   tay file migration; test ở Task 5 chỉ kiểm tra metadata, nên Task 6 chạy trên MySQL thật mới là
   cổng kiểm chứng thực sự.
-- **`CHECK` không chạy trên SQLite**: test hành vi của BR-ORDER-01 phải chạy trên MySQL.
+- **`CHECK` và `IntegrityError` trên SQLite**: SQLite thực thi `CHECK`, nhưng `IntegrityError` chỉ
+  ném ra ở `flush()`/`commit()`, không phải ở `session.add()`. Nếu một test ràng buộc "pass" mà không
+  hề flush, nó đang pass rỗng. Task 6 vẫn là cổng kiểm chứng thật vì `ON DELETE`/`Computed` chỉ đúng
+  trên MySQL.
 - **`Computed` + `UNIQUE` cho `TenBan_Active`**: chỉ đúng nếu MySQL coi nhiều `NULL` là hợp lệ trong
   unique index (đúng với InnoDB) — Task 6 kiểm chứng bằng `SHOW CREATE TABLE`.
 - **Thứ tự tạo bảng**: `GIAO_DICH_KHO` tham chiếu chéo sales/inventory; nếu migration lỗi thứ tự,
@@ -629,3 +965,6 @@ do chạm `GATE_BUDGET`, chạy lại bằng tay và nói rõ — không coi unf
 - **Prompt của trợ lý AI phụ thuộc lược đồ**: chỉ triển khai `prompt.py` sau khi Task 6 xong.
 - **`executor.py` không thuộc phase này**: bước thực thi SQL cần hạn mức, timeout và vòng thử lại —
   để nguyên ở Phase 6 Task 3. Phase 0 chỉ chứng minh lớp `GRANT` đã đúng.
+- **Mật khẩu tài khoản chỉ-đọc không được vào repo.** `grants.sql.template` chỉ chứa placeholder;
+  `scripts/apply_grants.sh` thay bằng biến môi trường trong ống dẫn. Đừng "cho tiện" mà render ra
+  `grants.sql` rồi commit — §0 của quy tắc chung cấm commit credential, và hook pre-commit sẽ chặn.
