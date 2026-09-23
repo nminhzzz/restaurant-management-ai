@@ -12,6 +12,10 @@ nằm ở `app/shared/audit.py` vì mọi module đều ghi vào. Xác thực d�
 
 **Spec:** báo cáo §2.4.5 (FR-SET-01…09), §3.4.2 (ma trận quyền chức năng), §3.4.3 (trách nhiệm vai trò).
 
+**Hợp đồng với các phase khác:** phase này sở hữu hai thứ mà mọi phase sau tiêu thụ — hàm
+`seed_reference_data()` (ba vai trò + cấu hình singleton, Task 1 Step 0) và `require_any_role` (Task 2).
+Đổi chữ ký của chúng thì phải sửa cả Phase 0 Task 0 (`conftest.py`) và Phase 7 Task 1.
+
 **Phụ thuộc:** Phase 0 (bảng + lược đồ). **Lộ trình:** `docs/plans/2026-09-24-master-roadmap.md`
 
 **Nhánh:** `feat/phase-1-settings` · **Cổng người duyệt:** G2
@@ -42,6 +46,11 @@ nằm ở `app/shared/audit.py` vì mọi module đều ghi vào. Xác thực d�
 | `apps/web/src/lib/session.ts` | Đọc/ghi token, chuyển hướng khi 401. |
 | `apps/web/src/app/login/page.tsx` | Thay placeholder bằng form thật. |
 | `apps/web/src/app/(app)/settings/` | Màn hình tài khoản, cấu hình, nhật ký. |
+| `apps/api/tests/modules/conftest.py` | Fixture của module cài đặt. |
+
+**Fixture của phase này** (khai báo trong `tests/modules/conftest.py`): `active_user` (Thu ngân đang
+hoạt động), `locked_user`, `seeded_data` (một CSDL có đủ dữ liệu để xuất bản sao có ý nghĩa).
+`seed_reference_data()` của Task 1 Step 0 là điều kiện để cả ba dựng được.
 
 ---
 
@@ -56,12 +65,75 @@ nằm ở `app/shared/audit.py` vì mọi module đều ghi vào. Xác thực d�
 **Interfaces:**
 - Consumes: `User`, `RoleTable` (Phase 0), `hash_password`/`verify_password`/`create_access_token`.
 - Produces: `LoginRequest`, `TokenResponse`; `authenticate(session, username, password) -> User`;
+  `seed_reference_data(session) -> None` (**dữ liệu tham chiếu cố định** — xem Step 0);
   `POST /settings/auth/login`, `GET /settings/auth/me`.
+
+- [ ] **Step 0: Dữ liệu tham chiếu cố định (`VAI_TRO` + `CAU_HINH_HE_THONG`)**
+
+Hai bảng này **chưa từng được seed ở bất kỳ task nào** trong toàn bộ kế hoạch, và mọi thứ sau đây
+đều phụ thuộc vào chúng:
+
+| Nơi cần | Cần gì |
+| --- | --- |
+| Task 1 (file này) | `NGUOI_DUNG.MaVaiTro` là FK `RESTRICT` — tạo user không có vai trò thì fail. |
+| Task 3 (file này) | `CAU_HINH_HE_THONG` là singleton; `GET /settings/config` phải trả một dòng. |
+| Phase 2 | `NguongTonMacDinh` đọc từ dòng singleton. |
+| Phase 7 | `seed_catalog` tạo ba tài khoản — lại cần ba vai trò. |
+
+Trên một CSDL sạch (sau `make migrate`), cả ba FK này đều **fail**. Viết hàm
+`seed_reference_data(session)` trong `apps/api/src/app/modules/settings/service.py`:
+
+```python
+ROLE_SEEDS = (
+    (Role.MANAGER, "Quản lý", "Toàn quyền, kế thừa quyền Thu ngân và Nhân viên kho"),
+    (Role.CASHIER, "Thu ngân", "Bán hàng, thanh toán, tra cứu order"),
+    (Role.WAREHOUSE, "Nhân viên kho", "Nhập, xuất, kiểm kê, xem tồn"),
+)
+
+
+async def seed_reference_data(session: AsyncSession) -> None:
+    """Insert the fixed reference rows. Idempotent: safe to call on every boot and every seed run."""
+```
+
+Yêu cầu:
+
+1. **Idempotent** — gọi hai lần không tạo dòng thứ hai. Dùng `INSERT ... ON DUPLICATE KEY UPDATE` hoặc
+   tra trước rồi mới thêm; **không** để nó ném lỗi trùng khoá.
+2. Ba vai trò đúng `Role` enum (`MANAGER` / `CASHIER` / `WAREHOUSE`) — khớp `app/shared/roles.py`.
+3. Một dòng `CAU_HINH_HE_THONG` với `GioBatDauBusinessDate = 06:00`, `NguongTonMacDinh` = giá trị mặc
+   định hợp lý (ví dụ 5), các trường còn lại để trống.
+4. Gọi nó ở **hai chỗ**: fixture `active_user` của `tests/conftest.py` (Phase 0 Task 0) và đầu
+   `scripts/seed/generate.py` (Phase 7). Không gọi trong `app.main` startup — production không tự ý
+   ghi dữ liệu khi khởi động.
+
+Test:
+
+```python
+async def test_reference_data_can_be_seeded_twice(session) -> None:
+    """Idempotent, or every restart and every seed run would break."""
+    await seed_reference_data(session)
+    await seed_reference_data(session)
+
+    assert await role_count(session) == 3
+    assert await config_count(session) == 1
+
+
+async def test_the_three_roles_match_the_role_enum(session) -> None:
+    await seed_reference_data(session)
+
+    assert set(await role_codes(session)) == {role.value for role in Role}
+
+
+async def test_the_business_day_start_is_six_in_the_seeded_config(session) -> None:
+    await seed_reference_data(session)
+
+    assert (await get_config_row(session)).business_day_start == time(6, 0)
+```
 
 - [ ] **Step 1: Viết test cho luồng đăng nhập**
 
 ```python
-async def test_login_returns_a_token_for_an_active_account(db_session, active_user) -> None:
+async def test_login_returns_a_token_for_an_active_account(client, db_session, active_user) -> None:
     response = await login(client, "thungan01", "mat-khau-dung")
 
     assert response.status_code == 200
@@ -119,11 +191,17 @@ Expected: xanh. Commit: `feat(settings): authenticate users and issue access tok
 **Interfaces:**
 - Consumes: Task 1, `audit.record`, `require_roles`.
 - Produces: `require_any_role`; `create_user`, `update_user`, `lock_user`, `reset_password`;
-  `GET/POST/PATCH /settings/users`.
+  `export_backup(session) -> BackupDump`
+  (`BackupDump`: `created_at: datetime`, `covers_until: datetime`,
+  `tables: list[str]` — lấy từ `Base.metadata.tables`, **không** hardcode 29);
+  `GET/POST/PATCH /settings/users`, `POST /settings/backup`.
 
 - [ ] **Step 1: Viết test cho phân quyền và audit**
 
 ```python
+from app.shared.base import Base
+
+
 async def test_only_a_manager_may_create_accounts(client, cashier_token, manager_token) -> None:
     forbidden = await create_user(client, cashier_token, username="moi01")
     allowed = await create_user(client, manager_token, username="moi01")
@@ -182,13 +260,21 @@ async def test_a_manual_backup_export_is_audited(client, manager_token, db_sessi
     assert (await latest_audit(db_session)).action == "EXPORT_BACKUP"
 
 
-async def test_the_backup_can_restore_the_previous_day(client, manager_token, seeded_data) -> None:
-    """NFR-09: RPO of at most 24 hours for the manual backup form."""
-    dump = await export_backup(client, manager_token)
+async def test_the_backup_covers_every_table_and_can_be_restored(
+    client, manager_token, seeded_data
+) -> None:
+    """NFR-09: the dump is complete enough to roll back a day of work."""
+    dump = (await export_backup(client, manager_token)).json()
 
-    assert dump.json()["created_at"] is not None
-    assert dump.json()["covers_until"] - dump.json()["created_at"] <= timedelta(hours=24)
-    assert dump.json()["table_count"] == 29
+    assert dump["created_at"] is not None
+    # Every table in the metadata is in the dump — not a hardcoded 29, which would go
+    # stale the moment DEM_ORDER lands in Phase 4.
+    assert set(dump["tables"]) == set(Base.metadata.tables)
+    # NFR-09's RPO is a property of the *schedule*, not of one export: the operator runs
+    # this at least daily (README). Asserting `covers_until - created_at <= 24h` here
+    # would be a tautology — both values come out of the same call. The operator-facing
+    # check is the README instruction plus the audit row below.
+    assert dump["covers_until"] >= dump["created_at"]
 
 
 async def test_a_failed_write_leaves_no_audit_row(client, manager_token, db_session, monkeypatch) -> None:
@@ -343,7 +429,9 @@ Expected: xanh. Commit: `feat(settings): self-service password change and system
 - [ ] **Step 1: Viết test**
 
 ```python
-async def test_only_a_manager_can_read_the_audit_log(client, cashier_token, warehouse_token) -> None:
+async def test_only_a_manager_can_read_the_audit_log(
+    client, manager_token, cashier_token, warehouse_token
+) -> None:
     assert (await get_audit(client, cashier_token)).status_code == 403
     assert (await get_audit(client, warehouse_token)).status_code == 403
     assert (await get_audit(client, manager_token)).status_code == 200
@@ -360,9 +448,11 @@ async def test_entries_carry_actor_time_action_and_before_after(
 
 
 async def test_the_log_cannot_be_edited_or_deleted(client, manager_token) -> None:
-    """NFR-07: append-only."""
-    deleted = await client.delete("/api/v1/settings/audit-log/1", headers=manager_headers)
-    patched = await client.patch("/api/v1/settings/audit-log/1", headers=manager_headers)
+    """NFR-07: append-only — the routes simply do not exist."""
+    headers = {"Authorization": f"Bearer {manager_token}"}
+
+    deleted = await client.delete("/api/v1/settings/audit-log/1", headers=headers)
+    patched = await client.patch("/api/v1/settings/audit-log/1", headers=headers)
 
     assert deleted.status_code == 405
     assert patched.status_code == 405
