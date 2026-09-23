@@ -34,6 +34,28 @@ nghiệp vụ phải được ép ở tầng service, không dựa vào giao di�
 - Giao diện gọi món và thanh toán kiểm thử trên Chrome, Edge, Safari ở cả máy tính lẫn tablet (NFR-17).
 - `make gate` xanh trước khi kết thúc mỗi task.
 
+## Hợp đồng với các phase khác
+
+| Hướng | Hàm / kiểu | Phase sở hữu | Phase tiêu thụ |
+| --- | --- | --- | --- |
+| Cấp | `submit_order`, `pay_cash`, `start_qr`, `expire_stale_qr` | 4 (Task 1–6) | 7 (`seed_operations`) |
+| Cấp | `DEM_ORDER` (bảng đếm số order) | 4 (Task 1) | 0 (`EXPECTED_TABLES` phải cập nhật), 7 |
+| Cấp | `ensure_order_is_open(order) -> None`, `OPEN_ORDER_STATUSES` | 4 (Task 1) | 4 (Task 2–6) |
+| Nhận | `apply_stock_movement`, `reload` | 3 (Task 1) | 4 (Task 1) |
+| Nhận | `active_price`, `active_recipe`, `set_table_occupied`/`release_table` | 2 (Task 2–4) | 4 (Task 1) |
+| Nhận | `seed_reference_data` | 1 (Task 1) | 7 (trước khi seed) |
+
+**`DEM_ORDER` là bảng thứ 30, không có trong báo cáo.** Phase 0 Task 5 viết `EXPECTED_TABLES` với
+đúng 29 bảng theo §3.2.1; **Phase 4 Task 1 thêm `DEM_ORDER` vào `sales/models.py` và phải sửa
+`EXPECTED_TABLES` trong `tests/schema/test_schema_contract.py` cùng lúc** — nếu không,
+`test_the_schema_has_exactly_the_29_tables_of_the_report` sẽ đỏ ngay khi bảng này xuất hiện.
+
+Lý do không đưa `DEM_ORDER` vào Phase 0: nó phát sinh từ một ràng buộc nghiệp vụ (FR-SALE-04 "số đã
+cấp không được tái sử dụng") chỉ lộ ra khi viết test rollback — nó không có trong báo cáo, nên ghi nó
+vào Phase 0 như thể có từ đầu là làm sai lệch tài liệu so với báo cáo. Tên test vẫn đúng nếu đọc là
+"29 bảng của báo cáo" + bảng phụ trợ; đổi tên test thành
+`test_the_schema_has_the_report_tables_plus_the_counter` khi sửa, để tên không nói dối.
+
 ## Cấu trúc file
 
 | File | Trách nhiệm |
@@ -47,6 +69,16 @@ nghiệp vụ phải được ép ở tầng service, không dựa vào giao di�
 | `apps/web/src/features/sales/` | Màn hình gọi món, thanh toán, chi tiết order, tra cứu. |
 | `apps/api/tests/modules/test_sales_*.py` | Test theo từng nhóm. |
 
+**Fixture của phase này** (khai báo trong `tests/modules/conftest.py`): `dish`, `scarce_dish`, `table`,
+`table2`, `free_table`, `occupied_table`, `open_order`, `settled_order`, `single_line_order`,
+`order_with_mixed_lines`, `order_awaiting_reconciliation`, `line`, `waiting_line`, `served_line`,
+`payment`, `live_qr`, `stale_qr`, `expired_qr`, `ticket`, `printer_down`.
+
+Helper đọc dùng ở đây (`counter_for`, `payment_status`, `payment_row`, `order_status`, `line_status`,
+`invoice_count`, `invoice_business_date`, `payment_business_date`, `order_count`, `order_table`,
+`order_updated_at`, `tickets_for`, `ticket_by_id`, `rejected_webhook_count`, `ingredient_total`,
+`audit_count`, `latest_audit`) đến từ `tests/helpers.py` — Phase 0 Task 0.
+
 ---
 
 ## Task 1: Khởi tạo order, mã order và trừ kho (FR-SALE-01…06, 08, 09 — SD-02)
@@ -55,6 +87,8 @@ nghiệp vụ phải được ép ở tầng service, không dựa vào giao di�
 - Create: `apps/api/src/app/modules/sales/schemas.py`
 - Create: `apps/api/src/app/modules/sales/orders.py`
 - Create: `apps/api/src/app/modules/sales/service.py`
+- Modify: `apps/api/src/app/modules/sales/models.py` (thêm `DEM_ORDER` — bảng thứ 30)
+- Modify: `apps/api/tests/schema/test_schema_contract.py` (thêm `DEM_ORDER` vào `EXPECTED_TABLES`)
 - Modify: `apps/api/src/app/modules/sales/router.py`
 - Test: `apps/api/tests/modules/test_sales_orders.py`
 
@@ -67,12 +101,16 @@ nghiệp vụ phải được ép ở tầng service, không dựa vào giao di�
   `catalog.service.set_table_occupied`/`release_table` (Phase 2); `business_date_of`.
 - Produces: `OrderLineInput`; `submit_order(session, payload, *, actor) -> Order`;
   `next_display_code(session, business_date) -> str`;
+  `ensure_order_is_open(order) -> None` (**khai báo ngay ở task này**, dùng lại ở Task 2–6);
+  `OPEN_ORDER_STATUSES: frozenset[str]`;
   `POST /sales/orders`, `GET /sales/orders/{id}`.
 
 - [ ] **Step 1: Viết test**
 
 ```python
-async def test_a_submitted_order_takes_its_price_from_the_active_version(client, cashier_token, dish, table):
+async def test_a_submitted_order_takes_its_price_from_the_active_version(
+    client, cashier_token, dish, table, db_session
+):
     """FR-SALE-01 and the price snapshot rule of section 3.2."""
     created = await submit_order(client, cashier_token, table_id=table.id, lines=[(dish.id, 2)])
 
@@ -91,8 +129,10 @@ async def test_the_display_code_counts_from_001_per_business_date(client, cashie
     assert second.json()["MaOrderHienThi"].endswith("-002")
 
 
-async def test_a_rolled_back_order_does_not_release_its_number(client, cashier_token, dish, table, monkeypatch):
-    """FR-SALE-04: issued numbers are never reused."""
+async def test_a_rolled_back_order_does_not_release_its_number(
+    client, cashier_token, dish, table, table2, monkeypatch
+):
+    """FR-SALE-04: the counter lives outside the order transaction, so the number is burnt."""
     await submit_order(client, cashier_token, table_id=table.id, lines=[(dish.id, 1)])
     monkeypatch.setattr(orders, "write_kitchen_ticket", fail)
     with pytest.raises(Exception):
@@ -100,6 +140,14 @@ async def test_a_rolled_back_order_does_not_release_its_number(client, cashier_t
 
     third = await submit_order(client, cashier_token, table_id=table2.id, lines=[(dish.id, 1)])
     assert third.json()["MaOrderHienThi"].endswith("-003")
+
+
+async def test_the_counter_starts_at_one_for_each_business_date(client, cashier_token, dish, table, db_session):
+    """FR-SALE-04: numbering restarts per business date, not per calendar day."""
+    await submit_order(client, cashier_token, table_id=table.id, lines=[(dish.id, 1)])
+
+    assert await counter_for(db_session, today()) == 1
+    assert await counter_for(db_session, tomorrow()) == 0
 
 
 async def test_submitting_occupies_the_table_and_draws_stock(client, cashier_token, dish, table):
@@ -165,14 +213,34 @@ Expected: FAIL — route chưa tồn tại
 
 - [ ] **Step 3: Cài đặt**
 
-`next_display_code()` lấy số lớn nhất đã cấp trong Business Date rồi `+1`. Để số không bị tái sử dụng
-khi rollback, cấp số trong một transaction riêng đã commit trước khi ghi order — hoặc dùng bảng đếm
-riêng. Chọn cách đơn giản: `SELECT MAX(...) FOR UPDATE` trên `ORDER` theo `BusinessDate`; nếu rollback
-xảy ra sau khi đã cấp, số đó mất và lần sau cấp số kế tiếp.
+**Cấp số order (FR-SALE-04).** Yêu cầu là "số đã cấp không được tái sử dụng, kể cả khi transaction
+rollback" — điều đó chỉ đúng nếu bộ đếm **nằm ngoài** transaction ghi order. `SELECT MAX(...) FOR UPDATE`
+trên `ORDER` **không** làm được: khi bảng chưa có dòng nào cho Business Date đó thì không có dòng nào
+để khoá, nên hai request đồng thời cùng đọc `MAX = NULL` và cùng cấp số `001`.
 
-`submit_order()` trong **một transaction**: tra giá + công thức hiệu lực, kiểm tồn theo công thức,
-ghi `ORDER` + `CHI_TIET_ORDER`, gọi `apply_stock_movement()` cho từng dòng đủ tồn, đặt bàn
-`Đang phục vụ`, ghi `PHIEU_BEP`. Món thiếu tồn bị loại riêng và trả về trong `rejected` (FR-SALE-05).
+Thêm bảng đếm `DEM_ORDER(BusinessDate DATE PRIMARY KEY, SoDaCap INT NOT NULL)`:
+
+1. `INSERT INTO DEM_ORDER (BusinessDate, SoDaCap) VALUES (:bd, 1) ON DUPLICATE KEY UPDATE SoDaCap = SoDaCap + 1`
+   — câu này **tự khoá dòng** và tự cấp số trong một bước, không cần đọc trước.
+2. `SELECT SoDaCap FROM DEM_ORDER WHERE BusinessDate = :bd` để lấy số vừa cấp.
+3. Chạy hai bước trên trong **transaction riêng, commit ngay**, trước khi ghi `ORDER`. Rollback ở
+   transaction sau không trả lại số — đúng yêu cầu "không tái sử dụng".
+4. Định dạng: `ORD-{ddMMyy của BusinessDate}-{SoDaCap:03d}`.
+
+Bảng này là bảng thứ **30**; Phase 0 Task 1–5 phải thêm nó vào `EXPECTED_TABLES` và bảng đếm không
+tham chiếu bảng nào nên không ảnh hưởng thứ tự tạo bảng. Nó cũng không lộ ra ngoài: `vw_ai_*` không
+phơi bảng này cho trợ lý AI.
+
+`ensure_order_is_open(order)` là **choke point duy nhất** cho FR-SALE-20/25: ném `BusinessRuleError`
+khi `TrangThai` không nằm trong `OPEN_ORDER_STATUSES` (`Đang mở`). Định nghĩa nó ở **task này** —
+ngay khi endpoint ghi đầu tiên ra đời — rồi Task 2–6 gọi lại, để không tồn tại hai đường kiểm trạng
+thái song song. Mọi handler ghi (`submit`, `add_line`, `update_line`, `cancel_line`, `move_table`,
+`cancel_order`, `payments`) gọi nó trước khi chạm dữ liệu.
+
+`submit_order()` trong **một transaction**: cấp số (bước riêng ở trên), tra giá + công thức hiệu lực,
+kiểm tồn theo công thức, ghi `ORDER` + `CHI_TIET_ORDER`, gọi `apply_stock_movement()` cho từng dòng đủ
+tồn, đặt bàn `Đang phục vụ`, ghi `PHIEU_BEP`. Món thiếu tồn bị loại riêng và trả về trong `rejected`
+(FR-SALE-05).
 
 - [ ] **Step 4: Chạy test cho xanh**
 
@@ -421,6 +489,8 @@ Expected: xanh. Commit: `feat(sales): print kitchen tickets and handle print fai
 - Create: `apps/api/src/app/modules/sales/payments.py`
 - Modify: `apps/api/src/app/modules/sales/service.py`
 - Modify: `apps/api/src/app/modules/sales/router.py`
+- Modify: `apps/api/src/app/core/config.py` (thêm `payment_webhook_secret`)
+- Modify: `.env.example` (thêm `PAYMENT_WEBHOOK_SECRET=` — để **trống**, không commit giá trị thật)
 - Test: `apps/api/tests/modules/test_sales_payments.py`
 
 **Interfaces:**
@@ -484,12 +554,26 @@ async def test_a_webhook_with_the_wrong_amount_is_refused(client, live_qr, open_
     assert await payment_status(live_qr.id) == "Chờ xác nhận"
 
 
-async def test_a_webhook_with_a_bad_signature_is_refused_and_logged(client, live_qr, open_order, caplog):
-    """FR-SALE-16: refused and logged, never silently accepted."""
+async def test_a_webhook_with_a_bad_signature_is_refused(client, live_qr, open_order):
+    """FR-SALE-16: refused, never silently accepted.
+
+    The refusal is asserted on the response and on the transaction state, not on a log
+    string — log text is not a contract (rule 4 of the global conventions).
+    """
     response = await webhook(client, live_qr.id, amount=open_order.total, signature="bad")
 
     assert response.status_code == 401
-    assert "chữ ký" in caplog.text
+    assert await payment_status(live_qr.id) == "Chờ xác nhận"
+    assert await invoice_count(open_order.id) == 0
+
+
+async def test_a_refused_webhook_is_still_recorded_for_investigation(client, live_qr, open_order, db_session):
+    """NFR-15: failures are logged server-side, but the API leaks no internals."""
+    response = await webhook(client, live_qr.id, amount=open_order.total, signature="bad")
+
+    assert response.status_code == 401
+    assert "Traceback" not in response.text
+    assert await rejected_webhook_count(db_session, live_qr.id) == 1
 
 
 async def test_a_cashier_may_cancel_a_live_qr_and_start_a_new_one(client, cashier_token, open_order, live_qr):
@@ -522,10 +606,16 @@ Expected: FAIL — `ModuleNotFoundError: app.modules.sales.payments`
 
 - [ ] **Step 3: Cài đặt**
 
-`PaymentGateway` là Protocol; `MockGateway` ký webhook bằng HMAC trên khoá đọc từ settings và xác
-thực lại đúng cách — luồng bảo mật được kiểm thử đầy đủ dù chưa có cổng thật (Q1 ở master roadmap).
-`handle_webhook()` idempotent: nếu giao dịch đã `Thành công` thì trả 200 luôn, **không** tạo hóa đơn
-thứ hai. Phát hành hóa đơn nằm trong cùng transaction với việc đổi trạng thái giao dịch.
+`PaymentGateway` là Protocol; `MockGateway` ký webhook bằng HMAC-SHA256 trên
+`settings.payment_webhook_secret` và xác thực lại đúng cách (so sánh bằng `hmac.compare_digest`, không
+so chuỗi thường) — luồng bảo mật được kiểm thử đầy đủ dù chưa có cổng thật (Q1 ở master roadmap).
+Khoá đọc từ settings, **không** hardcode; `.env.example` để trống và ghi rõ đây là giá trị chỉ dùng
+cho môi trường cục bộ.
+
+`handle_webhook()` idempotent: **khoá dòng** `GIAO_DICH_THANH_TOAN` (`SELECT ... FOR UPDATE`) trước khi
+kiểm trạng thái, vì hai webhook đến song song có thể cùng thấy `Chờ xác nhận` và cùng tạo hóa đơn.
+Giao dịch đã `Thành công` thì trả 200 luôn, **không** tạo hóa đơn thứ hai. Phát hành hóa đơn nằm trong
+cùng transaction với việc đổi trạng thái giao dịch.
 
 - [ ] **Step 4: Chạy test cho xanh**
 
@@ -555,9 +645,11 @@ Expected: xanh. Commit: `feat(sales): take cash and QR payments behind a gateway
 - [ ] **Step 1: Viết test**
 
 ```python
-async def test_a_qr_past_its_deadline_becomes_expired(client, cashier_token, open_order, stale_qr):
+async def test_a_qr_past_its_deadline_becomes_expired(
+    client, cashier_token, open_order, stale_qr, db_session
+):
     """FR-SALE-17."""
-    await expire_stale_qr(session)
+    await expire_stale_qr(db_session)
 
     assert await payment_status(stale_qr.id) == "Hết hạn"
 
