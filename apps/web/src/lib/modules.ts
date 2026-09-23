@@ -24,7 +24,7 @@ export const MODULE_LIST: readonly ModuleDescriptor[] = [
     key: "sales",
     path: "/sales",
     title: "Quản lý bán hàng",
-    requirements: "FR-SALE-01 … FR-SALE-27",
+    requirements: "FR-SALE-01 … FR-SALE-29",
     owner: "Hùng",
     summary: "Order, ghi chú món, đổi bàn, thanh toán, hóa đơn và phiếu bếp.",
   },
@@ -32,7 +32,7 @@ export const MODULE_LIST: readonly ModuleDescriptor[] = [
     key: "inventory",
     path: "/inventory",
     title: "Quản lý kho",
-    requirements: "FR-INV-01 … FR-INV-15",
+    requirements: "FR-INV-01 … FR-INV-12",
     owner: "Minh",
     summary:
       "Nhập kho theo lô, trừ kho FIFO, xuất thủ công, kiểm kê và cảnh báo tồn tối thiểu.",
