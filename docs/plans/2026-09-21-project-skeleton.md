@@ -8,18 +8,18 @@ Ngày: 2026-09-21 · Nhánh: `chore/project-skeleton`
 toolchain, quy ước, CI và các primitive dùng chung đã được kiểm thử — làm nền cho ba thành viên
 triển khai song song sáu module.
 
-**Ngoài phạm vi lần này:** DDL 29 bảng, tập view `VW_AI_*`, seed dữ liệu mô phỏng, bộ dữ liệu
+**Ngoài phạm vi lần này:** DDL 29 bảng, tập view `vw_ai_*`, seed dữ liệu mô phỏng, bộ dữ liệu
 đánh giá chính thức, và logic nghiệp vụ của từng module.
 
 ## Quyết định đã chốt
 
 | Hạng mục | Chọn | Lý do |
 | --- | --- | --- |
-| DBMS | MySQL 8.4 | Khớp báo cáo (mọi mục đều ghi MySQL); `sqlglot` dialect mysql; tài khoản CSDL chỉ-đọc qua `GRANT SELECT` trên ba view |
+| DBMS | MySQL 8.4 | Khớp báo cáo (mọi mục đều ghi MySQL); `sqlglot` dialect mysql; mỗi vai trò một tài khoản CSDL chỉ-đọc qua `GRANT SELECT` trên đúng view của vai trò đó (NFR-06) |
 | Cấu trúc | Monorepo `apps/api` + `apps/web` | Backend và frontend tiến hoá cùng nhịp, chia sẻ tài liệu và CI |
 | Backend | FastAPI + SQLAlchemy 2 async + Alembic | Đúng §4.1.1 |
 | Frontend | Next.js 16 App Router + TS + Tailwind 4 | Đúng §1.4.2 |
-| Định danh CSDL | Giữ tiếng Việt theo ERD | Khớp báo cáo và bộ dữ liệu đánh giá; tên lớp/biến Python vẫn tiếng Anh |
+| Định danh CSDL | Giữ tiếng Việt theo lược đồ quan hệ (§3.2.2) | Khớp báo cáo và bộ dữ liệu đánh giá; tên lớp/biến Python vẫn tiếng Anh |
 | Kiểm thử web | Vitest + Testing Library | Chạy nhanh, cùng hệ sinh thái Vite |
 
 ## Đã hoàn thành
@@ -54,8 +54,10 @@ triển khai song song sáu module.
 
 ## Việc tiếp theo
 
-1. **DDL + migration**: 29 bảng theo §3.2.1, khoá ngoại và index theo §3.2.3, kèm ba view
-   `VW_AI_*` và tài khoản CSDL chỉ-đọc.
+1. **DDL + migration**: 29 bảng theo §3.2.1, khoá ngoại/index theo §3.2.3 và các quy ước vật lý
+   ở §3.2.2 (ON DELETE/ON UPDATE, CHECK constraint, cột GENERATED, `BusinessDate` denormalize trên
+   `HOA_DON`/`GIAO_DICH_THANH_TOAN`/`GIAO_DICH_KHO`), kèm ba view `vw_ai_*` và ba tài khoản CSDL
+   chỉ-đọc (một cho mỗi vai trò).
 2. **Module 1 — Danh mục**: món ăn, phiên bản giá/công thức theo Business Date, xoá mềm.
 3. **Module 2 — Bán hàng**: order, phiếu bếp, thanh toán, hoá đơn (phụ thuộc DDL).
 4. **Module 3 — Kho**: nhập theo lô, trừ FIFO, kiểm kê.
@@ -70,3 +72,5 @@ triển khai song song sáu module.
   `JSON`, `utf8mb4`), không đưa cú pháp PostgreSQL vào báo cáo hay mã nguồn.
 - **Prompt của trợ lý AI phụ thuộc lược đồ**: bước `prompt.py` chỉ nên triển khai sau khi DDL ổn định.
 - **Phụ thuộc mạng khi build**: đã bỏ `next/font/google` để `next build` chạy được cả khi offline.
+- **Tài liệu đã đổi hướng mô hình hóa**: báo cáo bỏ BFD/DFD, thay bằng Class Diagram (§2.2) và
+  ánh xạ sang lược đồ quan hệ (§3.2.2); mọi viện dẫn ERD cũ trong repo nay đọc là lược đồ quan hệ.
