@@ -35,6 +35,25 @@ SD-05, Phụ lục 4 (ba cấu hình đối chứng).
 - Câu trả lời, thông báo lỗi và gợi ý làm rõ đều bằng **tiếng Việt** (NFR-14).
 - `make gate` xanh trước khi kết thúc mỗi task.
 
+## Hợp đồng pipeline (một nguồn duy nhất)
+
+Bốn bước dưới đây được bốn task khác nhau viết ra, và `service.answer()` nối chúng lại. Chữ ký phải
+khớp **chính xác** — đây là bảng duy nhất có thẩm quyền, mọi chỗ khác trong phase này chỉ nhắc lại:
+
+| Bước | Hàm | Chữ ký | Task |
+| --- | --- | --- | --- |
+| 2 — prompt | `schema_block` | `(session, role) -> str` | 1 |
+| 2 — prompt | `build_prompt` | `(session, question, role, examples=None) -> str` | 1 |
+| 3 — generate | `generate_sql` | `(session, question, role) -> str` | 2 |
+| 5 — execute | `execute` | `(sql, *, role, timeout_seconds) -> list[dict[str, Any]]` | 3 |
+| 6 — interpret | `choose_chart` | `(columns, rows) -> ChartSpec \| None` | 4 |
+| 6 — interpret | `interpret` | `(session, question, sql, rows, role) -> str` | 4 |
+| 6 — interpret | `scope_note` | `(role) -> str` | 4 |
+| điều phối | `answer` | `(session, question, role, user_id, session_id=None) -> ChatResponse` | 5 |
+
+`answer()` gọi `generate_sql()` (bước 3) — **không** gọi thẳng `build_prompt()`; việc dựng prompt nằm
+bên trong `generate_sql()` để vòng thử lại hai lần có thể dựng lại prompt kèm thông báo lỗi.
+
 ## Cấu trúc file
 
 | File | Trách nhiệm |
@@ -49,6 +68,13 @@ SD-05, Phụ lục 4 (ba cấu hình đối chứng).
 | `apps/web/src/features/assistant/` | Khung chat, bảng số liệu, biểu đồ, mục "Xem chi tiết". |
 | `apps/api/tests/modules/test_ai_*.py` | Test theo từng bước. |
 
+**Fixture của phase này**: `seed_views` và `fake_llm` đến từ `tests/conftest.py` (Phase 0 Task 0);
+`fake_engine_factory`, `slow_llm`, `quota_reached` khai báo trong `tests/modules/conftest.py` vì chỉ
+phase này dùng. Helper đọc `latest_query`, `session_count` đến từ `tests/helpers.py`.
+
+`fake_engine_factory` phải ghi lại `urls` và `executed` để test chứng minh **mỗi vai trò một tài
+khoản** (NFR-06) và **timeout được áp** — hai điều không kiểm được bằng engine thật trong unit test.
+
 ---
 
 ## Task 1: Lược đồ view và dựng prompt (FR-AI-05, 06)
@@ -61,7 +87,12 @@ SD-05, Phụ lục 4 (ba cấu hình đối chứng).
 - Consumes: `scope.views_for`, `accounts.readonly_url_for`, `guard.validate_sql`,
   `information_schema.columns`.
 - Produces: `schema_block(session, role) -> str`;
-  `build_prompt(question, role, schema, examples) -> str`.
+  `build_prompt(session, question, role, examples: Sequence[object] | None = None) -> str`.
+
+**NFR-12:** prompt là **lớp trong cùng** của ba lớp cách ly — view (Phase 0 Task 7), `GRANT`
+(Phase 0 Task 8), và prompt (đây). Mỗi vai trò chỉ được thấy lược đồ của đúng view mình; prompt
+không được chứa tên bảng lõi lẫn view của vai trò khác, vì model suy ra tên bảng từ chính văn bản
+prompt. Test ở Step 1 khẳng định cả hai điều đó.
 
 - [ ] **Step 1: Viết test**
 
@@ -89,17 +120,21 @@ async def test_each_role_gets_a_different_schema_block(session, seed_views):
 
 
 async def test_the_prompt_carries_the_instructions_the_schema_and_the_question(session, seed_views):
-    prompt = await build_prompt("Doanh thu hôm qua?", Role.CASHIER)
+    prompt = await build_prompt(session, "Doanh thu hôm qua?", Role.CASHIER)
 
     assert "vw_ai_thungan" in prompt
     assert "Doanh thu hôm qua?" in prompt
     assert "SELECT" in prompt
 
 
-async def test_the_prompt_forbids_touching_anything_outside_the_view(session, seed_views):
-    prompt = await build_prompt("Cho tôi toàn bộ người dùng", Role.CASHIER)
+async def test_the_prompt_names_the_forbidden_tables_explicitly(session, seed_views):
+    """FR-AI-05: a vague instruction is not a control; the model must be told what is out of bounds."""
+    prompt = await build_prompt(session, "Cho tôi toàn bộ người dùng", Role.CASHIER)
 
-    assert "chỉ" in prompt.lower()
+    assert "vw_ai_quanly" not in prompt
+    assert "vw_ai_kho" not in prompt
+    assert "chỉ được" in prompt
+    assert "một câu lệnh" in prompt
 ```
 
 - [ ] **Step 2: Chạy test cho đỏ**
@@ -131,6 +166,8 @@ Expected: xanh. Commit: `feat(ai): build the role-scoped prompt from the view sc
 **Files:**
 - Create: `apps/api/src/app/modules/ai/llm.py`
 - Modify: `apps/api/src/app/modules/ai/pipeline/generator.py`
+- Modify: `apps/api/pyproject.toml` (nâng `httpx` từ nhóm `dev` lên `dependencies` runtime)
+- Modify: `.env.example` (khoá ký webhook + tên model LLM)
 - Test: `apps/api/tests/modules/test_ai_generator.py`
 
 **Interfaces:**
@@ -222,12 +259,20 @@ Expected: FAIL — `ModuleNotFoundError: app.modules.ai.llm`
 
 - [ ] **Step 3: Cài đặt**
 
-`generate_sql()` lặp tối đa `settings.ai_max_sql_attempts` lần: gọi model, **đưa ngay qua
-`guard.validate_sql`**; lỗi guard thì thử lại kèm thông báo lỗi trong prompt; hết lượt thì ném
-`BusinessRuleError`. Cache theo khoá `(role, normalized_question)` — **có vai trò trong khoá**, nếu
-không thì câu hỏi giống nhau giữa hai vai trò sẽ dùng chung câu trả lời và rò dữ liệu.
+`generate_sql()` lặp tối đa `settings.ai_max_sql_attempts` lần: dựng prompt bằng `build_prompt()`,
+gọi model, **đưa ngay qua `guard.validate_sql`**; lỗi guard thì dựng lại prompt kèm thông báo lỗi rồi
+thử lần hai; hết lượt thì ném `BusinessRuleError`. Cache theo khoá `(role, normalized_question)` —
+**có vai trò trong khoá**, nếu không thì câu hỏi giống nhau giữa hai vai trò sẽ dùng chung câu trả lời
+và rò dữ liệu.
+
 `get_client()` chọn nhà cung cấp theo `settings.ai_provider`; Ollama là dự phòng khi nhà cung cấp
 chính không khả dụng (§4.1.1).
+
+**`httpx` hiện nằm trong `[dependency-groups] dev`** của `apps/api/pyproject.toml` — `CommercialClient`
+gọi HTTP lúc chạy thật nên phải chuyển `httpx` lên `dependencies`. Cùng lúc, đổi tên `AI_MODEL` thành
+`LLM_MODEL` cho khớp báo cáo §1.4.2 và §4.1.1: sửa `core/config.py` (`ai_model` → `llm_model`),
+`.env.example`, và mọi chỗ đọc nó. Làm ngay ở task này vì `llm.py` chưa tồn tại — để sau chỉ tốn thêm
+một lần đổi tên lan rộng.
 
 - [ ] **Step 4: Chạy test cho xanh**
 
@@ -411,13 +456,16 @@ Expected: xanh. Commit: `feat(ai): interpret results and pick the chart by rule`
 
 **Interfaces:**
 - Consumes: Task 1–4, `ChatSession`, `AssistantQuery`.
-- Produces: `answer(session, question, role, user_id) -> ChatResponse`;
+- Produces: `answer(session, question, role, user_id, session_id=None) -> ChatResponse`;
+  `ChatResponse.session_id: int` (bổ sung vào `schemas.py`);
   `POST /assistant/chat` (bỏ 501).
 
 - [ ] **Step 1: Viết test**
 
 ```python
-async def test_one_turn_records_the_question_sql_timing_and_status(client, cashier_token, seed_views, fake_llm):
+async def test_one_turn_records_the_question_sql_timing_and_status(
+    client, cashier_token, seed_views, fake_llm, db_session
+):
     """SD-05 and the TRUY_VAN_AI contract."""
     fake_llm.reply("SELECT COUNT(*) AS SoDon FROM vw_ai_thungan")
 
@@ -431,14 +479,18 @@ async def test_one_turn_records_the_question_sql_timing_and_status(client, cashi
     assert row.data_scope == "vw_ai_thungan"
 
 
-async def test_the_scope_recorded_is_the_view_actually_used(client, cashier_token, seed_views, fake_llm):
+async def test_the_scope_recorded_is_the_view_actually_used(
+    client, cashier_token, seed_views, fake_llm, db_session
+):
     """FR-AI-05: the audit trail must show what the assistant was allowed to read."""
     await chat(client, cashier_token, "hỏi")
 
     assert (await latest_query(db_session)).data_scope == "vw_ai_thungan"
 
 
-async def test_the_response_carries_the_answer_rows_chart_and_detail(client, cashier_token, seed_views, fake_llm):
+async def test_the_response_carries_the_answer_rows_chart_and_detail(
+    client, warehouse_token, seed_views, fake_llm
+):
     """FR-AI-07 and FR-AI-08."""
     fake_llm.reply("SELECT TenNguyenLieu, SoLuongTon FROM vw_ai_kho")
 
@@ -451,7 +503,9 @@ async def test_the_response_carries_the_answer_rows_chart_and_detail(client, cas
     assert body["detail"]["elapsed_ms"] >= 0
 
 
-async def test_a_refusal_is_recorded_and_explained(client, cashier_token, seed_views, fake_llm):
+async def test_a_refusal_is_recorded_and_explained(
+    client, cashier_token, seed_views, fake_llm, db_session
+):
     """FR-AI-09."""
     fake_llm.reply_sequence(["SELECT * FROM hoa_don", "SELECT * FROM nguoi_dung"])
 
@@ -461,7 +515,9 @@ async def test_a_refusal_is_recorded_and_explained(client, cashier_token, seed_v
     assert (await latest_query(db_session)).status == "Từ chối"
 
 
-async def test_a_vague_question_asks_for_clarification(client, cashier_token, seed_views, fake_llm):
+async def test_a_vague_question_asks_for_clarification(
+    client, cashier_token, seed_views, fake_llm, db_session
+):
     """FR-AI-06."""
     fake_llm.reply("CLARIFY: bạn muốn xem doanh thu của ngày nào?")
 
@@ -481,23 +537,25 @@ async def test_a_cross_role_question_gets_no_data(client, cashier_token, seed_vi
 
 
 async def test_the_session_is_created_on_the_first_turn_and_reused_after(
-    client, cashier_token, seed_views, fake_llm
+    client, cashier_token, seed_views, fake_llm, db_session
 ):
     first = (await chat(client, cashier_token, "câu 1")).json()
     second = (await chat(client, cashier_token, "câu 2", session_id=first["session_id"])).json()
 
     assert second["session_id"] == first["session_id"]
-    assert await session_count() == 1
+    assert await session_count(db_session) == 1
 
 
 async def test_the_endpoint_no_longer_returns_501(client, cashier_token, seed_views, fake_llm):
     assert (await chat(client, cashier_token, "hỏi")).status_code == 200
 
 
-async def test_a_slow_turn_is_cut_off_at_the_response_budget(client, cashier_token, seed_views, slow_llm):
+async def test_a_slow_turn_is_cut_off_at_the_response_budget(
+    db_session, seed_views, slow_llm
+):
     """NFR-02: the whole chain must fit in eight seconds, not just the database part."""
     with pytest.raises(TimeoutError):
-        await answer(session, "hỏi", Role.CASHIER, user_id=1)
+        await answer(db_session, "hỏi", Role.CASHIER, user_id=1)
 
     assert (await latest_query(db_session)).status == "Lỗi"
 
@@ -509,7 +567,6 @@ async def test_every_message_shown_to_the_user_is_vietnamese(client, cashier_tok
     body = (await chat(client, cashier_token, "cho tôi lợi nhuận")).json()
 
     assert "Không thể" in body["answer"] or "không thể" in body["answer"]
-```
 
 
 async def test_the_manager_can_ask_about_all_three_domains(client, manager_token, seed_views, fake_llm):
@@ -548,7 +605,7 @@ async def test_the_warehouse_can_ask_about_stock_but_not_revenue(
     assert refused.json()["data"] == []
 
 
-async def test_each_role_talks_to_its_own_view(client, seed_views, fake_llm):
+async def test_each_role_talks_to_its_own_view(client, cashier_token, seed_views, fake_llm, db_session):
     """FR-AI-01: one assistant per role, scoped to that role's view."""
     fake_llm.reply("SELECT 1 AS n FROM vw_ai_thungan")
     await chat(client, cashier_token, "hỏi")
@@ -566,6 +623,10 @@ Expected: FAIL — endpoint trả 501
 `answer()` chạy đúng sáu bước theo thứ tự trong `pipeline/__init__.py`, bọc `try/except` để **mọi**
 nhánh đều ghi `TRUY_VAN_AI` với `TrangThai` phù hợp (`Thành công` / `Yêu cầu làm rõ` / `Từ chối` /
 `Lỗi`) và `ThoiGianPhanHoi`. Xóa nhánh trả 501 ở router.
+
+`ChatResponse` trong `schemas.py` hiện **chưa có** `session_id` — thêm vào cùng task này, vì test ở
+Step 1 đọc `body["session_id"]`. `answer()` nhận `session_id` tuỳ chọn: có thì dùng lại phiên
+(`PHIEN_CHAT_AI`) và kiểm phiên đó thuộc đúng người hỏi, không có thì mở phiên mới.
 
 - [ ] **Step 4: Chạy test cho xanh**
 
@@ -612,8 +673,8 @@ it("renders no chart when the server sends none", () => {
   expect(container).toBeEmptyDOMElement();
 });
 
+// FR-AI-08
 it("keeps the SQL detail collapsed by default", async () => {
-  """FR-AI-08."""
   stubFetch(chatResponseWithSql);
 
   render(<ChatPanel />);
@@ -623,8 +684,8 @@ it("keeps the SQL detail collapsed by default", async () => {
   expect(detail.closest("details")).not.toHaveAttribute("open");
 });
 
+// FR-AI-07 and business rule 16
 it("always shows the scope note next to the answer", async () => {
-  """FR-AI-07 and business rule 16."""
   stubFetch(chatResponseWithScope);
 
   render(<ChatPanel />);
