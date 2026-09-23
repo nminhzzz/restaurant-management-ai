@@ -15,3 +15,17 @@ body {
     Arial,
     sans-serif;
 }
+
+@theme {
+  --color-primary: #d97706; /* amber-600 */
+  --color-primary-hover: #b45309; /* amber-700 */
+  --color-success: #059669; /* emerald-600 */
+  --color-warning: #f59e0b; /* amber-500 */
+  --color-danger: #dc2626; /* red-600 */
+  --color-info: #0284c7; /* sky-600 */
+  --color-surface: #ffffff;
+  --color-muted: #475569; /* slate-600 */
+  --color-subtle: #64748b; /* slate-500 */
+  --color-border: #e2e8f0; /* slate-200 */
+}
+

@@ -1,12 +1,13 @@
 """Catalog module tables."""
 
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy import (
     DECIMAL,
     BigInteger,
     CheckConstraint,
     Computed,
+    Date,
     DateTime,
     ForeignKey,
     Integer,
@@ -110,7 +111,7 @@ class DishPriceVersion(Base):
         nullable=False,
     )
     price: Mapped[float] = mapped_column("Gia", DECIMAL(18, 4), nullable=False)
-    business_date: Mapped[datetime] = mapped_column("BusinessDateApDung", DateTime, nullable=False)
+    business_date: Mapped[date] = mapped_column("BusinessDateApDung", Date, nullable=False)
     effective_from: Mapped[datetime | None] = mapped_column(
         "ThoiDiemHieuLuc", DateTime, nullable=True
     )
@@ -138,7 +139,7 @@ class Recipe(Base):
         ForeignKey("MON_AN.MaMon", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=False,
     )
-    business_date: Mapped[datetime] = mapped_column("BusinessDateApDung", DateTime, nullable=False)
+    business_date: Mapped[date] = mapped_column("BusinessDateApDung", Date, nullable=False)
     effective_from: Mapped[datetime | None] = mapped_column(
         "ThoiDiemHieuLuc", DateTime, nullable=True
     )

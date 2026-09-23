@@ -59,6 +59,24 @@ def _require_resources_for_integration() -> None:
 
 
 @pytest.fixture(autouse=True)
+def _clear_settings_cache() -> Iterator[None]:
+    """Ensure get_settings() lru_cache does not leak across tests with different ENV."""
+    try:
+        from app.core.config import get_settings as _gs
+
+        _gs.cache_clear()  # type: ignore[attr-defined]
+    except Exception:
+        pass
+    yield
+    try:
+        from app.core.config import get_settings as _gs2
+
+        _gs2.cache_clear()  # type: ignore[attr-defined]
+    except Exception:
+        pass
+
+
+@pytest.fixture(autouse=True)
 def freeze_clock(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(business_date, "now", lambda: FIXED_NOW)
 
