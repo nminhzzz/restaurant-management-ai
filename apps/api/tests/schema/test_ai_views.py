@@ -19,11 +19,13 @@ EXPECTED_COLUMNS = {
 
 FORBIDDEN = {"MatKhauHash", "GiaVonUocTinh"}
 
+
 def test_view_column_contract_is_documented() -> None:
     readme = Path("db/views/README.md").read_text(encoding="utf-8")
     assert "Hợp đồng cột" in readme
     for view in EXPECTED_COLUMNS:
         assert view in readme
+
 
 @pytest.mark.integration
 @pytest.mark.asyncio
@@ -44,13 +46,16 @@ async def test_view_columns_match_contract_on_mysql(mysql_engine_factory) -> Non
 
     await engine.dispose()
 
+
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_grants_per_role_on_mysql(mysql_engine_factory) -> None:  # type: ignore[no-untyped-def]
     # ai_cashier must not read vw_ai_kho
     from sqlalchemy.exc import OperationalError
 
-    cashier_url = "mysql+asyncmy://ai_cashier:dev-cashier-pass@localhost:3306/restaurant?charset=utf8mb4"
+    cashier_url = (
+        "mysql+asyncmy://ai_cashier:dev-cashier-pass@localhost:3306/restaurant?charset=utf8mb4"
+    )
     eng = mysql_engine_factory(cashier_url)
     try:
         async with eng.connect() as conn:
