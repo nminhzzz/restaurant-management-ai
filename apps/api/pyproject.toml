@@ -52,6 +52,11 @@ select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
 "migrations/versions/*" = ["E501", "F401", "RUF100"]
 "tests/helpers.py" = ["E501"]
 "tests/conftest.py" = ["E501"]
+"src/app/shared/base.py" = ["E402", "E501"]
+"src/app/core/dependencies.py" = ["E501"]
+"src/app/modules/settings/service.py" = ["E501"]
+"src/app/modules/settings/router.py" = ["B008", "E501"]
+"tests/modules/test_settings_auth.py" = ["E501"]
 
 [tool.mypy]
 python_version = "3.12"

@@ -6,7 +6,9 @@ Convention: database identifiers follow the relational schema in the report
 
 from datetime import date, datetime
 
+from sqlalchemy import BigInteger as _BigInteger
 from sqlalchemy import Date, DateTime, MetaData, func
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 NAMING_CONVENTION = {
@@ -16,6 +18,28 @@ NAMING_CONVENTION = {
     "pk": "pk_%(table_name)s",
     "ck": "ck_%(table_name)s_%(constraint_name)s",
 }
+
+
+# MySQL needs BIGINT for all PKs (Long), but SQLite AUTOINCREMENT only works with INTEGER.
+# CrossBigInteger compiles to BIGINT on MySQL and INTEGER on SQLite.
+class CrossBigInteger(_BigInteger):
+    """BIGINT on MySQL, INTEGER on SQLite (for AUTOINCREMENT compat)."""
+
+    pass
+
+
+@compiles(CrossBigInteger, "sqlite")
+def _compile_cross_bigint_sqlite(element, compiler, **kw):  # type: ignore[no-untyped-def]
+    return "INTEGER"
+
+
+# Alias used by models: keep name BigInteger so imports don't change
+BigInteger = CrossBigInteger
+
+# Patch sqlalchemy global so `from sqlalchemy import BigInteger` still works for SQLite
+import sqlalchemy as _sa  # type: ignore[import-untyped]
+
+_sa.BigInteger = CrossBigInteger  # type: ignore[misc]
 
 
 class Base(DeclarativeBase):
