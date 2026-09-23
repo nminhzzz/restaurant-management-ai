@@ -112,15 +112,17 @@ async def active_price(session: AsyncSession, dish_id: int) -> object | None:
 
 
 def display_status(recipe: object) -> str:
-    # placeholder - will be overridden when catalog models exist
+    # TODO(phase-2): derive from catalog service (Hoat dong / Het nguyen lieu / An)
     return "DRAFT"
 
 
 async def pending_price_versions(session: AsyncSession) -> list[object]:
+    # TODO(phase-2): query LICH_SU_GIA_MON where TrangThai=Nhaps
     return []
 
 
 async def pending_recipe_versions(session: AsyncSession) -> list[object]:
+    # TODO(phase-2): query CONG_THUC where TrangThai=Nhaps
     return []
 
 

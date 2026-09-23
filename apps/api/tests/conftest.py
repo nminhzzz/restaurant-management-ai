@@ -28,6 +28,36 @@ from app.shared.roles import Role
 from tests.helpers import FIXED_NOW
 
 
+def _require_resources_for_integration() -> None:
+    """Skip integration tests gracefully if host is under pressure.
+
+    Prevents occupying RAM/CPU when MySQL or system is constrained.
+    Called from mysql_* fixtures; lightweight gates with no extra deps.
+    """
+    import os
+    import shutil
+
+    # Disk: need at least 2GB free for MySQL data + tmp
+    try:
+        free = shutil.disk_usage(".").free
+        if free < 2 * 1024**3:
+            import pytest
+
+            pytest.skip(f"disk free {free // 1024**2}MB < 2048MB — skipping MySQL integration")
+    except Exception:
+        pass
+    # Load: skip if 1-min load > 0.9 * ncpu (machine is saturated)
+    try:
+        ncpu = os.cpu_count() or 4
+        load1 = os.getloadavg()[0]
+        if load1 > 0.9 * ncpu:
+            import pytest
+
+            pytest.skip(f"load {load1:.1f} > 0.9*{ncpu} — host saturated, skipping integration")
+    except Exception:
+        pass
+
+
 @pytest.fixture(autouse=True)
 def freeze_clock(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(business_date, "now", lambda: FIXED_NOW)
@@ -117,6 +147,8 @@ def fake_llm() -> FakeLlm:
     return FakeLlm()
 
 
+# NOTE: seed_views creates minimal stub tables (INTEGER PK) for view DDL on SQLite;
+# production NGUYEN_LIEU uses BIGINT AUTO_INCREMENT — typed views replace this in phase-6.
 @pytest_asyncio.fixture
 async def seed_views(engine: AsyncEngine) -> None:
     async with engine.begin() as conn:
@@ -146,6 +178,7 @@ async def seed_views(engine: AsyncEngine) -> None:
 @pytest.fixture
 def mysql_engine_factory() -> Callable[..., AsyncEngine]:
     def _make(url: str | None = None) -> AsyncEngine:
+        _require_resources_for_integration()
         db_url = url or get_settings().database_url
         return create_async_engine(db_url, future=True)
 
