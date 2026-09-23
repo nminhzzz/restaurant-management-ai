@@ -1,11 +1,12 @@
 """Sales module tables."""
 
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy import (
     DECIMAL,
     BigInteger,
     CheckConstraint,
+    Date,
     DateTime,
     ForeignKey,
     Index,
@@ -20,7 +21,7 @@ from app.shared.base import Base  # PaymentTransaction defaults match enums.Paym
 class Order(Base):
     __tablename__ = "ORDER"
     id: Mapped[int] = mapped_column("MaOrder", BigInteger, primary_key=True, autoincrement=True)
-    business_date: Mapped[datetime] = mapped_column("BusinessDate", DateTime, nullable=False)
+    business_date: Mapped[date] = mapped_column("BusinessDate", Date, nullable=False)
     table_id: Mapped[int | None] = mapped_column(
         "MaBan",
         BigInteger,
@@ -129,7 +130,7 @@ class PaymentTransaction(Base):
     status: Mapped[str] = mapped_column(
         "TrangThai", String(20), nullable=False, default="Ch\u1edd thanh to\u00e1n"
     )
-    business_date: Mapped[datetime] = mapped_column("BusinessDate", DateTime, nullable=False)
+    business_date: Mapped[date] = mapped_column("BusinessDate", Date, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         "NgayTao", DateTime, server_default=func.now(), nullable=False
     )
@@ -146,7 +147,7 @@ class Invoice(Base):
         nullable=False,
         unique=True,
     )
-    business_date: Mapped[datetime] = mapped_column("BusinessDate", DateTime, nullable=False)
+    business_date: Mapped[date] = mapped_column("BusinessDate", Date, nullable=False)
     issued_at: Mapped[datetime] = mapped_column(
         "ThoiDiemXuat", DateTime, server_default=func.now(), nullable=False
     )

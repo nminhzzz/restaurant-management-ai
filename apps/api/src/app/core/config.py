@@ -51,4 +51,13 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    return Settings()
+    settings = Settings()
+    if (
+        settings.environment != "local"
+        and settings.jwt_secret == "dev-only-secret-replace-me-0123456789"
+    ):
+        raise RuntimeError(
+            "JWT_SECRET must be set via env when ENVIRONMENT != local "
+            "(refusing to run with default dev secret)"
+        )
+    return settings

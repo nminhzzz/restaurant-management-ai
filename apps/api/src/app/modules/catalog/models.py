@@ -66,7 +66,7 @@ class DiningTable(Base):
     active_name: Mapped[str | None] = mapped_column(
         "TenBan_Active",
         String(50),
-        Computed("IF(DaXoa = 1, NULL, TenBan)", persisted=True),
+        Computed("CASE WHEN DaXoa = 1 THEN NULL ELSE TenBan END", persisted=True),
         unique=True,
         nullable=True,
     )

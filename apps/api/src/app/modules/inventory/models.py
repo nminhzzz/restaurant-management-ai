@@ -1,12 +1,13 @@
 """Inventory module tables."""
 
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy import (
     DECIMAL,
     BigInteger,
     CheckConstraint,
     Computed,
+    Date,
     DateTime,
     ForeignKey,
     Index,
@@ -196,7 +197,7 @@ class StockMovement(Base):
     occurred_at: Mapped[datetime] = mapped_column(
         "ThoiDiem", DateTime, server_default=func.now(), nullable=False
     )
-    business_date: Mapped[datetime] = mapped_column("BusinessDate", DateTime, nullable=False)
+    business_date: Mapped[date] = mapped_column("BusinessDate", Date, nullable=False)
     receipt_line_id: Mapped[int | None] = mapped_column(
         "MaChiTietNhap",
         BigInteger,

@@ -4,9 +4,9 @@ Convention: database identifiers follow the relational schema in the report
 (Vietnamese: `NGUYEN_LIEU`, `MaNguyenLieu`), while Python identifiers stay English.
 """
 
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import DateTime, MetaData, func
+from sqlalchemy import Date, DateTime, MetaData, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 NAMING_CONVENTION = {
@@ -38,4 +38,4 @@ class SoftDeleteMixin:
 class BusinessDateMixin:
     """Denormalized BusinessDate for reporting queries (Quy uoc #5)."""
 
-    business_date: Mapped[datetime] = mapped_column("BusinessDate", DateTime, nullable=False)
+    business_date: Mapped[date] = mapped_column("BusinessDate", Date, nullable=False)
