@@ -1,8 +1,11 @@
 """Orchestration of one assistant turn (FR-AI-01 … FR-AI-09).
 
 Steps: normalise → build prompt → generate → validate through the guard →
-execute on the read-only account → interpret. The resulting TRUY_VAN_AI record
-keeps the question, the SQL and the timings for the evaluation harness.
+execute on the role's read-only account → interpret. The resulting TRUY_VAN_AI
+record keeps the question, the SQL and the timings for the evaluation harness.
+
+NFR-06 bounds the whole SQL step: at most `ai_max_sql_attempts` generations per
+question, and `ai_sql_timeout_seconds` of database time per execution.
 """
 
 from app.core.config import get_settings
