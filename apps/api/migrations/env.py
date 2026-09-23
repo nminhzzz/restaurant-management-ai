@@ -7,7 +7,12 @@ from alembic import context
 from sqlalchemy.ext.asyncio import async_engine_from_config
 from sqlalchemy.pool import NullPool
 
-import app.shared.audit  # noqa: F401  (registers the audit table on Base.metadata)
+import app.modules.ai.models
+import app.modules.catalog.models
+import app.modules.inventory.models
+import app.modules.sales.models
+import app.modules.settings.models
+import app.shared.audit  # noqa: F401
 from app.core.config import get_settings
 from app.shared.base import Base
 
