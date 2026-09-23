@@ -30,16 +30,26 @@ kho, CHECK cho bốn FK rời rạc), §3.2.3 (index `LO_NGUYEN_LIEU`).
 
 ## Hợp đồng với các phase khác
 
-Phase này **cung cấp** cho Phase 4 và Phase 5:
+| Hướng | Hàm / kiểu | Chữ ký | Phase sở hữu | Phase tiêu thụ |
+| --- | --- | --- | --- | --- |
+| Cấp | `apply_stock_movement` | `(session, change, *, actor_id) -> list[StockMovement]` | 3 (Task 1) | 4 (trừ/hoàn kho khi bán), 7 |
+| Cấp | `reverse_movement` | `(session, movement, *, actor_id) -> StockMovement` | 3 (Task 1) | 4 (hủy/giảm món) |
+| Cấp | `reload`, `ingredient_total`, `lot_total`, `ledger_total` | helper đọc (Phase 0 Task 0) | 3 (Task 1 dùng) | 4, 7 |
+| Cấp | `effective_min_stock` | `(session, ingredient) -> Decimal` | 3 (Task 6) | 5 (cảnh báo tồn) |
+| Cấp | `close_month` | `(session, month) -> list[MonthlyAverageCost]` | 3 (Task 5) | 5 (FR-REP-05a/05b), 7 (`seed_operations`) |
+| Cấp | `backfill_issue_costs` | `(session, month) -> int` | 3 (Task 5) | 5 (nhãn "tạm tính") |
+| Cấp | `create_receipt`, `create_issue`, `create_stocktake`, `cancel_receipt` | — | 3 (Task 2–4) | 7 (sinh dữ liệu 12 tháng) |
+| Nhận | `business_date_of` | — | 0 (`shared/business_date.py`) | 3 (mọi phiếu ghi `BusinessDate`) |
+| Nhận | `active_recipe`, `recipe_items` | — | 2 (Task 3) | 3 (kiểm tồn theo định lượng) |
 
-| Hàm | Chữ ký | Ai dùng |
-| --- | --- | --- |
-| `apply_stock_movement` | `(session, change, *, actor_id) -> list[StockMovement]` | Phase 4 (trừ/hoàn kho khi bán) |
-| `reverse_movement` | `(session, movement, *, actor_id) -> StockMovement` | Phase 4 (hủy/giảm món) |
-| `effective_min_stock` | `(session, ingredient) -> Decimal` | Phase 5 (cảnh báo tồn) |
+Hai điểm dễ sai, ghi rõ ở đây vì chúng lan sang phase khác:
 
-Phase này **tiêu thụ** từ Phase 2: `effective_min_stock`, `active_recipe`, `recipe_items`.
-Chữ ký ba hàm trên phải giữ nguyên sau khi chốt — Phase 4 và Phase 5 gọi trực tiếp.
+- **`close_month()` trả danh sách**, một dòng cho mỗi nguyên liệu có nhập trong tháng — không phải một
+  nguyên liệu. Đổi chữ ký này thì phải sửa Phase 5 Task 3 và Phase 7 Task 2.
+- **Tên trường Python của `MonthlyAverageCost`** giữ theo §3.2.1 a27: `ingredient_id` →
+  `MaNguyenLieu`, `month` → `Thang`, `average_price` → `DonGiaBinhQuan`, `total_quantity` →
+  `TongSoLuongNhap`, `computed_at` → `ThoiDiemTinh`. Response API dùng tên cột; test Python dùng tên
+  trường. Trộn hai bộ tên trong cùng một test là nguồn lỗi.
 
 ## Cấu trúc file
 
@@ -52,6 +62,18 @@ Chữ ký ba hàm trên phải giữ nguyên sau khi chốt — Phase 4 và Phas
 | `apps/api/src/app/modules/inventory/router.py` | Tầng HTTP. |
 | `apps/web/src/features/inventory/` | Màn hình nhập, xuất, kiểm kê, tồn kho. |
 | `apps/api/tests/modules/test_inventory_*.py` | Test theo từng nhóm. |
+
+**Fixture của phase này** (khai báo trong `tests/modules/conftest.py`): `ingredient`, `two_lots`,
+`one_lot`, `mixed_stock`, `dry_goods`, `expired_lot`, `expired_and_fresh`, `ingredient_with_no_lots`,
+`ingredient_below_threshold`, `ingredient_at_the_limit`, `ingredient_restocked`,
+`ingredient_using_default_threshold`, `receipt`, `untouched_receipt`, `posted_receipt_then_issue`,
+`receipt_then_fully_drawn`, `receipts_in_one_month`, `receipts_in_two_months`, `issue_before_close`,
+`month_closed_after_issue`, `stocktake`, `stocktake_line`, `stocktake_two_lines`, `config_default`,
+`dish_with_recipe`, `dish_with_manual_flag`, `draft_dish`.
+
+Helper đọc dùng ở đây (`ingredient_total`, `lot_total`, `ledger_total`, `lots_for`, `lot_of`,
+`movements_for`, `negative_stock_count`, `negative_lot_count`, `record_counts`, `monthly_cost_count`,
+`reload`, `reload_lot`, `reload_issue_line`) đến từ `tests/helpers.py` — Phase 0 Task 0.
 
 ---
 
@@ -138,14 +160,24 @@ async def test_reversal_restores_an_expired_lot_too(session, ingredient, expired
     assert (await reload(session, expired)).remaining == Decimal("5")
 
 
-async def test_a_concurrent_draw_waits_for_the_row_lock(session_factory, ingredient, one_lot):
-    """NFR-08: the row lock serialises writers on the same ingredient."""
-    async with session_factory() as first, session_factory() as second:
+@pytest.mark.integration
+async def test_a_concurrent_draw_waits_for_the_row_lock(mysql_session_factory, ingredient, one_lot):
+    """NFR-08: the row lock serialises writers on the same ingredient.
+
+    SQLite has no SELECT ... FOR UPDATE, so this one only means anything on MySQL.
+    """
+    async with mysql_session_factory() as first:
         await apply_stock_movement(first, draw(ingredient, "3"), actor_id=1)
-        with pytest.raises(OperationalError):
-            await asyncio.wait_for(
-                apply_stock_movement(second, draw(ingredient, "3"), actor_id=2), timeout=1
-            )
+        # `first` still holds the row lock: the transaction is open and uncommitted.
+
+        async with mysql_session_factory() as second:
+            # innodb_lock_wait_timeout defaults to 50s, far longer than a test should
+            # wait, so shorten it for this session and expect the lock wait to give up.
+            await second.execute(text("SET SESSION innodb_lock_wait_timeout = 1"))
+            with pytest.raises(OperationalError, match="Lock wait timeout"):
+                await apply_stock_movement(second, draw(ingredient, "3"), actor_id=2)
+
+        await first.rollback()  # release the lock
 ```
 
 - [ ] **Step 2: Chạy test cho đỏ**
@@ -260,6 +292,23 @@ async def test_cancelling_a_receipt_removes_its_stock(client, warehouse_token, i
     await cancel_receipt(client, warehouse_token, receipt.id)
 
     assert await ingredient_total(client, ingredient.id) == before - Decimal("10")
+
+
+async def test_a_receipt_with_no_issue_after_it_may_be_cancelled(
+    client, warehouse_token, ingredient, untouched_receipt
+):
+    """FR-INV-02: nothing has left the store since, so the receipt can still go."""
+    assert (await cancel_receipt(client, warehouse_token, untouched_receipt.id)).status_code == 200
+
+
+async def test_cancelling_a_receipt_whose_lot_was_fully_drawn_is_refused(
+    client, warehouse_token, ingredient, receipt_then_fully_drawn
+):
+    """Reversing a receipt whose lot is already empty would push the lot negative."""
+    response = await cancel_receipt(client, warehouse_token, receipt_then_fully_drawn.id)
+
+    assert response.status_code == 422
+    assert await negative_lot_count(client, ingredient.id) == 0
 ```
 
 - [ ] **Step 2: Chạy test cho đỏ**
@@ -454,6 +503,7 @@ async def test_a_stocktake_is_the_way_back_after_a_refused_write_off(
     assert (await create_issue(
         client, warehouse_token, reason="Hao hụt", lines=[line(ingredient, "2")]
     )).status_code == 201
+```
 
 - [ ] **Step 2: Chạy test cho đỏ**
 
@@ -488,7 +538,8 @@ Expected: xanh. Commit: `feat(inventory): run periodic stocktakes and allocate d
 
 **Interfaces:**
 - Consumes: `MonthlyAverageCost`, `StockIssueLine`, `GoodsReceiptLine`.
-- Produces: `close_month(session, month: int) -> MonthlyAverageCost` (một nguyên liệu);
+- Produces: `close_month(session, month: int) -> list[MonthlyAverageCost]` (một dòng cho mỗi nguyên
+  liệu có nhập trong tháng);
   `backfill_issue_costs(session, month: int) -> int` (số dòng cập nhật);
   `POST /inventory/costing/{month}/close`.
 
@@ -497,7 +548,8 @@ Expected: xanh. Commit: `feat(inventory): run periodic stocktakes and allocate d
 ```python
 async def test_the_weighted_average_uses_receipts_of_that_month_only(session, receipts_in_two_months):
     """FR-REP-05a."""
-    cost = await close_month(session, 202609)
+    costs = await close_month(session, 202609)
+    cost = next(c for c in costs if c.ingredient_id == flour.id)
 
     assert cost.average_price == Decimal("22500")  # (10×20000 + 10×25000) / 20
     assert cost.total_quantity == Decimal("20")
@@ -526,7 +578,7 @@ async def test_closing_a_month_twice_recomputes_rather_than_duplicates(session, 
     await close_month(session, 202609)
     await close_month(session, 202609)
 
-    assert await monthly_cost_count(session, 202609) == 1
+    assert await monthly_cost_count(session, 202609, flour.id) == 1
 ```
 
 - [ ] **Step 2: Chạy test cho đỏ**
@@ -536,11 +588,16 @@ Expected: FAIL — `ModuleNotFoundError: app.modules.inventory.costing`
 
 - [ ] **Step 3: Cài đặt**
 
-`close_month` tính `SUM(SoLuong × DonGia) / SUM(SoLuong)` trên `CHI_TIET_PHIEU_NHAP` thuộc tháng
-(join `PHIEU_NHAP_KHO.NgayNhap`), upsert vào `GIA_BINH_QUAN_THANG` theo khóa ghép
-`(MaNguyenLieu, Thang)`. `backfill_issue_costs` quét `CHI_TIET_PHIEU_XUAT` của tháng còn
-`GiaVonUocTinh = 0` và cập nhật theo đơn giá vừa chốt — **job này là thành phần bắt buộc của MVP**
-(§3.2.2).
+`close_month()` tính `SUM(SoLuong × DonGia) / SUM(SoLuong)` trên `CHI_TIET_PHIEU_NHAP` thuộc tháng
+(join `PHIEU_NHAP_KHO.NgayNhap`), **một dòng cho mỗi nguyên liệu có nhập trong tháng**, rồi upsert vào
+`GIA_BINH_QUAN_THANG` theo khoá ghép `(MaNguyenLieu, Thang)` và trả về danh sách các dòng đó.
+
+Tên trường Python theo đúng báo cáo §3.2.1 a27: `ingredient_id` → `MaNguyenLieu`, `month` → `Thang`,
+`average_price` → `DonGiaBinhQuan`, `total_quantity` → `TongSoLuongNhap`, `computed_at` →
+`ThoiDiemTinh`. Test ở Step 1 dùng tên Python; khi so với response API thì dùng tên cột.
+
+`backfill_issue_costs` quét `CHI_TIET_PHIEU_XUAT` của tháng còn `GiaVonUocTinh = 0` và cập nhật theo
+đơn giá vừa chốt — **job này là thành phần bắt buộc của MVP** (§3.2.2).
 
 - [ ] **Step 4: Chạy test cho xanh**
 
@@ -648,7 +705,7 @@ async def test_every_stock_change_recomputes_the_affected_dishes(
     """The hook must fire on receipt, issue, stocktake and order draw alike."""
     await create_issue(client, warehouse_token, reason="Hao hụt", lines=[line(ingredient, "99")])
 
-    assert (await get_dish(db, dish_with_recipe.id)).auto_out_of_stock is True
+    assert (await get_dish(db_session, dish_with_recipe.id)).auto_out_of_stock is True
 ```
 
 - [ ] **Step 2: Chạy test cho đỏ**
@@ -698,7 +755,14 @@ Expected: xanh. Commit: `feat(inventory): expose stock levels, alerts and the wa
 ## Rủi ro
 
 - **Test khóa dòng cần MySQL thật.** SQLite không hỗ trợ `SELECT ... FOR UPDATE`, nên
-  `test_a_concurrent_draw_waits_for_the_row_lock` phải đánh dấu `integration` và chạy trên MySQL.
+  `test_a_concurrent_draw_waits_for_the_row_lock` đánh dấu `@pytest.mark.integration` và dùng
+  `mysql_session_factory` (fixture ở Phase 0 Task 0). Ba cái bẫy đã xử lý trong test:
+  (a) `SELECT ... FOR UPDATE` **chờ** lock chứ không lỗi ngay, và `innodb_lock_wait_timeout` mặc định
+  là 50 giây — phải hạ xuống 1 giây cho session thứ hai;
+  (b) `asyncio.wait_for` ném `TimeoutError`, không phải `OperationalError` — muốn thấy
+  `OperationalError` thì để MySQL tự hết hạn chờ lock;
+  (c) transaction giữ lock phải được `rollback()`/`commit()` tường minh, nếu không nó giữ lock tới
+  khi connection bị đóng.
 - **Ba tầng lệch nhau** là lỗi tốn kém nhất. Mọi test ở Task 1 đều kiểm tra cả ba tầng bằng nhau;
   giữ thói quen đó cho mọi thay đổi tồn kho về sau.
 - **`allow_expired`**: nếu đặt mặc định `True` thì luồng bán hàng sẽ trừ vào lô hết hạn — vi phạm
