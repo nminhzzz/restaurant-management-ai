@@ -15,8 +15,9 @@ Next.js (web)  ──HTTP──▶  FastAPI (api)  ──SQL──▶  MySQL
 
 - Câu SQL do LLM sinh ra đi qua lớp kiểm duyệt `sqlglot` trước khi thực thi: chỉ nhận `SELECT`
   trên đúng view phân quyền của vai trò đang hỏi.
-- Trợ lý AI đọc dữ liệu qua các view chỉ-đọc `VW_AI_QUANLY` / `VW_AI_THUNGAN` / `VW_AI_KHO`,
-  tách biệt hoàn toàn khỏi bảng nghiệp vụ lõi.
+- Trợ lý AI đọc dữ liệu qua các view chỉ-đọc `vw_ai_quanly` / `vw_ai_thungan` / `vw_ai_kho`,
+  tách biệt hoàn toàn khỏi bảng nghiệp vụ lõi. Mỗi vai trò truy vấn bằng tài khoản CSDL chỉ-đọc
+  riêng, chỉ được `GRANT SELECT` trên đúng view của mình (NFR-06).
 
 ## Cấu trúc repository
 
@@ -27,7 +28,7 @@ Next.js (web)  ──HTTP──▶  FastAPI (api)  ──SQL──▶  MySQL
 | `db/views` | Định nghĩa view phân quyền cho trợ lý AI |
 | `data/eval` | Bộ dữ liệu đánh giá 50–100 cặp câu hỏi tiếng Việt – SQL chuẩn |
 | `scripts/seed` | Sinh dữ liệu mô phỏng 12 tháng phục vụ báo cáo và thực nghiệm |
-| `docs` | Báo cáo, sơ đồ (drawio), hình ảnh, kế hoạch triển khai |
+| `docs` | Báo cáo, sơ đồ UML (drawio), hình ảnh, kế hoạch triển khai |
 
 ## Yêu cầu môi trường
 

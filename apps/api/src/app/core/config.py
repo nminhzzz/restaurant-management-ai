@@ -34,8 +34,19 @@ class Settings(BaseSettings):
     ai_model: str = "gpt-4o-mini"
     ai_ollama_base_url: str = "http://localhost:11434"
     ai_max_rows: int = 500
-    ai_timeout_seconds: float = 8.0
+    ai_response_budget_seconds: float = 8.0
     ai_daily_question_quota: int = 500
+
+    # NFR-06 execution limits: a query runs at most `ai_sql_timeout_seconds` on the
+    # database, and the model gets at most `ai_max_sql_attempts` tries per question.
+    ai_sql_timeout_seconds: float = 3.0
+    ai_max_sql_attempts: int = 2
+
+    # NFR-06 requires one read-only account per role, each granted SELECT on that
+    # role's view only — never a single account shared by all three roles.
+    ai_readonly_url_manager: str = ""
+    ai_readonly_url_cashier: str = ""
+    ai_readonly_url_warehouse: str = ""
 
 
 @lru_cache

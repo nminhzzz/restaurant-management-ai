@@ -11,7 +11,7 @@ describe("ModulePlaceholder", () => {
     expect(
       screen.getByRole("heading", { name: "Quản lý kho" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("FR-INV-01 … FR-INV-15")).toBeInTheDocument();
+    expect(screen.getByText("FR-INV-01 … FR-INV-12")).toBeInTheDocument();
     expect(screen.getByText(/Phụ trách: Minh/)).toBeInTheDocument();
   });
 });

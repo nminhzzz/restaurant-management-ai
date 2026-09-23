@@ -1,7 +1,7 @@
 """Declarative base and shared column mixins.
 
-Convention: database identifiers follow the ERD in the report (Vietnamese:
-`NGUYEN_LIEU`, `MaNguyenLieu`), while Python identifiers stay English.
+Convention: database identifiers follow the relational schema in the report
+(Vietnamese: `NGUYEN_LIEU`, `MaNguyenLieu`), while Python identifiers stay English.
 """
 
 from datetime import datetime

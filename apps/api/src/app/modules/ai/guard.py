@@ -9,8 +9,8 @@ Rules enforced here, in order (NFR-06, risk register items 1 and 3):
 5. the result is capped at `ai_max_rows` — a smaller LIMIT is honoured, a larger or
    non-literal LIMIT is clamped, and a missing LIMIT is added.
 
-The row ceiling here is a guard-level ceiling only: `ai_timeout_seconds` (statement
-timeout in the executor) and the read-only database account remain the outer layers.
+The row ceiling here is a guard-level ceiling only: `ai_sql_timeout_seconds` (statement
+timeout in the executor) and the role's read-only database account remain the outer layers.
 """
 
 from collections.abc import Iterable

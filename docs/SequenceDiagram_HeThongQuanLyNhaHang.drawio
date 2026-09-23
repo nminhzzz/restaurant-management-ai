@@ -1,12 +1,9 @@
-<mxfile host="Electron" agent="Claude" pages="5">
+<mxfile host="Electron" agent="Claude" pages="6">
   <diagram name="SD-01. Đăng nhập và phân quyền" id="REM5pasQmk4OB3uPmAX4">
-    <mxGraphModel dx="1357" dy="815" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1340" pageHeight="850" math="0" shadow="0">
+    <mxGraphModel dx="1288" dy="783" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1340" pageHeight="850" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="QKicb4R7bN-1" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" value="&lt;b&gt;&lt;font style=&quot;font-size: 16px;&quot;&gt;SD-01. Đăng nhập và phân quyền theo vai trò&lt;/font&gt;&lt;/b&gt;" vertex="1">
-          <mxGeometry height="30" width="560" x="340" y="5" as="geometry" />
-        </mxCell>
         <mxCell id="QKicb4R7bN-2" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;participant=umlActor;" value="Người dùng" vertex="1">
           <mxGeometry height="720" width="150" x="40" y="50" as="geometry" />
         </mxCell>
@@ -117,13 +114,10 @@
     </mxGraphModel>
   </diagram>
   <diagram name="SD-02. Lập và gửi order xuống bếp" id="2xKtiEZ0S6rkBrnzMEt0">
-    <mxGraphModel dx="1697" dy="1018" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1580" pageHeight="1030" math="0" shadow="0">
+    <mxGraphModel dx="3165" dy="963" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1580" pageHeight="1030" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="DTt9eHT3TR-1" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" value="&lt;b&gt;&lt;font style=&quot;font-size: 16px;&quot;&gt;SD-02. Lập order, kiểm tra tồn và in phiếu bếp&lt;/font&gt;&lt;/b&gt;" vertex="1">
-          <mxGeometry height="30" width="600" x="420" y="5" as="geometry" />
-        </mxCell>
         <mxCell id="DTt9eHT3TR-2" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;participant=umlActor;" value="Nhân viên order" vertex="1">
           <mxGeometry height="900" width="150" x="40" y="50" as="geometry" />
         </mxCell>
@@ -211,10 +205,10 @@
         <mxCell id="DTt9eHT3TR-23" parent="1" style="shape=umlFrame;whiteSpace=wrap;html=1;width=70;height=30;" value="alt" vertex="1">
           <mxGeometry height="340" width="1080" x="230" y="525" as="geometry" />
         </mxCell>
-        <mxCell id="DTt9eHT3TR-24" parent="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=2;" value="[đủ nguyên liệu cho toàn bộ món]" vertex="1">
-          <mxGeometry height="24" width="300" x="245" y="558" as="geometry" />
+        <mxCell id="DTt9eHT3TR-24" parent="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=2;" value="[còn ít nhất một món đủ nguyên liệu]" vertex="1">
+          <mxGeometry height="24" width="320" x="245" y="558" as="geometry" />
         </mxCell>
-        <mxCell id="DTt9eHT3TR-25" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=block;rounded=0;endFill=1;" value="8: ghiOrder() và sinh MaOrderHienThi">
+        <mxCell id="DTt9eHT3TR-25" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=block;rounded=0;endFill=1;" value="8: ghiOrder(loại các món thiếu tồn) và sinh MaOrderHienThi">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
             <mxPoint x="550" y="595" as="sourcePoint" />
             <mxPoint x="1000" y="595" as="targetPoint" />
@@ -226,19 +220,19 @@
             <mxPoint x="550" y="635" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="DTt9eHT3TR-27" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=open;endSize=10;rounded=0;" value="10: truTonFIFO(MaChiTietOrder)">
+        <mxCell id="DTt9eHT3TR-27" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=open;endSize=10;rounded=0;" value="10: truTonFIFO(các món đủ tồn trong MaChiTietOrder)">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
             <mxPoint x="550" y="670" as="sourcePoint" />
             <mxPoint x="770" y="670" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="DTt9eHT3TR-28" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=block;rounded=0;endFill=1;" value="11: inPhieuBep(MaOrder)">
+        <mxCell id="DTt9eHT3TR-28" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=block;rounded=0;endFill=1;" value="11: inPhieuBep(MaOrder, chỉ món đã ghi)">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
             <mxPoint x="550" y="710" as="sourcePoint" />
             <mxPoint x="1230" y="710" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="DTt9eHT3TR-29" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=open;endSize=10;dashed=1;rounded=0;" value="12: kết quả in phiếu bếp">
+        <mxCell id="DTt9eHT3TR-29" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=open;endSize=10;dashed=1;rounded=0;" value="12: kết quả in phiếu bếp + danh sách món bị từ chối do thiếu tồn (nếu có)">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
             <mxPoint x="1230" y="750" as="sourcePoint" />
             <mxPoint x="550" y="750" as="targetPoint" />
@@ -250,16 +244,16 @@
             <mxPoint x="1310" y="780" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="DTt9eHT3TR-31" parent="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=2;" value="[thiếu nguyên liệu cho ít nhất một món]" vertex="1">
+        <mxCell id="DTt9eHT3TR-31" parent="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=2;" value="[không món nào đủ nguyên liệu]" vertex="1">
           <mxGeometry height="24" width="320" x="240" y="780" as="geometry" />
         </mxCell>
-        <mxCell id="DTt9eHT3TR-32" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=open;endSize=10;dashed=1;rounded=0;" value="13: danh sách món không đủ tồn">
+        <mxCell id="DTt9eHT3TR-32" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=open;endSize=10;dashed=1;rounded=0;" value="13: danh sách toàn bộ món không đủ tồn, không ghi order">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
             <mxPoint x="540" y="830" as="sourcePoint" />
             <mxPoint x="320" y="830" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="DTt9eHT3TR-33" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=open;endSize=10;dashed=1;rounded=0;" value="14: hiển thị mã order hoặc cảnh báo thiếu nguyên liệu">
+        <mxCell id="DTt9eHT3TR-33" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=open;endSize=10;dashed=1;rounded=0;" value="14: hiển thị mã order (nếu tạo được) và/hoặc cảnh báo danh sách món thiếu nguyên liệu">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
             <mxPoint x="310" y="900" as="sourcePoint" />
             <mxPoint x="120" y="900" as="targetPoint" />
@@ -268,14 +262,11 @@
       </root>
     </mxGraphModel>
   </diagram>
-  <diagram name="SD-03. Thanh toán bằng mã QR" id="8Ceb2cRJtXbiCbZoicNB">
-    <mxGraphModel dx="1697" dy="1018" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1580" pageHeight="1050" math="0" shadow="0">
+  <diagram name="SD-03a. Thanh toán bằng mã QR (tự động)" id="8Ceb2cRJtXbiCbZoicNB">
+    <mxGraphModel dx="3297" dy="1043" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1580" pageHeight="1050" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="X4vQ32zX1J-1" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" value="&lt;b&gt;&lt;font style=&quot;font-size: 16px;&quot;&gt;SD-03. Thanh toán bằng mã QR và phát hành hóa đơn&lt;/font&gt;&lt;/b&gt;" vertex="1">
-          <mxGeometry height="30" width="620" x="420" y="5" as="geometry" />
-        </mxCell>
         <mxCell id="X4vQ32zX1J-2" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;participant=umlActor;" value="Thu ngân" vertex="1">
           <mxGeometry height="920" width="150" x="40" y="50" as="geometry" />
         </mxCell>
@@ -327,7 +318,7 @@
             <mxPoint x="540" y="210" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="X4vQ32zX1J-17" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=block;rounded=0;endFill=1;" value="3: ghi giao dịch trạng thái Chờ thanh toán">
+        <mxCell id="X4vQ32zX1J-17" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=block;rounded=0;endFill=1;" value="3: ghi giao dịch trạng thái Chờ xác nhận">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
             <mxPoint x="550" y="260" as="sourcePoint" />
             <mxPoint x="770" y="260" as="targetPoint" />
@@ -409,16 +400,16 @@
             <mxPoint x="1320" y="790" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="X4vQ32zX1J-32" parent="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=2;" value="[quá hạn hoặc số tiền không khớp]" vertex="1">
+        <mxCell id="X4vQ32zX1J-32" parent="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=2;" value="[quá hạn hoặc webhook không hợp lệ]" vertex="1">
           <mxGeometry height="24" width="320" x="235" y="790" as="geometry" />
         </mxCell>
-        <mxCell id="X4vQ32zX1J-33" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=open;endSize=10;dashed=1;rounded=0;" value="13: yêu cầu tạo lại QR hoặc đổi phương thức">
+        <mxCell id="X4vQ32zX1J-33" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=open;endSize=10;dashed=1;rounded=0;" value="13: chuyển trạng thái Hết hạn (hoặc từ chối nếu webhook sai)">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
             <mxPoint x="540" y="832" as="sourcePoint" />
             <mxPoint x="320" y="832" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="X4vQ32zX1J-34" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=open;endSize=10;dashed=1;rounded=0;" value="14: in hóa đơn hoặc báo lỗi thanh toán">
+        <mxCell id="X4vQ32zX1J-34" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=open;endSize=10;dashed=1;rounded=0;" value="14: yêu cầu tạo lại QR / đổi phương thức, hoặc chuyển Chờ đối soát nếu khách báo đã thanh toán">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
             <mxPoint x="310" y="880" as="sourcePoint" />
             <mxPoint x="120" y="880" as="targetPoint" />
@@ -427,14 +418,95 @@
       </root>
     </mxGraphModel>
   </diagram>
+  <diagram name="SD-03b. Đối soát thủ công khi QR không tự khớp" id="SD03bManualRecon01">
+    <mxGraphModel dx="1288" dy="783" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1350" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="B1" parent="0" />
+        <mxCell id="B2" parent="B1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;participant=umlActor;" value="Thu ngân" vertex="1">
+          <mxGeometry height="620" width="150" x="40" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="B3" parent="B1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;" value=":Màn hình thanh toán" vertex="1">
+          <mxGeometry height="620" width="150" x="240" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="B4" parent="B1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;" value=":XuLyThanhToan" vertex="1">
+          <mxGeometry height="620" width="150" x="470" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="B5" parent="B1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;" value=":GIAO_DICH_&lt;br&gt;THANH_TOAN" vertex="1">
+          <mxGeometry height="620" width="150" x="700" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="B6" parent="B1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;participant=umlActor;" value="Quản lý" vertex="1">
+          <mxGeometry height="620" width="150" x="1160" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="B7" parent="B1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;" value=":HOA_DON" vertex="1">
+          <mxGeometry height="620" width="150" x="930" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="B8" parent="B1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;" value="" vertex="1">
+          <mxGeometry height="80" width="10" x="310" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="B9" parent="B1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;" value="" vertex="1">
+          <mxGeometry height="390" width="10" x="540" y="150" as="geometry" />
+        </mxCell>
+        <mxCell id="B10" parent="B1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;" value="" vertex="1">
+          <mxGeometry height="30" width="10" x="770" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="B11" parent="B1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;" value="" vertex="1">
+          <mxGeometry height="40" width="10" x="1230" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="B12" parent="B1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;" value="" vertex="1">
+          <mxGeometry height="30" width="10" x="770" y="370" as="geometry" />
+        </mxCell>
+        <mxCell id="B13" parent="B1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;" value="" vertex="1">
+          <mxGeometry height="30" width="10" x="1000" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="B14" parent="B1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;" value="" vertex="1">
+          <mxGeometry height="30" width="10" x="770" y="480" as="geometry" />
+        </mxCell>
+        <mxCell id="M1" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="1: nhập mã giao dịch ngân hàng (MaGiaoDichNganHang) và đính kèm ảnh chứng từ">
+          <mxGeometry height="50" relative="1" width="50" as="geometry"><mxPoint x="120" y="110" as="sourcePoint" /><mxPoint x="310" y="110" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="M2" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="2: ghiNhanDoiSoat(MaGiaoDichTT, MaGiaoDichNganHang, anhChungTu)">
+          <mxGeometry height="50" relative="1" width="50" as="geometry"><mxPoint x="320" y="150" as="sourcePoint" /><mxPoint x="540" y="150" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="M3" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="3: cập nhật MaGiaoDichNganHang, AnhChungTu, trạng thái Chờ đối soát">
+          <mxGeometry height="50" relative="1" width="50" as="geometry"><mxPoint x="550" y="190" as="sourcePoint" /><mxPoint x="770" y="190" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="M4" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="4: yêu cầu Quản lý xác nhận kết quả đối soát">
+          <mxGeometry height="50" relative="1" width="50" as="geometry"><mxPoint x="550" y="230" as="sourcePoint" /><mxPoint x="1230" y="230" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="M5" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="5: xacNhanDoiSoat(ketQua)">
+          <mxGeometry height="50" relative="1" width="50" as="geometry"><mxPoint x="1230" y="270" as="sourcePoint" /><mxPoint x="550" y="270" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="ALT1" parent="B1" style="shape=umlFrame;whiteSpace=wrap;html=1;width=70;height=30;" value="alt" vertex="1">
+          <mxGeometry height="230" width="1090" x="230" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="LBL1" parent="B1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=2;" value="[ketQua = Đã nhận tiền]" vertex="1">
+          <mxGeometry height="24" width="300" x="245" y="343" as="geometry" />
+        </mxCell>
+        <mxCell id="M6" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="6: cập nhật trạng thái Thành công">
+          <mxGeometry height="50" relative="1" width="50" as="geometry"><mxPoint x="550" y="370" as="sourcePoint" /><mxPoint x="770" y="370" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="M7" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="7: phatHanhHoaDon(MaOrder, MaGiaoDichTT)">
+          <mxGeometry height="50" relative="1" width="50" as="geometry"><mxPoint x="550" y="400" as="sourcePoint" /><mxPoint x="1000" y="400" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="DIV1" edge="1" parent="B1" style="endArrow=none;dashed=1;html=1;rounded=0;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry"><mxPoint x="230" y="440" as="sourcePoint" /><mxPoint x="1320" y="440" as="targetPoint" /></mxGeometry>
+        </mxCell>
+        <mxCell id="LBL2" parent="B1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=2;" value="[ketQua = Không có giao dịch]" vertex="1">
+          <mxGeometry height="24" width="320" x="245" y="440" as="geometry" />
+        </mxCell>
+        <mxCell id="M8" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="8: cập nhật trạng thái Tranh chấp">
+          <mxGeometry height="50" relative="1" width="50" as="geometry"><mxPoint x="550" y="480" as="sourcePoint" /><mxPoint x="770" y="480" as="targetPoint" /></mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
   <diagram name="SD-04. Nhập kho và tạo lô nguyên liệu" id="NOY7QmDlaDSlqvRGMUyX">
-    <mxGraphModel dx="1566" dy="940" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1580" pageHeight="990" math="0" shadow="0">
+    <mxGraphModel dx="1585" dy="963" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1580" pageHeight="990" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="MxKLeN92Ty-1" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" value="&lt;b&gt;&lt;font style=&quot;font-size: 16px;&quot;&gt;SD-04. Ghi nhận phiếu nhập kho và tạo lô nguyên liệu theo FIFO&lt;/font&gt;&lt;/b&gt;" vertex="1">
-          <mxGeometry height="30" width="640" x="420" y="5" as="geometry" />
-        </mxCell>
         <mxCell id="MxKLeN92Ty-2" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;participant=umlActor;" value="Nhân viên kho" vertex="1">
           <mxGeometry height="860" width="150" x="40" y="50" as="geometry" />
         </mxCell>
@@ -468,7 +540,7 @@
         <mxCell id="MxKLeN92Ty-12" parent="1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;" value="" vertex="1">
           <mxGeometry height="55" width="10" x="1230" y="555" as="geometry" />
         </mxCell>
-        <mxCell id="MxKLeN92Ty-13" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=block;rounded=0;endFill=1;" value="1: nhập NCC, nguyên liệu, số lượng, đơn giá, HSD">
+        <mxCell id="MxKLeN92Ty-13" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=block;rounded=0;endFill=1;" value="1: nhập NCC, nguyên liệu, số lượng, đơn giá (không nhập HSD)">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
             <mxPoint x="120" y="160" as="sourcePoint" />
             <mxPoint x="310" y="160" as="targetPoint" />
@@ -508,7 +580,7 @@
             <mxPoint x="550" y="436" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="MxKLeN92Ty-20" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=block;rounded=0;endFill=1;" value="6: taoLo(SoLuongNhap, HanSuDung, DonGia)">
+        <mxCell id="MxKLeN92Ty-20" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=block;rounded=0;endFill=1;" value="6: taoLo(SoLuongNhap, DonGia) — HanSuDung tự tính theo ngày nhập và số ngày bảo quản">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
             <mxPoint x="550" y="455" as="sourcePoint" />
             <mxPoint x="1000" y="455" as="targetPoint" />
@@ -560,13 +632,10 @@
     </mxGraphModel>
   </diagram>
   <diagram name="SD-05. Hỏi AI Assistant" id="4f5SiCM4xJ2X6COmSYNS">
-    <mxGraphModel dx="1566" dy="940" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1580" pageHeight="1010" math="0" shadow="0">
+    <mxGraphModel dx="1585" dy="963" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1580" pageHeight="1010" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="TKBZfUbLDo-1" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" value="&lt;b&gt;&lt;font style=&quot;font-size: 16px;&quot;&gt;SD-05. Hỏi AI Assistant bằng tiếng Việt và sinh câu truy vấn&lt;/font&gt;&lt;/b&gt;" vertex="1">
-          <mxGeometry height="30" width="640" x="420" y="5" as="geometry" />
-        </mxCell>
         <mxCell id="TKBZfUbLDo-2" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;participant=umlActor;" value="Quản lý" vertex="1">
           <mxGeometry height="880" width="150" x="40" y="50" as="geometry" />
         </mxCell>
