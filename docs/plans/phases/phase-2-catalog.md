@@ -26,10 +26,42 @@ khóa đơn vị tính), §3.4.2 (Bảng 33 — quyền theo chức năng).
 - `BusinessDateApDung` phải là **tương lai**; mặc định là Business Date kế tiếp (FR-CAT-08, FR-CAT-20).
 - Tối đa **một** thay đổi giá và **một** thay đổi công thức ở trạng thái `Chờ áp dụng` cho mỗi món.
 - Tra cứu giá/công thức hiệu lực **chỉ** qua `app.shared.business_date`, không tự tính lại.
+- **Không dùng đồng hồ thật.** `today()`, `tomorrow()` trong test là helper
+  của tầng fixture (Phase 0 Task 0), neo vào `FIXED_NOW = datetime(2026, 9, 24, 10, 0)`. Tầng service
+  đọc "hiện tại" qua `app.shared.business_date.now()` — seam duy nhất — và fixture `freeze_clock`
+  (autouse) cắm nó cho mọi test. Không service nào được gọi `datetime.now()` trực tiếp: làm vậy thì
+  giá trị service tính ra và `today()` trong test sẽ lệch nhau, và cả phase này thành phụ thuộc đồng
+  hồ thật — vi phạm §4 của quy tắc chung.
 - Thêm nhóm/món/nguyên liệu mới **không** phải sửa lược đồ (NFR-11): danh mục là dữ liệu, không phải
   cấu trúc. `apps/web/src/lib/modules.ts` vẫn là nguồn duy nhất mô tả module cho giao diện.
 - Mọi chuỗi hiển thị cho người dùng bằng **tiếng Việt** (NFR-14); code, comment, tên hàm bằng tiếng Anh.
 - `make gate` xanh trước khi kết thúc mỗi task.
+
+## Trạng thái hiển thị của món — điểm chờ chốt G1
+
+Báo cáo tự mâu thuẫn ở đây, nên phase này chốt một hướng và ghi rõ đường lui:
+
+- §3.2.1 nói `MON_AN.TrangThai` là cột **GENERATED**, suy từ `AnThuCong` + `HetNLThuCong` +
+  `HetNLTuDong`, "không gán trực tiếp".
+- FR-CAT-06/11/28 lại nói món mới ở trạng thái **`Nháp`**, chuyển sang `Hoạt động`/`Hết nguyên liệu`
+  khi được gán công thức lần đầu, và coi `Nháp` ngang hàng hai trạng thái kia.
+
+Cột GENERATED chỉ đọc được **cột cùng hàng**, nên nó không biết được "đã có phiên bản `CONG_THUC`
+hiệu lực hay chưa" — tức không biểu diễn được `Nháp`.
+
+**Hướng đã chọn (theo Quyết định #1 của Phase 0):** giữ `MON_AN.TrangThai` là GENERATED với đúng hai
+giá trị vận hành `Hoạt động` / `Hết nguyên liệu` (cộng giá trị ẩn khi `AnThuCong = 1`). `Nháp` là
+**trạng thái hiển thị do tầng service suy ra** từ "chưa có `CONG_THUC` hiệu lực", trả trong
+`TrangThai` của response API, **không** lưu vào cột.
+
+Hệ quả cho test: **không** assert `dish.status == "Nháp"` khi đọc thẳng từ DB — cột đó không bao giờ
+mang giá trị ấy. Muốn kiểm `Nháp` thì gọi `display_status(session, dish)` hoặc đọc `TrangThai` từ
+response.
+
+**Nếu G1 chốt ngược lại** (muốn `Nháp` nằm hẳn trong cột): bỏ `Computed` khỏi `MON_AN.TrangThai`, cho
+service ghi cả bốn giá trị, và sửa ba chỗ — test `test_dish_status_is_a_generated_column` ở Phase 0
+Task 2, quy ước #1 ở phase-0, và mục này. Đây là lý do phase-0 để nó ở bảng "Quyết định cần chốt"
+chứ không chôn trong phần thân.
 
 ## Cấu trúc file
 
@@ -41,6 +73,16 @@ khóa đơn vị tính), §3.4.2 (Bảng 33 — quyền theo chức năng).
 | `apps/api/src/app/modules/catalog/router.py` | Tầng HTTP, gắn `require_any_role`. |
 | `apps/web/src/features/catalog/` | Màn hình nhóm món, món ăn, công thức, giá, nguyên liệu, NCC, bàn. |
 | `apps/api/tests/modules/test_catalog_*.py` | Test theo từng nhóm chức năng. |
+| `apps/api/tests/modules/conftest.py` | Fixture của module danh mục (danh sách bên dưới). |
+
+**Fixture của phase này** (khai báo trong `tests/modules/conftest.py`; dùng `seed_reference_data()`
+của Phase 1 Task 1 Step 0 để có ba vai trò trước): `group`, `other_group`, `three_groups`, `dish`,
+`draft_dish`, `three_dishes`, `dish_with_recipe`, `dish_with_pending_price`, `free_table`,
+`occupied_table`, `fresh_ingredient`, `three_ingredients`, `ingredient_in_recipe`, `fresh_supplier`,
+`supplier_with_receipts`, `group_with_dish`, `config_with_default_threshold`.
+
+Quy ước: fixture của module nằm ở `tests/modules/conftest.py`, **không** dồn vào `tests/conftest.py`
+gốc — chỉ fixture dùng từ ba phase trở lên mới thuộc file gốc (Phase 0 Task 0).
 
 ---
 
@@ -54,8 +96,17 @@ khóa đơn vị tính), §3.4.2 (Bảng 33 — quyền theo chức năng).
 
 **Interfaces:**
 - Consumes: `DishGroup`, `Dish`, `audit.record`, `require_any_role`.
-- Produces: `create_group`, `update_group`, `delete_group`, `create_dish`, `update_dish`,
-  `delete_dish`, `list_dishes`; `GET/POST/PATCH/DELETE /catalog/groups`, `/catalog/dishes`.
+- Produces: `create_group`, `update_group`, `delete_group`, `reorder_groups`, `create_dish`,
+  `update_dish`, `delete_dish`, `list_dishes`; `GET/POST/PATCH/DELETE /catalog/groups`,
+  `PUT /catalog/groups/order`, `/catalog/dishes`.
+
+  Fixture cần cho Task 1 (khai báo trong `tests/modules/conftest.py`, dùng `seed_reference_data` của
+  Phase 1 Task 1): `group`, `other_group`, `three_groups`, `dish`, `draft_dish`, `three_dishes`,
+  `free_table`, `occupied_table`.
+
+  `ThuTuHienThi` là cột **có thứ tự**, không phải khoá duy nhất: `reorder_groups` gán lại 1..n trong
+  một transaction, nên đổi thứ tự sẽ tạm thời trùng số giữa chừng — đừng đặt `UNIQUE` lên cột này
+  (Phase 0 Task 2 đã chốt không có unique ở đây).
 
 - [ ] **Step 1: Viết test cho xóa mềm và điều kiện xóa nhóm**
 
@@ -102,12 +153,17 @@ async def test_dish_deletion_is_audited(client, manager_token, dish, db_session)
 
 
 async def test_a_new_dish_starts_as_draft(client, manager_token, group, db_session):
-    """FR-CAT-06: no recipe yet, so it is not on the order screen."""
+    """FR-CAT-06: no recipe yet, so it is not on the order screen.
+
+    `Nháp` is a display state the service derives from the absence of an active
+    recipe — the generated column never holds it, so it is read from the response.
+    """
     created = await create_dish(client, manager_token, name="Phở bò", group_id=group.id)
 
+    assert created.json()["TrangThai"] == "Nháp"
     dish = await get_dish(db_session, created.json()["MaMon"])
-    assert dish.status == "Nháp"
     assert dish.manual_hidden is False
+    assert await active_recipe(db_session, dish.id, today()) is None
 
 
 async def test_a_dish_carries_a_name_a_price_a_group_and_a_picture(client, manager_token, group):
@@ -131,6 +187,40 @@ async def test_a_dish_belongs_to_exactly_one_group(client, manager_token, group,
     moved = await update_dish(client, manager_token, created.json()["MaMon"], group_id=other_group.id)
 
     assert moved.json()["MaNhomMon"] == other_group.id
+
+
+async def test_groups_carry_a_display_order(client, manager_token, three_groups):
+    """FR-CAT-01: the manager reorders the list, and the order sticks."""
+    listed = (await list_groups(client, manager_token)).json()["items"]
+
+    assert [item["ThuTuHienThi"] for item in listed] == list(range(1, len(three_groups) + 1))
+
+
+async def test_reordering_groups_renumbers_them(client, manager_token, three_groups):
+    """FR-CAT-01."""
+    first, second, third = three_groups
+
+    await reorder_groups(client, manager_token, [third.id, first.id, second.id])
+
+    listed = (await list_groups(client, manager_token)).json()["items"]
+    assert [item["MaNhomMon"] for item in listed] == [third.id, first.id, second.id]
+    assert [item["ThuTuHienThi"] for item in listed] == [1, 2, 3]  # renumbered 1..n
+
+
+async def test_a_reorder_that_omits_a_group_is_refused(client, manager_token, three_groups):
+    """Otherwise a group would be left with no place in the list."""
+    first, _, _ = three_groups
+
+    response = await reorder_groups(client, manager_token, [first.id])
+
+    assert response.status_code == 422
+
+
+async def test_a_new_group_goes_to_the_end_of_the_list(client, manager_token, three_groups):
+    """FR-CAT-01."""
+    created = await create_group(client, manager_token, name="Tráng miệng")
+
+    assert created.json()["ThuTuHienThi"] == len(three_groups) + 1
 ```
 
 - [ ] **Step 2: Chạy test cho đỏ**
@@ -140,7 +230,9 @@ Expected: FAIL — route chưa tồn tại
 
 - [ ] **Step 3: Cài đặt**
 
-`delete_group` đếm món chưa xóa mềm thuộc nhóm; còn món thì trả `BusinessRuleError`. `delete_dish`
+`delete_group` đếm món chưa xóa mềm thuộc nhóm; còn món thì trả `BusinessRuleError`.
+`reorder_groups()` nhận **đủ** danh sách `MaNhomMon` chưa xoá mềm và gán lại `ThuTuHienThi` 1..n;
+thiếu id nào thì từ chối, để không nhóm nào rơi khỏi danh sách (FR-CAT-01). `delete_dish`
 đặt `DaXoa = True`, `NgayXoa`, và **hủy mọi phiên bản giá/công thức `Chờ áp dụng`** của món đó
 (FR-CAT-05). `TrangThai` của món mới là `Nháp` — đây là giá trị do **service** gán, không phải cột
 GENERATED (xem Quyết định #1 ở phase-0).
@@ -188,7 +280,7 @@ async def test_a_scheduled_change_must_target_a_future_business_date(
 async def test_the_default_target_is_the_next_business_date(client, manager_token, dish):
     created = await schedule_price(client, manager_token, dish.id, price="50000")
 
-    assert created.json()["BusinessDateApDung"] == next_business_date().isoformat()
+    assert created.json()["BusinessDateApDung"] == tomorrow().isoformat()
 
 
 async def test_only_one_change_waits_per_dish_and_the_newest_wins(
@@ -201,7 +293,6 @@ async def test_only_one_change_waits_per_dish_and_the_newest_wins(
     pending = await pending_price_versions(db_session, dish.id)
     assert len(pending) == 1
     assert pending[0].price == Decimal("60000")
-    assert pending[0].status == "Đã hủy" or pending[0].price == Decimal("60000")
 
 
 async def test_a_direct_edit_applies_now_and_keeps_the_scheduled_change(
@@ -533,7 +624,10 @@ async def test_soft_delete_is_a_state_of_its_own(client, manager_token, dish, db
 
     row = await get_dish(db_session, dish.id)
     assert row.is_deleted is True
-    assert row.status in {"Hoạt động", "Hết nguyên liệu", "Nháp"}
+    # The generated column only ever carries the two operating values.
+    assert row.status in {"Hoạt động", "Hết nguyên liệu"}
+    # Deletion is not one of the operating states, so it survives independently.
+    assert await display_status(db_session, row) == "Đã xóa"
 ```
 
 - [ ] **Step 2: Chạy test cho đỏ**
