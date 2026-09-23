@@ -6,7 +6,7 @@ Append-only: the table is never updated or deleted by application code.
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import JSON, BigInteger, DateTime, ForeignKey, Integer, String, func
+from sqlalchemy import JSON, BigInteger, DateTime, ForeignKey, Index, Integer, String, func
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from app.shared.base import Base
@@ -28,6 +28,8 @@ class SystemAuditLog(Base):
     before: Mapped[dict[str, Any] | None] = mapped_column("DuLieuTruoc", JSON, nullable=True)
     after: Mapped[dict[str, Any] | None] = mapped_column("DuLieuSau", JSON, nullable=True)
     reason: Mapped[str | None] = mapped_column("LyDo", String(255), nullable=True)
+
+    __table_args__ = (Index("ix_NHAT_KY_HE_THONG_ThoiDiem", "ThoiDiem"),)
 
 
 def record(

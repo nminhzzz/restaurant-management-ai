@@ -14,6 +14,7 @@ NAMING_CONVENTION = {
     "uq": "uq_%(table_name)s_%(column_0_N_name)s",
     "fk": "fk_%(table_name)s_%(column_0_N_name)s",
     "pk": "pk_%(table_name)s",
+    "ck": "ck_%(table_name)s_%(constraint_name)s",
 }
 
 
@@ -32,3 +33,9 @@ class SoftDeleteMixin:
 
     is_deleted: Mapped[bool] = mapped_column("DaXoa", default=False, nullable=False)
     deleted_at: Mapped[datetime | None] = mapped_column("NgayXoa", DateTime, nullable=True)
+
+
+class BusinessDateMixin:
+    """Denormalized BusinessDate for reporting queries (Quy uoc #5)."""
+
+    business_date: Mapped[datetime] = mapped_column("BusinessDate", DateTime, nullable=False)

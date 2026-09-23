@@ -29,3 +29,8 @@ def business_date_range(
 def next_business_date(moment: datetime, start_hour: int = BUSINESS_DAY_START_HOUR) -> date:
     """Default effective date proposed when scheduling a price/recipe change."""
     return business_date_of(moment, start_hour) + timedelta(days=1)
+
+
+def now() -> datetime:
+    """Single clock seam. Every service reads 'now' through this function."""
+    return datetime.now()

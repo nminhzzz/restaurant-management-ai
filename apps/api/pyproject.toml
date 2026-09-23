@@ -20,6 +20,8 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "aiosqlite>=0.20",
+    "asgi-lifespan>=2.1",
     "httpx>=0.28",
     "mypy>=1.13",
     "pytest>=8.3",
@@ -46,7 +48,9 @@ src = ["src", "tests"]
 select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
 
 [tool.ruff.lint.per-file-ignores]
-"migrations/versions/*" = ["E501"]
+"migrations/versions/*" = ["E501", "F401", "RUF100"]
+"tests/helpers.py" = ["E501"]
+"tests/conftest.py" = ["E501"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -58,4 +62,9 @@ warn_unused_ignores = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-addopts = "-q"
+markers = [
+    "integration: needs a real MySQL instance (make db-up)",
+    "slow: seeds a full year of data; run explicitly, not in the gate",
+]
+pythonpath = [".", "src", "../.."]
+addopts = "-q --strict-markers -m 'not integration and not slow'"
