@@ -76,7 +76,8 @@ gate: fmt-check lint typecheck test build ## Cổng kiểm tra bắt buộc trư
 
 gate-full: ## Gate đầy đủ trước khi tag Phase (nhẹ + MySQL nếu đủ tài nguyên)
 	$(MAKE) gate
-	$(MAKE) gate-integration || echo "[gate-full] integration skipped (host under pressure or MySQL not running)"
+	@python3 scripts/check_resources.py; rc=$$?; 	if [ $$rc -eq 2 ]; then echo "[gate-full] integration skipped (host under pressure or MySQL not running)"; exit 0; fi; 	if [ $$rc -ne 0 ]; then exit $$rc; fi
+	$(MAKE) gate-integration
 
 gate-integration: check-resources ## Gate trên MySQL thật (B1) - skip nếu máy yếu
 	cd $(API) && uv run pytest -m integration -q
