@@ -6,7 +6,7 @@ WEB := apps/web
 ENV_FILE := .env
 ENV_TEMPLATE := .env.example
 
-.PHONY: help setup env db-up db-down api web migrate revision seed \
+.PHONY: help setup env db-up db-down api web migrate revision seed check-resources gate-integration \
          fmt fmt-check lint typecheck test test-api test-web build gate clean
 
 help: ## Liệt kê các lệnh có sẵn
@@ -35,6 +35,9 @@ web: ## Chạy frontend ở chế độ phát triển (cổng 3000)
 
 migrate: ## Áp dụng toàn bộ migration
 	cd $(API) && uv run alembic upgrade head
+
+check-resources: ## Kiểm tra đĩa/RAM/load trước khi chạy integration (skip nếu thiếu)
+	@python3 scripts/check_resources.py
 
 revision: ## Sinh migration mới: make revision m="add order tables"
 	cd $(API) && uv run alembic revision --autogenerate -m "$(m)"
@@ -70,6 +73,9 @@ build: ## Build production bundle của web
 	cd $(WEB) && pnpm build
 
 gate: fmt-check lint typecheck test build ## Cổng kiểm tra bắt buộc trước khi kết thúc
+
+gate-integration: check-resources ## Gate trên MySQL thật (B1) - skip nếu máy yếu
+	cd $(API) && uv run pytest -m integration -q
 
 clean: ## Xoá artefact build cục bộ
 	rm -rf $(WEB)/.next $(WEB)/coverage $(API)/.pytest_cache $(API)/.mypy_cache $(API)/.ruff_cache
