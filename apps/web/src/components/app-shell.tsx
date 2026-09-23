@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { MODULE_LIST } from "@/lib/modules";
+import { loadSession } from "@/lib/session";
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
@@ -11,7 +12,11 @@ export function AppShell({ children }: { children: ReactNode }) {
           Quản lý nhà hàng
         </Link>
         <ul className="mt-6 space-y-1">
-          {MODULE_LIST.map((descriptor) => (
+          {MODULE_LIST.filter((d) => {
+            const s = loadSession();
+            if (!s) return true;
+            return d.allowedRoles.includes(s.role);
+          }).map((descriptor) => (
             <li key={descriptor.key}>
               <Link
                 href={descriptor.path}

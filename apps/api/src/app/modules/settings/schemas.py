@@ -22,15 +22,15 @@ class TokenResponse(BaseModel):
 
 
 class UserOut(BaseModel):
-    MaNguoiDung: int
-    TenDangNhap: str
-    HoTen: str
-    SoDienThoai: str | None = None
-    MaVaiTro: str
-    TrangThai: str
-    NgayTao: datetime
+    MaNguoiDung: int = Field(validation_alias="id")
+    TenDangNhap: str = Field(validation_alias="username")
+    HoTen: str = Field(validation_alias="full_name")
+    SoDienThoai: str | None = Field(default=None, validation_alias="phone")
+    MaVaiTro: str = Field(validation_alias="role_id")
+    TrangThai: str = Field(validation_alias="status")
+    NgayTao: datetime = Field(validation_alias="created_at")
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "populate_by_name": True}
 
 
 class UserCreate(BaseModel):
@@ -56,14 +56,14 @@ class ResetPasswordRequest(BaseModel):
 
 
 class ConfigOut(BaseModel):
-    MaCauHinh: int
-    TenNhaHang: str
-    DiaChi: str | None = None
-    MauHoaDon: str | None = None
-    NguongTonMacDinh: int
-    GioBatDauBusinessDate: time
+    MaCauHinh: int = Field(validation_alias="id")
+    TenNhaHang: str = Field(validation_alias="restaurant_name")
+    DiaChi: str | None = Field(default=None, validation_alias="address")
+    MauHoaDon: str | None = Field(default=None, validation_alias="invoice_template")
+    NguongTonMacDinh: int = Field(validation_alias="default_stock_threshold")
+    GioBatDauBusinessDate: time = Field(validation_alias="business_day_start")
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "populate_by_name": True}
 
 
 class ConfigUpdate(BaseModel):
@@ -81,14 +81,14 @@ class BackupDump(BaseModel):
 
 
 class AuditEntryOut(BaseModel):
-    MaNhatKy: int
-    MaNguoiDung: int
-    ThoiDiem: datetime
-    LoaiThaoTac: str
-    DoiTuong: str
-    MaDoiTuong: str
-    DuLieuTruoc: dict | None = None
-    DuLieuSau: dict | None = None
-    LyDo: str | None = None
+    MaNhatKy: int = Field(validation_alias="id")
+    MaNguoiDung: int = Field(validation_alias="user_id")
+    ThoiDiem: datetime = Field(validation_alias="occurred_at")
+    LoaiThaoTac: str = Field(validation_alias="action")
+    DoiTuong: str = Field(validation_alias="target_entity")
+    MaDoiTuong: str = Field(validation_alias="target_id")
+    DuLieuTruoc: dict | None = Field(default=None, validation_alias="before")
+    DuLieuSau: dict | None = Field(default=None, validation_alias="after")
+    LyDo: str | None = Field(default=None, validation_alias="reason")
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "populate_by_name": True}
