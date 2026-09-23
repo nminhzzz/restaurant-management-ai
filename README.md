@@ -29,6 +29,7 @@ Next.js (web)  ──HTTP──▶  FastAPI (api)  ──SQL──▶  MySQL
 | `data/eval` | Bộ dữ liệu đánh giá 50–100 cặp câu hỏi tiếng Việt – SQL chuẩn |
 | `scripts/seed` | Sinh dữ liệu mô phỏng 12 tháng phục vụ báo cáo và thực nghiệm |
 | `docs` | Báo cáo, sơ đồ UML (drawio), hình ảnh, kế hoạch triển khai |
+| `docs/plans` | Lộ trình tổng và kế hoạch chi tiết từng phase (`phases/`) |
 
 ## Yêu cầu môi trường
 
@@ -68,7 +69,11 @@ Quyền được kiểm tra ở tầng API (`app.core.dependencies.require_roles
 ## Hiện trạng
 
 Repository đang ở giai đoạn **khung dự án**: hạ tầng, quy ước và các primitive dùng chung đã có
-và đã được kiểm thử; các màn hình và nghiệp vụ chi tiết chưa triển khai. Xem
-`docs/plans/2026-09-21-project-skeleton.md` để biết phần nào đã xong và phần nào còn lại.
+và đã được kiểm thử; các màn hình và nghiệp vụ chi tiết chưa triển khai.
+
+Kế hoạch triển khai đầy đủ nằm ở [`docs/plans/2026-09-24-master-roadmap.md`](docs/plans/2026-09-24-master-roadmap.md):
+bảy phase từ lược đồ CSDL tới dữ liệu đánh giá, kèm thứ tự phụ thuộc và các cổng cần duyệt. Kế hoạch
+chi tiết từng phase ở `docs/plans/phases/`. Nhật ký dựng khung ban đầu:
+`docs/plans/2026-09-21-project-skeleton.md`.
 
 Đặc tả đầy đủ: [`docs/BaoCao_HeThongQuanLyNhaHang.md`](docs/BaoCao_HeThongQuanLyNhaHang.md).
