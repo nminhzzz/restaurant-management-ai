@@ -2,10 +2,10 @@
 
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, Index, Integer, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.shared.base import Base
+from app.shared.base import Base, BigInteger
 
 
 class ChatSession(Base):

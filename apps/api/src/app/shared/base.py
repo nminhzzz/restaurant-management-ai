@@ -29,17 +29,12 @@ class CrossBigInteger(_BigInteger):
 
 
 @compiles(CrossBigInteger, "sqlite")
-def _compile_cross_bigint_sqlite(element, compiler, **kw):  # type: ignore[no-untyped-def]
+def _compile_cross_bigint_sqlite(element, compiler, **kw):
     return "INTEGER"
 
 
 # Alias used by models: keep name BigInteger so imports don't change
 BigInteger = CrossBigInteger
-
-# Patch sqlalchemy global so `from sqlalchemy import BigInteger` still works for SQLite
-import sqlalchemy as _sa  # type: ignore[import-untyped]
-
-_sa.BigInteger = CrossBigInteger  # type: ignore[misc]
 
 
 class Base(DeclarativeBase):

@@ -2,7 +2,7 @@
 
 from datetime import datetime, time
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, Index, Integer, String, Time, func
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Time, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.shared.base import Base
@@ -19,7 +19,7 @@ class RoleTable(Base):
 class User(Base):
     __tablename__ = "NGUOI_DUNG"
 
-    id: Mapped[int] = mapped_column("MaNguoiDung", BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column("MaNguoiDung", primary_key=True, autoincrement=True)
     username: Mapped[str] = mapped_column("TenDangNhap", String(50), nullable=False, unique=True)
     password_hash: Mapped[str] = mapped_column("MatKhauHash", String(255), nullable=False)
     full_name: Mapped[str] = mapped_column("HoTen", String(100), nullable=False)
@@ -43,7 +43,7 @@ class User(Base):
 class SystemConfig(Base):
     __tablename__ = "CAU_HINH_HE_THONG"
 
-    id: Mapped[int] = mapped_column("MaCauHinh", BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column("MaCauHinh", primary_key=True, autoincrement=True)
     restaurant_name: Mapped[str] = mapped_column(
         "TenNhaHang", String(100), nullable=False, default="Nhà hàng"
     )
