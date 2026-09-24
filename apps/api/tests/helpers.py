@@ -85,7 +85,7 @@ async def get_config_row(session: AsyncSession) -> object | None:
         return None
 
 
-async def active_recipe(session: AsyncSession, dish_id: int) -> object | None:
+async def active_recipe(session: AsyncSession, dish_id: int, business_date=None) -> object | None:
     from sqlalchemy import text
 
     try:
@@ -98,7 +98,7 @@ async def active_recipe(session: AsyncSession, dish_id: int) -> object | None:
         return None
 
 
-async def active_price(session: AsyncSession, dish_id: int) -> object | None:
+async def active_price(session: AsyncSession, dish_id: int, business_date=None) -> object | None:
     from sqlalchemy import text
 
     try:
@@ -111,19 +111,75 @@ async def active_price(session: AsyncSession, dish_id: int) -> object | None:
         return None
 
 
-def display_status(recipe: object) -> str:
-    # TODO(phase-2): derive from catalog service (Hoat dong / Het nguyen lieu / An)
-    return "DRAFT"
+async def display_status(session, dish_or_id) -> str:
+    from sqlalchemy import text
+
+    dish_id = getattr(dish_or_id, "id", dish_or_id)
+    # If dish_id is object with id
+    try:
+        dish_id = int(dish_id)
+    except Exception:
+        return "DRAFT"
+    try:
+        r = await session.execute(
+            text(
+                "SELECT DaXoa, AnThuCong, HetNLThuCong, HetNLTuDong, MaMon FROM MON_AN WHERE MaMon=:id"
+            ),
+            {"id": dish_id},
+        )
+        row = r.mappings().first()
+        if row is None:
+            return "DRAFT"
+        if row["DaXoa"]:
+            return "Đã xóa"
+        if row["AnThuCong"]:
+            return "Ẩn thủ công"
+        # Nháp if no active recipe
+        r2 = await session.execute(
+            text("SELECT 1 FROM CONG_THUC WHERE MaMon=:id AND TrangThai='Hiệu lực' LIMIT 1"),
+            {"id": dish_id},
+        )
+        if r2.scalar_one_or_none() is None:
+            return "Nháp"
+        if row["HetNLThuCong"] or row["HetNLTuDong"]:
+            return "Hết nguyên liệu"
+        return "Hoạt động"
+    except Exception:
+        return "DRAFT"
 
 
-async def pending_price_versions(session: AsyncSession) -> list[object]:
-    # TODO(phase-2): query LICH_SU_GIA_MON where TrangThai=Nhaps
-    return []
+async def pending_price_versions(session: AsyncSession, dish_id: int | None = None) -> list[object]:
+    from sqlalchemy import text
+
+    try:
+        if dish_id is not None:
+            r = await session.execute(
+                text("SELECT * FROM LICH_SU_GIA_MON WHERE MaMon=:id AND TrangThai='Nháp'"),
+                {"id": dish_id},
+            )
+        else:
+            r = await session.execute(text("SELECT * FROM LICH_SU_GIA_MON WHERE TrangThai='Nháp'"))
+        return list(r.mappings().all())
+    except Exception:
+        return []
 
 
-async def pending_recipe_versions(session: AsyncSession) -> list[object]:
-    # TODO(phase-2): query CONG_THUC where TrangThai=Nhaps
-    return []
+async def pending_recipe_versions(
+    session: AsyncSession, dish_id: int | None = None
+) -> list[object]:
+    from sqlalchemy import text
+
+    try:
+        if dish_id is not None:
+            r = await session.execute(
+                text("SELECT * FROM CONG_THUC WHERE MaMon=:id AND TrangThai='Nháp'"),
+                {"id": dish_id},
+            )
+        else:
+            r = await session.execute(text("SELECT * FROM CONG_THUC WHERE TrangThai='Nháp'"))
+        return list(r.mappings().all())
+    except Exception:
+        return []
 
 
 async def recipe_items(session: AsyncSession, recipe_id: int) -> list[object]:
