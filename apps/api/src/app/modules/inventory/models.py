@@ -67,10 +67,10 @@ class IngredientLot(Base):
         ForeignKey("NGUYEN_LIEU.MaNguyenLieu", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=False,
     )
-    receipt_line_id: Mapped[int] = mapped_column(
+    receipt_line_id: Mapped[int | None] = mapped_column(
         "MaChiTietNhap",
         ForeignKey("CHI_TIET_PHIEU_NHAP.MaChiTietNhap", ondelete="RESTRICT", onupdate="RESTRICT"),
-        nullable=False,
+        nullable=True,
         unique=True,
     )
     quantity_remaining: Mapped[float] = mapped_column(
@@ -213,7 +213,8 @@ class StockMovement(Base):
     __table_args__ = (
         CheckConstraint(
             "((LoaiGiaoDich = 'Nh\u1eadp' AND MaChiTietNhap IS NOT NULL) OR "
-            "(LoaiGiaoDich IN ('Tr\u1eeb t\u1ef1 \u0111\u1ed9ng','Ho\u00e0n kho') AND MaChiTietOrder IS NOT NULL) OR "  # noqa: E501
+            "(LoaiGiaoDich IN ('Tr\u1eeb t\u1ef1 \u0111\u1ed9ng') AND MaChiTietOrder IS NOT NULL) OR "  # noqa: E501
+            "(LoaiGiaoDich = 'Ho\u00e0n kho' AND (MaChiTietOrder IS NOT NULL OR MaChiTietNhap IS NOT NULL OR MaChiTietKiemKe IS NOT NULL)) OR "  # noqa: E501
             "(LoaiGiaoDich = 'Xu\u1ea5t th\u1ee7 c\u00f4ng' AND MaChiTietXuat IS NOT NULL) OR "
             "(LoaiGiaoDich = '\u0110i\u1ec1u ch\u1ec9nh ki\u1ec3m k\u00ea' AND MaChiTietKiemKe IS NOT NULL))",  # noqa: E501
             name="movement_source_matches_kind",
@@ -231,3 +232,6 @@ class MonthlyAverageCost(Base):
     )
     month: Mapped[int] = mapped_column("Thang", Integer, primary_key=True)
     avg_cost: Mapped[float] = mapped_column("GiaBinhQuan", DECIMAL(18, 4), nullable=False)
+    total_qty: Mapped[float] = mapped_column(
+        "TongSoLuongNhap", DECIMAL(18, 4), nullable=False, default=0
+    )

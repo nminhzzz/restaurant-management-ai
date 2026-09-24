@@ -1,5 +1,6 @@
 """Monthly weighted average costing."""
 
+from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import func, select
@@ -14,15 +15,18 @@ from app.modules.inventory.models import (
 
 
 async def close_month(session: AsyncSession, month: int) -> list[MonthlyAverageCost]:
-    # month format YYYYMM int
+    # month format YYYYMM int - validate 1..12
     year = month // 100
     m = month % 100
-    start = f"{year:04d}-{m:02d}-01"
-    # next month
+    if m < 1 or m > 12 or year < 1000 or year > 9999:
+        from app.core.errors import BusinessRuleError
+
+        raise BusinessRuleError("Tháng không hợp lệ (YYYYMM).")
+    start = datetime(year, m, 1)
     if m == 12:
-        end = f"{year + 1:04d}-01-01"
+        end = datetime(year + 1, 1, 1)
     else:
-        end = f"{year:04d}-{m + 1:02d}-01"
+        end = datetime(year, m + 1, 1)
     # aggregate per ingredient
     q = (
         select(
@@ -46,8 +50,11 @@ async def close_month(session: AsyncSession, month: int) -> list[MonthlyAverageC
         existing = await session.get(MonthlyAverageCost, {"ingredient_id": ing_id, "month": month})
         if existing:
             existing.avg_cost = float(avg)
+            existing.total_qty = float(qty)
         else:
-            existing = MonthlyAverageCost(ingredient_id=ing_id, month=month, avg_cost=float(avg))
+            existing = MonthlyAverageCost(
+                ingredient_id=ing_id, month=month, avg_cost=float(avg), total_qty=float(qty)
+            )
             session.add(existing)
         out.append(existing)
     await session.flush()
@@ -68,9 +75,21 @@ async def backfill_issue_costs(session: AsyncSession, month: int) -> int:
     }
     if not costs:
         return 0
-    # StockIssueLine with 0 cost, join to get month via StockIssue created_at? Use same month filter via parent?
-    # For simplicity, backfill all zero-cost lines whose ingredient has cost for month
-    q = select(StockIssueLine).where(StockIssueLine.estimated_cost == 0)
+    year = month // 100
+    m = month % 100
+    start = datetime(year, m, 1)
+    end = datetime(year + 1, 1, 1) if m == 12 else datetime(year, m + 1, 1)
+    from app.modules.inventory.models import StockIssue
+
+    q = (
+        select(StockIssueLine)
+        .join(StockIssue, StockIssueLine.issue_id == StockIssue.id)
+        .where(
+            StockIssueLine.estimated_cost == 0,
+            StockIssue.created_at >= start,
+            StockIssue.created_at < end,
+        )
+    )
     lines = (await session.execute(q)).scalars().all()
     updated = 0
     for ln in lines:

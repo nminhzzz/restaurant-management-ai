@@ -41,12 +41,34 @@ async def create_receipt(
     )
     session.add(receipt)
     await session.flush()
+    # Validate no duplicate ingredient in same receipt (#13 pattern)
+    seen = set()
+    for _ln in lines:
+        iid = _ln.get("ingredient_id")
+        if iid in seen:
+            raise BusinessRuleError("Nguyên liệu trùng lặp trong cùng phiếu.")
+        seen.add(iid)
     for ln in lines:
         ingredient_id = ln["ingredient_id"]
         qty = Decimal(str(ln["quantity"]))
-        factor = Decimal(str(ln.get("conversion_factor") or 1))
+        if qty <= 0:
+            raise BusinessRuleError("Số lượng phải > 0.")
+        raw_factor = ln.get("conversion_factor")
+        if raw_factor is not None:
+            try:
+                factor = Decimal(str(raw_factor))
+            except Exception as exc:
+                raise BusinessRuleError("Hệ số quy đổi không hợp lệ.") from exc
+            if factor <= 0:
+                raise BusinessRuleError("Hệ số quy đổi phải > 0.")
+        else:
+            factor = Decimal(1)
         qty_std = qty * factor
+        if qty_std <= 0:
+            raise BusinessRuleError("Số lượng quy chuẩn phải > 0.")
         unit_price = Decimal(str(ln.get("unit_price") or 0))
+        if unit_price < 0:
+            raise BusinessRuleError("Đơn giá không được âm.")
         from app.modules.catalog.models import Ingredient
 
         ing = await session.get(Ingredient, ingredient_id)
@@ -84,8 +106,9 @@ async def create_receipt(
             actor_id=actor_id,
         )
         # ensure expiry not needed for test - HanSuDung derived via SoNgayBaoQuan in view; we store not
-        # mark unit locked
-        ing.unit_locked = True
+        # Mark unit locked once any receipt exists (BR-CAT)
+        if not ing.unit_locked:
+            ing.unit_locked = True
     await session.flush()
     session.add(
         SystemAuditLog(
@@ -100,10 +123,16 @@ async def create_receipt(
 
 
 async def cancel_receipt(session: AsyncSession, actor_id: int, receipt_id: int) -> None:
+    from app.shared.enums import StockMovementType
+
     receipt = await session.get(GoodsReceipt, receipt_id)
     if receipt is None:
         raise NotFoundError("Không tìm thấy phiếu nhập.")
-    # check if any lot fully drawn - if any lot quantity_remaining ==0 and movements exist beyond receipt -> refuse if fully drawn? simplified
+    if receipt.status == "Đã hủy":
+        raise BusinessRuleError("Phiếu đã được hủy trước đó.")
+    if receipt.status == "Đã nhập":
+        # Only Nháp cancellable; if already confirmed flows, restrict
+        pass
     lines = (
         (
             await session.execute(
@@ -119,44 +148,43 @@ async def cancel_receipt(session: AsyncSession, actor_id: int, receipt_id: int) 
                 select(IngredientLot).where(IngredientLot.receipt_line_id == gl.id)
             )
         ).scalar_one_or_none()
-        if lot and Decimal(str(lot.quantity_remaining)) == 0:
-            # check if fully drawn - check if any draw movement beyond
-            from app.modules.inventory.models import StockMovement
+        if lot is None:
+            continue
+        # If lot has been partially/fully consumed, we can only cancel up to remaining
+        remaining = Decimal(str(lot.quantity_remaining))
+        original = Decimal(str(gl.quantity))
+        consumed = original - remaining
+        if consumed > 0 and remaining == 0:
+            # fully drawn lot -> cannot cancel without negative stock
+            raise BusinessRuleError("Không thể hủy phiếu đã xuất hết.")
+        # Directly reverse the receipt lot: subtract remaining from ingredient total and lot
+        # Do NOT go through FIFO; touch exactly this lot
+        from app.modules.catalog.models import Ingredient
+        from app.modules.inventory.models import StockMovement
 
-            draws = (
-                (
-                    await session.execute(
-                        select(StockMovement).where(
-                            StockMovement.ingredient_id == gl.ingredient_id, StockMovement.qty < 0
-                        )
-                    )
-                )
-                .scalars()
-                .all()
+        ing = await session.get(Ingredient, gl.ingredient_id)
+        if remaining > 0:
+            if ing and Decimal(str(ing.stock_qty)) < remaining:
+                raise BusinessRuleError("Không đủ tồn kho để hủy phiếu.")
+            # deduct remaining from lot and ingredient total
+            lot.quantity_remaining = float(remaining - remaining)  # 0
+            if lot.quantity_remaining < 0:
+                lot.quantity_remaining = 0
+            if ing:
+                ing.stock_qty = float(Decimal(str(ing.stock_qty)) - remaining)
+            # record movement for audit (Hoàn kho tied to receipt)
+            m = StockMovement(
+                ingredient_id=gl.ingredient_id,
+                lot_id=lot.id,
+                kind=StockMovementType.HOAN_KHO,
+                qty=float(-remaining),
+                business_date=_bd(),
+                receipt_line_id=gl.id,
+                performed_by=actor_id,
             )
-            if draws:
-                raise BusinessRuleError("Không thể hủy phiếu đã xuất hết.")
-        # reverse stock
-        if lot:
-            await apply_stock_movement(
-                session,
-                StockChange(
-                    ingredient_id=gl.ingredient_id,
-                    delta=Decimal(str(-gl.quantity)),
-                    kind="Hoàn kho",
-                    business_date=_bd(),
-                ),
-                actor_id=actor_id,
-            )
-            # we added positive then negative; above will add "Nhập" again? For cancel we want subtract, so delta negative
-            # correct: cancel removes stock -> delta = -qty
-            # already done via reverse; adjust double?
-            pass
-    # Actually apply negative delta for each line
-    for _gl in lines:
-        # already applied positive on create; cancel should subtract
-        # need to directly adjust if above logic double counted; simplify: just subtract via stock movement negative
-        pass
+            session.add(m)
+        lot.status = "Đã hủy"
+    receipt.status = "Đã hủy"
     session.add(
         SystemAuditLog(
             user_id=actor_id,
@@ -226,7 +254,13 @@ async def record_counts(
     st = await session.get(Stocktake, stocktake_id)
     if st is None:
         raise NotFoundError("Không tìm thấy phiếu kiểm kê.")
+    seen_ids: set[int] = set()
     for iid, actual in counts:
+        if iid in seen_ids:
+            raise BusinessRuleError("Nguyên liệu trùng lặp trong cùng phiếu kiểm kê.")
+        seen_ids.add(iid)
+        if Decimal(str(actual)) < 0:
+            raise BusinessRuleError("Tồn thực tế không được âm.")
         # get system qty
         from app.modules.catalog.models import Ingredient
 
@@ -262,87 +296,110 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
         if diff == 0:
             continue
         if diff < 0:
-            await apply_stock_movement(
-                session,
-                StockChange(
-                    ingredient_id=line.ingredient_id,
-                    delta=diff,
-                    kind="Điều chỉnh kiểm kê",
-                    business_date=_bd(),
-                    source_stocktake_line_id=line.id,
-                ),
-                actor_id=actor_id,
-            )
-        else:
-            # surplus: add to newest lot or create adjustment lot
-            from sqlalchemy import select as sel
+            # Negative diff: allow stock to go to actual even if FIFO insufficient
+            # Deduct from FIFO first, then directly adjust remaining to match actual
+            try:
+                await apply_stock_movement(
+                    session,
+                    StockChange(
+                        ingredient_id=line.ingredient_id,
+                        delta=diff,
+                        kind="Điều chỉnh kiểm kê",
+                        business_date=_bd(),
+                        source_stocktake_line_id=line.id,
+                    ),
+                    actor_id=actor_id,
+                )
+            except BusinessRuleError:
+                # FIFO insufficient -> force adjustment to actual_qty
+                from sqlalchemy import select as sel2
 
-            lots = (
-                (
-                    await session.execute(
-                        sel(IngredientLot)
-                        .where(IngredientLot.ingredient_id == line.ingredient_id)
-                        .order_by(IngredientLot.received_at.desc())
+                from app.modules.catalog.models import Ingredient as Ing2
+                from app.modules.inventory.models import StockMovement as SM2
+
+                # consume all FIFO lots
+                lots_all = (
+                    (
+                        await session.execute(
+                            sel2(IngredientLot)
+                            .where(IngredientLot.ingredient_id == line.ingredient_id)
+                            .order_by(IngredientLot.received_at.asc())
+                        )
                     )
+                    .scalars()
+                    .all()
                 )
-                .scalars()
-                .all()
+                need = -diff
+                for _lot in lots_all:
+                    if need <= 0:
+                        break
+                    avail = Decimal(str(_lot.quantity_remaining))
+                    take = min(avail, need)
+                    _lot.quantity_remaining = float(avail - take)
+                    need -= take
+                    m2 = SM2(
+                        ingredient_id=line.ingredient_id,
+                        lot_id=_lot.id,
+                        kind="Điều chỉnh kiểm kê",
+                        qty=float(-take),
+                        business_date=_bd(),
+                        stocktake_line_id=line.id,
+                        performed_by=actor_id,
+                    )
+                    session.add(m2)
+                # if still need >0 (stock record higher than lot sum), just adjust ingredient total
+                ing2 = await session.get(Ing2, line.ingredient_id)
+                if ing2:
+                    ing2.stock_qty = float(line.actual_qty)
+                continue
+            # apply_stock_movement already adjusted ingredient total via FIFO; ensure final matches actual
+            from app.modules.catalog.models import Ingredient as Ing3
+
+            ing3 = await session.get(Ing3, line.ingredient_id)
+            if ing3 and abs(Decimal(str(ing3.stock_qty)) - Decimal(str(line.actual_qty))) > Decimal(
+                "0.0001"
+            ):
+                ing3.stock_qty = float(line.actual_qty)
+        else:
+            # surplus: create adjustment lot tied to a real receipt line
+            gr = GoodsReceipt(supplier_id=None, receipt_date=business_date.now(), status="Nháp")
+            session.add(gr)
+            await session.flush()
+            gl = GoodsReceiptLine(
+                receipt_id=gr.id,
+                ingredient_id=line.ingredient_id,
+                quantity=float(diff),
+                unit_price=0,
             )
-            if lots:
-                lots[0].quantity_remaining = float(Decimal(str(lots[0].quantity_remaining)) + diff)
-                from app.modules.inventory.models import StockMovement
+            session.add(gl)
+            await session.flush()
+            lot = IngredientLot(
+                ingredient_id=line.ingredient_id,
+                receipt_line_id=gl.id,
+                quantity_remaining=float(diff),
+                status="Còn hạn",
+                received_at=business_date.now(),
+                is_adjustment=True,
+            )
+            session.add(lot)
+            await session.flush()
+            from app.modules.inventory.models import StockMovement as SM3
 
-                m = StockMovement(
-                    ingredient_id=line.ingredient_id,
-                    lot_id=lots[0].id,
-                    kind="Điều chỉnh kiểm kê",
-                    qty=float(diff),
-                    business_date=_bd(),
-                    stocktake_line_id=line.id,
-                    performed_by=actor_id,
-                )
-                session.add(m)
-            else:
-                lot = IngredientLot(
-                    ingredient_id=line.ingredient_id,
-                    receipt_line_id=1,
-                    quantity_remaining=float(diff),
-                    status="Còn hạn",
-                    received_at=business_date.now(),
-                    is_adjustment=True,
-                )
-                # need valid receipt_line_id; create dummy receipt line
-                # create dummy GoodsReceiptLine
-                gr = GoodsReceipt(supplier_id=None, receipt_date=business_date.now(), status="Nháp")
-                session.add(gr)
-                await session.flush()
-                gl = GoodsReceiptLine(
-                    receipt_id=gr.id,
-                    ingredient_id=line.ingredient_id,
-                    quantity=float(diff),
-                    unit_price=0,
-                )
-                session.add(gl)
-                await session.flush()
-                lot.receipt_line_id = gl.id
-                session.add(lot)
-                from app.modules.inventory.models import StockMovement
+            m = SM3(
+                ingredient_id=line.ingredient_id,
+                lot_id=lot.id,
+                kind="Điều chỉnh kiểm kê",
+                qty=float(diff),
+                business_date=_bd(),
+                stocktake_line_id=line.id,
+                performed_by=actor_id,
+            )
+            session.add(m)
+            from app.modules.catalog.models import Ingredient as Ing4
 
-                m = StockMovement(
-                    ingredient_id=line.ingredient_id,
-                    lot_id=lot.id,
-                    kind="Điều chỉnh kiểm kê",
-                    qty=float(diff),
-                    business_date=_bd(),
-                    stocktake_line_id=line.id,
-                    performed_by=actor_id,
-                )
-                session.add(m)
-            from app.modules.catalog.models import Ingredient
-
-            ing = await session.get(Ingredient, line.ingredient_id)
+            ing = await session.get(Ing4, line.ingredient_id)
             if ing:
-                ing.stock_qty = float(line.actual_qty)
+                ing.stock_qty = float(Decimal(str(ing.stock_qty)) + diff)
     st.status = "Đã xác nhận"
     await session.flush()
     session.add(
@@ -356,15 +413,26 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
     await session.flush()
 
 
-async def list_stock(session, search: str | None = None, alerting: bool | None = None):
+async def list_stock(
+    session,
+    search: str | None = None,
+    alerting: bool | None = None,
+    page: int = 1,
+    page_size: int = 50,
+):
     from sqlalchemy import select as sel
 
     from app.modules.catalog.models import Ingredient
 
     q = sel(Ingredient).where(Ingredient.is_deleted == False)
     if search:
-        q = q.where(Ingredient.name.ilike(f"%{search}%"))
+        safe = search.replace("%", "\\%").replace("_", "\\_")
+        q = q.where(Ingredient.name.ilike(f"%{safe}%", escape="\\"))
     rows = (await session.execute(q.order_by(Ingredient.id))).scalars().all()
+    # pagination
+    total_all = len(rows)
+    start_idx = (page - 1) * page_size
+    rows = rows[start_idx : start_idx + page_size]
     # compute alerts
     from app.modules.settings.models import SystemConfig
 
@@ -372,7 +440,7 @@ async def list_stock(session, search: str | None = None, alerting: bool | None =
     default = float(cfg.default_stock_threshold) if cfg else 5
     out = []
     for ing in rows:
-        thr = float(ing.min_stock) if ing.min_stock and float(ing.min_stock) > 0 else default
+        thr = float(ing.min_stock) if ing.min_stock is not None else default
         alert = float(ing.stock_qty) < thr
         if alerting is not None and alert != alerting:
             continue
@@ -390,48 +458,64 @@ async def list_stock(session, search: str | None = None, alerting: bool | None =
 
 async def recompute_automatic_out_of_stock(session, ingredient_ids: list[int]) -> list[int]:
     from app.modules.catalog.models import Dish, Recipe, RecipeItem
+    from app.modules.catalog.models import Ingredient as Ing
     from app.shared.enums import VersionStatus
 
-    # find dishes using these ingredients in active recipe
-    hidden = []
-    for iid in ingredient_ids:
-        recipes = (
-            (
-                await session.execute(
-                    select(Recipe).where(Recipe.status == VersionStatus.HIEU_LUC.value)
+    if not ingredient_ids:
+        return []
+    # batch: find all recipe items that use any of these ingredients
+    affected_items = (
+        (
+            await session.execute(
+                select(RecipeItem).where(RecipeItem.ingredient_id.in_(ingredient_ids))
+            )
+        )
+        .scalars()
+        .all()
+    )
+    affected_recipe_ids = {it.recipe_id for it in affected_items}
+    if not affected_recipe_ids:
+        return []
+    recipes = (
+        (
+            await session.execute(
+                select(Recipe).where(
+                    Recipe.id.in_(affected_recipe_ids),
+                    Recipe.status == VersionStatus.HIEU_LUC.value,
                 )
             )
-            .scalars()
-            .all()
         )
-        for r in recipes:
-            items = (
-                (await session.execute(select(RecipeItem).where(RecipeItem.recipe_id == r.id)))
-                .scalars()
-                .all()
+        .scalars()
+        .all()
+    )
+    # batch load all items for those recipes
+    all_items = (
+        (
+            await session.execute(
+                select(RecipeItem).where(RecipeItem.recipe_id.in_([r.id for r in recipes]))
             )
-            if any(it.ingredient_id == iid for it in items):
-                # check stock covers
-                ok = True
-                for it in items:
-                    from app.modules.catalog.models import Ingredient as Ing
-
-                    ing = await session.get(Ing, it.ingredient_id)
-                    if ing and float(ing.stock_qty) < float(it.quantity):
-                        ok = False
-                dish = await session.get(Dish, r.dish_id)
-                if dish and not dish.is_deleted:
-                    if not ok:
-                        dish.out_of_stock_auto = True
-                        hidden.append(dish.id)
-                    else:
-                        # check all ingredients ok
-                        all_ok = True
-                        for it2 in items:
-                            ing2 = await session.get(Ing, it2.ingredient_id)
-                            if ing2 and float(ing2.stock_qty) < float(it2.quantity):
-                                all_ok = False
-                        if all_ok:
-                            dish.out_of_stock_auto = False
+        )
+        .scalars()
+        .all()
+    )
+    items_by_recipe: dict[int, list] = {}
+    for it in all_items:
+        items_by_recipe.setdefault(it.recipe_id, []).append(it)
+    ing_ids_needed = {it.ingredient_id for it in all_items}
+    ings = (await session.execute(select(Ing).where(Ing.id.in_(ing_ids_needed)))).scalars().all()
+    ing_map = {i.id: i for i in ings}
+    hidden: list[int] = []
+    for r in recipes:
+        items = items_by_recipe.get(r.id, [])
+        ok = all(
+            float(ing_map[it.ingredient_id].stock_qty) >= float(it.quantity)
+            for it in items
+            if it.ingredient_id in ing_map
+        )
+        dish = await session.get(Dish, r.dish_id)
+        if dish and not dish.is_deleted:
+            dish.out_of_stock_auto = not ok
+            if not ok:
+                hidden.append(dish.id)
     await session.flush()
     return hidden

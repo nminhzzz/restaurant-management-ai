@@ -63,6 +63,11 @@ def require_any_role(*roles: Role) -> Callable[[Principal], Coroutine[Any, Any, 
 
     async def _guard(user: CurrentUser) -> Principal:
         if user.role == Role.MANAGER:
+            import logging
+
+            logging.getLogger(__name__).info(
+                "manager bypass role check user=%s allowed=%s", user.user_id, roles
+            )
             return user
         if user.role not in roles:
             raise ForbiddenError(

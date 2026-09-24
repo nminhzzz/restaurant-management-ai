@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
-from app.core.dependencies import Principal, get_current_user, require_roles
+from app.core.dependencies import Principal, require_roles
 from app.modules.inventory import service as svc
 from app.modules.inventory.schemas import CountIn, IssueCreate, ReceiptCreate
 from app.shared.roles import Role
@@ -42,7 +42,8 @@ async def cancel_receipt(
 
 @router.get("/receipts")
 async def list_receipts(
-    user: Principal = Depends(get_current_user), session: AsyncSession = Depends(get_session)
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    session: AsyncSession = Depends(get_session),
 ):
     items = await svc.list_receipts(session)
     return [{"MaPhieuNhap": x.id} for x in items]
@@ -101,9 +102,13 @@ async def confirm_stocktake(
 @router.post("/costing/{month}/close")
 async def close_month(
     month: int,
-    session: AsyncSession = Depends(get_session),
     user: Principal = Depends(require_roles(Role.MANAGER)),
+    session: AsyncSession = Depends(get_session),
 ):
+    if month < 100101 or month > 999912 or month % 100 < 1 or month % 100 > 12:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=422, detail="Tháng không hợp lệ (YYYYMM).")
     from app.modules.inventory.costing import close_month as _close
 
     items = await _close(session, month)

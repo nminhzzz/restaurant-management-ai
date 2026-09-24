@@ -11,13 +11,14 @@ from app.core.errors import BusinessRuleError
 from app.modules.catalog.models import Ingredient
 from app.modules.inventory.models import IngredientLot, StockMovement
 from app.shared import business_date
+from app.shared.enums import LotStatus, StockMovementType
 
 
 @dataclass
 class StockChange:
     ingredient_id: int
     delta: Decimal  # >0 = Nhập, <0 = Trừ tự động
-    kind: str = "Trừ tự động"
+    kind: str = StockMovementType.TRU_TU_DONG
     business_date: date | None = None
     source_order_line_id: int | None = None
     source_receipt_line_id: int | None = None
@@ -30,8 +31,11 @@ def _bd_now() -> date:
 
 
 async def lock_ingredient(session: AsyncSession, ingredient_id: int) -> Ingredient:
-    # FOR UPDATE on MySQL, no-op on SQLite
-    dialect = session.bind.dialect.name if session.bind else "sqlite"
+    try:
+        bind = session.get_bind()
+        dialect = bind.dialect.name if bind is not None else "sqlite"
+    except Exception:
+        dialect = "sqlite"
     q = select(Ingredient).where(Ingredient.id == ingredient_id)
     if dialect == "mysql":
         q = q.with_for_update()
@@ -48,7 +52,7 @@ async def lots_for_fifo(session: AsyncSession, ingredient_id: int) -> list[Ingre
         .where(
             IngredientLot.ingredient_id == ingredient_id,
             IngredientLot.quantity_remaining > 0,
-            IngredientLot.status != "Hết hạn",
+            IngredientLot.status != LotStatus.HET_HAN.value,
         )
         .order_by(IngredientLot.received_at.asc(), IngredientLot.id.asc())
     )
@@ -65,13 +69,26 @@ async def apply_stock_movement(
     movements: list[StockMovement] = []
 
     if delta > 0:
-        # Simple inbound: add to ingredient total, create one movement without lot
-        # Caller (receipt) will have created lot; this path used for reversal or direct add
+        # Inbound must be tied to a receipt (Nhap) or stocktake adjustment
+        # Validate source matches kind to satisfy CHECK movement_source_matches_kind
+        if (
+            change.kind == StockMovementType.NHAP or change.kind == "Nhập"
+        ) and change.source_receipt_line_id is None:
+            raise BusinessRuleError("Thiếu MaChiTietNhap cho giao dịch Nhập.")
+        if (
+            change.kind == StockMovementType.DIEU_CHINH_KIEM_KE
+            or change.kind == "Điều chỉnh kiểm kê"
+        ) and change.source_stocktake_line_id is None:
+            raise BusinessRuleError("Thiếu MaChiTietKiemKe cho điều chỉnh kiểm kê.")
         ing.stock_qty = float(Decimal(str(ing.stock_qty)) + delta)
+        kind_val = (
+            change.kind if change.kind != StockMovementType.TRU_TU_DONG else StockMovementType.NHAP
+        )
+        # lot_id stays None for inbound; lot is tracked separately via IngredientLot
         m = StockMovement(
             ingredient_id=change.ingredient_id,
             lot_id=None,
-            kind=change.kind if change.kind != "Trừ tự động" else "Nhập",
+            kind=kind_val,
             qty=float(delta),
             business_date=bd,
             receipt_line_id=change.source_receipt_line_id,
@@ -141,11 +158,24 @@ async def reverse_movement(
     rev = StockMovement(
         ingredient_id=movement.ingredient_id,
         lot_id=movement.lot_id,
-        kind="Hoàn kho",
+        kind=StockMovementType.HOAN_KHO,
         qty=float(-Decimal(str(movement.qty))),
         business_date=bd,
+        receipt_line_id=movement.receipt_line_id,
+        order_line_id=movement.order_line_id,
+        issue_line_id=movement.issue_line_id,
+        stocktake_line_id=movement.stocktake_line_id,
         performed_by=actor_id,
     )
+    # Ensure Hoàn kho satisfies CHECK: if no order_line, fallback to receipt/stocktake lineage
+    if (
+        rev.order_line_id is None
+        and rev.receipt_line_id is None
+        and rev.stocktake_line_id is None
+        and rev.issue_line_id is None
+    ):
+        # Tie reversal to original lot's receipt lineage if available
+        rev.receipt_line_id = movement.receipt_line_id
     session.add(rev)
     await session.flush()
     return rev

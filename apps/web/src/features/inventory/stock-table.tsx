@@ -1,11 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api-client";
+
+type StockRow = { MaNguyenLieu: number; TenNguyenLieu: string; CanhBaoTonThap: boolean };
+
 export function StockTable() {
-  const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useState<StockRow[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    apiFetch<any>("/inventory/stock")
+    apiFetch<{ items: StockRow[] }>("/inventory/stock")
       .then((d) => {
         setItems(d.items || []);
         setLoading(false);
@@ -23,8 +26,12 @@ export function StockTable() {
   return (
     <table>
       <tbody>
-        {items.map((it: any) => (
-          <tr key={it.MaNguyenLieu}>
+        {items.map((it) => (
+          <tr
+            key={it.MaNguyenLieu}
+            className={it.CanhBaoTonThap ? "bg-red-100" : ""}
+            data-testid={it.CanhBaoTonThap ? "alert-row" : "ok-row"}
+          >
             <td>{it.TenNguyenLieu}</td>
             <td>{it.CanhBaoTonThap ? "Cảnh báo" : "OK"}</td>
           </tr>

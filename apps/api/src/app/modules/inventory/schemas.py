@@ -13,14 +13,14 @@ class ReceiptLineIn(BaseModel):
     quantity: float = Field(gt=0)
     unit_price: float = Field(ge=0)
     purchase_unit: str | None = None
-    conversion_factor: float | None = None
+    conversion_factor: float | None = Field(default=None, gt=0)
     model_config = {"populate_by_name": True}
 
 
 class ReceiptCreate(BaseModel):
     supplier_id: int | None = None
     receipt_date: datetime | None = None
-    lines: list[ReceiptLineIn] = Field(min_length=1)
+    lines: list[ReceiptLineIn] = Field(min_length=1, max_length=100)
 
 
 class ReceiptOut(BaseModel):
@@ -35,7 +35,7 @@ class IssueLineIn(BaseModel):
 
 class IssueCreate(BaseModel):
     reason: str = Field(default="Hao hụt")
-    lines: list[IssueLineIn] = Field(min_length=1)
+    lines: list[IssueLineIn] = Field(min_length=1, max_length=100)
 
 
 class StocktakeCreate(BaseModel):
