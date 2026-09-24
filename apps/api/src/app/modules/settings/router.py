@@ -30,7 +30,7 @@ router = APIRouter(prefix="/settings", tags=["Module 5 — Settings"])
 
 
 @router.post("/auth/login", response_model=TokenResponse)
-async def login(payload: LoginRequest, session: AsyncSession = Depends(get_session)):  # type: ignore[no-untyped-def]
+async def login(payload: LoginRequest, session: AsyncSession = Depends(get_session)):
     user = await svc.authenticate(session, payload.username, payload.password)
     tok = await svc.issue_token(user)
     return tok
@@ -39,7 +39,7 @@ async def login(payload: LoginRequest, session: AsyncSession = Depends(get_sessi
 @router.get("/auth/me", response_model=UserOut)
 async def me(
     user: Principal = Depends(get_current_user), session: AsyncSession = Depends(get_session)
-):  # type: ignore[no-untyped-def]
+):
     from sqlalchemy import select
 
     from app.modules.settings.models import User
@@ -56,7 +56,7 @@ async def list_users(
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=200),
     user: Principal = Depends(require_roles(Role.MANAGER)),
-    session: AsyncSession = Depends(get_session),  # type: ignore[no-untyped-def]
+    session: AsyncSession = Depends(get_session),
 ) -> Page[UserOut]:
     # MANAGER only; require_roles will check
     # But spec says MANAGER inherits, so need require_any_role for other endpoints; for users MANAGER only
@@ -70,7 +70,7 @@ async def list_users(
 async def create_user(
     payload: UserCreate,
     user: Principal = Depends(require_roles(Role.MANAGER)),
-    session: AsyncSession = Depends(get_session),  # type: ignore[no-untyped-def]
+    session: AsyncSession = Depends(get_session),
 ) -> UserOut:
     u = await svc.create_user(
         session,
@@ -89,7 +89,7 @@ async def create_user(
 async def lock_user(
     user_id: int,
     user: Principal = Depends(require_roles(Role.MANAGER)),
-    session: AsyncSession = Depends(get_session),  # type: ignore[no-untyped-def]
+    session: AsyncSession = Depends(get_session),
 ) -> UserOut:
     u = await svc.lock_user(session, user.user_id, user_id)
     await session.commit()
@@ -101,7 +101,7 @@ async def reset_password(
     user_id: int,
     payload: ResetPasswordRequest,
     user: Principal = Depends(require_roles(Role.MANAGER)),
-    session: AsyncSession = Depends(get_session),  # type: ignore[no-untyped-def]
+    session: AsyncSession = Depends(get_session),
 ) -> None:
     await svc.reset_password(session, user.user_id, user_id, payload.new_password)
     await session.commit()
@@ -111,7 +111,7 @@ async def reset_password(
 async def change_password(
     payload: ChangePasswordRequest,
     user: Principal = Depends(get_current_user),
-    session: AsyncSession = Depends(get_session),  # type: ignore[no-untyped-def]
+    session: AsyncSession = Depends(get_session),
 ) -> None:
     if payload.old_password == payload.new_password:
         raise BusinessRuleError(
@@ -124,7 +124,7 @@ async def change_password(
 @router.get("/config", response_model=ConfigOut)
 async def get_config(
     user: Principal = Depends(require_roles(Role.MANAGER)),
-    session: AsyncSession = Depends(get_session),  # type: ignore[no-untyped-def]
+    session: AsyncSession = Depends(get_session),
 ) -> ConfigOut:
     cfg = await svc.get_config(session)
     return ConfigOut.model_validate(cfg)
@@ -134,9 +134,9 @@ async def get_config(
 async def update_config(
     payload: ConfigUpdate,
     user: Principal = Depends(require_roles(Role.MANAGER)),
-    session: AsyncSession = Depends(get_session),  # type: ignore[no-untyped-def]
+    session: AsyncSession = Depends(get_session),
 ) -> ConfigOut:
-    cfg = await svc.update_config(session, user.user_id, payload.model_dump(exclude_none=False))
+    cfg = await svc.update_config(session, user.user_id, payload)
     await session.commit()
     return ConfigOut.model_validate(cfg)
 
@@ -148,7 +148,7 @@ async def audit_log(
     action: str | None = Query(None),
     user_id: int | None = Query(None),
     user: Principal = Depends(require_roles(Role.MANAGER)),
-    session: AsyncSession = Depends(get_session),  # type: ignore[no-untyped-def]
+    session: AsyncSession = Depends(get_session),
 ) -> Page[AuditEntryOut]:
     items, total = await svc.list_audit(session, page, size, action, user_id)
     return Page[AuditEntryOut](
@@ -159,17 +159,8 @@ async def audit_log(
 @router.post("/backup", response_model=BackupDump)
 async def backup(
     user: Principal = Depends(require_roles(Role.MANAGER)),
-    session: AsyncSession = Depends(get_session),  # type: ignore[no-untyped-def]
+    session: AsyncSession = Depends(get_session),
 ) -> BackupDump:
-    # Audit
-    from app.shared.audit import SystemAuditLog
-
-    session.add(
-        SystemAuditLog(
-            user_id=user.user_id, action="EXPORT_BACKUP", target_entity="SYSTEM", target_id="backup"
-        )
-    )
-    await session.flush()
+    dump = await svc.export_backup(session, user.user_id)
     await session.commit()
-    dump = svc.export_backup(session)
     return BackupDump(**dump)
