@@ -44,4 +44,21 @@ class StocktakeCreate(BaseModel):
 
 class CountIn(BaseModel):
     ingredient_id: int
-    actual_qty: float
+    actual_qty: float = Field(ge=0)
+
+
+class MonthCostOut(BaseModel):
+    MaNguyenLieu: int
+    Thang: int
+    GiaBinhQuan: float
+    TongSoLuongNhap: float
+    ThoiDiemTinh: datetime | None = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class StockRowOut(BaseModel):
+    MaNguyenLieu: int
+    TenNguyenLieu: str
+    SoLuongTon: float
+    MucTonToiThieuApDung: float
+    CanhBaoTonThap: bool

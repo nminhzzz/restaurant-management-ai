@@ -19,6 +19,7 @@ class StockChange:
     ingredient_id: int
     delta: Decimal  # >0 = Nhập, <0 = Trừ tự động
     kind: str = StockMovementType.TRU_TU_DONG
+    allow_expired: bool = False
     business_date: date | None = None
     source_order_line_id: int | None = None
     source_receipt_line_id: int | None = None
@@ -46,14 +47,18 @@ async def lock_ingredient(session: AsyncSession, ingredient_id: int) -> Ingredie
     return ing
 
 
-async def lots_for_fifo(session: AsyncSession, ingredient_id: int) -> list[IngredientLot]:
+async def lots_for_fifo(
+    session: AsyncSession, ingredient_id: int, *, allow_expired: bool = False
+) -> list[IngredientLot]:
+    conds = [
+        IngredientLot.ingredient_id == ingredient_id,
+        IngredientLot.quantity_remaining > 0,
+    ]
+    if not allow_expired:
+        conds.append(IngredientLot.status != LotStatus.HET_HAN.value)
     r = await session.execute(
         select(IngredientLot)
-        .where(
-            IngredientLot.ingredient_id == ingredient_id,
-            IngredientLot.quantity_remaining > 0,
-            IngredientLot.status != LotStatus.HET_HAN.value,
-        )
+        .where(*conds)
         .order_by(IngredientLot.received_at.asc(), IngredientLot.id.asc())
     )
     return list(r.scalars().all())
@@ -100,11 +105,17 @@ async def apply_stock_movement(
         session.add(m)
         await session.flush()
         movements.append(m)
+        try:
+            from app.modules.inventory.service import recompute_automatic_out_of_stock
+
+            await recompute_automatic_out_of_stock(session, [change.ingredient_id])
+        except Exception:
+            pass
         return movements
 
     # delta < 0: FIFO draw
     need = -delta
-    lots = await lots_for_fifo(session, change.ingredient_id)
+    lots = await lots_for_fifo(session, change.ingredient_id, allow_expired=change.allow_expired)
     total_avail = sum(Decimal(str(lot_item.quantity_remaining)) for lot_item in lots)
     if total_avail < need:
         raise BusinessRuleError("Không đủ tồn kho.")
@@ -136,6 +147,15 @@ async def apply_stock_movement(
     # update ingredient total
     ing.stock_qty = float(Decimal(str(ing.stock_qty)) - need)
     await session.flush()
+    # Task 6: auto-hide dishes whose recipe can no longer be fulfilled
+    try:
+        from app.modules.inventory.service import (
+            recompute_automatic_out_of_stock,
+        )  # lazy to avoid cycle
+
+        await recompute_automatic_out_of_stock(session, [change.ingredient_id])
+    except Exception:
+        pass
     return movements
 
 
@@ -167,15 +187,21 @@ async def reverse_movement(
         stocktake_line_id=movement.stocktake_line_id,
         performed_by=actor_id,
     )
-    # Ensure Hoàn kho satisfies CHECK: if no order_line, fallback to receipt/stocktake lineage
+    # Fallback lineage for Hoan kho (CHECK now allows order/receipt/stocktake)
     if (
         rev.order_line_id is None
         and rev.receipt_line_id is None
         and rev.stocktake_line_id is None
         and rev.issue_line_id is None
     ):
-        # Tie reversal to original lot's receipt lineage if available
         rev.receipt_line_id = movement.receipt_line_id
+        if rev.receipt_line_id is None and rev.lot_id is not None:
+            try:
+                _lot = await session.get(IngredientLot, rev.lot_id)
+                if _lot is not None:
+                    rev.receipt_line_id = _lot.receipt_line_id
+            except Exception:
+                pass
     session.add(rev)
     await session.flush()
     return rev

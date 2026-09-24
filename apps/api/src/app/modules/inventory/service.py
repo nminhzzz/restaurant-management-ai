@@ -33,6 +33,12 @@ async def create_receipt(
     receipt_date: datetime | None,
     lines: list[dict],
 ) -> GoodsReceipt:
+    if supplier_id is not None:
+        from app.modules.catalog.models import Supplier
+
+        sup = await session.get(Supplier, supplier_id)
+        if sup is None or sup.is_deleted:
+            raise BusinessRuleError("Nhà cung cấp không tồn tại.")
     receipt = GoodsReceipt(
         supplier_id=supplier_id,
         receipt_date=receipt_date or business_date.now(),
@@ -130,9 +136,8 @@ async def cancel_receipt(session: AsyncSession, actor_id: int, receipt_id: int) 
         raise NotFoundError("Không tìm thấy phiếu nhập.")
     if receipt.status == "Đã hủy":
         raise BusinessRuleError("Phiếu đã được hủy trước đó.")
-    if receipt.status == "Đã nhập":
-        # Only Nháp cancellable; if already confirmed flows, restrict
-        pass
+    if receipt.status != "Nháp":
+        raise BusinessRuleError("Chỉ được hủy phiếu ở trạng thái Nháp.")
     lines = (
         (
             await session.execute(
@@ -158,7 +163,6 @@ async def cancel_receipt(session: AsyncSession, actor_id: int, receipt_id: int) 
             # fully drawn lot -> cannot cancel without negative stock
             raise BusinessRuleError("Không thể hủy phiếu đã xuất hết.")
         # Directly reverse the receipt lot: subtract remaining from ingredient total and lot
-        # Do NOT go through FIFO; touch exactly this lot
         from app.modules.catalog.models import Ingredient
         from app.modules.inventory.models import StockMovement
 
@@ -166,13 +170,9 @@ async def cancel_receipt(session: AsyncSession, actor_id: int, receipt_id: int) 
         if remaining > 0:
             if ing and Decimal(str(ing.stock_qty)) < remaining:
                 raise BusinessRuleError("Không đủ tồn kho để hủy phiếu.")
-            # deduct remaining from lot and ingredient total
-            lot.quantity_remaining = float(remaining - remaining)  # 0
-            if lot.quantity_remaining < 0:
-                lot.quantity_remaining = 0
+            lot.quantity_remaining = 0
             if ing:
                 ing.stock_qty = float(Decimal(str(ing.stock_qty)) - remaining)
-            # record movement for audit (Hoàn kho tied to receipt)
             m = StockMovement(
                 ingredient_id=gl.ingredient_id,
                 lot_id=lot.id,
@@ -196,8 +196,14 @@ async def cancel_receipt(session: AsyncSession, actor_id: int, receipt_id: int) 
     await session.flush()
 
 
-async def list_receipts(session: AsyncSession) -> list[GoodsReceipt]:
-    r = await session.execute(select(GoodsReceipt).order_by(GoodsReceipt.id))
+async def list_receipts(
+    session: AsyncSession, page: int = 1, page_size: int = 20, supplier_id: int | None = None
+) -> list[GoodsReceipt]:
+    q = select(GoodsReceipt)
+    if supplier_id is not None:
+        q = q.where(GoodsReceipt.supplier_id == supplier_id)
+    q = q.order_by(GoodsReceipt.id.desc()).offset((page - 1) * page_size).limit(page_size)
+    r = await session.execute(q)
     return list(r.scalars().all())
 
 
@@ -216,13 +222,14 @@ async def create_issue(
         )
         session.add(il)
         await session.flush()
-        # allow_expired for manual issue
+        _allow_exp = "hết hạn" in reason.lower() if reason else False
         await apply_stock_movement(
             session,
             StockChange(
                 ingredient_id=iid,
                 delta=-qty,
                 kind="Xuất thủ công",
+                allow_expired=_allow_exp,
                 business_date=_bd(),
                 source_issue_line_id=il.id,
             ),
@@ -254,6 +261,8 @@ async def record_counts(
     st = await session.get(Stocktake, stocktake_id)
     if st is None:
         raise NotFoundError("Không tìm thấy phiếu kiểm kê.")
+    if st.status != "Nháp":
+        raise BusinessRuleError("Phiếu kiểm kê đã chốt, không thể ghi nhận thêm.")
     seen_ids: set[int] = set()
     for iid, actual in counts:
         if iid in seen_ids:
@@ -280,6 +289,8 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
     st = await session.get(Stocktake, stocktake_id)
     if st is None:
         raise NotFoundError("Không tìm thấy phiếu kiểm kê.")
+    if st.status != "Nháp":
+        raise BusinessRuleError("Phiếu kiểm kê đã được xác nhận trước đó.")
     lines = (
         (
             await session.execute(
@@ -296,72 +307,43 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
         if diff == 0:
             continue
         if diff < 0:
-            # Negative diff: allow stock to go to actual even if FIFO insufficient
-            # Deduct from FIFO first, then directly adjust remaining to match actual
-            try:
-                await apply_stock_movement(
-                    session,
-                    StockChange(
-                        ingredient_id=line.ingredient_id,
-                        delta=diff,
-                        kind="Điều chỉnh kiểm kê",
-                        business_date=_bd(),
-                        source_stocktake_line_id=line.id,
-                    ),
-                    actor_id=actor_id,
-                )
-            except BusinessRuleError:
-                # FIFO insufficient -> force adjustment to actual_qty
-                from sqlalchemy import select as sel2
+            # Deduct via FIFO but never touch HET_HAN lots; keep 3-tier in sync
+            from app.modules.inventory.stock import lots_for_fifo
 
-                from app.modules.catalog.models import Ingredient as Ing2
+            fifo_lots = await lots_for_fifo(session, line.ingredient_id)
+            need = -diff
+            total_avail = sum((Decimal(str(lot.quantity_remaining)) for lot in fifo_lots), Decimal(0))
+            take_total = min(total_avail, need)
+            # consume FIFO lots in order
+            rem = take_total  # type: ignore[assignment]
+            for _lot in fifo_lots:
+                if rem <= 0:
+                    break
+                avail = Decimal(str(_lot.quantity_remaining))
+                take = min(avail, rem)
+                _lot.quantity_remaining = float(avail - take)
                 from app.modules.inventory.models import StockMovement as SM2
 
-                # consume all FIFO lots
-                lots_all = (
-                    (
-                        await session.execute(
-                            sel2(IngredientLot)
-                            .where(IngredientLot.ingredient_id == line.ingredient_id)
-                            .order_by(IngredientLot.received_at.asc())
-                        )
-                    )
-                    .scalars()
-                    .all()
+                m2 = SM2(
+                    ingredient_id=line.ingredient_id,
+                    lot_id=_lot.id,
+                    kind="Điều chỉnh kiểm kê",
+                    qty=float(-take),
+                    business_date=_bd(),
+                    stocktake_line_id=line.id,
+                    performed_by=actor_id,
                 )
-                need = -diff
-                for _lot in lots_all:
-                    if need <= 0:
-                        break
-                    avail = Decimal(str(_lot.quantity_remaining))
-                    take = min(avail, need)
-                    _lot.quantity_remaining = float(avail - take)
-                    need -= take
-                    m2 = SM2(
-                        ingredient_id=line.ingredient_id,
-                        lot_id=_lot.id,
-                        kind="Điều chỉnh kiểm kê",
-                        qty=float(-take),
-                        business_date=_bd(),
-                        stocktake_line_id=line.id,
-                        performed_by=actor_id,
-                    )
-                    session.add(m2)
-                # if still need >0 (stock record higher than lot sum), just adjust ingredient total
-                ing2 = await session.get(Ing2, line.ingredient_id)
-                if ing2:
-                    ing2.stock_qty = float(line.actual_qty)
-                continue
-            # apply_stock_movement already adjusted ingredient total via FIFO; ensure final matches actual
-            from app.modules.catalog.models import Ingredient as Ing3
+                session.add(m2)
+                rem -= take
+            # remaining shortage (system > FIFO sum) is shortage beyond lots — adjust ingredient total directly
+            from app.modules.catalog.models import Ingredient as Ing2
 
-            ing3 = await session.get(Ing3, line.ingredient_id)
-            if ing3 and abs(Decimal(str(ing3.stock_qty)) - Decimal(str(line.actual_qty))) > Decimal(
-                "0.0001"
-            ):
-                ing3.stock_qty = float(line.actual_qty)
+            ing2 = await session.get(Ing2, line.ingredient_id)
+            if ing2:
+                # ing total should become actual_qty; we already deducted take_total via lots, so set directly
+                ing2.stock_qty = float(line.actual_qty)
         else:
-            # surplus: create adjustment lot tied to a real receipt line
+            # surplus: create adjustment receipt lineage with unit_price=0 (excluded from avg by receipt status filter in reports) is kept, but tagged is_adjustment
             gr = GoodsReceipt(supplier_id=None, receipt_date=business_date.now(), status="Nháp")
             session.add(gr)
             await session.flush()
@@ -423,27 +405,46 @@ async def list_stock(
     from sqlalchemy import select as sel
 
     from app.modules.catalog.models import Ingredient
-
-    q = sel(Ingredient).where(Ingredient.is_deleted == False)
-    if search:
-        safe = search.replace("%", "\\%").replace("_", "\\_")
-        q = q.where(Ingredient.name.ilike(f"%{safe}%", escape="\\"))
-    rows = (await session.execute(q.order_by(Ingredient.id))).scalars().all()
-    # pagination
-    total_all = len(rows)
-    start_idx = (page - 1) * page_size
-    rows = rows[start_idx : start_idx + page_size]
-    # compute alerts
     from app.modules.settings.models import SystemConfig
 
     cfg = (await session.execute(sel(SystemConfig))).scalar_one_or_none()
     default = float(cfg.default_stock_threshold) if cfg else 5
+    # Build base query with alert filter in SQL where possible; fallback to Python for threshold compare
+    base = sel(Ingredient).where(Ingredient.is_deleted == False)
+    if search:
+        safe = search.replace("%", "\\%").replace("_", "\\_")
+        base = base.where(Ingredient.name.ilike(f"%{safe}%", escape="\\"))
+    # If alerting filter requested, fetch a larger window then filter, else SQL pagination
+    if alerting is not None:
+        # Need to evaluate threshold per row; fetch with LIMIT/OFFSET * factor then filter
+        # Simple: fetch all matching then filter then paginate in Python (bounded by threshold check)
+        # For true SQL pagination without function, keep Python slice after alert filter
+        all_rows = (await session.execute(base.order_by(Ingredient.id))).scalars().all()
+        filtered = []
+        for ing in all_rows:
+            thr = float(ing.min_stock) if ing.min_stock is not None else default
+            alert = float(ing.stock_qty) < thr
+            if alert == alerting:
+                filtered.append((ing, thr, alert))
+        start_idx = (page - 1) * page_size
+        page_items = filtered[start_idx : start_idx + page_size]
+        return [
+            {
+                "MaNguyenLieu": ing.id,
+                "TenNguyenLieu": ing.name,
+                "SoLuongTon": float(ing.stock_qty),
+                "MucTonToiThieuApDung": thr,
+                "CanhBaoTonThap": alert,
+            }
+            for ing, thr, alert in page_items
+        ]
+    # No alert filter: SQL pagination
+    q = base.order_by(Ingredient.id).offset((page - 1) * page_size).limit(page_size)
+    rows = (await session.execute(q)).scalars().all()
     out = []
     for ing in rows:
         thr = float(ing.min_stock) if ing.min_stock is not None else default
         alert = float(ing.stock_qty) < thr
-        if alerting is not None and alert != alerting:
-            continue
         out.append(
             {
                 "MaNguyenLieu": ing.id,
@@ -476,6 +477,8 @@ async def recompute_automatic_out_of_stock(session, ingredient_ids: list[int]) -
     affected_recipe_ids = {it.recipe_id for it in affected_items}
     if not affected_recipe_ids:
         return []
+    if not affected_recipe_ids:
+        return []
     recipes = (
         (
             await session.execute(
@@ -488,6 +491,8 @@ async def recompute_automatic_out_of_stock(session, ingredient_ids: list[int]) -
         .scalars()
         .all()
     )
+    if not recipes:
+        return []
     # batch load all items for those recipes
     all_items = (
         (

@@ -235,3 +235,6 @@ class MonthlyAverageCost(Base):
     total_qty: Mapped[float] = mapped_column(
         "TongSoLuongNhap", DECIMAL(18, 4), nullable=False, default=0
     )
+    computed_at: Mapped[datetime] = mapped_column(
+        "ThoiDiemTinh", DateTime, server_default=func.now(), nullable=False
+    )

@@ -12,6 +12,7 @@ from app.modules.inventory.models import (
     MonthlyAverageCost,
     StockIssueLine,
 )
+from app.shared import business_date as _bd
 
 
 async def close_month(session: AsyncSession, month: int) -> list[MonthlyAverageCost]:
@@ -51,9 +52,14 @@ async def close_month(session: AsyncSession, month: int) -> list[MonthlyAverageC
         if existing:
             existing.avg_cost = float(avg)
             existing.total_qty = float(qty)
+            existing.computed_at = _bd.now()
         else:
             existing = MonthlyAverageCost(
-                ingredient_id=ing_id, month=month, avg_cost=float(avg), total_qty=float(qty)
+                ingredient_id=ing_id,
+                month=month,
+                avg_cost=float(avg),
+                total_qty=float(qty),
+                computed_at=_bd.now(),
             )
             session.add(existing)
         out.append(existing)

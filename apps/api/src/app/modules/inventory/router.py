@@ -42,11 +42,26 @@ async def cancel_receipt(
 
 @router.get("/receipts")
 async def list_receipts(
+    page: int = 1,
+    page_size: int = 20,
+    supplier_id: int | None = None,
     user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
     session: AsyncSession = Depends(get_session),
 ):
-    items = await svc.list_receipts(session)
-    return [{"MaPhieuNhap": x.id} for x in items]
+    page = max(1, page)
+    page_size = min(max(1, page_size), 100)
+    items = await svc.list_receipts(
+        session, page=page, page_size=page_size, supplier_id=supplier_id
+    )
+    return [
+        {
+            "MaPhieuNhap": x.id,
+            "MaNhaCungCap": x.supplier_id,
+            "NgayNhap": x.receipt_date.isoformat() if x.receipt_date else None,
+            "TrangThai": x.status,
+        }
+        for x in items
+    ]
 
 
 @router.post("/issues", status_code=201)
@@ -105,12 +120,77 @@ async def close_month(
     user: Principal = Depends(require_roles(Role.MANAGER)),
     session: AsyncSession = Depends(get_session),
 ):
-    if month < 100101 or month > 999912 or month % 100 < 1 or month % 100 > 12:
-        from fastapi import HTTPException
-
-        raise HTTPException(status_code=422, detail="Tháng không hợp lệ (YYYYMM).")
     from app.modules.inventory.costing import close_month as _close
 
     items = await _close(session, month)
     await session.commit()
-    return items
+    # Serialize via dict to keep precision; avoid leaking ORM directly
+    return [
+        {
+            "MaNguyenLieu": r.ingredient_id,
+            "Thang": r.month,
+            "GiaBinhQuan": float(r.avg_cost),
+            "TongSoLuongNhap": float(r.total_qty),
+            "ThoiDiemTinh": r.computed_at.isoformat() if r.computed_at else None,
+        }
+        for r in items
+    ]
+
+
+@router.get("/stock")
+async def list_stock(
+    search: str | None = None,
+    alerting: bool | None = None,
+    page: int = 1,
+    page_size: int = 50,
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    session: AsyncSession = Depends(get_session),
+):
+    page = max(1, page)
+    page_size = min(max(1, page_size), 100)
+    items = await svc.list_stock(
+        session, search=search, alerting=alerting, page=page, page_size=page_size
+    )
+    return {"items": items, "page": page, "page_size": page_size}
+
+
+@router.get("/issues")
+async def list_issues(
+    page: int = 1,
+    page_size: int = 20,
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    session: AsyncSession = Depends(get_session),
+):
+    from sqlalchemy import select as sel
+
+    from app.modules.inventory.models import StockIssue
+
+    q = (
+        sel(StockIssue)
+        .order_by(StockIssue.id.desc())
+        .offset((max(1, page) - 1) * min(max(1, page_size), 100))
+        .limit(min(max(1, page_size), 100))
+    )
+    rows = (await session.execute(q)).scalars().all()
+    return [{"MaPhieuXuat": r.id, "LyDo": r.reason, "TrangThai": r.status} for r in rows]
+
+
+@router.get("/stocktakes")
+async def list_stocktakes(
+    page: int = 1,
+    page_size: int = 20,
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    session: AsyncSession = Depends(get_session),
+):
+    from sqlalchemy import select as sel
+
+    from app.modules.inventory.models import Stocktake
+
+    q = (
+        sel(Stocktake)
+        .order_by(Stocktake.id.desc())
+        .offset((max(1, page) - 1) * min(max(1, page_size), 100))
+        .limit(min(max(1, page_size), 100))
+    )
+    rows = (await session.execute(q)).scalars().all()
+    return [{"MaPhieuKiemKe": r.id, "TrangThai": r.status} for r in rows]
