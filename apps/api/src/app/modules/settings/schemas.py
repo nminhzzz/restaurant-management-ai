@@ -5,6 +5,8 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field, StringConstraints
 
+from app.shared.roles import Role
+
 Username = Annotated[str, StringConstraints(min_length=3, max_length=50)]
 Password = Annotated[str, StringConstraints(min_length=6, max_length=100)]
 
@@ -38,7 +40,7 @@ class UserCreate(BaseModel):
     password: Password
     full_name: Annotated[str, StringConstraints(min_length=1, max_length=100)]
     phone: Annotated[str | None, StringConstraints(max_length=20)] = None
-    role: Annotated[str, StringConstraints(min_length=1)]
+    role: Role
 
 
 class UserUpdate(BaseModel):

@@ -3,14 +3,15 @@
 from datetime import UTC, datetime, time
 
 from sqlalchemy import select
-from sqlalchemy.dialects.mysql import insert as mysql_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import BusinessRuleError, NotFoundError, UnauthenticatedError
 from app.core.security import create_access_token, hash_password, verify_password
 from app.modules.settings.models import RoleTable, SystemConfig, User
+from app.modules.settings.schemas import ConfigUpdate
 from app.shared.audit import SystemAuditLog
 from app.shared.base import Base
+from app.shared.enums import UserStatus
 from app.shared.roles import Role
 
 ROLE_SEEDS = (
@@ -31,8 +32,7 @@ ROLE_SEEDS = (
 async def seed_reference_data(session: AsyncSession) -> None:
     """Idempotent: safe to call on every boot and every seed run."""
     for role, name, desc in ROLE_SEEDS:
-        mysql_insert(RoleTable).values(MaVaiTro=role.value, TenVaiTro=name, MoTa=desc)
-        # SQLite uses ON CONFLICT, MySQL uses ON DUPLICATE - use generic upsert via select+insert for cross-dialect
+        # Idempotent via select+insert (race safe on single-worker test; prod uses ON DUPLICATE via migration seed), MySQL uses ON DUPLICATE - use generic upsert via select+insert for cross-dialect
         existing = await session.execute(select(RoleTable).where(RoleTable.id == role.value))
         if existing.scalar_one_or_none() is None:
             session.add(RoleTable(id=role.value, name=name, description=desc))
@@ -57,7 +57,7 @@ async def authenticate(session: AsyncSession, username: str, password: str) -> U
     user = result.scalar_one_or_none()
     if (
         user is None
-        or user.status != "Ho\u1ea1t \u0111\u1ed9ng"
+        or user.status != UserStatus.HOAT_DONG
         or not verify_password(password, user.password_hash)
     ):
         raise UnauthenticatedError(
@@ -83,10 +83,11 @@ async def create_user(
     password: str,
     full_name: str,
     phone: str | None,
-    role: str,
+    role: str | Role,
 ) -> User:
-    if role not in {r.value for r in Role}:
-        raise BusinessRuleError(f"Vai tr\u00f2 kh\u00f4ng h\u1ee3p l\u1ec7: {role}")
+    role_value = role.value if isinstance(role, Role) else str(role)
+    if role_value not in {r.value for r in Role}:
+        raise BusinessRuleError(f"Vai tr\u00f2 kh\u00f4ng h\u1ee3p l\u1ec7: {role_value}")
     # Check duplicate
     existing = await session.execute(select(User).where(User.username == username))
     if existing.scalar_one_or_none() is not None:
@@ -100,7 +101,7 @@ async def create_user(
         password_hash=hash_password(password),
         full_name=full_name,
         phone=phone,
-        role_id=role,
+        role_id=role_value,
         status="Ho\u1ea1t \u0111\u1ed9ng",
     )
     session.add(user)
@@ -112,7 +113,7 @@ async def create_user(
             action="CREATE_USER",
             target_entity="NGUOI_DUNG",
             target_id=str(user.id),
-            after={"username": username, "role": role},
+            after={"username": username, "role": role_value},
         )
     )
     await session.flush()
@@ -123,11 +124,17 @@ async def lock_user(session: AsyncSession, actor_id: int, user_id: int) -> User:
     user = await session.get(User, user_id)
     if user is None:
         raise NotFoundError("Kh\u00f4ng t\u00ecm th\u1ea5y t\u00e0i kho\u1ea3n.")
+    before = {"TrangThai": user.status}
     user.status = "\u0110\u00e3 kh\u00f3a"
     await session.flush()
     session.add(
         SystemAuditLog(
-            user_id=actor_id, action="LOCK_USER", target_entity="NGUOI_DUNG", target_id=str(user_id)
+            user_id=actor_id,
+            action="LOCK_USER",
+            target_entity="NGUOI_DUNG",
+            target_id=str(user_id),
+            before=before,
+            after={"TrangThai": user.status},
         )
     )
     await session.flush()
@@ -170,28 +177,30 @@ async def get_config(session: AsyncSession) -> SystemConfig:
     result = await session.execute(select(SystemConfig))
     cfg = result.scalar_one_or_none()
     if cfg is None:
-        # Auto-seed if missing
-        await seed_reference_data(session)
-        result = await session.execute(select(SystemConfig))
-        cfg = result.scalar_one()
+        raise NotFoundError(
+            "Ch\u01b0a c\u00f3 c\u1ea5u h\u00ecnh h\u1ec7 th\u1ed1ng. Vui l\u00f2ng ch\u1ea1y seed_reference_data."
+        )
     return cfg
 
 
-async def update_config(session: AsyncSession, actor_id: int, data: dict) -> SystemConfig:
+async def update_config(
+    session: AsyncSession, actor_id: int, data: ConfigUpdate | dict
+) -> SystemConfig:
+    d = data.model_dump(exclude_none=False) if isinstance(data, ConfigUpdate) else data
     cfg = await get_config(session)
     # Only allow specific fields, ignore business_day_start
-    if "TenNhaHang" in data and data["TenNhaHang"] is not None:
-        cfg.restaurant_name = data["TenNhaHang"]
-    if "DiaChi" in data:
-        cfg.address = data["DiaChi"]
-    if "MauHoaDon" in data:
-        cfg.invoice_template = data["MauHoaDon"]
-    if "NguongTonMacDinh" in data and data["NguongTonMacDinh"] is not None:
-        if data["NguongTonMacDinh"] < 0:
+    if "TenNhaHang" in d and d["TenNhaHang"] is not None:
+        cfg.restaurant_name = d["TenNhaHang"]
+    if "DiaChi" in d:
+        cfg.address = d["DiaChi"]
+    if "MauHoaDon" in d:
+        cfg.invoice_template = d["MauHoaDon"]
+    if "NguongTonMacDinh" in d and d["NguongTonMacDinh"] is not None:
+        if d["NguongTonMacDinh"] < 0:
             raise BusinessRuleError(
                 "Ng\u01b0\u1ee1ng t\u1ed3n kh\u00f4ng \u0111\u01b0\u1ee3c \u00e2m."
             )
-        cfg.default_stock_threshold = data["NguongTonMacDinh"]
+        cfg.default_stock_threshold = d["NguongTonMacDinh"]
     # BusinessDate locked
     await session.flush()
     session.add(
@@ -242,8 +251,15 @@ async def list_audit(
     return list(result.scalars().all()), total
 
 
-def export_backup(session: AsyncSession) -> dict:
+async def export_backup(session: AsyncSession, actor_id: int) -> dict:
+    """Create backup dump and audit in same transaction (NFR-10)."""
     now = datetime.now(UTC)
+    session.add(
+        SystemAuditLog(
+            user_id=actor_id, action="EXPORT_BACKUP", target_entity="SYSTEM", target_id="backup"
+        )
+    )
+    await session.flush()
     return {
         "created_at": now.isoformat(),
         "covers_until": now.isoformat(),
