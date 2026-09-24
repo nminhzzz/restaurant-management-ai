@@ -2,10 +2,10 @@
 
 from datetime import datetime, time
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, Index, Integer, String, Time, func
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Time, func
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.shared.base import Base
+from app.shared.base import Base, BigInteger
 
 
 class RoleTable(Base):

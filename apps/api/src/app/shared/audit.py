@@ -6,10 +6,10 @@ Append-only: the table is never updated or deleted by application code.
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import JSON, BigInteger, DateTime, ForeignKey, Index, String, func
+from sqlalchemy import JSON, DateTime, ForeignKey, Index, String, func
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
-from app.shared.base import Base
+from app.shared.base import Base, BigInteger
 
 
 class SystemAuditLog(Base):

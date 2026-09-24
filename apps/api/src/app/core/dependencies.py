@@ -56,3 +56,18 @@ def require_roles(*allowed: Role) -> Callable[[Principal], Coroutine[Any, Any, P
         return user
 
     return _guard
+
+
+def require_any_role(*roles: Role) -> Callable[[Principal], Coroutine[Any, Any, Principal]]:
+    """Manager inherits all: allow if role is MANAGER or in allowed."""
+
+    async def _guard(user: CurrentUser) -> Principal:
+        if user.role == Role.MANAGER:
+            return user
+        if user.role not in roles:
+            raise ForbiddenError(
+                "B\u1ea1n kh\u00f4ng c\u00f3 quy\u1ec1n th\u1ef1c hi\u1ec7n ch\u1ee9c n\u0103ng n\u00e0y."
+            )
+        return user
+
+    return _guard

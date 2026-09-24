@@ -64,14 +64,14 @@ def _clear_settings_cache() -> Iterator[None]:
     try:
         from app.core.config import get_settings as _gs
 
-        _gs.cache_clear()  # type: ignore[attr-defined]
+        _gs.cache_clear()
     except Exception:
         pass
     yield
     try:
         from app.core.config import get_settings as _gs2
 
-        _gs2.cache_clear()  # type: ignore[attr-defined]
+        _gs2.cache_clear()
     except Exception:
         pass
 
