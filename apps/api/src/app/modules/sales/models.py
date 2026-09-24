@@ -14,14 +14,15 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.shared.base import (
+from app.shared.base import (  # PaymentTransaction defaults match enums.PaymentStatus values
     Base,
-)  # PaymentTransaction defaults match enums.PaymentStatus values
+    BigInteger,
+)
 
 
 class Order(Base):
     __tablename__ = "ORDER"
-    id: Mapped[int] = mapped_column("MaOrder", primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column("MaOrder", BigInteger, primary_key=True, autoincrement=True)
     business_date: Mapped[date] = mapped_column("BusinessDate", Date, nullable=False)
     table_id: Mapped[int | None] = mapped_column(
         "MaBan",
@@ -54,7 +55,9 @@ class Order(Base):
 
 class OrderLine(Base):
     __tablename__ = "CHI_TIET_ORDER"
-    id: Mapped[int] = mapped_column("MaChiTietOrder", primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        "MaChiTietOrder", BigInteger, primary_key=True, autoincrement=True
+    )
     order_id: Mapped[int] = mapped_column(
         "MaOrder",
         ForeignKey("ORDER.MaOrder", ondelete="CASCADE", onupdate="RESTRICT"),
@@ -83,7 +86,7 @@ class OrderLine(Base):
 
 class TableMoveLog(Base):
     __tablename__ = "LICH_SU_DOI_BAN"
-    id: Mapped[int] = mapped_column("MaLichSu", primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column("MaLichSu", BigInteger, primary_key=True, autoincrement=True)
     order_id: Mapped[int] = mapped_column(
         "MaOrder",
         ForeignKey("ORDER.MaOrder", ondelete="CASCADE", onupdate="RESTRICT"),
@@ -106,7 +109,7 @@ class TableMoveLog(Base):
 
 class PaymentTransaction(Base):
     __tablename__ = "GIAO_DICH_THANH_TOAN"
-    id: Mapped[int] = mapped_column("MaGiaoDich", primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column("MaGiaoDich", BigInteger, primary_key=True, autoincrement=True)
     order_id: Mapped[int] = mapped_column(
         "MaOrder",
         ForeignKey("ORDER.MaOrder", ondelete="RESTRICT", onupdate="RESTRICT"),
@@ -128,7 +131,7 @@ class PaymentTransaction(Base):
 
 class Invoice(Base):
     __tablename__ = "HOA_DON"
-    id: Mapped[int] = mapped_column("MaHoaDon", primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column("MaHoaDon", BigInteger, primary_key=True, autoincrement=True)
     order_id: Mapped[int] = mapped_column(
         "MaOrder",
         ForeignKey("ORDER.MaOrder", ondelete="RESTRICT", onupdate="RESTRICT"),
@@ -145,7 +148,7 @@ class Invoice(Base):
 
 class KitchenTicket(Base):
     __tablename__ = "PHIEU_BEP"
-    id: Mapped[int] = mapped_column("MaPhieuBep", primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column("MaPhieuBep", BigInteger, primary_key=True, autoincrement=True)
     order_id: Mapped[int] = mapped_column(
         "MaOrder",
         ForeignKey("ORDER.MaOrder", ondelete="CASCADE", onupdate="RESTRICT"),
