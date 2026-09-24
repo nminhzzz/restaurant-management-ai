@@ -354,3 +354,84 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
         )
     )
     await session.flush()
+
+
+async def list_stock(session, search: str | None = None, alerting: bool | None = None):
+    from sqlalchemy import select as sel
+
+    from app.modules.catalog.models import Ingredient
+
+    q = sel(Ingredient).where(Ingredient.is_deleted == False)
+    if search:
+        q = q.where(Ingredient.name.ilike(f"%{search}%"))
+    rows = (await session.execute(q.order_by(Ingredient.id))).scalars().all()
+    # compute alerts
+    from app.modules.settings.models import SystemConfig
+
+    cfg = (await session.execute(sel(SystemConfig))).scalar_one_or_none()
+    default = float(cfg.default_stock_threshold) if cfg else 5
+    out = []
+    for ing in rows:
+        thr = float(ing.min_stock) if ing.min_stock and float(ing.min_stock) > 0 else default
+        alert = float(ing.stock_qty) < thr
+        if alerting is not None and alert != alerting:
+            continue
+        out.append(
+            {
+                "MaNguyenLieu": ing.id,
+                "TenNguyenLieu": ing.name,
+                "SoLuongTon": float(ing.stock_qty),
+                "MucTonToiThieuApDung": thr,
+                "CanhBaoTonThap": alert,
+            }
+        )
+    return out
+
+
+async def recompute_automatic_out_of_stock(session, ingredient_ids: list[int]) -> list[int]:
+    from app.modules.catalog.models import Dish, Recipe, RecipeItem
+    from app.shared.enums import VersionStatus
+
+    # find dishes using these ingredients in active recipe
+    hidden = []
+    for iid in ingredient_ids:
+        recipes = (
+            (
+                await session.execute(
+                    select(Recipe).where(Recipe.status == VersionStatus.HIEU_LUC.value)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        for r in recipes:
+            items = (
+                (await session.execute(select(RecipeItem).where(RecipeItem.recipe_id == r.id)))
+                .scalars()
+                .all()
+            )
+            if any(it.ingredient_id == iid for it in items):
+                # check stock covers
+                ok = True
+                for it in items:
+                    from app.modules.catalog.models import Ingredient as Ing
+
+                    ing = await session.get(Ing, it.ingredient_id)
+                    if ing and float(ing.stock_qty) < float(it.quantity):
+                        ok = False
+                dish = await session.get(Dish, r.dish_id)
+                if dish and not dish.is_deleted:
+                    if not ok:
+                        dish.out_of_stock_auto = True
+                        hidden.append(dish.id)
+                    else:
+                        # check all ingredients ok
+                        all_ok = True
+                        for it2 in items:
+                            ing2 = await session.get(Ing, it2.ingredient_id)
+                            if ing2 and float(ing2.stock_qty) < float(it2.quantity):
+                                all_ok = False
+                        if all_ok:
+                            dish.out_of_stock_auto = False
+    await session.flush()
+    return hidden
