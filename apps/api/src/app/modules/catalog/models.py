@@ -14,12 +14,12 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.shared.base import Base
+from app.shared.base import Base, BigInteger
 
 
 class DishGroup(Base):
     __tablename__ = "NHOM_MON"
-    id: Mapped[int] = mapped_column("MaNhomMon", primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column("MaNhomMon", BigInteger, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column("TenNhom", String(100), nullable=False)
     display_order: Mapped[int] = mapped_column("ThuTuHienThi", Integer, nullable=False, default=0)
     is_deleted: Mapped[bool] = mapped_column("DaXoa", default=False, nullable=False)
@@ -27,7 +27,9 @@ class DishGroup(Base):
 
 class Ingredient(Base):
     __tablename__ = "NGUYEN_LIEU"
-    id: Mapped[int] = mapped_column("MaNguyenLieu", primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        "MaNguyenLieu", BigInteger, primary_key=True, autoincrement=True
+    )
     name: Mapped[str] = mapped_column("TenNguyenLieu", String(100), nullable=False)
     unit: Mapped[str] = mapped_column("DonViTinh", String(20), nullable=False, default="kg")
     stock_qty: Mapped[float] = mapped_column(
@@ -48,7 +50,9 @@ class Ingredient(Base):
 
 class Supplier(Base):
     __tablename__ = "NHA_CUNG_CAP"
-    id: Mapped[int] = mapped_column("MaNhaCungCap", primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        "MaNhaCungCap", BigInteger, primary_key=True, autoincrement=True
+    )
     name: Mapped[str] = mapped_column("TenNhaCungCap", String(100), nullable=False)
     phone: Mapped[str | None] = mapped_column("SoDienThoai", String(20), nullable=True)
     is_deleted: Mapped[bool] = mapped_column("DaXoa", default=False, nullable=False)
@@ -56,7 +60,7 @@ class Supplier(Base):
 
 class DiningTable(Base):
     __tablename__ = "BAN"
-    id: Mapped[int] = mapped_column("MaBan", primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column("MaBan", BigInteger, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column("TenBan", String(50), nullable=False)
     is_deleted: Mapped[bool] = mapped_column("DaXoa", default=False, nullable=False)
     active_name: Mapped[str | None] = mapped_column(
@@ -70,10 +74,11 @@ class DiningTable(Base):
 
 class Dish(Base):
     __tablename__ = "MON_AN"
-    id: Mapped[int] = mapped_column("MaMon", primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column("MaMon", BigInteger, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column("TenMon", String(100), nullable=False)
     group_id: Mapped[int | None] = mapped_column(
         "MaNhomMon",
+        BigInteger,
         ForeignKey("NHOM_MON.MaNhomMon", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=True,
     )
@@ -97,9 +102,10 @@ class Dish(Base):
 
 class DishPriceVersion(Base):
     __tablename__ = "LICH_SU_GIA_MON"
-    id: Mapped[int] = mapped_column("MaLichSuGia", primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column("MaLichSuGia", BigInteger, primary_key=True, autoincrement=True)
     dish_id: Mapped[int] = mapped_column(
         "MaMon",
+        BigInteger,
         ForeignKey("MON_AN.MaMon", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=False,
     )
@@ -117,6 +123,7 @@ class DishPriceVersion(Base):
     status: Mapped[str] = mapped_column("TrangThai", String(20), nullable=False, default="Nháp")
     created_by: Mapped[int | None] = mapped_column(
         "NguoiTao",
+        BigInteger,
         ForeignKey("NGUOI_DUNG.MaNguoiDung", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=True,
     )
@@ -124,9 +131,10 @@ class DishPriceVersion(Base):
 
 class Recipe(Base):
     __tablename__ = "CONG_THUC"
-    id: Mapped[int] = mapped_column("MaCongThuc", primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column("MaCongThuc", BigInteger, primary_key=True, autoincrement=True)
     dish_id: Mapped[int] = mapped_column(
         "MaMon",
+        BigInteger,
         ForeignKey("MON_AN.MaMon", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=False,
     )
@@ -143,6 +151,7 @@ class Recipe(Base):
     status: Mapped[str] = mapped_column("TrangThai", String(20), nullable=False, default="Nháp")
     created_by: Mapped[int | None] = mapped_column(
         "NguoiTao",
+        BigInteger,
         ForeignKey("NGUOI_DUNG.MaNguoiDung", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=True,
     )
@@ -152,11 +161,13 @@ class RecipeItem(Base):
     __tablename__ = "CHI_TIET_CONG_THUC"
     recipe_id: Mapped[int] = mapped_column(
         "MaCongThuc",
+        BigInteger,
         ForeignKey("CONG_THUC.MaCongThuc", ondelete="CASCADE", onupdate="RESTRICT"),
         primary_key=True,
     )
     ingredient_id: Mapped[int] = mapped_column(
         "MaNguyenLieu",
+        BigInteger,
         ForeignKey("NGUYEN_LIEU.MaNguyenLieu", ondelete="RESTRICT", onupdate="RESTRICT"),
         primary_key=True,
     )

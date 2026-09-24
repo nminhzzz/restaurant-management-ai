@@ -16,12 +16,12 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.shared.base import Base
+from app.shared.base import Base, BigInteger
 
 
 class GoodsReceipt(Base):
     __tablename__ = "PHIEU_NHAP_KHO"
-    id: Mapped[int] = mapped_column("MaPhieuNhap", primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column("MaPhieuNhap", BigInteger, primary_key=True, autoincrement=True)
     receipt_date: Mapped[datetime] = mapped_column(
         "NgayNhap", DateTime, server_default=func.now(), nullable=False
     )
@@ -42,7 +42,9 @@ class GoodsReceipt(Base):
 
 class GoodsReceiptLine(Base):
     __tablename__ = "CHI_TIET_PHIEU_NHAP"
-    id: Mapped[int] = mapped_column("MaChiTietNhap", primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        "MaChiTietNhap", BigInteger, primary_key=True, autoincrement=True
+    )
     receipt_id: Mapped[int] = mapped_column(
         "MaPhieuNhap",
         ForeignKey("PHIEU_NHAP_KHO.MaPhieuNhap", ondelete="CASCADE", onupdate="RESTRICT"),
@@ -59,7 +61,7 @@ class GoodsReceiptLine(Base):
 
 class IngredientLot(Base):
     __tablename__ = "LO_NGUYEN_LIEU"
-    id: Mapped[int] = mapped_column("MaLo", primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column("MaLo", BigInteger, primary_key=True, autoincrement=True)
     ingredient_id: Mapped[int] = mapped_column(
         "MaNguyenLieu",
         ForeignKey("NGUYEN_LIEU.MaNguyenLieu", ondelete="RESTRICT", onupdate="RESTRICT"),
@@ -93,7 +95,7 @@ class IngredientLot(Base):
 
 class StockIssue(Base):
     __tablename__ = "PHIEU_XUAT_KHO"
-    id: Mapped[int] = mapped_column("MaPhieuXuat", primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column("MaPhieuXuat", BigInteger, primary_key=True, autoincrement=True)
     reason: Mapped[str] = mapped_column("LyDo", String(50), nullable=False, default="Kh\u00e1c")
     status: Mapped[str] = mapped_column(
         "TrangThai", String(20), nullable=False, default="Nh\u00e1p"
@@ -105,7 +107,9 @@ class StockIssue(Base):
 
 class StockIssueLine(Base):
     __tablename__ = "CHI_TIET_PHIEU_XUAT"
-    id: Mapped[int] = mapped_column("MaChiTietXuat", primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        "MaChiTietXuat", BigInteger, primary_key=True, autoincrement=True
+    )
     issue_id: Mapped[int] = mapped_column(
         "MaPhieuXuat",
         ForeignKey("PHIEU_XUAT_KHO.MaPhieuXuat", ondelete="CASCADE", onupdate="RESTRICT"),
@@ -124,7 +128,9 @@ class StockIssueLine(Base):
 
 class Stocktake(Base):
     __tablename__ = "PHIEU_KIEM_KE"
-    id: Mapped[int] = mapped_column("MaPhieuKiemKe", primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        "MaPhieuKiemKe", BigInteger, primary_key=True, autoincrement=True
+    )
     stocktake_date: Mapped[datetime] = mapped_column(
         "NgayKiemKe", DateTime, server_default=func.now(), nullable=False
     )
@@ -135,7 +141,9 @@ class Stocktake(Base):
 
 class StocktakeLine(Base):
     __tablename__ = "CHI_TIET_KIEM_KE"
-    id: Mapped[int] = mapped_column("MaChiTietKiemKe", primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        "MaChiTietKiemKe", BigInteger, primary_key=True, autoincrement=True
+    )
     stocktake_id: Mapped[int] = mapped_column(
         "MaPhieuKiemKe",
         ForeignKey("PHIEU_KIEM_KE.MaPhieuKiemKe", ondelete="CASCADE", onupdate="RESTRICT"),
@@ -158,7 +166,9 @@ class StocktakeLine(Base):
 
 class StockMovement(Base):
     __tablename__ = "GIAO_DICH_KHO"
-    id: Mapped[int] = mapped_column("MaGiaoDichKho", primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        "MaGiaoDichKho", BigInteger, primary_key=True, autoincrement=True
+    )
     ingredient_id: Mapped[int] = mapped_column(
         "MaNguyenLieu",
         ForeignKey("NGUYEN_LIEU.MaNguyenLieu", ondelete="RESTRICT", onupdate="RESTRICT"),

@@ -1,6 +1,5 @@
-import { ModulePlaceholder } from "@/components/module-placeholder";
-import { MODULES } from "@/lib/modules";
+import { DishList } from "@/features/catalog/dish-list";
 
 export default function CatalogPage() {
-  return <ModulePlaceholder descriptor={MODULES.catalog} />;
+  return <DishList />;
 }

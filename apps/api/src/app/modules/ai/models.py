@@ -13,7 +13,6 @@ class ChatSession(Base):
     id: Mapped[int] = mapped_column("MaPhien", BigInteger, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(
         "MaNguoiDung",
-        BigInteger,
         ForeignKey("NGUOI_DUNG.MaNguoiDung", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=False,
     )
@@ -27,7 +26,6 @@ class AssistantQuery(Base):
     id: Mapped[int] = mapped_column("MaTruyVan", BigInteger, primary_key=True, autoincrement=True)
     session_id: Mapped[int] = mapped_column(
         "MaPhien",
-        BigInteger,
         ForeignKey("PHIEN_CHAT_AI.MaPhien", ondelete="CASCADE", onupdate="RESTRICT"),
         nullable=False,
     )
