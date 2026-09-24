@@ -1,11 +1,12 @@
-"""Schemas for Module 1 Catalogue (Phase 2 Task 1)."""
+"""Schemas for Module 1 Catalogue (Phase 2)."""
 
+from datetime import date
+from decimal import Decimal
 from typing import Annotated
 
 from pydantic import BaseModel, Field, StringConstraints
 
 Name = Annotated[str, StringConstraints(min_length=1, max_length=100)]
-Search = Annotated[str | None, StringConstraints(max_length=100)]
 
 
 class GroupCreate(BaseModel):
@@ -54,3 +55,100 @@ class DishOut(BaseModel):
     DaXoa: bool = Field(validation_alias="is_deleted")
 
     model_config = {"from_attributes": True, "populate_by_name": True}
+
+
+class PriceScheduleRequest(BaseModel):
+    Gia: Decimal = Field(ge=0)
+    BusinessDateApDung: date | None = None
+
+
+class PriceVersionOut(BaseModel):
+    MaLichSuGia: int = Field(validation_alias="id")
+    MaMon: int = Field(validation_alias="dish_id")
+    Gia: float = Field(validation_alias="price")
+    BusinessDateApDung: date = Field(validation_alias="business_date")
+    TrangThai: str = Field(validation_alias="status")
+    LoaiThayDoi: str = Field(validation_alias="change_type")
+
+    model_config = {"from_attributes": True, "populate_by_name": True}
+
+
+class PriceApplyNowRequest(BaseModel):
+    Gia: Decimal = Field(ge=0)
+
+
+class RecipeItemIn(BaseModel):
+    MaNguyenLieu: int
+    SoLuong: Decimal = Field(gt=0)
+
+
+class RecipeScheduleRequest(BaseModel):
+    BusinessDateApDung: date | None = None
+    items: list[RecipeItemIn] = Field(min_length=1)
+
+
+class RecipeAssignRequest(BaseModel):
+    items: list[RecipeItemIn] = Field(min_length=1)
+
+
+class RecipeOut(BaseModel):
+    MaCongThuc: int = Field(validation_alias="id")
+    MaMon: int = Field(validation_alias="dish_id")
+    BusinessDateApDung: date = Field(validation_alias="business_date")
+    TrangThai: str = Field(validation_alias="status")
+
+    model_config = {"from_attributes": True, "populate_by_name": True}
+
+
+class IngredientCreate(BaseModel):
+    TenNguyenLieu: Name
+    DonViTinh: str | None = Field(default="kg", max_length=20)
+    MucTonToiThieu: float | None = Field(default=None, ge=0)
+
+
+class IngredientUpdate(BaseModel):
+    TenNguyenLieu: Name | None = None
+    DonViTinh: str | None = Field(default=None, max_length=20)
+    MucTonToiThieu: float | None = Field(default=None, ge=0)
+
+
+class IngredientOut(BaseModel):
+    MaNguyenLieu: int = Field(validation_alias="id")
+    TenNguyenLieu: str = Field(validation_alias="name")
+    DonViTinh: str = Field(validation_alias="unit")
+    MucTonToiThieu: float = Field(validation_alias="min_stock")
+    DaXoa: bool = Field(validation_alias="is_deleted")
+
+    model_config = {"from_attributes": True, "populate_by_name": True}
+
+
+class SupplierCreate(BaseModel):
+    TenNhaCungCap: Name
+    SoDienThoai: str | None = Field(default=None, max_length=20)
+
+
+class SupplierOut(BaseModel):
+    MaNhaCungCap: int = Field(validation_alias="id")
+    TenNhaCungCap: str = Field(validation_alias="name")
+    SoDienThoai: str | None = Field(default=None, validation_alias="phone")
+    DaXoa: bool = Field(validation_alias="is_deleted")
+    PhieuNhap: list[dict] = Field(default_factory=list)
+
+    model_config = {"from_attributes": True, "populate_by_name": True}
+
+
+class TableCreate(BaseModel):
+    TenBan: Name
+
+
+class TableOut(BaseModel):
+    MaBan: int = Field(validation_alias="id")
+    TenBan: str = Field(validation_alias="name")
+    DaXoa: bool = Field(validation_alias="is_deleted")
+
+    model_config = {"from_attributes": True, "populate_by_name": True}
+
+
+class VisibilityUpdate(BaseModel):
+    AnThuCong: bool | None = None
+    HetNLThuCong: bool | None = None

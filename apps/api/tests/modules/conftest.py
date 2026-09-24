@@ -183,3 +183,122 @@ async def occupied_table(session):
     await session.flush()
     await session.commit()
     return t
+
+
+@pytest_asyncio.fixture
+async def fresh_ingredient(session):
+    from app.modules.catalog.models import Ingredient
+
+    await seed_reference_data(session)
+    ing = Ingredient(
+        name="Bột mì", unit="kg", min_stock=5, stock_qty=0, is_deleted=False, unit_locked=False
+    )
+    session.add(ing)
+    await session.flush()
+    await session.commit()
+    return ing
+
+
+@pytest_asyncio.fixture
+async def three_ingredients(session):
+    from app.modules.catalog.models import Ingredient
+
+    await seed_reference_data(session)
+    ings = []
+    for name in ["Hành lá", "Bột mì", "Cà chua"]:
+        ing = Ingredient(
+            name=name, unit="kg", min_stock=5, stock_qty=0, is_deleted=False, unit_locked=False
+        )
+        session.add(ing)
+        await session.flush()
+        ings.append(ing)
+    await session.commit()
+    return ings
+
+
+@pytest_asyncio.fixture
+async def ingredient_in_recipe(session, dish, fresh_ingredient):
+    from app.modules.catalog.models import Recipe, RecipeItem
+    from app.shared import business_date
+    from app.shared.enums import VersionStatus
+
+    r = Recipe(
+        dish_id=dish.id,
+        business_date=business_date.business_date_of(business_date.now()),
+        status=VersionStatus.HIEU_LUC.value,
+        change_type="Tạo mới",
+        effective_from=business_date.now(),
+    )
+    session.add(r)
+    await session.flush()
+    session.add(RecipeItem(recipe_id=r.id, ingredient_id=fresh_ingredient.id, quantity=0.2))
+    fresh_ingredient.unit_locked = True
+    await session.flush()
+    await session.commit()
+    return fresh_ingredient
+
+
+@pytest_asyncio.fixture
+async def fresh_supplier(session):
+    from app.modules.catalog.models import Supplier
+
+    await seed_reference_data(session)
+    s = Supplier(name="NCC A", is_deleted=False)
+    session.add(s)
+    await session.flush()
+    await session.commit()
+    return s
+
+
+@pytest_asyncio.fixture
+async def supplier_with_receipts(session, fresh_supplier):
+
+    from app.modules.inventory.models import GoodsReceipt
+
+    for _ in range(2):
+        gr = GoodsReceipt(supplier_id=fresh_supplier.id, status="Đã nhập")
+        session.add(gr)
+        await session.flush()
+    await session.commit()
+    return fresh_supplier
+
+
+@pytest_asyncio.fixture
+async def config_with_default_threshold(session):
+    await seed_reference_data(session)
+    from sqlalchemy import select
+
+    from app.modules.settings.models import SystemConfig
+
+    cfg = (await session.execute(select(SystemConfig))).scalar_one()
+    cfg.default_stock_threshold = 7
+    await session.flush()
+    await session.commit()
+    return cfg
+
+
+@pytest_asyncio.fixture
+async def dish_with_recipe(session, dish, fresh_ingredient):
+    from app.modules.catalog.models import Recipe, RecipeItem
+    from app.shared import business_date
+    from app.shared.enums import VersionStatus
+
+    r = Recipe(
+        dish_id=dish.id,
+        business_date=business_date.business_date_of(business_date.now()),
+        status=VersionStatus.HIEU_LUC.value,
+        change_type="Tạo mới",
+        effective_from=business_date.now(),
+    )
+    session.add(r)
+    await session.flush()
+    session.add(RecipeItem(recipe_id=r.id, ingredient_id=fresh_ingredient.id, quantity=0.2))
+    fresh_ingredient.unit_locked = True
+    await session.flush()
+    await session.commit()
+    return dish
+
+
+@pytest_asyncio.fixture
+async def flour(session, fresh_ingredient):
+    return fresh_ingredient

@@ -14,6 +14,20 @@ from app.modules.catalog.schemas import (
     GroupOut,
     GroupReorderRequest,
     GroupUpdate,
+    IngredientCreate,
+    IngredientOut,
+    IngredientUpdate,
+    PriceApplyNowRequest,
+    PriceScheduleRequest,
+    PriceVersionOut,
+    RecipeAssignRequest,
+    RecipeOut,
+    RecipeScheduleRequest,
+    SupplierCreate,
+    SupplierOut,
+    TableCreate,
+    TableOut,
+    VisibilityUpdate,
 )
 from app.shared.pagination import Page
 from app.shared.roles import Role
@@ -167,3 +181,251 @@ async def delete_dish(
 ) -> None:
     await svc.delete_dish(session, user.user_id, dish_id)
     await session.commit()
+
+
+# Prices
+@router.post("/dishes/{dish_id}/prices/schedule", response_model=PriceVersionOut, status_code=201)
+async def schedule_price(
+    dish_id: int,
+    payload: PriceScheduleRequest,
+    user: Principal = Depends(require_roles(Role.MANAGER)),
+    session: AsyncSession = Depends(get_session),
+) -> PriceVersionOut:
+    v = await svc.schedule_price_change(
+        session, user.user_id, dish_id, payload.Gia, payload.BusinessDateApDung
+    )
+    await session.commit()
+    return PriceVersionOut.model_validate(v)
+
+
+@router.post("/dishes/{dish_id}/prices/apply-now", response_model=PriceVersionOut, status_code=201)
+async def apply_price_now(
+    dish_id: int,
+    payload: PriceApplyNowRequest,
+    user: Principal = Depends(require_roles(Role.MANAGER)),
+    session: AsyncSession = Depends(get_session),
+) -> PriceVersionOut:
+    v = await svc.apply_price_directly(session, user.user_id, dish_id, payload.Gia)
+    await session.commit()
+    return PriceVersionOut.model_validate(v)
+
+
+@router.delete("/prices/{version_id}", status_code=204)
+async def cancel_price(
+    version_id: int,
+    user: Principal = Depends(require_roles(Role.MANAGER)),
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    await svc.cancel_pending_price_change(session, user.user_id, version_id)
+    await session.commit()
+
+
+# Recipes
+@router.post("/dishes/{dish_id}/recipes/schedule", response_model=RecipeOut, status_code=201)
+async def schedule_recipe(
+    dish_id: int,
+    payload: RecipeScheduleRequest,
+    user: Principal = Depends(require_roles(Role.MANAGER)),
+    session: AsyncSession = Depends(get_session),
+) -> RecipeOut:
+    items = [(x.MaNguyenLieu, x.SoLuong) for x in payload.items]
+    r = await svc.schedule_recipe_change(
+        session, user.user_id, dish_id, items, payload.BusinessDateApDung
+    )
+    await session.commit()
+    return RecipeOut.model_validate(r)
+
+
+@router.post("/dishes/{dish_id}/recipes/assign", response_model=RecipeOut, status_code=201)
+async def assign_recipe(
+    dish_id: int,
+    payload: RecipeAssignRequest,
+    user: Principal = Depends(require_roles(Role.MANAGER)),
+    session: AsyncSession = Depends(get_session),
+) -> RecipeOut:
+    items = [(x.MaNguyenLieu, x.SoLuong) for x in payload.items]
+    r = await svc.assign_recipe(session, user.user_id, dish_id, items)
+    await session.commit()
+    return RecipeOut.model_validate(r)
+
+
+@router.delete("/recipes/{recipe_id}", status_code=204)
+async def cancel_recipe(
+    recipe_id: int,
+    user: Principal = Depends(require_roles(Role.MANAGER)),
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    await svc.cancel_pending_recipe_change(session, user.user_id, recipe_id)
+    await session.commit()
+
+
+# Ingredients
+@router.get("/ingredients", response_model=Page[IngredientOut])
+async def list_ingredients(
+    search: str | None = Query(None),
+    user: Principal = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> Page[IngredientOut]:
+    items, total = await svc.list_ingredients(session, search)
+    return Page[IngredientOut](
+        items=[IngredientOut.model_validate(x) for x in items], total=total, page=1, size=200
+    )
+
+
+@router.post("/ingredients", response_model=IngredientOut, status_code=201)
+async def create_ingredient(
+    payload: IngredientCreate,
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    session: AsyncSession = Depends(get_session),
+) -> IngredientOut:
+    ing = await svc.create_ingredient(
+        session,
+        user.user_id,
+        payload.TenNguyenLieu,
+        payload.DonViTinh or "kg",
+        payload.MucTonToiThieu,
+    )
+    await session.commit()
+    return IngredientOut.model_validate(ing)
+
+
+@router.patch("/ingredients/{ingredient_id}", response_model=IngredientOut)
+async def update_ingredient(
+    ingredient_id: int,
+    payload: IngredientUpdate,
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    session: AsyncSession = Depends(get_session),
+) -> IngredientOut:
+    ing = await svc.update_ingredient(
+        session,
+        user.user_id,
+        ingredient_id,
+        payload.TenNguyenLieu,
+        payload.DonViTinh,
+        payload.MucTonToiThieu,
+    )
+    await session.commit()
+    return IngredientOut.model_validate(ing)
+
+
+@router.delete("/ingredients/{ingredient_id}", status_code=204)
+async def delete_ingredient(
+    ingredient_id: int,
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    await svc.delete_ingredient(session, user.user_id, ingredient_id)
+    await session.commit()
+
+
+# Suppliers
+@router.get("/suppliers", response_model=list[SupplierOut])
+async def list_suppliers(
+    user: Principal = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> list[SupplierOut]:
+    items = await svc.list_suppliers(session)
+    return [SupplierOut.model_validate(x) for x in items]
+
+
+@router.post("/suppliers", response_model=SupplierOut, status_code=201)
+async def create_supplier(
+    payload: SupplierCreate,
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    session: AsyncSession = Depends(get_session),
+) -> SupplierOut:
+    s = await svc.create_supplier(session, user.user_id, payload.TenNhaCungCap, payload.SoDienThoai)
+    await session.commit()
+    return SupplierOut.model_validate(s)
+
+
+@router.get("/suppliers/{supplier_id}", response_model=SupplierOut)
+async def get_supplier(
+    supplier_id: int,
+    user: Principal = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> SupplierOut:
+    s = await svc.get_supplier(session, supplier_id)
+    if s is None or s.is_deleted:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=404, detail="Không tìm thấy nhà cung cấp.")
+    # load receipts
+    from sqlalchemy import select as _sel
+
+    from app.modules.inventory.models import GoodsReceipt
+
+    r = await session.execute(_sel(GoodsReceipt).where(GoodsReceipt.supplier_id == supplier_id))
+    receipts = [{"MaPhieuNhap": gr.id} for gr in r.scalars().all()]
+    out = SupplierOut.model_validate(s)
+    out.PhieuNhap = receipts
+    return out
+
+
+@router.delete("/suppliers/{supplier_id}", status_code=204)
+async def delete_supplier(
+    supplier_id: int,
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    await svc.delete_supplier(session, user.user_id, supplier_id)
+    await session.commit()
+
+
+# Tables
+@router.get("/tables", response_model=list[TableOut])
+async def list_tables(
+    user: Principal = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> list[TableOut]:
+    items = await svc.list_tables(session)
+    return [TableOut.model_validate(x) for x in items]
+
+
+@router.post("/tables", response_model=TableOut, status_code=201)
+async def create_table(
+    payload: TableCreate,
+    user: Principal = Depends(require_roles(Role.MANAGER)),
+    session: AsyncSession = Depends(get_session),
+) -> TableOut:
+    t2 = await svc.create_table(session, user.user_id, payload.TenBan)
+    await session.commit()
+    return TableOut.model_validate(t2)
+
+
+@router.delete("/tables/{table_id}", status_code=204)
+async def delete_table(
+    table_id: int,
+    user: Principal = Depends(require_roles(Role.MANAGER)),
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    await svc.delete_table(session, user.user_id, table_id)
+    await session.commit()
+
+
+# Visibility
+@router.patch("/dishes/{dish_id}/visibility", response_model=DishOut)
+async def update_visibility(
+    dish_id: int,
+    payload: VisibilityUpdate,
+    user: Principal = Depends(require_roles(Role.MANAGER)),
+    session: AsyncSession = Depends(get_session),
+) -> DishOut:
+    if payload.AnThuCong is not None:
+        await svc.set_manual_hidden(session, user.user_id, dish_id, payload.AnThuCong)
+    if payload.HetNLThuCong is not None:
+        await svc.set_manual_out_of_stock(session, user.user_id, dish_id, payload.HetNLThuCong)
+    await session.commit()
+    d = await svc.get_dish(session, dish_id)
+    assert d is not None
+    status = await svc.display_status_for(session, d)
+    return DishOut(
+        MaMon=d.id,
+        TenMon=d.name,
+        MaNhomMon=d.group_id,
+        HinhAnh=None,
+        GiaHienTai=None,
+        TrangThai=status,
+        AnThuCong=d.hide_manual,
+        DaXoa=d.is_deleted,
+    )
