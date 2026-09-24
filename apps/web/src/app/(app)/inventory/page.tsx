@@ -1,6 +1,4 @@
-import { ModulePlaceholder } from "@/components/module-placeholder";
-import { MODULES } from "@/lib/modules";
-
+import { StockTable } from "@/features/inventory/stock-table";
 export default function InventoryPage() {
-  return <ModulePlaceholder descriptor={MODULES.inventory} />;
+  return <StockTable />;
 }

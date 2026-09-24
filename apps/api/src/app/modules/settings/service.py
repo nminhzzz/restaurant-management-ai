@@ -263,5 +263,5 @@ async def export_backup(session: AsyncSession, actor_id: int) -> dict:
     return {
         "created_at": now.isoformat(),
         "covers_until": now.isoformat(),
-        "tables": sorted(Base.metadata.tables.keys()),
+        "size": len(Base.metadata.tables),
     }
