@@ -58,7 +58,8 @@ class Order(Base):
     updated_at: Mapped[datetime | None] = mapped_column("NgayCapNhat", DateTime, nullable=True)
     __table_args__ = (
         CheckConstraint(
-            "(LoaiDon = 'T\u1ea1i ch\u1ed7' AND MaBan IS NOT NULL) OR (LoaiDon = 'Mang v\u1ec1' AND MaBan IS NULL)",
+            "(LoaiDon = 'T\u1ea1i ch\u1ed7' AND MaBan IS NOT NULL) "
+            "OR (LoaiDon = 'Mang v\u1ec1' AND MaBan IS NULL)",
             name="dine_in_needs_a_table",
         ),
         Index("ix_ORDER_BusinessDate_MaBan", "BusinessDate", "MaBan"),

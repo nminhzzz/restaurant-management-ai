@@ -1,22 +1,23 @@
 import pytest
 from httpx import ASGITransport, AsyncClient
+
 from app.core.database import get_session
 from app.core.security import create_access_token, hash_password
 from app.main import app
+from app.modules.catalog.models import (
+    DiningTable,
+    Dish,
+    DishGroup,
+    DishPriceVersion,
+    Ingredient,
+    Recipe,
+    RecipeItem,
+)
+from app.modules.inventory.models import GoodsReceipt, GoodsReceiptLine, IngredientLot
 from app.modules.settings.models import User
 from app.modules.settings.service import seed_reference_data
 from app.shared import business_date
 from app.shared.enums import VersionStatus
-from app.modules.catalog.models import (
-    Dish,
-    DishGroup,
-    Ingredient,
-    Recipe,
-    RecipeItem,
-    DishPriceVersion,
-    DiningTable,
-)
-from app.modules.inventory.models import GoodsReceipt, GoodsReceiptLine, IngredientLot
 
 
 async def _make_client(session):

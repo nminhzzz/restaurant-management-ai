@@ -68,11 +68,16 @@ Quyền được kiểm tra ở tầng API (`app.core.dependencies.require_roles
 
 ## Hiện trạng
 
-Repository đang ở giai đoạn **khung dự án**: hạ tầng, quy ước và các primitive dùng chung đã có
-và đã được kiểm thử; các màn hình và nghiệp vụ chi tiết chưa triển khai.
+Đã xong **Phase 0 → 4**: lược đồ CSDL 29 bảng theo báo cáo cộng `DEM_ORDER` (`migrations/versions/`),
+ba view phân quyền `vw_ai_*` và tài khoản chỉ-đọc riêng (`db/views/`), cùng bốn module nghiệp vụ
+Cài đặt · Danh mục · Kho · Bán hàng có API và giao diện dùng được.
+
+Còn lại: **Phase 5** (Báo cáo — endpoint và màn hình còn là placeholder), **Phase 6** (pipeline trợ lý
+AI: `normalize` và `guard` đã xong, bốn bước prompt/sinh SQL/thực thi/diễn giải còn là interface) và
+**Phase 7** (seed 12 tháng, bộ câu hỏi đánh giá, harness A/B/C — mới có khung).
 
 Kế hoạch triển khai đầy đủ nằm ở [`docs/plans/2026-09-24-master-roadmap.md`](docs/plans/2026-09-24-master-roadmap.md):
-bảy phase từ lược đồ CSDL tới dữ liệu đánh giá, kèm thứ tự phụ thuộc và các cổng cần duyệt. Kế hoạch
+**tám phase** từ lược đồ CSDL tới dữ liệu đánh giá, kèm thứ tự phụ thuộc và các cổng cần duyệt. Kế hoạch
 chi tiết từng phase ở `docs/plans/phases/`. Nhật ký dựng khung ban đầu:
 `docs/plans/2026-09-21-project-skeleton.md`.
 

@@ -1,28 +1,30 @@
 """Task 4 payments."""
 
+import hashlib
+import hmac
+from datetime import datetime, timedelta
+
 import pytest
-import hmac, hashlib
 from httpx import ASGITransport, AsyncClient
 
+from app.core.config import get_settings
 from app.core.database import get_session
 from app.core.security import create_access_token, hash_password
 from app.main import app
+from app.modules.catalog.models import (
+    DiningTable,
+    Dish,
+    DishGroup,
+    DishPriceVersion,
+    Ingredient,
+    Recipe,
+    RecipeItem,
+)
+from app.modules.inventory.models import GoodsReceipt, GoodsReceiptLine, IngredientLot
 from app.modules.settings.models import User
 from app.modules.settings.service import seed_reference_data
 from app.shared import business_date
 from app.shared.enums import VersionStatus
-from app.modules.catalog.models import (
-    Dish,
-    DishGroup,
-    Ingredient,
-    Recipe,
-    RecipeItem,
-    DishPriceVersion,
-    DiningTable,
-)
-from app.modules.inventory.models import GoodsReceipt, GoodsReceiptLine, IngredientLot
-from app.core.config import get_settings
-
 from tests.helpers import order_status, payment_status
 
 
@@ -161,7 +163,6 @@ async def test_webhook_settles(session):
     oid = await _submit(session, client, h, d, t)
     r = await client.post(f"/api/v1/sales/orders/{oid}/pay/qr", headers=h)
     pid = r.json()["MaGiaoDich"]
-    from tests.helpers import order_count as _oc
 
     # need amount: order total is 50000
     sig = _sign(pid, 50000)
@@ -209,6 +210,22 @@ async def test_webhook_bad_sig(session):
         json={"payment_id": pid, "amount": 50000, "signature": "bad"},
     )
     assert r2.status_code == 401
+
+
+@pytest.mark.anyio
+async def test_qr_response_carries_a_ten_minute_deadline(session):
+    """FR-SALE-15: the countdown needs both timestamps in the response body."""
+    d, t = await _setup(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    oid = await _submit(session, client, h, d, t)
+
+    r = await client.post(f"/api/v1/sales/orders/{oid}/pay/qr", headers=h)
+
+    body = r.json()
+    created = datetime.fromisoformat(body["ThoiDiemTaoQR"])
+    deadline = datetime.fromisoformat(body["ThoiDiemHetHan"])
+    assert deadline - created == timedelta(minutes=10)
 
 
 @pytest.mark.anyio

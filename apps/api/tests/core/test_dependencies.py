@@ -36,6 +36,15 @@ def test_request_without_token_is_rejected(guarded_client: TestClient) -> None:
     assert response.json()["error"]["code"] == "UNAUTHENTICATED"
 
 
+def test_a_malformed_token_is_rejected(guarded_client: TestClient) -> None:
+    response = guarded_client.get(
+        "/manager-only", headers={"Authorization": "Bearer not-a-real-token"}
+    )
+
+    assert response.status_code == 401
+    assert response.json()["error"]["code"] == "UNAUTHENTICATED"
+
+
 def test_role_outside_the_allow_list_is_forbidden(guarded_client: TestClient, token_for) -> None:
     response = guarded_client.get(
         "/manager-only", headers={"Authorization": f"Bearer {token_for(Role.WAREHOUSE)}"}

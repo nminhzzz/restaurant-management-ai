@@ -1,9 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 
-vi.mock("@/lib/api-client", () => ({ apiFetch: vi.fn() }));
+vi.mock("@/lib/api-client", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/api-client")>();
+  return { ...actual, apiFetch: vi.fn() };
+});
 import { apiFetch } from "@/lib/api-client";
+import { clearSession, saveSession } from "@/lib/session";
+import { OrderScreen } from "./order-screen";
 import { PaymentPanel } from "./payment-panel";
+
+const fetchMock = apiFetch as unknown as ReturnType<typeof vi.fn>;
+
+/** Route the mocked apiFetch by path prefix; the first matching prefix wins. */
+function stubByPath(routes: Record<string, unknown>) {
+  const entries = Object.entries(routes);
+  fetchMock.mockImplementation((path: string) =>
+    Promise.resolve(
+      entries.find(([prefix]) => path.startsWith(prefix))?.[1] ?? {},
+    ),
+  );
+}
 
 function qr(overrides: Record<string, unknown> = {}) {
   const now = new Date();
@@ -17,49 +34,130 @@ function qr(overrides: Record<string, unknown> = {}) {
   };
 }
 
+const openOrder = {
+  MaOrder: 1,
+  MaOrderHienThi: "ORD-1",
+  TrangThai: "Đang mở",
+  lines: [],
+};
+
 describe("PaymentPanel", () => {
-  beforeEach(() => vi.resetAllMocks());
+  beforeEach(() => {
+    vi.resetAllMocks();
+    clearSession();
+  });
 
   it("disables creating a new QR while one is still live", async () => {
-    (apiFetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(qr());
+    stubByPath({
+      "/sales/orders/1/pay/qr": qr(),
+      "/sales/orders/1": openOrder,
+    });
     render(<PaymentPanel orderId={1} />);
-    // after qr created, button disabled
-    const btn = await screen.findByText("Thanh toán QR");
-    fireEvent.click(btn);
-    // need to wait for state
+
+    fireEvent.click(await screen.findByText("Thanh toán QR"));
+
     await screen.findByText("Chờ xác nhận");
     expect(screen.getByText("Tạo mã QR mới")).toBeDisabled();
+  });
+
+  it("counts the QR deadline down and shows an expiry state", async () => {
+    vi.useFakeTimers();
+    try {
+      const end = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+      stubByPath({
+        "/sales/orders/1/pay/qr": qr({ ThoiDiemHetHan: end }),
+        "/sales/orders/1": openOrder,
+      });
+      render(<PaymentPanel orderId={1} />);
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Thanh toán QR"));
+      });
+      expect(screen.getByText("10:00")).toBeInTheDocument();
+
+      await act(async () => {
+        vi.advanceTimersByTime(600_000);
+      });
+      expect(screen.getByText("Hết hạn")).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("only offers the full-order cancellation to a manager", async () => {
+    saveSession({ token: "t", role: "CASHIER", username: "thungan01" });
+    stubByPath({ "/sales/orders/1": openOrder });
+    render(<PaymentPanel orderId={1} />);
+
+    await screen.findByText("ORD-1");
+    expect(screen.queryByText("Hủy toàn bộ order")).not.toBeInTheDocument();
+  });
+
+  it("shows the full-order cancellation to a manager", async () => {
+    saveSession({ token: "t", role: "MANAGER", username: "quanly" });
+    stubByPath({ "/sales/orders/1": openOrder });
+    render(<PaymentPanel orderId={1} />);
+
+    expect(await screen.findByText("Hủy toàn bộ order")).toBeInTheDocument();
   });
 });
 
 describe("OrderScreen", () => {
-  it("hides out of stock dishes", async () => {
-    const { OrderScreen } = await import("./order-screen");
-    (apiFetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-      items: [
-        { MaMon: 1, TenMon: "Phở bò", TrangThai: "Hoạt động" },
-        { MaMon: 2, TenMon: "Bún chả", TrangThai: "Hết nguyên liệu" },
-      ],
+  beforeEach(() => vi.resetAllMocks());
+
+  it("hides dishes that are out of stock", async () => {
+    stubByPath({
+      "/catalog/tables": [{ MaBan: 1, TenBan: "Bàn 1" }],
+      "/catalog/dishes": {
+        items: [
+          {
+            MaMon: 1,
+            TenMon: "Phở bò",
+            TrangThai: "Hoạt động",
+            GiaHienTai: 65000,
+          },
+          {
+            MaMon: 2,
+            TenMon: "Bún chả",
+            TrangThai: "Hết nguyên liệu",
+            GiaHienTai: 40000,
+          },
+        ],
+      },
     });
     render(<OrderScreen />);
-    expect(await screen.findByText("Phở bò")).toBeInTheDocument();
-    expect(screen.queryByText("Bún chả")).not.toBeInTheDocument();
+
+    expect(
+      await screen.findByRole("button", { name: /Phở bò/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Bún chả/ }),
+    ).not.toBeInTheDocument();
   });
 
-  it("only offers full cancel to manager", async () => {
-    const { saveSession } = await import("@/lib/session");
-    saveSession({
-      token: "t",
-      role: "CASHIER",
-      username: "thungan01",
-    } as never);
-    const { OrderScreen } = await import("./order-screen");
-    (apiFetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
-      items: [],
+  it("submits the cart and reports the created order", async () => {
+    const onCreated = vi.fn();
+    stubByPath({
+      "/catalog/tables": [{ MaBan: 7, TenBan: "Bàn 7" }],
+      "/catalog/dishes": {
+        items: [
+          {
+            MaMon: 5,
+            TenMon: "Phở bò",
+            TrangThai: "Hoạt động",
+            GiaHienTai: 65000,
+          },
+        ],
+      },
+      "/sales/orders": { MaOrder: 42, MaOrderHienThi: "ORD-42", rejected: [] },
     });
-    render(<OrderScreen />);
-    // need to wait loading done
-    await screen.findByText("Gọi món");
-    expect(screen.queryByText("Hủy toàn bộ order")).not.toBeInTheDocument();
+    render(<OrderScreen onOrderCreated={onCreated} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Phở bò/ }));
+    fireEvent.change(screen.getByLabelText("Bàn"), { target: { value: "7" } });
+    fireEvent.click(screen.getByRole("button", { name: "Gửi order" }));
+
+    expect(await screen.findByText("Đã tạo ORD-42")).toBeInTheDocument();
+    expect(onCreated).toHaveBeenCalledWith(42);
   });
 });

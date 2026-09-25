@@ -317,7 +317,7 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
             )
             take_total = min(total_avail, need)
             # consume FIFO lots in order
-            rem = take_total  # type: ignore[assignment]
+            rem = take_total
             for _lot in fifo_lots:
                 if rem <= 0:
                     break

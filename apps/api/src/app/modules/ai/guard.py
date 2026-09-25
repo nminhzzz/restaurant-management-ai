@@ -118,7 +118,8 @@ def validate_sql(
     for node in expression.walk():
         if isinstance(node, exp.Parameter):
             raise BusinessRuleError(SQL_REJECTED_MESSAGE)
-        # Variables like @a are Parameter(Var), already caught; plain Var inside Parameter handled above
+        # Variables like @a are Parameter(Var) and are already caught; a plain Var
+        # nested inside a Parameter is handled by the branch above.
         if isinstance(node, (*_FORBIDDEN_NODES, exp.Into)):
             raise BusinessRuleError(SQL_REJECTED_MESSAGE)
         callee = _function_name(node)

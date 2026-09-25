@@ -1,343 +1,352 @@
-"""Sales payments — Task 4/5/6."""
+"""Sales payments — cash, QR, webhook, reconciliation and invoices (FR-SALE-14…19, 23, 29).
+
+The QR gateway is not chosen yet (master roadmap Q1), so signature handling is a
+self-contained HMAC adapter: `_gateway_sign` produces the signature and `_verify_signature`
+checks it with a constant-time comparison. Swapping in a real gateway only replaces these
+two functions; the business flow below is unchanged.
+"""
 
 import hashlib
 import hmac
-from datetime import timedelta
+import logging
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
-from app.core.errors import BusinessRuleError, NotFoundError
-from app.modules.sales.models import Invoice, Order, PaymentTransaction
+from app.core.errors import BusinessRuleError, NotFoundError, UnauthenticatedError
+from app.modules.sales.models import Invoice, Order, OrderLine, PaymentTransaction
 from app.shared import business_date
+from app.shared.audit import SystemAuditLog
+
+logger = logging.getLogger(__name__)
+
+QR_LIFETIME = timedelta(minutes=10)
+QR_PENDING = "Chờ xác nhận"
+QR_SUCCESS = "Thành công"
+QR_CANCELLED = "Đã hủy"
+QR_EXPIRED = "Hết hạn"
+QR_RECONCILING = "Chờ đối soát"
+QR_DISPUTED = "Tranh chấp"
 
 
 def _require_webhook_secret() -> str:
-    sec = get_settings().payment_webhook_secret
-    if not sec:
-        # In local env allow test-secret, but enforce in non-local via config already; still avoid fallback in logic
-        return "test-secret"
-    return sec
+    """Signing key for the mock gateway (never a real one — see Q1)."""
+    secret = get_settings().payment_webhook_secret
+    return secret or "test-secret"
 
 
 def _gateway_sign(payload: str) -> str:
-    secret = _require_webhook_secret()
-    return hmac.new(secret.encode(), payload.encode(), hashlib.sha256).hexdigest()
+    return hmac.new(
+        _require_webhook_secret().encode(), payload.encode(), hashlib.sha256
+    ).hexdigest()
 
 
-def _verify_signature(payload: str, sig: str) -> bool:
-    # Reject if secret is missing in non-local (config already guards), but compare_digest still works
-    expected = _gateway_sign(payload)
-    return hmac.compare_digest(expected, sig)
+def _verify_signature(payload: str, signature: str) -> bool:
+    return hmac.compare_digest(_gateway_sign(payload), signature)
 
 
-async def _order_total(session, order: Order) -> Decimal:
-    from app.modules.sales.models import OrderLine
+async def _order_total(session: AsyncSession, order: Order) -> Decimal:
+    lines = (
+        (await session.execute(select(OrderLine).where(OrderLine.order_id == order.id)))
+        .scalars()
+        .all()
+    )
+    return sum((Decimal(str(line.unit_price)) * int(line.quantity) for line in lines), Decimal(0))
 
-    r = await session.execute(select(OrderLine).where(OrderLine.order_id == order.id))
-    lines = list(r.scalars().all())
-    total = sum((Decimal(str(l.unit_price)) * int(l.quantity) for l in lines), Decimal(0))
-    return total
+
+def _settle(order: Order, status: str, now: datetime) -> None:
+    order.status = status
+    order.updated_at = now
 
 
-async def _ensure_open(order: Order):
+async def _free_table(session: AsyncSession, order: Order) -> None:
+    if order.table_id is None:
+        return
+    from app.modules.catalog.models import DiningTable
+
+    table = await session.get(DiningTable, order.table_id)
+    if table is not None:
+        table.status = "Trống"
+
+
+async def _issue_invoice(
+    session: AsyncSession, order: Order, *, business_date_value: date, total: Decimal
+) -> Invoice:
+    invoice = Invoice(
+        order_id=order.id, business_date=business_date_value, total=total, print_count=1
+    )
+    session.add(invoice)
+    await session.flush()
+    return invoice
+
+
+async def pay_cash(session: AsyncSession, order_id: int, *, actor_id: int | None = None) -> dict:
+    now = business_date.now()
+    order = await session.get(Order, order_id)
+    if order is None:
+        raise NotFoundError("Order không tồn tại.")
+    await session.execute(select(Order).where(Order.id == order_id).with_for_update())
     from app.modules.sales.orders import ensure_order_is_open
 
     ensure_order_is_open(order)
-
-
-async def pay_cash(session, order_id: int, *, actor_id: int | None = None) -> dict:
-    from sqlalchemy import select as _sel
-
-    order = await session.get(Order, order_id)
-    if order is None:
-        raise NotFoundError("Order không tồn tại.")
-    # FOR UPDATE lock order to prevent concurrent cash payments
-    await session.execute(_sel(Order).where(Order.id == order_id).with_for_update())
-    await _ensure_open(order)
-    total = await _order_total(session, order)
-    bd = business_date.business_date_of(business_date.now())
-    # Check unique invoice would fail; guard idempotent by existing invoice
-    r0 = await session.execute(_sel(Invoice).where(Invoice.order_id == order.id))
-    if r0.scalar_one_or_none() is not None:
+    existing = (
+        await session.execute(select(Invoice).where(Invoice.order_id == order.id))
+    ).scalar_one_or_none()
+    if existing is not None:
         raise BusinessRuleError("Order đã có hóa đơn.")
-    pay = PaymentTransaction(
+
+    total = await _order_total(session, order)
+    bd = business_date.business_date_of(now)
+    payment = PaymentTransaction(
         order_id=order.id,
         amount=total,
         method="Tiền mặt",
-        status="Thành công",
+        status=QR_SUCCESS,
         business_date=bd,
     )
-    session.add(pay)
+    session.add(payment)
     await session.flush()
-    inv = Invoice(order_id=order.id, business_date=bd, total=total, print_count=1)
-    session.add(inv)
+    invoice = await _issue_invoice(session, order, business_date_value=bd, total=total)
+    _settle(order, "Đã thanh toán", now)
+    await _free_table(session, order)
     await session.flush()
-    order.status = "Đã thanh toán"
-    if order.table_id is not None:
-        from app.modules.catalog.models import DiningTable
-
-        tbl = await session.get(DiningTable, order.table_id)
-        if tbl:
-            tbl.status = "Trống"
-    await session.flush()
-    return {"payment": pay, "invoice": inv}
+    return {"payment": payment, "invoice": invoice}
 
 
-async def start_qr(session, order_id: int, *, actor_id: int | None = None) -> PaymentTransaction:
+async def start_qr(
+    session: AsyncSession, order_id: int, *, actor_id: int | None = None
+) -> PaymentTransaction:
     order = await session.get(Order, order_id)
     if order is None:
         raise NotFoundError("Order không tồn tại.")
-    await _ensure_open(order)
-    r = await session.execute(
-        select(PaymentTransaction).where(
-            PaymentTransaction.order_id == order.id,
-            PaymentTransaction.method == "QR",
-            PaymentTransaction.status == "Chờ xác nhận",
-        )
-    )
-    if r.scalar_one_or_none() is not None:
-        raise BusinessRuleError("Đã có QR đang chờ.")
-    if order.status == "Chờ đối soát":
-        raise BusinessRuleError("Order đang chờ đối soát, không thể tạo QR mới.")
-    total = await _order_total(session, order)
-    bd = business_date.business_date_of(business_date.now())
-    now = business_date.now()
-    pay = PaymentTransaction(
-        order_id=order.id,
-        amount=total,
-        method="QR",
-        status="Chờ xác nhận",
-        business_date=bd,
-        created_at=now,
-        deadline=now + timedelta(minutes=10),
-    )
-    session.add(pay)
-    await session.flush()
-    return pay
+    from app.modules.sales.orders import ensure_order_is_open
 
-
-async def handle_webhook(session, payload: dict) -> dict:
-    from sqlalchemy import select as _sel
-
-    pid = payload.get("payment_id") or payload.get("MaGiaoDich")
-    amount = payload.get("amount") or payload.get("SoTien")
-    sig = payload.get("signature") or payload.get("ChuKy") or ""
-    # Lock payment row first
-    rlock = (
+    ensure_order_is_open(order)
+    live = (
         await session.execute(
-            _sel(PaymentTransaction).where(PaymentTransaction.id == int(pid)).with_for_update()
+            select(PaymentTransaction).where(
+                PaymentTransaction.order_id == order.id,
+                PaymentTransaction.method == "QR",
+                PaymentTransaction.status == QR_PENDING,
+            )
         )
-        if pid
-        else None
-    )
-    pay = rlock.scalar_one_or_none() if rlock is not None else None
-    if pay is None:
-        pay = await session.get(PaymentTransaction, int(pid)) if pid else None
-    if pay is None:
-        raise NotFoundError("Giao dịch không tồn tại.")
-    msg = f"{pay.id}:{amount}"
-    if not _verify_signature(msg, str(sig)):
-        from app.shared.audit import SystemAuditLog
+    ).scalar_one_or_none()
+    if live is not None:
+        raise BusinessRuleError("Đã có QR đang chờ.")
 
-        # Use NULL actor for system webhook; model allows None
+    now = business_date.now()
+    payment = PaymentTransaction(
+        order_id=order.id,
+        amount=await _order_total(session, order),
+        method="QR",
+        status=QR_PENDING,
+        business_date=business_date.business_date_of(now),
+        created_at=now,
+        deadline=now + QR_LIFETIME,
+    )
+    session.add(payment)
+    await session.flush()
+    return payment
+
+
+async def handle_webhook(session: AsyncSession, payload: dict) -> dict:
+    payment_id = payload.get("payment_id") or payload.get("MaGiaoDich")
+    amount = payload.get("amount") or payload.get("SoTien")
+    signature = payload.get("signature") or payload.get("ChuKy") or ""
+    if payment_id is None:
+        raise NotFoundError("Giao dịch không tồn tại.")
+
+    payment = (
+        await session.execute(
+            select(PaymentTransaction)
+            .where(PaymentTransaction.id == int(payment_id))
+            .with_for_update()
+        )
+    ).scalar_one_or_none()
+    if payment is None:
+        raise NotFoundError("Giao dịch không tồn tại.")
+
+    if not _verify_signature(f"{payment.id}:{amount}", str(signature)):
+        logger.warning("Rejected payment webhook with a bad signature payment=%s", payment.id)
         session.add(
             SystemAuditLog(
                 user_id=None,
                 action="WEBHOOK_REJECTED",
                 target_entity="GIAO_DICH_THANH_TOAN",
-                target_id=str(pay.id),
+                target_id=str(payment.id),
             )
         )
         await session.flush()
-        raise BusinessRuleError("Chữ ký không hợp lệ.")
-    if pay.status == "Thành công":
-        return {"payment": pay}
-    if pay.status != "Chờ xác nhận":
+        raise UnauthenticatedError("Chữ ký không hợp lệ.")
+
+    if payment.status == QR_SUCCESS:
+        return {"payment": payment}
+    if payment.status != QR_PENDING:
         raise BusinessRuleError("Giao dịch không ở trạng thái chờ.")
-    order = await session.get(Order, pay.order_id)
-    assert order is not None
-    await session.execute(_sel(Order).where(Order.id == order.id).with_for_update())
+
+    order = await session.get(Order, payment.order_id)
+    if order is None:
+        raise NotFoundError("Order không tồn tại.")
+    await session.execute(select(Order).where(Order.id == order.id).with_for_update())
     total = await _order_total(session, order)
     if amount is not None and Decimal(str(amount)) != total:
         raise BusinessRuleError("Số tiền không khớp.")
-    pay.status = "Thành công"
-    await session.flush()
-    bd = pay.business_date
-    inv = Invoice(order_id=order.id, business_date=bd, total=total, print_count=1)
-    session.add(inv)
-    await session.flush()
-    order.status = "Đã thanh toán"
-    if order.table_id is not None:
-        from app.modules.catalog.models import DiningTable
 
-        tbl = await session.get(DiningTable, order.table_id)
-        if tbl:
-            tbl.status = "Trống"
+    now = business_date.now()
+    payment.status = QR_SUCCESS
     await session.flush()
-    return {"payment": pay, "invoice": inv}
+    invoice = await _issue_invoice(
+        session, order, business_date_value=payment.business_date, total=total
+    )
+    _settle(order, "Đã thanh toán", now)
+    await _free_table(session, order)
+    await session.flush()
+    return {"payment": payment, "invoice": invoice}
 
 
-async def cancel_qr(session, payment_id: int, *, actor_id: int | None = None) -> PaymentTransaction:
-    pay = await session.get(PaymentTransaction, payment_id)
-    if pay is None:
+async def cancel_qr(
+    session: AsyncSession, payment_id: int, *, actor_id: int | None = None
+) -> PaymentTransaction:
+    payment = await session.get(PaymentTransaction, payment_id)
+    if payment is None:
         raise NotFoundError("Giao dịch không tồn tại.")
-    if pay.status != "Chờ xác nhận":
+    if payment.status != QR_PENDING:
         raise BusinessRuleError("Chỉ hủy QR đang chờ.")
-    pay.status = "Đã hủy"
-    from app.shared.audit import SystemAuditLog
-
+    payment.status = QR_CANCELLED
     session.add(
         SystemAuditLog(
             user_id=actor_id,
             action="CANCEL_QR_TRANSACTION",
             target_entity="GIAO_DICH_THANH_TOAN",
-            target_id=str(pay.id),
+            target_id=str(payment.id),
         )
     )
     await session.flush()
-    return pay
+    return payment
 
 
-async def expire_stale_qr(session) -> int:
-    from sqlalchemy import select as _sel
-
-    from app.modules.sales.models import PaymentTransaction
-
+async def expire_stale_qr(session: AsyncSession) -> int:
     now = business_date.now()
-    r = await session.execute(
-        _sel(PaymentTransaction).where(
-            PaymentTransaction.method == "QR", PaymentTransaction.status == "Chờ xác nhận"
+    pending = (
+        (
+            await session.execute(
+                select(PaymentTransaction).where(
+                    PaymentTransaction.method == "QR",
+                    PaymentTransaction.status == QR_PENDING,
+                )
+            )
         )
+        .scalars()
+        .all()
     )
-    rows = list(r.scalars().all())
-    n = 0
-    for pay in rows:
-        dl = pay.deadline
-        if dl is None:
-            try:
-                dl = pay.created_at + timedelta(minutes=10)
-            except Exception:
-                continue
-        if now > dl:
-            pay.status = "Hết hạn"
-            n += 1
-    if n:
+    expired = 0
+    for payment in pending:
+        deadline = payment.deadline
+        if deadline is None:
+            deadline = payment.created_at + QR_LIFETIME if payment.created_at else None
+        if deadline is not None and now > deadline:
+            payment.status = QR_EXPIRED
+            expired += 1
+    if expired:
         await session.flush()
-    return n
+    return expired
 
 
-async def mark_for_reconciliation(session, payment_id: int, *, actor_id: int | None = None):
-    from app.modules.sales.models import Order, PaymentTransaction
-    from app.shared.audit import SystemAuditLog
-
-    pay = await session.get(PaymentTransaction, payment_id)
-    if pay is None:
+async def mark_for_reconciliation(
+    session: AsyncSession, payment_id: int, *, actor_id: int | None = None
+) -> PaymentTransaction:
+    payment = await session.get(PaymentTransaction, payment_id)
+    if payment is None:
         raise NotFoundError("Giao dịch không tồn tại.")
-    if pay.status != "Hết hạn":
+    if payment.status != QR_EXPIRED:
         raise BusinessRuleError("Chỉ đối soát QR đã hết hạn.")
-    pay.status = "Chờ đối soát"
-    order = await session.get(Order, pay.order_id)
-    if order:
-        order.status = "Chờ đối soát"
+    payment.status = QR_RECONCILING
+    order = await session.get(Order, payment.order_id)
+    if order is not None:
+        _settle(order, QR_RECONCILING, business_date.now())
     session.add(
         SystemAuditLog(
             user_id=actor_id,
             action="FLAG_RECONCILIATION",
             target_entity="GIAO_DICH_THANH_TOAN",
-            target_id=str(pay.id),
+            target_id=str(payment.id),
         )
     )
     await session.flush()
-    return pay
+    return payment
 
 
 async def record_bank_reference(
-    session,
+    session: AsyncSession,
     payment_id: int,
     reference: str,
     evidence: str | None = None,
     *,
     actor_id: int | None = None,
-):
-    from app.modules.sales.models import PaymentTransaction
-
-    pay = await session.get(PaymentTransaction, payment_id)
-    if pay is None:
+) -> PaymentTransaction:
+    payment = await session.get(PaymentTransaction, payment_id)
+    if payment is None:
         raise NotFoundError("Giao dịch không tồn tại.")
-    pay.bank_ref = reference
-    pay.evidence = evidence
-    from app.shared.audit import SystemAuditLog
-
+    payment.bank_ref = reference
+    payment.evidence = evidence
     session.add(
         SystemAuditLog(
             user_id=actor_id,
             action="RECORD_BANK_REFERENCE",
             target_entity="GIAO_DICH_THANH_TOAN",
-            target_id=str(pay.id),
+            target_id=str(payment.id),
         )
     )
     await session.flush()
-    return pay
+    return payment
 
 
 async def resolve_reconciliation(
-    session, payment_id: int, outcome: str, *, actor_id: int | None = None
-):
-    from app.modules.sales.models import Invoice, Order, PaymentTransaction
-    from app.shared.audit import SystemAuditLog
-
-    pay = await session.get(PaymentTransaction, payment_id)
-    if pay is None:
+    session: AsyncSession, payment_id: int, outcome: str, *, actor_id: int | None = None
+) -> PaymentTransaction:
+    payment = await session.get(PaymentTransaction, payment_id)
+    if payment is None:
         raise NotFoundError("Giao dịch không tồn tại.")
-    if pay.status != "Chờ đối soát":
+    if payment.status != QR_RECONCILING:
         raise BusinessRuleError("Giao dịch không ở trạng thái chờ đối soát.")
     if outcome not in ("received", "not_received"):
-        raise BusinessRuleError("outcome phải là received/not_received")
-    if outcome == "received":
-        pay.status = "Thành công"
-        order = await session.get(Order, pay.order_id)
-        assert order is not None
-        total = await _order_total(session, order)
-        inv = Invoice(
-            order_id=order.id, business_date=pay.business_date, total=total, print_count=1
-        )
-        session.add(inv)
-        await session.flush()
-        order.status = "Đã thanh toán"
-        if order.table_id is not None:
-            from app.modules.catalog.models import DiningTable
+        raise BusinessRuleError("outcome phải là received/not_received.")
 
-            tbl = await session.get(DiningTable, order.table_id)
-            if tbl:
-                tbl.status = "Trống"
+    now = business_date.now()
+    order = await session.get(Order, payment.order_id)
+    if order is None:
+        raise NotFoundError("Order không tồn tại.")
+    if outcome == "received":
+        payment.status = QR_SUCCESS
+        total = await _order_total(session, order)
+        await _issue_invoice(session, order, business_date_value=payment.business_date, total=total)
+        _settle(order, "Đã thanh toán", now)
+        await _free_table(session, order)
     else:
-        pay.status = "Tranh chấp"
-        order = await session.get(Order, pay.order_id)
-        if order:
-            order.status = "Tranh chấp"
+        payment.status = QR_DISPUTED
+        _settle(order, QR_DISPUTED, now)
     session.add(
         SystemAuditLog(
             user_id=actor_id,
             action="RESOLVE_RECONCILIATION",
             target_entity="GIAO_DICH_THANH_TOAN",
-            target_id=str(pay.id),
+            target_id=str(payment.id),
+            after={"ketQua": outcome},
         )
     )
     await session.flush()
-    return pay
+    return payment
 
 
-async def reprint_invoice(session, order_id: int):
-    from sqlalchemy import select as _sel
-
-    from app.modules.sales.models import Invoice
-
-    r = await session.execute(_sel(Invoice).where(Invoice.order_id == order_id))
-    inv = r.scalar_one_or_none()
-    if inv is None:
+async def reprint_invoice(session: AsyncSession, order_id: int) -> Invoice:
+    invoice = (
+        await session.execute(select(Invoice).where(Invoice.order_id == order_id))
+    ).scalar_one_or_none()
+    if invoice is None:
         raise NotFoundError("Hóa đơn không tồn tại.")
-    inv.print_count = int(inv.print_count) + 1
+    invoice.print_count = int(invoice.print_count) + 1
     await session.flush()
-    return inv
+    return invoice
