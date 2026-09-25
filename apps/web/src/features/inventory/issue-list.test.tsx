@@ -14,6 +14,8 @@ const ingredients = [
   { MaNguyenLieu: 1, TenNguyenLieu: "Gạo", DonViTinh: "kg" },
 ];
 
+const issues = [{ MaPhieuXuat: 1, LyDo: "Hao hụt", TrangThai: "Nháp" }];
+
 describe("IssueList", () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -28,10 +30,13 @@ describe("IssueList", () => {
         if (path.startsWith("/catalog/ingredients")) {
           return Promise.resolve({ items: ingredients });
         }
-        if (path === "/inventory/issues" && options.method === "POST") {
+        if (path.startsWith("/inventory/issues") && options.method === "POST") {
           return Promise.reject(
             new ApiError(422, "BUSINESS_RULE_VIOLATION", "Không đủ tồn kho."),
           );
+        }
+        if (path.startsWith("/inventory/issues")) {
+          return Promise.resolve({ items: [], total: 0 });
         }
         return Promise.resolve([]);
       },
@@ -54,6 +59,69 @@ describe("IssueList", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Không đủ tồn kho.",
+    );
+  });
+
+  it("requests page 1 with the default page size and shows the real total", async () => {
+    fetchMock.mockImplementation((path: string) => {
+      if (path.startsWith("/catalog/ingredients")) {
+        return Promise.resolve({ items: ingredients });
+      }
+      if (path.startsWith("/inventory/issues")) {
+        return Promise.resolve({ items: issues, total: 33 });
+      }
+      return Promise.resolve({});
+    });
+
+    render(<IssueList />);
+    await screen.findByText("#1");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/inventory/issues?page=1&page_size=20",
+    );
+    expect(screen.getByText("Hiển thị 1–20 trên 33")).toBeInTheDocument();
+  });
+
+  it("sends the reason and date range filters and resets paging to page 1", async () => {
+    fetchMock.mockImplementation((path: string) => {
+      if (path.startsWith("/catalog/ingredients")) {
+        return Promise.resolve({ items: ingredients });
+      }
+      if (path.startsWith("/inventory/issues")) {
+        return Promise.resolve({ items: issues, total: 33 });
+      }
+      return Promise.resolve({});
+    });
+
+    render(<IssueList />);
+    await screen.findByText("#1");
+
+    fireEvent.click(screen.getByRole("button", { name: "Trang 2" }));
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenLastCalledWith(
+        "/inventory/issues?page=2&page_size=20",
+      ),
+    );
+
+    fireEvent.change(screen.getByLabelText("Lý do"), {
+      target: { value: "Hao hụt" },
+    });
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenLastCalledWith(
+        "/inventory/issues?reason=Hao+h%E1%BB%A5t&page=1&page_size=20",
+      ),
+    );
+
+    fireEvent.change(screen.getByLabelText("Từ ngày"), {
+      target: { value: "2026-09-01" },
+    });
+    fireEvent.change(screen.getByLabelText("Đến ngày"), {
+      target: { value: "2026-09-25" },
+    });
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenLastCalledWith(
+        "/inventory/issues?reason=Hao+h%E1%BB%A5t&date_from=2026-09-01&date_to=2026-09-25&page=1&page_size=20",
+      ),
     );
   });
 });

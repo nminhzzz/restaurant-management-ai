@@ -1,7 +1,9 @@
 "use client";
-import { Package, PackagePlus, Search } from "lucide-react";
-import { useState } from "react";
+import { Package, PackagePlus } from "lucide-react";
+import { useCallback, useState } from "react";
 
+import { DataPagination } from "@/components/data-pagination";
+import { SearchFilter } from "@/components/filter-bar";
 import {
   EmptyState,
   ErrorState,
@@ -10,7 +12,6 @@ import {
 } from "@/components/page-states";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -32,12 +33,20 @@ type StockRow = {
   CanhBaoTonThap: boolean;
 };
 
+type StockResponse = { items: StockRow[]; total?: number };
+
 type Filter = "all" | "low";
 
-const loadStock = () =>
-  apiFetch<{ items: StockRow[] }>("/inventory/stock").then(
-    (d) => d.items || [],
-  );
+const PAGE_SIZE = 20;
+
+function queryOf(search: string, filter: Filter, page: number): string {
+  const params = new URLSearchParams();
+  if (search.trim()) params.set("search", search.trim());
+  if (filter === "low") params.set("alerting", "true");
+  params.set("page", String(page));
+  params.set("page_size", String(PAGE_SIZE));
+  return `/inventory/stock?${params.toString()}`;
+}
 
 function StockBadge({ row }: { row: StockRow }) {
   if (row.CanhBaoTonThap && (row.SoLuongTon ?? 1) <= 0)
@@ -51,25 +60,38 @@ export function StockTable({
 }: {
   onRestock?: (ingredientId: number, name: string) => void;
 } = {}) {
-  const stock = useResource(loadStock);
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
 
-  const items = stock.status === "ready" ? stock.data : [];
-  const lowCount = items.filter((it) => it.CanhBaoTonThap).length;
-  const visible = items.filter(
-    (it) =>
-      (filter === "all" || it.CanhBaoTonThap) &&
-      it.TenNguyenLieu.toLowerCase().includes(query.trim().toLowerCase()),
+  const fetchStock = useCallback(
+    () => apiFetch<StockResponse>(queryOf(query, filter, page)),
+    [query, filter, page],
   );
+  const stock = useResource(fetchStock);
+
+  function updateFilter(next: Filter) {
+    setFilter(next);
+    setPage(1);
+  }
+
+  function updateQuery(next: string) {
+    setQuery(next);
+    setPage(1);
+  }
+
+  const items = stock.status === "ready" ? stock.data.items : [];
+  const total =
+    stock.status === "ready" ? (stock.data.total ?? items.length) : 0;
+  const filtered = query.trim() !== "" || filter !== "all";
 
   return (
     <div className="space-y-5">
       <PageHeader
         title="Tồn kho"
         description={
-          stock.status === "ready" && items.length > 0
-            ? `${items.length} nguyên liệu, ${lowCount} dưới mức tối thiểu.`
+          stock.status === "ready"
+            ? `${total} nguyên liệu.`
             : "Số lượng tồn của từng nguyên liệu so với mức tối thiểu."
         }
       />
@@ -78,7 +100,7 @@ export function StockTable({
         <LoadingState />
       ) : stock.status === "error" ? (
         <ErrorState message={stock.message} onRetry={stock.reload} />
-      ) : items.length === 0 ? (
+      ) : items.length === 0 && !filtered ? (
         <EmptyState
           icon={Package}
           title="Chưa có tồn kho"
@@ -94,16 +116,16 @@ export function StockTable({
             >
               {(
                 [
-                  ["all", "Tất cả", items.length],
-                  ["low", "Cần nhập thêm", lowCount],
+                  ["all", "Tất cả"],
+                  ["low", "Cần nhập thêm"],
                 ] as const
-              ).map(([value, label, count]) => (
+              ).map(([value, label]) => (
                 <button
                   key={value}
                   type="button"
                   role="tab"
                   aria-selected={filter === value}
-                  onClick={() => setFilter(value)}
+                  onClick={() => updateFilter(value)}
                   className={cn(
                     "-mb-px border-b-2 px-3 pt-2 pb-2.5 font-medium transition-colors",
                     filter === value
@@ -112,26 +134,14 @@ export function StockTable({
                   )}
                 >
                   {label}
-                  <span className="ml-1.5 font-normal text-subtle tabular-nums">
-                    {count}
-                  </span>
                 </button>
               ))}
             </div>
-            <div className="relative w-full max-w-xs">
-              <Search
-                className="absolute top-2.5 left-2.5 size-4 text-subtle"
-                aria-hidden
-              />
-              <Input
-                type="search"
-                aria-label="Tìm nguyên liệu"
-                placeholder="Tìm nguyên liệu"
-                className="pl-8"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-            </div>
+            <SearchFilter
+              label="Tìm nguyên liệu"
+              value={query}
+              onChange={updateQuery}
+            />
           </div>
 
           <Table>
@@ -148,7 +158,7 @@ export function StockTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {visible.map((it) => (
+              {items.map((it) => (
                 <TableRow
                   key={it.MaNguyenLieu}
                   data-testid={it.CanhBaoTonThap ? "alert-row" : "ok-row"}
@@ -188,7 +198,7 @@ export function StockTable({
                   ) : null}
                 </TableRow>
               ))}
-              {visible.length === 0 && (
+              {items.length === 0 && (
                 <TableRow>
                   <TableCell
                     colSpan={onRestock ? 5 : 4}
@@ -200,6 +210,13 @@ export function StockTable({
               )}
             </TableBody>
           </Table>
+
+          <DataPagination
+            page={page}
+            pageSize={PAGE_SIZE}
+            total={total}
+            onPageChange={setPage}
+          />
         </>
       )}
     </div>

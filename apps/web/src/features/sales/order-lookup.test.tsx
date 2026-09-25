@@ -38,11 +38,11 @@ describe("OrderLookup", () => {
       await screen.findByRole("button", { name: "Chọn ORD-250926-042" }),
     ).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
-      "/sales/orders?status=%C4%90ang+m%E1%BB%9F",
+      "/sales/orders?status=%C4%90ang+m%E1%BB%9F&page=1&size=20",
     );
   });
 
-  it("searches by table and Business Date (FR-SALE-22)", async () => {
+  it("searches by table and Business Date range (FR-SALE-22)", async () => {
     render(<OrderLookup />);
     await screen.findByRole("option", { name: "Bàn 7" });
 
@@ -50,15 +50,47 @@ describe("OrderLookup", () => {
     fireEvent.change(screen.getByLabelText("Trạng thái"), {
       target: { value: "" },
     });
-    fireEvent.change(screen.getByLabelText("Business Date"), {
+    fireEvent.change(screen.getByLabelText("Từ ngày"), {
+      target: { value: "2026-09-25" },
+    });
+    fireEvent.change(screen.getByLabelText("Đến ngày"), {
       target: { value: "2026-09-25" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Tìm" }));
 
     await vi.waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
-        "/sales/orders?table_id=7&business_date=2026-09-25",
+        "/sales/orders?table_id=7&date_from=2026-09-25&date_to=2026-09-25&page=1&size=20",
       ),
+    );
+  });
+
+  it("resets to page 1 and sends page/size when paging changes filters", async () => {
+    fetchMock.mockImplementation((path: string) =>
+      Promise.resolve(
+        path.startsWith("/catalog/tables")
+          ? [{ MaBan: 7, TenBan: "Bàn 7" }]
+          : { items: [openOrder], total: 45 },
+      ),
+    );
+    render(<OrderLookup />);
+    await screen.findByRole("button", { name: "Chọn ORD-250926-042" });
+
+    expect(screen.getByText("Hiển thị 1–20 trên 45")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Trang 2" }));
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/sales/orders?status=%C4%90ang+m%E1%BB%9F&page=2&size=20",
+      ),
+    );
+
+    fireEvent.change(screen.getByLabelText("Trạng thái"), {
+      target: { value: "" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Tìm" }));
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith("/sales/orders?page=1&size=20"),
     );
   });
 

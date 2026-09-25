@@ -3,6 +3,8 @@
 import { ChevronRight, Search } from "lucide-react";
 import { useCallback, useState } from "react";
 
+import { DataPagination } from "@/components/data-pagination";
+import { DateRangeFilter } from "@/components/filter-bar";
 import { StatusBadge } from "@/components/page-states";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +25,8 @@ type OrderRow = {
 type Filters = {
   code: string;
   tableId: string;
-  businessDate: string;
+  dateFrom: string;
+  dateTo: string;
   status: string;
 };
 
@@ -35,11 +38,14 @@ const STATUSES = [
   "Tự động đóng",
 ];
 
+const PAGE_SIZE = 20;
+
 // Opening the tab should already answer "which tables are still eating?".
 const INITIAL: Filters = {
   code: "",
   tableId: "",
-  businessDate: "",
+  dateFrom: "",
+  dateTo: "",
   status: "Đang mở",
 };
 
@@ -51,14 +57,18 @@ const loadTableNames = () =>
       ),
   );
 
-function queryOf(filters: Filters): string {
+// The Business Date range replaces the old single exact-match `business_date`
+// param; a from == to range covers the same case.
+function queryOf(filters: Filters, page: number): string {
   const params = new URLSearchParams();
   if (filters.code.trim()) params.set("code", filters.code.trim());
   if (filters.tableId) params.set("table_id", filters.tableId);
-  if (filters.businessDate) params.set("business_date", filters.businessDate);
   if (filters.status) params.set("status", filters.status);
-  const query = params.toString();
-  return query ? `/sales/orders?${query}` : "/sales/orders";
+  if (filters.dateFrom) params.set("date_from", filters.dateFrom);
+  if (filters.dateTo) params.set("date_to", filters.dateTo);
+  params.set("page", String(page));
+  params.set("size", String(PAGE_SIZE));
+  return `/sales/orders?${params.toString()}`;
 }
 
 const selectClass =
@@ -73,13 +83,12 @@ export function OrderLookup({
 } = {}) {
   const [draft, setDraft] = useState<Filters>(INITIAL);
   const [applied, setApplied] = useState<Filters>(INITIAL);
+  const [page, setPage] = useState(1);
   const tables = useResource(loadTableNames);
   const fetchOrders = useCallback(
     () =>
-      apiFetch<{ items: OrderRow[]; total: number }>(queryOf(applied)).then(
-        (data) => data.items,
-      ),
-    [applied],
+      apiFetch<{ items: OrderRow[]; total: number }>(queryOf(applied, page)),
+    [applied, page],
   );
   const orders = useResource(fetchOrders);
   const tableName = (id: number) =>
@@ -88,6 +97,7 @@ export function OrderLookup({
   function search(event: React.FormEvent) {
     event.preventDefault();
     setApplied({ ...draft });
+    setPage(1);
   }
 
   function update(patch: Partial<Filters>) {
@@ -140,13 +150,11 @@ export function OrderLookup({
             ))}
           </select>
         </div>
-        <div className="flex gap-2">
-          <Input
-            aria-label="Business Date"
-            type="date"
-            className="h-11 min-w-0 flex-1"
-            value={draft.businessDate}
-            onChange={(e) => update({ businessDate: e.target.value })}
+        <div className="flex flex-wrap items-center gap-2">
+          <DateRangeFilter
+            from={draft.dateFrom}
+            to={draft.dateTo}
+            onChange={({ from, to }) => update({ dateFrom: from, dateTo: to })}
           />
           <Button type="submit" variant="secondary" size="pos">
             Tìm
@@ -162,13 +170,13 @@ export function OrderLookup({
         </div>
       ) : orders.status === "error" ? (
         <p className="text-danger-fg">{orders.message}</p>
-      ) : orders.data.length === 0 ? (
+      ) : orders.data.items.length === 0 ? (
         <p className="py-4 text-center text-muted">
           Không có order nào khớp bộ lọc.
         </p>
       ) : (
         <ul className="-mx-2 max-h-[28rem] space-y-1 overflow-y-auto">
-          {orders.data.map((o) => (
+          {orders.data.items.map((o) => (
             <li key={o.MaOrder}>
               <button
                 type="button"
@@ -198,6 +206,15 @@ export function OrderLookup({
           ))}
         </ul>
       )}
+
+      {orders.status === "ready" && orders.data.items.length > 0 ? (
+        <DataPagination
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={orders.data.total}
+          onPageChange={setPage}
+        />
+      ) : null}
     </section>
   );
 }

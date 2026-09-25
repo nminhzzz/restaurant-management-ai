@@ -120,6 +120,26 @@ async def test_stock_filter_alerting_true_returns_only_low_rows(session):
 
 
 @pytest.mark.anyio
+async def test_stock_total_reflects_all_rows_across_pages(session):
+    """FR-INV-12: `total` must count every matching row, not just the page returned."""
+    session.add_all(
+        [
+            Ingredient(name=f"NL{i}", unit="kg", min_stock=1, stock_qty=10, is_deleted=False)
+            for i in range(5)
+        ]
+    )
+    await session.flush()
+    await session.commit()
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    r = await client.get("/api/v1/inventory/stock?page=1&page_size=2", headers=h)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["total"] >= 5
+    assert len(body["items"]) == 2
+
+
+@pytest.mark.anyio
 async def test_deleted_ingredient_excluded_from_stock_list(session):
     ing = Ingredient(name="Đã xóa", unit="kg", min_stock=1, stock_qty=10, is_deleted=True)
     session.add(ing)
