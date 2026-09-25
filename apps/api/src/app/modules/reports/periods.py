@@ -41,10 +41,16 @@ def resolve_period(granularity: str, anchor: date) -> BusinessPeriod:
 
 
 def month_period(month: str) -> BusinessPeriod:
-    """`"2026-09"` → the September business dates."""
+    """`"2026-09"` or `"202609"` → the September business dates."""
+    text = str(month).strip()
     try:
-        year_text, month_text = month.split("-")
+        if "-" in text:
+            year_text, month_text = text.split("-")
+        elif len(text) == 6 and text.isdigit():
+            year_text, month_text = text[:4], text[4:]
+        else:
+            raise ValueError(text)
         anchor = date(int(year_text), int(month_text), 1)
     except (ValueError, AttributeError) as exc:
-        raise BusinessRuleError("Tháng phải có dạng YYYY-MM.") from exc
+        raise BusinessRuleError("Tháng phải có dạng YYYY-MM hoặc YYYYMM.") from exc
     return resolve_period("month", anchor)

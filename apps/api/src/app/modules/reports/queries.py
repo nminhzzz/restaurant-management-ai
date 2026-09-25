@@ -7,7 +7,7 @@ the timestamp column.
 """
 
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
@@ -15,8 +15,9 @@ from sqlalchemy import Integer, and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import BusinessRuleError
-from app.modules.catalog.models import Dish
-from app.modules.reports.periods import BusinessPeriod
+from app.modules.catalog.models import Dish, RecipeItem
+from app.modules.inventory.models import MonthlyAverageCost, StockIssue, StockIssueLine
+from app.modules.reports.periods import BusinessPeriod, resolve_period
 from app.modules.sales.models import Invoice, Order, OrderLine, PaymentTransaction
 
 STATUS_PENDING = "Chờ đối soát"
@@ -340,3 +341,130 @@ async def hourly_distribution(session: AsyncSession, period: BusinessPeriod) -> 
         ],
         by_weekday=[WeekdayBucket(Thu=int(row[0]), SoDon=int(row[1])) for row in weekday_rows],
     )
+
+
+# --- Task 3: cost of goods, margin and per-dish cost (FR-REP-04, 05, 06) ---
+
+
+@dataclass(frozen=True)
+class CostBreakdown:
+    NguyenLieu: Decimal
+    HaoHut: Decimal
+    TongGiaVon: Decimal
+    TamTinh: bool
+    SoDongChuaTinhGiaVon: int
+
+
+@dataclass(frozen=True)
+class Margin:
+    DoanhThu: Decimal
+    GiaVon: Decimal
+    BienLoiNhuanGop: Decimal
+
+
+@dataclass(frozen=True)
+class DishCost:
+    MaMon: int
+    TenMon: str
+    GiaVon: Decimal
+
+
+def _month_period(month: int) -> BusinessPeriod:
+    return resolve_period("month", date(month // 100, month % 100, 1))
+
+
+def _month_bounds(month: int) -> tuple[datetime, datetime]:
+    year, mon = month // 100, month % 100
+    start = datetime(year, mon, 1)
+    end = datetime(year + 1, 1, 1) if mon == 12 else datetime(year, mon + 1, 1)
+    return start, end
+
+
+def _consumed_amount():
+    """Quantity x recipe quantity x monthly average cost, for one order line."""
+    return OrderLine.quantity * RecipeItem.quantity * MonthlyAverageCost.avg_cost
+
+
+def _join_recipe_cost(stmt, month: int):
+    return stmt.join(RecipeItem, RecipeItem.recipe_id == OrderLine.recipe_id).join(
+        MonthlyAverageCost,
+        and_(
+            RecipeItem.ingredient_id == MonthlyAverageCost.ingredient_id,
+            MonthlyAverageCost.month == month,
+        ),
+    )
+
+
+async def ingredient_cost(session: AsyncSession, month: int) -> Decimal:
+    """FR-REP-05a: each line is costed from the recipe version pinned on it."""
+    period = _month_period(month)
+    stmt = (
+        select(func.coalesce(func.sum(_consumed_amount()), 0))
+        .select_from(OrderLine)
+        .join(Order, Order.id == OrderLine.order_id)
+    )
+    stmt = _join_recipe_cost(stmt, month).where(
+        *_sold_orders_window(period), OrderLine.status != LINE_CANCELLED
+    )
+    return await _scalar_sum(session, stmt)
+
+
+async def dish_ingredient_cost(session: AsyncSession, month: int) -> list[DishCost]:
+    """FR-REP-06: per-dish ingredient cost — no waste, no margin."""
+    period = _month_period(month)
+    stmt = (
+        select(OrderLine.dish_id, Dish.name, func.coalesce(func.sum(_consumed_amount()), 0))
+        .select_from(OrderLine)
+        .join(Order, Order.id == OrderLine.order_id)
+        .join(Dish, Dish.id == OrderLine.dish_id)
+    )
+    stmt = (
+        _join_recipe_cost(stmt, month)
+        .where(*_sold_orders_window(period), OrderLine.status != LINE_CANCELLED)
+        .group_by(OrderLine.dish_id, Dish.name)
+        .order_by(OrderLine.dish_id.asc())
+    )
+    rows = (await session.execute(stmt)).all()
+    return [
+        DishCost(MaMon=int(row[0]), TenMon=str(row[1]), GiaVon=Decimal(str(row[2] or 0)))
+        for row in rows
+    ]
+
+
+async def waste_cost(session: AsyncSession, month: int) -> tuple[Decimal, int]:
+    """Manual write-offs of the month, plus how many still lack a costed value."""
+    start, end = _month_bounds(month)
+    window = (StockIssue.created_at >= start, StockIssue.created_at < end)
+    waste = await _scalar_sum(
+        session,
+        select(func.coalesce(func.sum(StockIssueLine.estimated_cost), 0))
+        .join(StockIssue, StockIssue.id == StockIssueLine.issue_id)
+        .where(*window),
+    )
+    uncosted = await _scalar_count(
+        session,
+        select(func.count(StockIssueLine.id))
+        .join(StockIssue, StockIssue.id == StockIssueLine.issue_id)
+        .where(*window, StockIssueLine.estimated_cost == 0),
+    )
+    return waste, uncosted
+
+
+async def cost_of_goods(session: AsyncSession, month: int) -> CostBreakdown:
+    ingredients = await ingredient_cost(session, month)
+    waste, uncosted = await waste_cost(session, month)
+    return CostBreakdown(
+        NguyenLieu=ingredients,
+        HaoHut=waste,
+        TongGiaVon=ingredients + waste,
+        TamTinh=uncosted > 0,
+        SoDongChuaTinhGiaVon=uncosted,
+    )
+
+
+async def gross_margin(session: AsyncSession, month: int) -> Margin:
+    """FR-REP-04: margin only at the whole-restaurant, monthly level."""
+    period = _month_period(month)
+    revenue = (await revenue_summary(session, period)).total
+    cost = (await cost_of_goods(session, month)).TongGiaVon
+    return Margin(DoanhThu=revenue, GiaVon=cost, BienLoiNhuanGop=revenue - cost)

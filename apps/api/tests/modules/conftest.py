@@ -641,8 +641,8 @@ async def order_at_0130(session):
 
 
 @pytest_asyncio.fixture
-async def september_data(session):
-    """A closed September: revenue, consumed ingredients and waste."""
+async def september_data(session, write_off_in_september):
+    """A closed September: revenue, consumed ingredients and the month's waste."""
     ingredient = await _r_ingredient(session, "NL September", Decimal("10000"))
     dish = await _r_dish(session, "Món September")
     recipe = await _r_recipe(session, dish, ingredient, Decimal("0.5"), _sep(1))
@@ -650,10 +650,10 @@ async def september_data(session):
     await _r_line(session, order, dish, 4, 125000, recipe_id=recipe.id)
     revenue = Decimal("500000")
     await _r_invoice(session, order, bd=_sep(20), total=revenue)
-    waste = Decimal("5000")
-    await _r_issue(session, bd=_sep(21), ingredient=ingredient, quantity=Decimal("1"), cost=waste)
     await session.commit()
-    cogs = Decimal("20000") + waste  # 4 portions x 0.5kg x 10.000 + waste
+    waste = write_off_in_september.value
+    ingredients = Decimal("20000")  # 4 portions x 0.5kg x 10.000
+    cogs = ingredients + waste
     return SimpleNamespace(
         revenue=revenue,
         cogs=cogs,

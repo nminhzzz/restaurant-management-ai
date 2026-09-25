@@ -7,10 +7,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.modules.reports import queries
 from app.modules.reports.periods import BusinessPeriod, month_period, resolve_period
 from app.modules.reports.schemas import (
+    CostBreakdownOut,
+    DishCostListOut,
+    DishCostOut,
     DishRankListOut,
     DishRankOut,
     HourBucketOut,
     HourlyOut,
+    MarginOut,
     PeriodOut,
     RevenueBucketOut,
     RevenueOut,
@@ -31,6 +35,11 @@ def period_for(
 
 def period_out(period: BusinessPeriod) -> PeriodOut:
     return PeriodOut(start=period.start, end=period.end, granularity=period.granularity)
+
+
+def month_key(month: str) -> int:
+    """`"2026-09"` → `202609`, the key of GIA_BINH_QUAN_THANG."""
+    return month_period(month).month_key
 
 
 async def revenue(
@@ -74,4 +83,31 @@ async def hourly(session: AsyncSession, period: BusinessPeriod) -> HourlyOut:
         ],
         by_weekday=[WeekdayBucketOut(Thu=b.Thu, SoDon=b.SoDon) for b in distribution.by_weekday],
         period=period_out(period),
+    )
+
+
+async def margin(session: AsyncSession, month: str) -> MarginOut:
+    result = await queries.gross_margin(session, month_key(month))
+    return MarginOut(
+        DoanhThu=result.DoanhThu,
+        GiaVon=result.GiaVon,
+        BienLoiNhuanGop=result.BienLoiNhuanGop,
+    )
+
+
+async def costs(session: AsyncSession, month: str) -> CostBreakdownOut:
+    result = await queries.cost_of_goods(session, month_key(month))
+    return CostBreakdownOut(
+        NguyenLieu=result.NguyenLieu,
+        HaoHut=result.HaoHut,
+        TongGiaVon=result.TongGiaVon,
+        TamTinh=result.TamTinh,
+        SoDongChuaTinhGiaVon=result.SoDongChuaTinhGiaVon,
+    )
+
+
+async def dish_costs(session: AsyncSession, month: str) -> DishCostListOut:
+    rows = await queries.dish_ingredient_cost(session, month_key(month))
+    return DishCostListOut(
+        items=[DishCostOut(MaMon=r.MaMon, TenMon=r.TenMon, GiaVon=r.GiaVon) for r in rows]
     )

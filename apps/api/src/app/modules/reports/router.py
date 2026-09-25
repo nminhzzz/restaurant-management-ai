@@ -13,7 +13,14 @@ from app.core.database import get_session
 from app.core.dependencies import Principal, require_roles
 from app.modules.reports import service
 from app.modules.reports.periods import BusinessPeriod
-from app.modules.reports.schemas import DishRankListOut, HourlyOut, RevenueOut
+from app.modules.reports.schemas import (
+    CostBreakdownOut,
+    DishCostListOut,
+    DishRankListOut,
+    HourlyOut,
+    MarginOut,
+    RevenueOut,
+)
 from app.shared.roles import Role
 
 router = APIRouter(prefix="/reports", tags=["Module 4 — Reports"])
@@ -54,3 +61,30 @@ async def hourly(
     session: AsyncSession = Depends(get_session),
 ) -> HourlyOut:
     return await service.hourly(session, period)
+
+
+@router.get("/margin", response_model=MarginOut)
+async def margin(
+    month: str = Query(...),
+    user: Principal = Depends(require_roles(Role.MANAGER)),
+    session: AsyncSession = Depends(get_session),
+) -> MarginOut:
+    return await service.margin(session, month)
+
+
+@router.get("/costs/dishes", response_model=DishCostListOut)
+async def dish_costs(
+    month: str = Query(...),
+    user: Principal = Depends(require_roles(Role.MANAGER)),
+    session: AsyncSession = Depends(get_session),
+) -> DishCostListOut:
+    return await service.dish_costs(session, month)
+
+
+@router.get("/costs", response_model=CostBreakdownOut)
+async def costs(
+    month: str = Query(...),
+    user: Principal = Depends(require_roles(Role.MANAGER)),
+    session: AsyncSession = Depends(get_session),
+) -> CostBreakdownOut:
+    return await service.costs(session, month)
