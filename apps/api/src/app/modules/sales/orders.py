@@ -510,6 +510,8 @@ async def cancel_order(session, order_id: int, reason: str, *, actor_id: int | N
     order = await session.get(Order, order_id)
     if order is None:
         raise NotFoundError("Order không tồn tại.")
+    if order.status == "Chờ đối soát":
+        raise BusinessRuleError("Order đang chờ đối soát QR, không thể hủy.")
     ensure_order_is_open(order)
     if not reason or not reason.strip():
         raise BusinessRuleError("Cần lý do hủy order.")

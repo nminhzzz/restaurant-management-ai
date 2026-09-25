@@ -347,3 +347,130 @@ async def cancel_payment_qr(
     await session.commit()
     return {"MaGiaoDich": pay.id, "TrangThai": pay.status}
 
+@router.post("/orders/{order_id}/reconcile")
+async def flag_reconcile(
+    order_id: int,
+    payload: dict,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
+):
+    pid = payload.get("payment_id") or payload.get("MaGiaoDich")
+    if pid is None:
+        raise HTTPException(status_code=422, detail="Thieu MaGiaoDich")
+    from app.modules.sales.payments import mark_for_reconciliation
+    try:
+        pay = await mark_for_reconciliation(session, int(pid), actor_id=user.user_id)
+    except Exception as e:
+        from app.core.errors import BusinessRuleError, NotFoundError
+        if isinstance(e, NotFoundError):
+            raise HTTPException(status_code=404, detail=str(e))
+        if isinstance(e, BusinessRuleError):
+            raise HTTPException(status_code=422, detail=str(e))
+        raise
+    await session.commit()
+    return {"MaGiaoDich": pay.id, "TrangThai": pay.status}
+
+
+@router.post("/payments/{payment_id}/reference")
+async def bank_reference(
+    payment_id: int,
+    payload: dict,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
+):
+    ref = payload.get("reference") or payload.get("MaGiaoDichNganHang") or ""
+    ev = payload.get("evidence") or payload.get("AnhChungTu")
+    from app.modules.sales.payments import record_bank_reference
+    try:
+        pay = await record_bank_reference(session, int(payment_id), str(ref), ev, actor_id=user.user_id)
+    except Exception as e:
+        from app.core.errors import NotFoundError
+        if isinstance(e, NotFoundError):
+            raise HTTPException(status_code=404, detail=str(e))
+        raise
+    await session.commit()
+    return {"MaGiaoDich": pay.id}
+
+
+@router.post("/payments/{payment_id}/resolve")
+async def resolve_payment(
+    payment_id: int,
+    payload: dict,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER)),
+):
+    outcome = payload.get("outcome") or payload.get("ketQua") or ""
+    from app.modules.sales.payments import resolve_reconciliation
+    try:
+        pay = await resolve_reconciliation(session, int(payment_id), str(outcome), actor_id=user.user_id)
+    except Exception as e:
+        from app.core.errors import BusinessRuleError, NotFoundError
+        if isinstance(e, NotFoundError):
+            raise HTTPException(status_code=404, detail=str(e))
+        if isinstance(e, BusinessRuleError):
+            raise HTTPException(status_code=422, detail=str(e))
+        raise
+    await session.commit()
+    return {"MaGiaoDich": pay.id, "TrangThai": pay.status}
+
+
+@router.get("/orders")
+async def search_orders(
+    code: str | None = None,
+    table_id: int | None = None,
+    business_date: str | None = None,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER, Role.WAREHOUSE)),
+):
+    from sqlalchemy import select as _sel
+    from app.modules.sales.models import Order
+    q = _sel(Order)
+    if code:
+        q = q.where(Order.display_code == code)
+    if table_id is not None:
+        q = q.where(Order.table_id == table_id)
+    if business_date:
+        from datetime import date as _date
+        try:
+            bd = _date.fromisoformat(business_date)
+            q = q.where(Order.business_date == bd)
+        except Exception:
+            pass
+    r = await session.execute(q)
+    rows = list(r.scalars().all())
+    items = [{"MaOrder": o.id, "MaOrderHienThi": o.display_code, "MaBan": o.table_id, "BusinessDate": o.business_date.isoformat(), "TrangThai": o.status} for o in rows]
+    return {"total": len(items), "items": items}
+
+
+@router.get("/orders/{order_id}/invoice")
+async def get_invoice(
+    order_id: int,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
+):
+    from sqlalchemy import select as _sel
+    from app.modules.sales.models import Invoice
+    r = await session.execute(_sel(Invoice).where(Invoice.order_id == order_id))
+    inv = r.scalar_one_or_none()
+    if inv is None:
+        raise HTTPException(status_code=404, detail="Hoa don khong ton tai")
+    return {"SoHoaDon": str(inv.id), "TongTien": float(inv.total), "SoLanIn": getattr(inv, "_print_count", 1)}
+
+
+@router.post("/orders/{order_id}/invoice/reprint")
+async def reprint_invoice_ep(
+    order_id: int,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
+):
+    from app.modules.sales.payments import reprint_invoice
+    try:
+        inv = await reprint_invoice(session, order_id)
+    except Exception as e:
+        from app.core.errors import NotFoundError
+        if isinstance(e, NotFoundError):
+            raise HTTPException(status_code=404, detail=str(e))
+        raise
+    await session.commit()
+    return {"SoHoaDon": str(inv.id), "TongTien": float(inv.total), "SoLanIn": getattr(inv, "_print_count", 1)}
+

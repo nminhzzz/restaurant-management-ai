@@ -136,3 +136,105 @@ async def cancel_qr(session: AsyncSession, payment_id: int, *, actor_id: int | N
     session.add(SystemAuditLog(user_id=actor_id or 0, action="CANCEL_QR_TRANSACTION", target_entity="GIAO_DICH_THANH_TOAN", target_id=str(pay.id)))
     await session.flush()
     return pay
+
+async def expire_stale_qr(session) -> int:
+    from sqlalchemy import select as _sel
+    from app.modules.sales.models import PaymentTransaction
+    now = business_date.now()
+    r = await session.execute(_sel(PaymentTransaction).where(PaymentTransaction.method == "QR", PaymentTransaction.status == "Chờ xác nhận"))
+    rows = list(r.scalars().all())
+    n = 0
+    for pay in rows:
+        # deadline = created_at + 10m; use _deadline attr if present else computed
+        dl = getattr(pay, "_deadline", None)
+        if dl is None:
+            try:
+                dl = pay.created_at + timedelta(minutes=10)
+            except Exception:
+                continue
+        if now > dl:
+            pay.status = "Hết hạn"
+            n += 1
+    if n:
+        await session.flush()
+    return n
+
+
+async def mark_for_reconciliation(session, payment_id: int, *, actor_id: int | None = None):
+    from app.modules.sales.models import Order, PaymentTransaction
+    from app.shared.audit import SystemAuditLog
+    pay = await session.get(PaymentTransaction, payment_id)
+    if pay is None:
+        raise NotFoundError("Giao dịch không tồn tại.")
+    if pay.status != "Hết hạn":
+        raise BusinessRuleError("Chỉ đối soát QR đã hết hạn.")
+    pay.status = "Chờ đối soát"
+    order = await session.get(Order, pay.order_id)
+    if order:
+        order.status = "Chờ đối soát"
+    session.add(SystemAuditLog(user_id=actor_id or 0, action="FLAG_RECONCILIATION", target_entity="GIAO_DICH_THANH_TOAN", target_id=str(pay.id)))
+    await session.flush()
+    return pay
+
+
+async def record_bank_reference(session, payment_id: int, reference: str, evidence: str | None = None, *, actor_id: int | None = None):
+    from app.modules.sales.models import PaymentTransaction
+    pay = await session.get(PaymentTransaction, payment_id)
+    if pay is None:
+        raise NotFoundError("Giao dịch không tồn tại.")
+    # store extra attrs
+    pay._bank_ref = reference  # type: ignore[attr-defined]
+    pay._evidence = evidence  # type: ignore[attr-defined]
+    # Persist via raw columns if exist: try to set via text fallback? Keep transient for MVP
+    # Also try to write to real columns if they exist as extra fields; for now audit
+    from app.shared.audit import SystemAuditLog
+    session.add(SystemAuditLog(user_id=actor_id or 0, action="RECORD_BANK_REFERENCE", target_entity="GIAO_DICH_THANH_TOAN", target_id=str(pay.id)))
+    await session.flush()
+    return pay
+
+
+async def resolve_reconciliation(session, payment_id: int, outcome: str, *, actor_id: int | None = None):
+    from app.modules.sales.models import Order, PaymentTransaction, Invoice
+    from app.shared.audit import SystemAuditLog
+    pay = await session.get(PaymentTransaction, payment_id)
+    if pay is None:
+        raise NotFoundError("Giao dịch không tồn tại.")
+    if pay.status != "Chờ đối soát":
+        raise BusinessRuleError("Giao dịch không ở trạng thái chờ đối soát.")
+    if outcome not in ("received", "not_received"):
+        raise BusinessRuleError("outcome phải là received/not_received")
+    if outcome == "received":
+        pay.status = "Thành công"
+        order = await session.get(Order, pay.order_id)
+        assert order is not None
+        total = await _order_total(session, order)
+        inv = Invoice(order_id=order.id, business_date=pay.business_date, total=float(total))
+        session.add(inv)
+        await session.flush()
+        order.status = "Đã thanh toán"
+        if order.table_id is not None:
+            from app.modules.catalog.models import DiningTable
+            tbl = await session.get(DiningTable, order.table_id)
+            if tbl:
+                tbl.status = "Trống"
+    else:
+        pay.status = "Tranh chấp"
+        order = await session.get(Order, pay.order_id)
+        if order:
+            order.status = "Tranh chấp"
+    session.add(SystemAuditLog(user_id=actor_id or 0, action="RESOLVE_RECONCILIATION", target_entity="GIAO_DICH_THANH_TOAN", target_id=str(pay.id)))
+    await session.flush()
+    return pay
+
+
+async def reprint_invoice(session, order_id: int):
+    from app.modules.sales.models import Invoice
+    from sqlalchemy import select as _sel
+    r = await session.execute(_sel(Invoice).where(Invoice.order_id == order_id))
+    inv = r.scalar_one_or_none()
+    if inv is None:
+        raise NotFoundError("Hóa đơn không tồn tại.")
+    # increment print count via transient
+    inv._print_count = getattr(inv, "_print_count", 1) + 1  # type: ignore[attr-defined]
+    return inv
+
