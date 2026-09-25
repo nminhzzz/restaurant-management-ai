@@ -78,7 +78,7 @@ async def issue_token(user: User) -> dict:
 
 async def create_user(
     session: AsyncSession,
-    actor_id: int,
+    actor_id: int | None,
     username: str,
     password: str,
     full_name: str,
