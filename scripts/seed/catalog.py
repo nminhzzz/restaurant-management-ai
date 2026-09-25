@@ -264,6 +264,20 @@ def build_catalogue(config: SeedConfig) -> CataloguePlan:
 
 async def seed_catalog(session: AsyncSession, config: SeedConfig) -> CatalogIds:
     """Persist the plan through the catalogue service."""
+    from sqlalchemy import func, select
+
+    from app.core.errors import BusinessRuleError
+    from app.modules.catalog.models import Dish
+
+    existing = (
+        await session.execute(select(func.count()).select_from(Dish))
+    ).scalar_one()
+    if existing:
+        raise BusinessRuleError(
+            "CSDL đã có dữ liệu danh mục — seed chỉ chạy trên CSDL sạch. "
+            "Tạo lại CSDL rồi chạy lại (make db-down && make db-up && make migrate)."
+        )
+
     plan = build_catalogue(config)
 
     users = []

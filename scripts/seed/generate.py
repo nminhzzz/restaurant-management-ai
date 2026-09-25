@@ -7,12 +7,20 @@ operations, all through the module services so the data obeys the business invar
 
 import argparse
 import asyncio
+import sys
+from pathlib import Path
 
-from app.core.database import get_session_factory
-from app.modules.settings.service import seed_reference_data
-from app.shared import business_date
-from scripts.seed.catalog import seed_catalog
-from scripts.seed.config import SeedConfig
+# `make seed` runs this file by path, so sys.path[0] is `scripts/seed/` and the
+# `scripts.*` package would not resolve without the repository root on the path.
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from app.core.database import get_session_factory  # noqa: E402
+from app.modules.settings.service import seed_reference_data  # noqa: E402
+from app.shared import business_date  # noqa: E402
+from scripts.seed.catalog import seed_catalog  # noqa: E402
+from scripts.seed.config import SeedConfig  # noqa: E402
 
 
 async def generate(config: SeedConfig) -> None:

@@ -1,7 +1,7 @@
 """Monthly weighted average costing."""
 
 from datetime import datetime
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -47,7 +47,11 @@ async def close_month(session: AsyncSession, month: int) -> list[MonthlyAverageC
     for ing_id, qty, total in rows:
         if not qty:
             continue
-        avg = Decimal(str(total)) / Decimal(str(qty))
+        # The column is DECIMAL(18,4); quantising here keeps the stored value exact and
+        # silences MySQL's "Data truncated" warning without changing the average.
+        avg = (Decimal(str(total)) / Decimal(str(qty))).quantize(
+            Decimal("0.0001"), rounding=ROUND_HALF_UP
+        )
         existing = await session.get(MonthlyAverageCost, {"ingredient_id": ing_id, "month": month})
         if existing:
             existing.avg_cost = avg
