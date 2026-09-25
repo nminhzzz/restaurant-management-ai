@@ -42,6 +42,8 @@ class Settings(BaseSettings):
     ai_sql_timeout_seconds: float = 3.0
     ai_max_sql_attempts: int = 2
 
+    payment_webhook_secret: str = ""
+
     # NFR-06 requires one read-only account per role, each granted SELECT on that
     # role's view only — never a single account shared by all three roles.
     ai_readonly_url_manager: str = ""

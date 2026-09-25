@@ -264,3 +264,86 @@ async def reprint_ticket(
     await session.commit()
     return {"MaPhieuBep": t.id, "SoLanIn": t.print_count}
 
+@router.post("/orders/{order_id}/pay/cash")
+async def pay_order_cash(
+    order_id: int,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
+):
+    from app.modules.sales.payments import pay_cash
+    try:
+        res = await pay_cash(session, order_id, actor_id=user.user_id)
+    except Exception as e:
+        from app.core.errors import BusinessRuleError, NotFoundError
+        if isinstance(e, NotFoundError):
+            raise HTTPException(status_code=404, detail=str(e))
+        if isinstance(e, BusinessRuleError):
+            raise HTTPException(status_code=422, detail=str(e))
+        raise
+    await session.commit()
+    inv = res["invoice"]
+    return {"invoice": {"SoHoaDon": str(inv.id), "TongTien": float(inv.total)}, "MaHoaDon": inv.id}
+
+
+@router.post("/orders/{order_id}/pay/qr", status_code=201)
+async def start_order_qr(
+    order_id: int,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
+):
+    from app.modules.sales.payments import start_qr
+    try:
+        pay = await start_qr(session, order_id, actor_id=user.user_id)
+    except Exception as e:
+        from app.core.errors import BusinessRuleError, NotFoundError
+        if isinstance(e, NotFoundError):
+            raise HTTPException(status_code=404, detail=str(e))
+        if isinstance(e, BusinessRuleError):
+            raise HTTPException(status_code=422, detail=str(e))
+        raise
+    await session.commit()
+    dl = getattr(pay, "_deadline", None)
+    return {"MaGiaoDich": pay.id, "TrangThai": pay.status, "ThoiDiemTaoQR": pay.created_at.isoformat() if pay.created_at else None, "ThoiDiemHetHan": dl.isoformat() if dl else None}
+
+
+@router.post("/webhooks/payment")
+async def webhook_payment(
+    payload: dict,
+    session: AsyncSession = Depends(get_session),
+):
+    from app.modules.sales.payments import handle_webhook
+    try:
+        res = await handle_webhook(session, payload)
+    except Exception as e:
+        from app.core.errors import BusinessRuleError, NotFoundError
+        if isinstance(e, NotFoundError):
+            raise HTTPException(status_code=404, detail=str(e))
+        if isinstance(e, BusinessRuleError):
+            # signature invalid -> 401
+            if "Chữ ký" in str(e):
+                raise HTTPException(status_code=401, detail=str(e))
+            raise HTTPException(status_code=422, detail=str(e))
+        raise
+    await session.commit()
+    return {"ok": True, "MaGiaoDich": res["payment"].id}
+
+
+@router.post("/payments/{payment_id}/cancel")
+async def cancel_payment_qr(
+    payment_id: int,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
+):
+    from app.modules.sales.payments import cancel_qr
+    try:
+        pay = await cancel_qr(session, payment_id, actor_id=user.user_id)
+    except Exception as e:
+        from app.core.errors import BusinessRuleError, NotFoundError
+        if isinstance(e, NotFoundError):
+            raise HTTPException(status_code=404, detail=str(e))
+        if isinstance(e, BusinessRuleError):
+            raise HTTPException(status_code=422, detail=str(e))
+        raise
+    await session.commit()
+    return {"MaGiaoDich": pay.id, "TrangThai": pay.status}
+
