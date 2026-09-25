@@ -2,13 +2,16 @@
 
 import { useCallback, useState } from "react";
 
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ErrorState, LoadingState, StatCard } from "@/components/page-states";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Bars } from "@/features/reports/chart";
 import { currentMonth, MonthPicker } from "@/features/reports/period-picker";
 import { ReportTable } from "@/features/reports/report-table";
 import { apiFetch } from "@/lib/api-client";
 import { formatNumber, formatVnd } from "@/lib/format";
+import { useAction } from "@/lib/use-action";
 import { useResource } from "@/lib/use-resource";
 
 type MarginResponse = {
@@ -46,8 +49,39 @@ export function MarginReport() {
     return { margin, costs, dishCosts };
   }, [month]);
   const profit = useResource(fetchProfit);
+  const closing = useAction();
+  const [confirmClose, setConfirmClose] = useState(false);
 
-  const toolbar = <MonthPicker value={month} onChange={setMonth} />;
+  async function closeMonth() {
+    // The API keys months as YYYYMM; the picker yields "YYYY-MM".
+    const key = month.replace("-", "");
+    const result = await closing.run(
+      () => apiFetch(`/inventory/costing/${key}/close`, { method: "POST" }),
+      `Đã chốt giá vốn tháng ${month}.`,
+    );
+    if (result !== undefined) {
+      setConfirmClose(false);
+      profit.reload();
+    }
+  }
+
+  const toolbar = (
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <MonthPicker value={month} onChange={setMonth} />
+      <Button variant="secondary" onClick={() => setConfirmClose(true)}>
+        Chốt giá vốn tháng
+      </Button>
+      <ConfirmDialog
+        open={confirmClose}
+        onOpenChange={setConfirmClose}
+        title={`Chốt giá vốn tháng ${month}`}
+        description="Tính đơn giá bình quân gia quyền của từng nguyên liệu theo các phiếu nhập trong tháng, rồi tính giá cho các dòng xuất hủy còn tạm tính. Chốt lại lần nữa sẽ tính lại theo số liệu mới nhất."
+        confirmLabel="Chốt giá vốn"
+        pending={closing.pending}
+        onConfirm={closeMonth}
+      />
+    </div>
+  );
 
   if (profit.status === "loading")
     return (
