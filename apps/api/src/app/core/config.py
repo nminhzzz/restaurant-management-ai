@@ -62,4 +62,6 @@ def get_settings() -> Settings:
             "JWT_SECRET must be set via env when ENVIRONMENT != local "
             "(refusing to run with default dev secret)"
         )
+    if settings.environment != "local" and not settings.payment_webhook_secret:
+        raise RuntimeError("PAYMENT_WEBHOOK_SECRET must be set when ENVIRONMENT != local")
     return settings

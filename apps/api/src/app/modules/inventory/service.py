@@ -312,7 +312,9 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
 
             fifo_lots = await lots_for_fifo(session, line.ingredient_id)
             need = -diff
-            total_avail = sum((Decimal(str(lot.quantity_remaining)) for lot in fifo_lots), Decimal(0))
+            total_avail = sum(
+                (Decimal(str(lot.quantity_remaining)) for lot in fifo_lots), Decimal(0)
+            )
             take_total = min(total_avail, need)
             # consume FIFO lots in order
             rem = take_total  # type: ignore[assignment]

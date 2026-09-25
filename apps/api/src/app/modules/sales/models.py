@@ -138,6 +138,9 @@ class PaymentTransaction(Base):
     created_at: Mapped[datetime] = mapped_column(
         "NgayTao", DateTime, server_default=func.now(), nullable=False
     )
+    deadline: Mapped[datetime | None] = mapped_column("HanQr", DateTime, nullable=True)
+    bank_ref: Mapped[str | None] = mapped_column("MaThamChieuNganHang", String(100), nullable=True)
+    evidence: Mapped[str | None] = mapped_column("ChungTuDoiSoat", String(500), nullable=True)
     __table_args__ = (Index("ix_GIAO_DICH_THANH_TOAN_MaOrder_TrangThai", "MaOrder", "TrangThai"),)
 
 
@@ -155,6 +158,7 @@ class Invoice(Base):
         "ThoiDiemXuat", DateTime, server_default=func.now(), nullable=False
     )
     total: Mapped[float] = mapped_column("TongTien", DECIMAL(18, 4), nullable=False, default=0)
+    print_count: Mapped[int] = mapped_column("SoLanIn", Integer, nullable=False, default=1)
     __table_args__ = (Index("ix_HOA_DON_ThoiDiemXuat", "ThoiDiemXuat"),)
 
 

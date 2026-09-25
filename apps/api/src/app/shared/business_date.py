@@ -5,7 +5,8 @@ the effective-date anchor for price and recipe versions, and the grouping unit
 of every report.
 """
 
-from datetime import date, datetime, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta
+from zoneinfo import ZoneInfo
 
 BUSINESS_DAY_START_HOUR = 6
 
@@ -31,6 +32,9 @@ def next_business_date(moment: datetime, start_hour: int = BUSINESS_DAY_START_HO
     return business_date_of(moment, start_hour) + timedelta(days=1)
 
 
+VN_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
+
+
 def now() -> datetime:
-    """Single clock seam. Every service reads 'now' through this function."""
-    return datetime.now()
+    """Single clock seam — timezone-aware Asia/Ho_Chi_Minh."""
+    return datetime.now(UTC).astimezone(VN_TZ)

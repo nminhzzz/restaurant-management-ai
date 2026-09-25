@@ -2,7 +2,11 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api-client";
 
-type StockRow = { MaNguyenLieu: number; TenNguyenLieu: string; CanhBaoTonThap: boolean };
+type StockRow = {
+  MaNguyenLieu: number;
+  TenNguyenLieu: string;
+  CanhBaoTonThap: boolean;
+};
 
 export function StockTable() {
   const [items, setItems] = useState<StockRow[]>([]);

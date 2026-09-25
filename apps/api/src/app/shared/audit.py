@@ -16,8 +16,8 @@ class SystemAuditLog(Base):
     __tablename__ = "NHAT_KY_HE_THONG"
 
     id: Mapped[int] = mapped_column("MaNhatKy", BigInteger, primary_key=True)
-    user_id: Mapped[int] = mapped_column(
-        "MaNguoiDung", BigInteger, ForeignKey("NGUOI_DUNG.MaNguoiDung"), nullable=False
+    user_id: Mapped[int | None] = mapped_column(
+        "MaNguoiDung", BigInteger, ForeignKey("NGUOI_DUNG.MaNguoiDung"), nullable=True
     )
     occurred_at: Mapped[datetime] = mapped_column(
         "ThoiDiem", DateTime, server_default=func.now(), nullable=False
@@ -35,7 +35,7 @@ class SystemAuditLog(Base):
 def record(
     session: Session,
     *,
-    user_id: int,
+    user_id: int | None,
     action: str,
     target_entity: str,
     target_id: str | int,
