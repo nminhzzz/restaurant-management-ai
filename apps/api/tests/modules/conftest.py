@@ -5,6 +5,7 @@ from decimal import Decimal
 from itertools import count
 from types import SimpleNamespace
 
+import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
@@ -762,3 +763,18 @@ async def two_months(session):
         left_month="2026-08",
         right_month="2026-09",
     )
+
+
+# --- Phase 6 assistant fixtures ---
+
+
+@pytest.fixture
+def quota_reached(fake_llm):
+    """Spend the daily quota before the test runs, so no call reaches the model."""
+    from app.core.config import get_settings
+    from app.modules.ai.pipeline import generator
+    from app.shared import business_date
+
+    today = business_date.business_date_of(business_date.now()).isoformat()
+    generator.set_daily_calls(today, get_settings().ai_daily_question_quota)
+    return fake_llm

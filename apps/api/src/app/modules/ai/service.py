@@ -8,22 +8,17 @@ NFR-06 bounds the whole SQL step: at most `ai_max_sql_attempts` generations per
 question, and `ai_sql_timeout_seconds` of database time per execution.
 """
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.config import get_settings
-from app.modules.ai import guard
 from app.modules.ai.pipeline import generator, normalize
 from app.modules.ai.schemas import ChatResponse
-from app.modules.ai.scope import views_for
 from app.shared.roles import Role
 
 
-async def answer(question: str, role: Role) -> ChatResponse:
+async def answer(session: AsyncSession, question: str, role: Role) -> ChatResponse:
     """Answer one natural-language question within the caller's role scope."""
     settings = get_settings()
     normalized = normalize.normalize_question(question)
-    raw_sql = await generator.generate_sql(normalized, role)
-    sql = guard.validate_sql(
-        raw_sql,
-        allowed_views=views_for(role),
-        max_rows=settings.ai_max_rows,
-    )
-    raise NotImplementedError(sql)
+    sql = await generator.generate_sql(session, normalized, role)
+    raise NotImplementedError(f"{sql} ({settings.ai_max_rows})")

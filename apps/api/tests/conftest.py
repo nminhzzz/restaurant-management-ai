@@ -161,8 +161,16 @@ class FakeLlm:
 
 
 @pytest.fixture
-def fake_llm() -> FakeLlm:
-    return FakeLlm()
+def fake_llm() -> Iterator[FakeLlm]:
+    from app.modules.ai import llm
+    from app.modules.ai.pipeline import generator
+
+    fake = FakeLlm()
+    llm.set_client(fake)
+    generator.reset_state()
+    yield fake
+    llm.set_client(None)
+    generator.reset_state()
 
 
 # NOTE: seed_views creates minimal stub tables (INTEGER PK) for view DDL on SQLite;
