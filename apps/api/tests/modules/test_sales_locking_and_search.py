@@ -140,6 +140,25 @@ async def test_reprint_invoice(session):
 
 
 @pytest.mark.anyio
+async def test_invoice_carries_printable_detail(session):
+    """FR-SALE-19/23: enough for a printable receipt (restaurant, lines, method, time)."""
+    d, t = await _setup(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    oid, _ = await _submit(session, client, h, d, t)
+    await client.post(f"/api/v1/sales/orders/{oid}/pay/cash", headers=h)
+
+    r = await client.get(f"/api/v1/sales/orders/{oid}/invoice", headers=h)
+    body = r.json()
+    assert body["TenNhaHang"]
+    assert body["PhuongThucThanhToan"] == "Tiền mặt"
+    assert body["ThoiDiemXuat"]
+    assert len(body["lines"]) == 1
+    assert body["lines"][0]["TenMon"] == "Món"
+    assert body["lines"][0]["SoLuong"] == 1
+
+
+@pytest.mark.anyio
 async def test_search_orders(session):
     d, t = await _setup(session)
     client = await _make_client(session)
@@ -150,3 +169,50 @@ async def test_search_orders(session):
     o = await session.get(Order, oid)
     r = await client.get(f"/api/v1/sales/orders?code={o.display_code}", headers=h)
     assert r.json()["total"] == 1
+
+
+@pytest.mark.anyio
+async def test_search_lists_newest_first_and_filters_by_status_and_table(session):
+    """FR-SALE-22: look an order up by table and Business Date, not only by code."""
+    d, t = await _setup(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    first, _ = await _submit(session, client, h, d, t)
+    await client.post(f"/api/v1/sales/orders/{first}/pay/cash", headers=h)
+    second, _ = await _submit(session, client, h, d, t)
+    today = business_date.business_date_of(business_date.now()).isoformat()
+
+    everything = await client.get(
+        f"/api/v1/sales/orders?table_id={t.id}&business_date={today}", headers=h
+    )
+    open_only = await client.get("/api/v1/sales/orders?status=Đang mở", headers=h)
+
+    assert [o["MaOrder"] for o in everything.json()["items"]] == [second, first]
+    assert [o["MaOrder"] for o in open_only.json()["items"]] == [second]
+
+
+@pytest.mark.anyio
+async def test_search_caps_the_number_of_rows(session):
+    """A search with no filter must not ship a year of orders to the browser."""
+    d, t = await _setup(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    for _ in range(3):
+        oid, _ = await _submit(session, client, h, d, t)
+        await client.post(f"/api/v1/sales/orders/{oid}/pay/cash", headers=h)
+
+    r = await client.get("/api/v1/sales/orders?limit=2", headers=h)
+
+    assert len(r.json()["items"]) == 2
+
+
+@pytest.mark.anyio
+async def test_search_rejects_a_malformed_business_date(session):
+    """Silently dropping a bad date filter would return every order instead of none."""
+    await _setup(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+
+    r = await client.get("/api/v1/sales/orders?business_date=25-09-2026", headers=h)
+
+    assert r.status_code == 422

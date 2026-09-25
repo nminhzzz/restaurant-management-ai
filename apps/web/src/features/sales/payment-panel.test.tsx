@@ -27,6 +27,7 @@ function qr(overrides: Record<string, unknown> = {}) {
   const end = new Date(now.getTime() + 10 * 60 * 1000);
   return {
     MaGiaoDich: 1,
+    PhuongThuc: "QR",
     TrangThai: "Chờ xác nhận",
     ThoiDiemTaoQR: now.toISOString(),
     ThoiDiemHetHan: end.toISOString(),
@@ -69,6 +70,8 @@ describe("PaymentPanel", () => {
         "/sales/orders/1": openOrder,
       });
       render(<PaymentPanel orderId={1} />);
+      // The pay buttons appear only once the order has loaded.
+      await act(async () => {});
 
       await act(async () => {
         fireEvent.click(screen.getByText("Thanh toán QR"));
@@ -99,6 +102,40 @@ describe("PaymentPanel", () => {
     render(<PaymentPanel orderId={1} />);
 
     expect(await screen.findByText("Hủy toàn bộ order")).toBeInTheDocument();
+  });
+
+  it("hides the full-order cancellation while a QR transaction is live", async () => {
+    saveSession({ token: "t", role: "MANAGER", username: "quanly" });
+    stubByPath({
+      "/sales/orders/1/payments": { items: [qr()] },
+      "/sales/orders/1": openOrder,
+    });
+    render(<PaymentPanel orderId={1} />);
+
+    await screen.findByText("ORD-1");
+    expect(screen.queryByText("Hủy toàn bộ order")).not.toBeInTheDocument();
+  });
+
+  it("offers reconciliation once an order is waiting for it", async () => {
+    saveSession({ token: "t", role: "MANAGER", username: "quanly" });
+    stubByPath({
+      "/sales/orders/1/payments": {
+        items: [qr({ TrangThai: "Chờ đối soát" })],
+      },
+      "/sales/orders/1": { ...openOrder, TrangThai: "Chờ đối soát" },
+    });
+    render(<PaymentPanel orderId={1} />);
+
+    await screen.findByText("ORD-1");
+    expect(
+      screen.getByLabelText("Mã tham chiếu ngân hàng"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Xác nhận đã nhận tiền" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Không có giao dịch" }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -154,10 +191,59 @@ describe("OrderScreen", () => {
     render(<OrderScreen onOrderCreated={onCreated} />);
 
     fireEvent.click(await screen.findByRole("button", { name: /Phở bò/ }));
-    fireEvent.change(screen.getByLabelText("Bàn"), { target: { value: "7" } });
+    fireEvent.click(screen.getByRole("radio", { name: "Bàn 7" }));
     fireEvent.click(screen.getByRole("button", { name: "Gửi order" }));
 
     expect(await screen.findByText("Đã tạo ORD-42")).toBeInTheDocument();
     expect(onCreated).toHaveBeenCalledWith(42);
+  });
+
+  const menu = {
+    "/catalog/tables": [{ MaBan: 7, TenBan: "Bàn 7" }],
+    "/catalog/dishes": {
+      items: [
+        {
+          MaMon: 5,
+          TenMon: "Phở bò",
+          TrangThai: "Hoạt động",
+          GiaHienTai: 65000,
+        },
+      ],
+    },
+  };
+
+  it("totals the cart and drops a line when its quantity reaches zero", async () => {
+    stubByPath(menu);
+    render(<OrderScreen />);
+
+    const tile = await screen.findByRole("button", { name: /Phở bò/ });
+    fireEvent.click(tile);
+    fireEvent.click(tile);
+    expect(screen.getByLabelText("Số lượng Phở bò")).toHaveValue(2);
+    expect(
+      screen.getByText("130.000 ₫", { selector: "span.text-2xl" }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Bớt một Phở bò" }));
+    fireEvent.click(screen.getByRole("button", { name: "Bỏ Phở bò" }));
+
+    expect(screen.queryByLabelText("Số lượng Phở bò")).not.toBeInTheDocument();
+    expect(screen.getByText(/Chưa có món nào/)).toBeInTheDocument();
+  });
+
+  it("asks for a table before sending a dine-in order", async () => {
+    stubByPath(menu);
+    render(<OrderScreen />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Phở bò/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Gửi order" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Chọn bàn trước khi gửi order.",
+    );
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      "/sales/orders",
+      expect.anything(),
+    );
   });
 });

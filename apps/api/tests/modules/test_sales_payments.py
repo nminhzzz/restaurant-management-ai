@@ -229,6 +229,79 @@ async def test_qr_response_carries_a_ten_minute_deadline(session):
 
 
 @pytest.mark.anyio
+async def test_qr_expires_after_ten_minutes_on_get_order(session, monkeypatch):
+    """FR-SALE-17: expiry happens lazily, driven by the clock seam, on a GET order read."""
+    d, t = await _setup(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    oid = await _submit(session, client, h, d, t)
+    r = await client.post(f"/api/v1/sales/orders/{oid}/pay/qr", headers=h)
+    created = datetime.fromisoformat(r.json()["ThoiDiemTaoQR"])
+
+    monkeypatch.setattr(business_date, "now", lambda: created + timedelta(minutes=11))
+    r2 = await client.get(f"/api/v1/sales/orders/{oid}", headers=h)
+    assert r2.status_code == 200
+
+    from app.modules.sales.models import PaymentTransaction
+
+    pid = r.json()["MaGiaoDich"]
+    pay = await session.get(PaymentTransaction, pid)
+    assert pay.status == "Hết hạn"
+
+
+@pytest.mark.anyio
+async def test_new_qr_allowed_after_expiry(session, monkeypatch):
+    """FR-SALE-17: once expired, the cashier can open a fresh QR for the same order."""
+    d, t = await _setup(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    oid = await _submit(session, client, h, d, t)
+    r = await client.post(f"/api/v1/sales/orders/{oid}/pay/qr", headers=h)
+    created = datetime.fromisoformat(r.json()["ThoiDiemTaoQR"])
+
+    monkeypatch.setattr(business_date, "now", lambda: created + timedelta(minutes=11))
+    r2 = await client.post(f"/api/v1/sales/orders/{oid}/pay/qr", headers=h)
+    assert r2.status_code == 201
+
+
+@pytest.mark.anyio
+async def test_expired_qr_can_move_order_to_reconciliation(session, monkeypatch):
+    """FR-SALE-17: an order with an expired QR can be flagged for reconciliation."""
+    d, t = await _setup(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    oid = await _submit(session, client, h, d, t)
+    r = await client.post(f"/api/v1/sales/orders/{oid}/pay/qr", headers=h)
+    pid = r.json()["MaGiaoDich"]
+    created = datetime.fromisoformat(r.json()["ThoiDiemTaoQR"])
+
+    monkeypatch.setattr(business_date, "now", lambda: created + timedelta(minutes=11))
+    r2 = await client.post(
+        f"/api/v1/sales/orders/{oid}/reconcile", json={"payment_id": pid}, headers=h
+    )
+    assert r2.status_code == 200
+    assert r2.json()["TrangThai"] == "Chờ đối soát"
+    assert await order_status(session, oid) == "Chờ đối soát"
+
+
+@pytest.mark.anyio
+async def test_list_payments_for_order(session):
+    """The UI recovers the live QR transaction after a reload via this listing."""
+    d, t = await _setup(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    oid = await _submit(session, client, h, d, t)
+    r = await client.post(f"/api/v1/sales/orders/{oid}/pay/qr", headers=h)
+    pid = r.json()["MaGiaoDich"]
+
+    rr = await client.get(f"/api/v1/sales/orders/{oid}/payments", headers=h)
+    assert rr.status_code == 200
+    items = rr.json()["items"]
+    assert items[0]["MaGiaoDich"] == pid
+    assert items[0]["TrangThai"] == "Chờ xác nhận"
+
+
+@pytest.mark.anyio
 async def test_cancel_qr(session):
     d, t = await _setup(session)
     client = await _make_client(session)
