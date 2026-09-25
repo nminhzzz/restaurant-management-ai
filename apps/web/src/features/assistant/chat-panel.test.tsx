@@ -198,6 +198,31 @@ describe("ChatPanel", () => {
     });
   });
 
+  it("pages the result table when there are more than 10 rows", async () => {
+    const manyRows = Array.from({ length: 15 }, (_, i) => ({
+      MaMon: i + 1,
+      TenMon: `Món ${i + 1}`,
+    }));
+    stubFetch({
+      answer: "Danh sách món.",
+      data: manyRows,
+      chart: null,
+      detail: null,
+    });
+
+    render(<ChatPanel />);
+    ask();
+
+    await screen.findByText("Món 1");
+    expect(screen.queryByText("Món 11")).not.toBeInTheDocument();
+    expect(screen.getByText(/Hiển thị 1–10 trên 15/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Trang 2" }));
+
+    expect(screen.getByText("Món 11")).toBeInTheDocument();
+    expect(screen.queryByText("Món 1")).not.toBeInTheDocument();
+  });
+
   it("puts a suggested question into the composer without sending it", () => {
     render(<ChatPanel />);
 

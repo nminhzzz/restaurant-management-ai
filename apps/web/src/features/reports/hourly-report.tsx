@@ -133,6 +133,7 @@ export function HourlyReport() {
             formatNumber(item.SoDon),
             formatVnd(item.DoanhThu),
           ])}
+          pageSize={10}
         />
       </section>
     </div>

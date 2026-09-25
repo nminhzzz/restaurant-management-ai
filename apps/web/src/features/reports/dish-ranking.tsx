@@ -162,6 +162,9 @@ export function DishRanking() {
             formatNumber(dish.SoLuong),
             formatVnd(dish.DoanhThu),
           ])}
+          pageSize={10}
+          searchLabel="Tìm món"
+          searchColumn={0}
         />
       </section>
     </div>

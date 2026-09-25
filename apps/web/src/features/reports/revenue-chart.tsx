@@ -186,6 +186,7 @@ export function RevenueChart() {
                 formatNumber(item.SoDon),
                 formatVnd(item.DoanhThu),
               ])}
+              pageSize={10}
             />
           </section>
         </div>

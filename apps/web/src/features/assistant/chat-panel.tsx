@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useMemo, useRef, useState, useSyncExternalStore } from "react";
 
+import { DataPagination } from "@/components/data-pagination";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -28,6 +29,7 @@ import {
   sessionSnapshot,
   subscribeSession,
 } from "@/lib/session";
+import { useClientPagination } from "@/lib/use-client-pagination";
 import type { ChatResponse, QueryDetail } from "@/types/api";
 
 type Turn = {
@@ -57,31 +59,42 @@ const SUGGESTIONS: Record<string, string[]> = {
 };
 
 function ResultTable({ rows }: { rows: Record<string, unknown>[] }) {
+  const paging = useClientPagination(rows, "", 10);
   if (rows.length === 0) {
     return null;
   }
   const columns = Object.keys(rows[0]);
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          {columns.map((column) => (
-            <TableHead key={column}>{column}</TableHead>
-          ))}
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {rows.map((row, index) => (
-          <TableRow key={index}>
+    <div className="space-y-3">
+      <Table>
+        <TableHeader>
+          <TableRow>
             {columns.map((column) => (
-              <TableCell key={column} className="tabular-nums">
-                {String(row[column] ?? "")}
-              </TableCell>
+              <TableHead key={column}>{column}</TableHead>
             ))}
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {paging.pageItems.map((row, index) => (
+            <TableRow key={index}>
+              {columns.map((column) => (
+                <TableCell key={column} className="tabular-nums">
+                  {String(row[column] ?? "")}
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      {rows.length > paging.pageSize ? (
+        <DataPagination
+          page={paging.page}
+          pageSize={paging.pageSize}
+          total={paging.total}
+          onPageChange={paging.setPage}
+        />
+      ) : null}
+    </div>
   );
 }
 

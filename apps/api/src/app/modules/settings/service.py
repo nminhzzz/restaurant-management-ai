@@ -1,6 +1,6 @@
 """Settings service: auth, users, config, audit, backup."""
 
-from datetime import UTC, datetime, time
+from datetime import UTC, date, datetime, time, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -250,6 +250,9 @@ async def list_audit(
     size: int = 20,
     action: str | None = None,
     user_id: int | None = None,
+    target: str | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
 ) -> tuple[list[SystemAuditLog], int]:
     from sqlalchemy import func as sa_func
 
@@ -261,11 +264,29 @@ async def list_audit(
     if user_id:
         q = q.where(SystemAuditLog.user_id == user_id)
         cq = cq.where(SystemAuditLog.user_id == user_id)
+    if target:
+        q = q.where(SystemAuditLog.target_entity == target)
+        cq = cq.where(SystemAuditLog.target_entity == target)
+    if date_from:
+        start = datetime.combine(date_from, time.min)
+        q = q.where(SystemAuditLog.occurred_at >= start)
+        cq = cq.where(SystemAuditLog.occurred_at >= start)
+    if date_to:
+        end = datetime.combine(date_to, time.min) + timedelta(days=1)
+        q = q.where(SystemAuditLog.occurred_at < end)
+        cq = cq.where(SystemAuditLog.occurred_at < end)
     total = (await session.execute(cq)).scalar_one()
     result = await session.execute(
         q.order_by(SystemAuditLog.id.desc()).offset((page - 1) * size).limit(size)
     )
     return list(result.scalars().all()), total
+
+
+async def list_audit_actions(session: AsyncSession) -> list[str]:
+    result = await session.execute(
+        select(SystemAuditLog.action).distinct().order_by(SystemAuditLog.action)
+    )
+    return list(result.scalars().all())
 
 
 async def export_backup(session: AsyncSession, actor_id: int) -> dict:

@@ -32,7 +32,7 @@ describe("SettingsScreen", () => {
     render(<SettingsScreen />);
 
     expect(await screen.findByText("Phạm Thu Hà")).toBeInTheDocument();
-    expect(screen.getByText("Thu ngân")).toBeInTheDocument();
+    expect(screen.getByRole("cell", { name: "Thu ngân" })).toBeInTheDocument();
     expect(screen.queryByText("CASHIER")).not.toBeInTheDocument();
   });
 

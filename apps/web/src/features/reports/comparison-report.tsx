@@ -133,6 +133,7 @@ export function ComparisonReport() {
               formatNumber(data.right.SoDon),
             ],
           ]}
+          pageSize={10}
         />
       </section>
     </div>
