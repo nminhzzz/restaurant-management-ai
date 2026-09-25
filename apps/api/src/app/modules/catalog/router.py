@@ -5,7 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
 from app.core.dependencies import Principal, get_current_user, require_roles
+from app.core.errors import NotFoundError
 from app.modules.catalog import service as svc
+from app.modules.catalog import versions as catalog_versions
 from app.modules.catalog.schemas import (
     DishCreate,
     DishOut,
@@ -20,11 +22,15 @@ from app.modules.catalog.schemas import (
     PriceApplyNowRequest,
     PriceScheduleRequest,
     PriceVersionOut,
+    RecipeApplyNowRequest,
     RecipeAssignRequest,
+    RecipeLineOut,
     RecipeOut,
     RecipeScheduleRequest,
+    RecipeVersionOut,
     SupplierCreate,
     SupplierOut,
+    SupplierUpdate,
     TableCreate,
     TableOut,
     VisibilityUpdate,
@@ -110,7 +116,7 @@ async def list_dishes(
                 MaMon=d.id,
                 TenMon=d.name,
                 MaNhomMon=d.group_id,
-                HinhAnh=None,
+                HinhAnh=d.image_url,
                 GiaHienTai=None,
                 TrangThai=status,
                 AnThuCong=d.hide_manual,
@@ -142,7 +148,7 @@ async def create_dish(
         MaMon=d.id,
         TenMon=d.name,
         MaNhomMon=d.group_id,
-        HinhAnh=payload.HinhAnh,
+        HinhAnh=d.image_url,
         GiaHienTai=payload.GiaHienTai,
         TrangThai=status,
         AnThuCong=d.hide_manual,
@@ -157,7 +163,15 @@ async def update_dish(
     user: Principal = Depends(require_roles(Role.MANAGER)),
     session: AsyncSession = Depends(get_session),
 ) -> DishOut:
-    d = await svc.update_dish(session, user.user_id, dish_id, payload.TenMon, payload.MaNhomMon)
+    d = await svc.update_dish(
+        session,
+        user.user_id,
+        dish_id,
+        payload.TenMon,
+        payload.MaNhomMon,
+        payload.HinhAnh,
+        image_provided="HinhAnh" in payload.model_fields_set,
+    )
     await session.commit()
     await session.refresh(d)
     status = await svc.display_status_for(session, d)
@@ -165,7 +179,7 @@ async def update_dish(
         MaMon=d.id,
         TenMon=d.name,
         MaNhomMon=d.group_id,
-        HinhAnh=payload.HinhAnh,
+        HinhAnh=d.image_url,
         GiaHienTai=None,
         TrangThai=status,
         AnThuCong=d.hide_manual,
@@ -184,6 +198,19 @@ async def delete_dish(
 
 
 # Prices
+@router.get("/dishes/{dish_id}/prices", response_model=list[PriceVersionOut])
+async def list_dish_prices(
+    dish_id: int,
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
+    session: AsyncSession = Depends(get_session),
+) -> list[PriceVersionOut]:
+    d = await svc.get_dish(session, dish_id)
+    if d is None or d.is_deleted:
+        raise NotFoundError("Không tìm thấy món ăn.")
+    items = await catalog_versions.list_price_versions(session, dish_id)
+    return [PriceVersionOut.model_validate(v) for v in items]
+
+
 @router.post("/dishes/{dish_id}/prices/schedule", response_model=PriceVersionOut, status_code=201)
 async def schedule_price(
     dish_id: int,
@@ -221,6 +248,32 @@ async def cancel_price(
 
 
 # Recipes
+@router.get("/dishes/{dish_id}/recipes", response_model=list[RecipeVersionOut])
+async def list_dish_recipes(
+    dish_id: int,
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
+    session: AsyncSession = Depends(get_session),
+) -> list[RecipeVersionOut]:
+    d = await svc.get_dish(session, dish_id)
+    if d is None or d.is_deleted:
+        raise NotFoundError("Không tìm thấy món ăn.")
+    recipes = await catalog_versions.list_recipe_versions(session, dish_id)
+    out: list[RecipeVersionOut] = []
+    for r in recipes:
+        lines = await catalog_versions.recipe_items_detailed(session, r.id)
+        out.append(
+            RecipeVersionOut(
+                MaCongThuc=r.id,
+                MaMon=r.dish_id,
+                BusinessDateApDung=r.business_date,
+                TrangThai=r.status,
+                LoaiThayDoi=r.change_type,
+                items=[RecipeLineOut(**line) for line in lines],
+            )
+        )
+    return out
+
+
 @router.post("/dishes/{dish_id}/recipes/schedule", response_model=RecipeOut, status_code=201)
 async def schedule_recipe(
     dish_id: int,
@@ -245,6 +298,19 @@ async def assign_recipe(
 ) -> RecipeOut:
     items = [(x.MaNguyenLieu, x.SoLuong) for x in payload.items]
     r = await svc.assign_recipe(session, user.user_id, dish_id, items)
+    await session.commit()
+    return RecipeOut.model_validate(r)
+
+
+@router.post("/dishes/{dish_id}/recipes/apply-now", response_model=RecipeOut, status_code=201)
+async def apply_recipe_now(
+    dish_id: int,
+    payload: RecipeApplyNowRequest,
+    user: Principal = Depends(require_roles(Role.MANAGER)),
+    session: AsyncSession = Depends(get_session),
+) -> RecipeOut:
+    items = [(x.MaNguyenLieu, x.SoLuong) for x in payload.items]
+    r = await svc.apply_recipe_directly(session, user.user_id, dish_id, items)
     await session.commit()
     return RecipeOut.model_validate(r)
 
@@ -362,6 +428,20 @@ async def get_supplier(
     return out
 
 
+@router.patch("/suppliers/{supplier_id}", response_model=SupplierOut)
+async def update_supplier(
+    supplier_id: int,
+    payload: SupplierUpdate,
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    session: AsyncSession = Depends(get_session),
+) -> SupplierOut:
+    s = await svc.update_supplier(
+        session, user.user_id, supplier_id, payload.TenNhaCungCap, payload.SoDienThoai
+    )
+    await session.commit()
+    return SupplierOut.model_validate(s)
+
+
 @router.delete("/suppliers/{supplier_id}", status_code=204)
 async def delete_supplier(
     supplier_id: int,
@@ -423,7 +503,7 @@ async def update_visibility(
         MaMon=d.id,
         TenMon=d.name,
         MaNhomMon=d.group_id,
-        HinhAnh=None,
+        HinhAnh=d.image_url,
         GiaHienTai=None,
         TrangThai=status,
         AnThuCong=d.hide_manual,

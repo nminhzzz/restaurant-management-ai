@@ -53,3 +53,43 @@ async def recipe_items(session: AsyncSession, recipe_id: int):
 
     r = await session.execute(sel(RecipeItem).where(RecipeItem.recipe_id == recipe_id))
     return list(r.scalars().all())
+
+
+async def list_price_versions(session: AsyncSession, dish_id: int) -> list[DishPriceVersion]:
+    """Current + pending + recent history, newest first (FR-CAT-08/20/21)."""
+    r = await session.execute(
+        select(DishPriceVersion)
+        .where(DishPriceVersion.dish_id == dish_id)
+        .order_by(DishPriceVersion.business_date.desc(), DishPriceVersion.id.desc())
+    )
+    return list(r.scalars().all())
+
+
+async def list_recipe_versions(session: AsyncSession, dish_id: int) -> list[Recipe]:
+    """Current + pending + recent history, newest first (FR-CAT-09/10/22)."""
+    r = await session.execute(
+        select(Recipe)
+        .where(Recipe.dish_id == dish_id)
+        .order_by(Recipe.business_date.desc(), Recipe.id.desc())
+    )
+    return list(r.scalars().all())
+
+
+async def recipe_items_detailed(session: AsyncSession, recipe_id: int) -> list[dict]:
+    """Recipe lines joined with ingredient name and unit, for display."""
+    from app.modules.catalog.models import Ingredient, RecipeItem
+
+    r = await session.execute(
+        select(RecipeItem, Ingredient.name, Ingredient.unit)
+        .join(Ingredient, Ingredient.id == RecipeItem.ingredient_id)
+        .where(RecipeItem.recipe_id == recipe_id)
+    )
+    return [
+        {
+            "MaNguyenLieu": ri.ingredient_id,
+            "TenNguyenLieu": name,
+            "SoLuong": float(ri.quantity),
+            "DonViTinh": unit,
+        }
+        for ri, name, unit in r.all()
+    ]

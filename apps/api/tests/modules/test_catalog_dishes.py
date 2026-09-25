@@ -239,3 +239,64 @@ async def test_a_new_group_goes_to_the_end_of_the_list(session, three_groups):
 async def test_soft_deleted_table_is_hidden_from_the_floor_plan(session):
     # placeholder for Task5 - not needed here
     assert True
+
+
+@pytest.mark.asyncio
+async def test_a_dish_image_is_persisted_on_create_and_returned(session, group):
+    headers = await _auth_headers(session)
+    async with await _make_client(session) as client:
+        created = await create_dish(
+            client,
+            headers,
+            name="Phở bò",
+            group_id=group.id,
+            HinhAnh="https://example.com/pho.jpg",
+        )
+    app.dependency_overrides.clear()
+    assert created.status_code == 201
+    assert created.json()["HinhAnh"] == "https://example.com/pho.jpg"
+    dish_id = created.json()["MaMon"]
+    row = await get_dish(session, dish_id)
+    assert row.image_url == "https://example.com/pho.jpg"
+
+
+@pytest.mark.asyncio
+async def test_a_dish_image_is_persisted_on_update_and_returned(session, dish):
+    headers = await _auth_headers(session)
+    async with await _make_client(session) as client:
+        updated = await update_dish(client, headers, dish.id, HinhAnh="/uploads/pho.jpg")
+    app.dependency_overrides.clear()
+    assert updated.status_code == 200
+    assert updated.json()["HinhAnh"] == "/uploads/pho.jpg"
+    row = await get_dish(session, dish.id)
+    assert row.image_url == "/uploads/pho.jpg"
+
+
+@pytest.mark.asyncio
+async def test_a_javascript_scheme_dish_image_is_rejected(session, group):
+    headers = await _auth_headers(session)
+    async with await _make_client(session) as client:
+        resp = await create_dish(
+            client,
+            headers,
+            name="Phở bò",
+            group_id=group.id,
+            HinhAnh="javascript:alert(1)",
+        )
+    app.dependency_overrides.clear()
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_a_protocol_relative_dish_image_is_rejected(session, group):
+    headers = await _auth_headers(session)
+    async with await _make_client(session) as client:
+        resp = await create_dish(
+            client,
+            headers,
+            name="Phở bò",
+            group_id=group.id,
+            HinhAnh="//evil.example.com/x.jpg",
+        )
+    app.dependency_overrides.clear()
+    assert resp.status_code == 422
