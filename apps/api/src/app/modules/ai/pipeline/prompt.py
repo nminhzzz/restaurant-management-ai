@@ -126,6 +126,12 @@ async def build_prompt(
         f"Bạn chỉ được truy vấn đúng một view: {view}.",
         "Không được dùng bảng lõi, cũng không được dùng view của vai trò khác.",
         "Chỉ sinh đúng một câu lệnh SELECT, không kèm giải thích hay định dạng thừa.",
+        # Without the dialect the model drifts to SQL Server (GETDATE, TOP), which MySQL
+        # rejects; this is an instruction, so the schema-only baseline carries it too.
+        "Hệ quản trị là MySQL 8.4: chỉ dùng cú pháp MySQL (CURDATE(), NOW(), DATE_SUB, "
+        "DATE_FORMAT, LIMIT), không dùng GETDATE, TOP hay cú pháp của hệ quản trị khác.",
+        "Ngày kinh doanh nằm ở cột BusinessDate (một ngày kinh doanh chạy từ 06:00 tới "
+        "06:00 hôm sau); 'hôm nay' nghĩa là BusinessDate = CURDATE().",
         f"Phạm vi dữ liệu của vai trò này: {ROLE_SCOPE_NOTE[role]}.",
         "Nếu câu hỏi nằm ngoài phạm vi hoặc còn thiếu thông tin, hãy trả lời bắt đầu bằng "
         "'CLARIFY:' kèm một câu hỏi làm rõ thay vì đoán.",

@@ -80,3 +80,48 @@ async def test_the_harness_writes_a_result_file(fake_llm, questions, tmp_path):
     await run_harness(Config.A, questions, out=tmp_path / "results.json")
 
     assert json.loads((tmp_path / "results.json").read_text())["config"] == "A"
+
+
+@pytest.mark.anyio
+async def test_accuracy_is_split_by_difficulty_and_role(fake_llm, one_question):
+    """MT5 sets separate targets for easy/medium (80%) and hard (55%) questions."""
+    fake_llm.reply(f"SELECT COUNT(MaOrder) AS so_don FROM {one_question['view']}")
+
+    result = await run_configuration(Config.A, [one_question])
+    row = compare([result]).rows[0]
+
+    assert row["by_difficulty"] == {one_question["difficulty"]: 1.0}
+    assert row["by_role"] == {one_question["role"]: 1.0}
+
+
+@pytest.mark.anyio
+async def test_every_question_keeps_its_own_outcome(fake_llm, one_question):
+    """Chapter 4 discusses individual failures, so each answer is kept, not only totals."""
+    # The guard rejects writes, so this in-scope question ends as an unexpected refusal.
+    fake_llm.reply(f"DELETE FROM {one_question['view']}")
+
+    result = await run_configuration(Config.A, [one_question])
+
+    (outcome,) = result.outcomes
+    assert outcome.question_id == one_question["id"]
+    assert outcome.difficulty == one_question["difficulty"]
+    assert outcome.status == "từ chối"
+    assert outcome.latency_ms >= 0
+
+
+@pytest.mark.anyio
+async def test_an_llm_outage_is_measured_as_an_error_not_a_crash(
+    fake_llm, one_question, monkeypatch
+):
+    """One slow or failed API call must not abort a 95-question run (Appendix 4)."""
+    import httpx
+
+    def unavailable(prompt: str) -> str:
+        raise httpx.ReadTimeout("The read operation timed out")
+
+    monkeypatch.setattr(fake_llm, "complete", unavailable)
+
+    result = await run_configuration(Config.A, [one_question])
+
+    assert result.error_rate == 1.0
+    assert [outcome.status for outcome in result.outcomes] == ["lỗi"]
