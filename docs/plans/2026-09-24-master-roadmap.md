@@ -13,8 +13,8 @@ hỏi – SQL chấm được trên ba cấu hình A/B/C, và số liệu thực
 
 ## Hiện trạng
 
-Cập nhật 2026-09-25: **Phase 0 → 4 đã xong** trên `main` (`make gate` xanh). Bảng dưới phản ánh
-trạng thái hiện tại; Phase 5–7 còn lại.
+Cập nhật 2026-09-25: **Phase 0 → 5 đã xong** trên `main` (`make gate` xanh). Bảng dưới phản ánh
+trạng thái hiện tại; Phase 6–7 còn lại.
 
 | Hạng mục | Trạng thái |
 | --- | --- |
@@ -24,7 +24,7 @@ trạng thái hiện tại; Phase 5–7 còn lại.
 | `guard.py` (kiểm duyệt SQL) | Xong, 20 test |
 | Lược đồ CSDL 29 bảng theo báo cáo + `DEM_ORDER` | **Xong** (Phase 0; migration `890db4fbb8b6` + `0f1501bac9b8`) |
 | View `vw_ai_*` + tài khoản chỉ-đọc | **Xong** (Phase 0; `db/views/`) |
-| Sáu module nghiệp vụ | Phase 1–4 xong (Cài đặt · Danh mục · Kho · Bán hàng); **Báo cáo còn router rỗng** |
+| Sáu module nghiệp vụ | Phase 1–5 xong (Cài đặt · Danh mục · Kho · Bán hàng · Báo cáo) |
 | Pipeline AI | `normalize` + `guard` xong; 4 bước prompt/sinh SQL/thực thi/diễn giải còn là interface |
 | Seed dữ liệu, bộ đánh giá | **Chưa có** — mới có khung `scripts/seed/README.md` và `data/eval/questions.example.jsonl` |
 

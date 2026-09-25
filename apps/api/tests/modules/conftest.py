@@ -1,8 +1,16 @@
 """Fixtures for settings and catalog modules."""
 
-import pytest_asyncio
+from datetime import date, datetime
+from decimal import Decimal
+from itertools import count
+from types import SimpleNamespace
 
+import pytest_asyncio
+from httpx import ASGITransport, AsyncClient
+
+from app.core.database import get_session
 from app.core.security import hash_password
+from app.main import app
 from app.modules.catalog.models import Dish, DishGroup
 from app.modules.settings.models import User
 from app.modules.settings.service import seed_reference_data
@@ -377,3 +385,380 @@ async def scarce_dish(session, group):
     await session.flush()
     await session.commit()
     return dish
+
+
+# --- Phase 5 report fixtures (contract in docs/plans/phases/phase-5-reports.md) ---
+
+_ORDER_CODE = count(1000)
+
+
+def _sep(day: int) -> date:
+    return date(2026, 9, day)
+
+
+def _aug(day: int) -> date:
+    return date(2026, 8, day)
+
+
+@pytest_asyncio.fixture
+async def api_client(session):
+    """An HTTP client whose requests run against the test session."""
+
+    async def _get_session():
+        yield session
+
+    app.dependency_overrides[get_session] = _get_session
+    return AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
+
+
+async def _r_table(session, name="Bàn R"):
+    from app.modules.catalog.models import DiningTable
+
+    table = DiningTable(name=name, status="Trống", is_deleted=False)
+    session.add(table)
+    await session.flush()
+    return table
+
+
+async def _r_dish(session, name):
+    group = DishGroup(name="Nhóm báo cáo", display_order=1, is_deleted=False)
+    session.add(group)
+    await session.flush()
+    dish = Dish(name=name, group_id=group.id, is_deleted=False)
+    session.add(dish)
+    await session.flush()
+    return dish
+
+
+async def _r_order(
+    session, *, bd, status="Đang mở", table_id=None, order_type="Tại chỗ", at=None, reason=None
+):
+    from app.modules.sales.models import Order
+
+    order = Order(
+        business_date=bd,
+        created_at=at or datetime(bd.year, bd.month, bd.day, 12, 0),
+        status=status,
+        table_id=table_id,
+        order_type=order_type,
+        display_code=f"ORD-R{next(_ORDER_CODE)}",
+        cancel_reason=reason,
+    )
+    session.add(order)
+    await session.flush()
+    return order
+
+
+async def _r_line(session, order, dish, quantity, unit_price, *, status="Chờ", recipe_id=None):
+    from app.modules.sales.models import OrderLine
+
+    line = OrderLine(
+        order_id=order.id,
+        dish_id=dish.id,
+        quantity=quantity,
+        unit_price=Decimal(str(unit_price)),
+        status=status,
+        recipe_id=recipe_id,
+    )
+    session.add(line)
+    await session.flush()
+    return line
+
+
+async def _r_invoice(session, order, *, bd, total):
+    from app.modules.sales.models import Invoice
+
+    invoice = Invoice(order_id=order.id, business_date=bd, total=Decimal(str(total)), print_count=1)
+    session.add(invoice)
+    await session.flush()
+    return invoice
+
+
+async def _r_payment(session, order, *, method, status, amount, bd):
+    from app.modules.sales.models import PaymentTransaction
+
+    payment = PaymentTransaction(
+        order_id=order.id,
+        method=method,
+        status=status,
+        amount=Decimal(str(amount)),
+        business_date=bd,
+        created_at=datetime(bd.year, bd.month, bd.day, 12, 0),
+    )
+    session.add(payment)
+    await session.flush()
+    return payment
+
+
+async def _r_ingredient(session, name, avg_cost, *, month=202609):
+    from app.modules.catalog.models import Ingredient
+    from app.modules.inventory.models import MonthlyAverageCost
+
+    ingredient = Ingredient(
+        name=name,
+        unit="kg",
+        min_stock=Decimal("0"),
+        stock_qty=Decimal("100"),
+        is_deleted=False,
+    )
+    session.add(ingredient)
+    await session.flush()
+    session.add(
+        MonthlyAverageCost(
+            ingredient_id=ingredient.id,
+            month=month,
+            avg_cost=Decimal(str(avg_cost)),
+            total_qty=Decimal("1"),
+        )
+    )
+    await session.flush()
+    return ingredient
+
+
+async def _r_recipe(session, dish, ingredient, quantity, bd):
+    from app.modules.catalog.models import Recipe, RecipeItem
+
+    recipe = Recipe(dish_id=dish.id, business_date=bd, status="Hiệu lực", change_type="Tạo mới")
+    session.add(recipe)
+    await session.flush()
+    session.add(
+        RecipeItem(
+            recipe_id=recipe.id, ingredient_id=ingredient.id, quantity=Decimal(str(quantity))
+        )
+    )
+    await session.flush()
+    return recipe
+
+
+async def _r_issue(session, *, bd, ingredient, quantity, cost):
+    from app.modules.inventory.models import StockIssue, StockIssueLine
+
+    issue = StockIssue(
+        reason="Hao hụt",
+        status="Đã duyệt",
+        created_at=datetime(bd.year, bd.month, bd.day, 12, 0),
+    )
+    session.add(issue)
+    await session.flush()
+    line = StockIssueLine(
+        issue_id=issue.id,
+        ingredient_id=ingredient.id,
+        quantity=Decimal(str(quantity)),
+        estimated_cost=Decimal(str(cost)),
+    )
+    session.add(line)
+    await session.flush()
+    return line
+
+
+@pytest_asyncio.fixture
+async def invoices_in_september(session):
+    """Two settled invoices on two tables, one per payment method."""
+    table_a = await _r_table(session, "Bàn Sep 1")
+    table_b = await _r_table(session, "Bàn Sep 2")
+    dish = await _r_dish(session, "Món hóa đơn")
+    total = Decimal(0)
+    for table, method, quantity, price in (
+        (table_a, "Tiền mặt", 2, 50000),
+        (table_b, "QR", 3, 40000),
+    ):
+        order = await _r_order(session, bd=_sep(10), table_id=table.id)
+        await _r_line(session, order, dish, quantity, price)
+        amount = Decimal(quantity) * Decimal(price)
+        await _r_invoice(session, order, bd=_sep(10), total=amount)
+        await _r_payment(
+            session, order, method=method, status="Thành công", amount=amount, bd=_sep(10)
+        )
+        total += amount
+    await session.commit()
+    return SimpleNamespace(
+        total=total,
+        table_ids={table_a.id, table_b.id},
+        payment_methods={"Tiền mặt", "QR"},
+    )
+
+
+@pytest_asyncio.fixture
+async def order_awaiting_reconciliation(session):
+    order = await _r_order(session, bd=_sep(11), status="Chờ đối soát", order_type="Mang về")
+    total = Decimal("120000")
+    await _r_payment(session, order, method="QR", status="Chờ đối soát", amount=total, bd=_sep(11))
+    await session.commit()
+    return SimpleNamespace(total=total, order_id=order.id)
+
+
+@pytest_asyncio.fixture
+async def disputed_payment(session):
+    """A transaction the manager refused to confirm — never settled into an invoice."""
+    order = await _r_order(session, bd=_sep(12), status="Tranh chấp", order_type="Mang về")
+    total = Decimal("90000")
+    await _r_payment(session, order, method="QR", status="Tranh chấp", amount=total, bd=_sep(12))
+    await session.commit()
+    return SimpleNamespace(total=total, order_id=order.id)
+
+
+@pytest_asyncio.fixture
+async def orders_in_september(session):
+    """Ranking data where the top seller by quantity is not the top by revenue."""
+    by_quantity = await _r_dish(session, "Món số lượng")
+    by_revenue = await _r_dish(session, "Món doanh thu")
+    order = await _r_order(session, bd=_sep(13), order_type="Mang về")
+    await _r_line(session, order, by_quantity, 5, 20000)
+    await _r_line(session, order, by_revenue, 1, 300000)
+    await session.commit()
+    return SimpleNamespace(
+        dish_names={by_quantity.name, by_revenue.name},
+        top_by_quantity=by_quantity.name,
+        top_by_revenue=by_revenue.name,
+    )
+
+
+@pytest_asyncio.fixture
+async def order_with_cancelled_line(session):
+    kept = await _r_dish(session, "Món giữ")
+    dropped = await _r_dish(session, "Món đã hủy")
+    order = await _r_order(session, bd=_sep(13), order_type="Mang về")
+    await _r_line(session, order, kept, 1, 30000)
+    await _r_line(session, order, dropped, 4, 30000, status="Đã hủy")
+    await session.commit()
+    return SimpleNamespace(order_id=order.id)
+
+
+@pytest_asyncio.fixture
+async def order_at_0130(session):
+    """Placed at 01:30, so it belongs to the previous business date."""
+    dish = await _r_dish(session, "Món khuya")
+    placed_at = datetime(2026, 9, 25, 1, 30)
+    order = await _r_order(
+        session,
+        bd=date(2026, 9, 24),
+        order_type="Mang về",
+        at=placed_at,
+    )
+    await _r_line(session, order, dish, 1, 40000)
+    await session.commit()
+    return SimpleNamespace(business_date=order.business_date, placed_at=placed_at)
+
+
+@pytest_asyncio.fixture
+async def september_data(session, write_off_in_september):
+    """A closed September: revenue, consumed ingredients and the month's waste."""
+    ingredient = await _r_ingredient(session, "NL September", Decimal("10000"))
+    dish = await _r_dish(session, "Món September")
+    recipe = await _r_recipe(session, dish, ingredient, Decimal("0.5"), _sep(1))
+    order = await _r_order(session, bd=_sep(20), order_type="Mang về")
+    await _r_line(session, order, dish, 4, 125000, recipe_id=recipe.id)
+    revenue = Decimal("500000")
+    await _r_invoice(session, order, bd=_sep(20), total=revenue)
+    await session.commit()
+    waste = write_off_in_september.value
+    ingredients = Decimal("20000")  # 4 portions x 0.5kg x 10.000
+    cogs = ingredients + waste
+    return SimpleNamespace(
+        revenue=revenue,
+        cogs=cogs,
+        waste=waste,
+        margin=revenue - cogs,
+        month=202609,
+    )
+
+
+@pytest_asyncio.fixture
+async def order_before_recipe_change(session):
+    ingredient = await _r_ingredient(session, "NL trước đổi", Decimal("10000"))
+    dish = await _r_dish(session, "Món đổi công thức")
+    recipe = await _r_recipe(session, dish, ingredient, Decimal("0.5"), _sep(1))
+    order = await _r_order(session, bd=_sep(5), order_type="Mang về")
+    await _r_line(session, order, dish, 2, 60000, recipe_id=recipe.id)
+    await session.commit()
+    return SimpleNamespace(expected_cost=Decimal("10000"))
+
+
+@pytest_asyncio.fixture
+async def order_after_recipe_change(session):
+    ingredient = await _r_ingredient(session, "NL sau đổi", Decimal("10000"))
+    dish = await _r_dish(session, "Món đổi công thức mới")
+    recipe = await _r_recipe(session, dish, ingredient, Decimal("0.25"), _sep(15))
+    order = await _r_order(session, bd=_sep(25), order_type="Mang về")
+    await _r_line(session, order, dish, 2, 60000, recipe_id=recipe.id)
+    await session.commit()
+    return SimpleNamespace(expected_cost=Decimal("5000"))
+
+
+@pytest_asyncio.fixture
+async def cancelled_orders(session):
+    dish = await _r_dish(session, "Món bị hủy")
+    orders = []
+    for day, status, reason, quantity in (
+        (14, "Đã hủy", "khách bỏ về", 2),
+        (15, "Tự động đóng", "khách đổi ý", 1),
+    ):
+        order = await _r_order(
+            session, bd=_sep(day), status=status, order_type="Mang về", reason=reason
+        )
+        await _r_line(session, order, dish, quantity, 45000, status="Đã hủy")
+        orders.append(SimpleNamespace(total=Decimal(quantity) * Decimal(45000), reason=reason))
+    await session.commit()
+    return orders
+
+
+@pytest_asyncio.fixture
+async def write_off_in_september(session):
+    ingredient = await _r_ingredient(session, "NL hao hụt", Decimal("10000"))
+    value = Decimal("30000")
+    await _r_issue(session, bd=_sep(22), ingredient=ingredient, quantity=Decimal("3"), cost=value)
+    await session.commit()
+    return SimpleNamespace(value=value)
+
+
+@pytest_asyncio.fixture
+async def write_off_before_month_close(session):
+    ingredient = await _r_ingredient(session, "NL chưa tính giá", Decimal("10000"))
+    await _r_issue(
+        session, bd=_sep(23), ingredient=ingredient, quantity=Decimal("2"), cost=Decimal("0")
+    )
+    await session.commit()
+    return SimpleNamespace(count=1)
+
+
+@pytest_asyncio.fixture
+async def write_off_after_backfill(session, write_off_before_month_close):
+    from app.modules.inventory.costing import backfill_issue_costs
+
+    updated = await backfill_issue_costs(session, 202609)
+    await session.commit()
+    assert updated == write_off_before_month_close.count
+    return SimpleNamespace(count=0)
+
+
+@pytest_asyncio.fixture
+async def orders_in_two_months(session):
+    august_dish = await _r_dish(session, "Món tháng 8")
+    september_dish = await _r_dish(session, "Món tháng 9")
+    august = await _r_order(session, bd=_aug(10), order_type="Mang về")
+    await _r_line(session, august, august_dish, 2, 30000)
+    september = await _r_order(session, bd=_sep(10), order_type="Mang về")
+    await _r_line(session, september, september_dish, 1, 30000)
+    await session.commit()
+    return SimpleNamespace(left_month="2026-08", right_month="2026-09")
+
+
+@pytest_asyncio.fixture
+async def two_months(session):
+    august_total = Decimal("100000")
+    september_total = Decimal("150000")
+    august_dish = await _r_dish(session, "Món doanh thu tháng 8")
+    september_dish = await _r_dish(session, "Món doanh thu tháng 9")
+    august = await _r_order(session, bd=_aug(10), status="Đã thanh toán", order_type="Mang về")
+    await _r_line(session, august, august_dish, 1, august_total)
+    await _r_invoice(session, august, bd=_aug(10), total=august_total)
+    september = await _r_order(session, bd=_sep(10), status="Đã thanh toán", order_type="Mang về")
+    await _r_line(session, september, september_dish, 1, september_total)
+    await _r_invoice(session, september, bd=_sep(10), total=september_total)
+    await session.commit()
+    return SimpleNamespace(
+        left_revenue=august_total,
+        right_revenue=september_total,
+        left_month="2026-08",
+        right_month="2026-09",
+    )
