@@ -1,0 +1,3128 @@
+{
+  "rows": [
+    {
+      "config": "A",
+      "execution_accuracy": 0.5684,
+      "error_rate": 0.0105,
+      "refusal_rate": 0.0632,
+      "mean_latency_ms": 5745.2,
+      "failures": 41,
+      "relaxed_accuracy": 0.6947,
+      "by_difficulty": {
+        "easy": 0.871,
+        "hard": 0.2083,
+        "medium": 0.55
+      },
+      "by_role": {
+        "CASHIER": 0.6667,
+        "MANAGER": 0.5333,
+        "WAREHOUSE": 0.5385
+      },
+      "by_difficulty_relaxed": {
+        "easy": 0.9677,
+        "hard": 0.375,
+        "medium": 0.675
+      },
+      "by_role_relaxed": {
+        "CASHIER": 0.6667,
+        "MANAGER": 0.6,
+        "WAREHOUSE": 0.8846
+      }
+    },
+    {
+      "config": "B",
+      "execution_accuracy": 0.6632,
+      "error_rate": 0.0,
+      "refusal_rate": 0.0842,
+      "mean_latency_ms": 5081.9,
+      "failures": 32,
+      "relaxed_accuracy": 0.7579,
+      "by_difficulty": {
+        "easy": 0.9032,
+        "hard": 0.2917,
+        "medium": 0.7
+      },
+      "by_role": {
+        "CASHIER": 0.6667,
+        "MANAGER": 0.6667,
+        "WAREHOUSE": 0.6538
+      },
+      "by_difficulty_relaxed": {
+        "easy": 0.9677,
+        "hard": 0.4167,
+        "medium": 0.8
+      },
+      "by_role_relaxed": {
+        "CASHIER": 0.6667,
+        "MANAGER": 0.7333,
+        "WAREHOUSE": 0.8846
+      }
+    },
+    {
+      "config": "C",
+      "execution_accuracy": 0.5789,
+      "error_rate": 0.0737,
+      "refusal_rate": 0.1158,
+      "mean_latency_ms": 8788.5,
+      "failures": 40,
+      "relaxed_accuracy": 0.6421,
+      "by_difficulty": {
+        "easy": 0.8387,
+        "hard": 0.25,
+        "medium": 0.575
+      },
+      "by_role": {
+        "CASHIER": 0.5417,
+        "MANAGER": 0.5556,
+        "WAREHOUSE": 0.6538
+      },
+      "by_difficulty_relaxed": {
+        "easy": 0.9032,
+        "hard": 0.2917,
+        "medium": 0.65
+      },
+      "by_role_relaxed": {
+        "CASHIER": 0.5417,
+        "MANAGER": 0.5556,
+        "WAREHOUSE": 0.8846
+      }
+    }
+  ],
+  "detail": {
+    "A": {
+      "outcomes": [
+        {
+          "question_id": "Q001",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 2221.8,
+          "sql": "SELECT COUNT(DISTINCT MaOrder) AS SoLuongDonHang FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND BusinessDate = CURRENT_DATE LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q002",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 2848.5,
+          "sql": "SELECT COUNT(DISTINCT MaHoaDon) AS SoHoaDon FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) AND MONTH(BusinessDate) = MONTH(CURRENT_DATE) LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q003",
+          "difficulty": "easy",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 1084.0,
+          "sql": "SELECT COUNT(*) AS SoDon FROM vw_ai_thungan WHERE LoaiBanGhi = 'ORDER' AND BusinessDate = CURRENT_DATE LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q004",
+          "difficulty": "easy",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 1364.7,
+          "sql": "SELECT SUM(SoTien) AS TongTienThu FROM vw_ai_thungan WHERE LoaiBanGhi = 'THANH_TOAN' AND BusinessDate = CURRENT_DATE LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q005",
+          "difficulty": "easy",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 4953.5,
+          "sql": "SELECT COUNT(DISTINCT MaNguyenLieu) AS SoLuongNguyenLieu FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' AND SoLuongTon > 0 LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q006",
+          "difficulty": "easy",
+          "role": "WAREHOUSE",
+          "status": "sai",
+          "latency_ms": 3511.3,
+          "sql": "SELECT MaNguyenLieu, TenNguyenLieu, DonViTinh, SoLuongTon, MucTonToiThieu, CanhBaoTonThap FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' AND SoLuongTon < 5 LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q007",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 5433.7,
+          "sql": "SELECT COALESCE(SUM(TongTien), 0) AS DoanhThuHomQua FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate = DATE_SUB(CURRENT_DATE, INTERVAL '1' DAY) LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q008",
+          "difficulty": "easy",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 2930.9,
+          "sql": "SELECT COUNT(DISTINCT MaGiaoDich) AS SoGiaoDichQR FROM vw_ai_thungan WHERE LoaiBanGhi = 'THANH_TOAN' AND BusinessDate = CURRENT_DATE AND PhuongThuc = 'QR' LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q009",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 3443.3,
+          "sql": "SELECT COUNT(*) AS SoDonMangVe FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND BusinessDate = CURRENT_DATE AND LoaiDon = 'Mang về' LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q010",
+          "difficulty": "easy",
+          "role": "WAREHOUSE",
+          "status": "sai",
+          "latency_ms": 2461.3,
+          "sql": "SELECT TenNguyenLieu, DonViTinh, SoLuongTon FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' AND TenNguyenLieu = 'Thịt bò' LIMIT 1",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q011",
+          "difficulty": "easy",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 3831.4,
+          "sql": "SELECT COUNT(DISTINCT MaOrder) AS SoDonMangVe FROM vw_ai_thungan WHERE LoaiBanGhi = 'ORDER' AND BusinessDate = CURRENT_DATE AND LoaiDon = 'Mang về' LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q012",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 2146.8,
+          "sql": "SELECT AVG(TongTien) AS TrungBinhMoiHoaDon FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate = CURRENT_DATE LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q013",
+          "difficulty": "easy",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 1873.2,
+          "sql": "SELECT COUNT(*) AS SoLuongGiaoDichKho FROM vw_ai_kho WHERE LoaiBanGhi = 'GIAO_DICH_KHO' LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q014",
+          "difficulty": "easy",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 4637.9,
+          "sql": "SELECT COUNT(DISTINCT MaGiaoDich) AS SoGiaoDichTienMat FROM vw_ai_thungan WHERE LoaiBanGhi = 'THANH_TOAN' AND BusinessDate = CURRENT_DATE AND PhuongThuc = 'Tiền mặt' LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q015",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 3375.4,
+          "sql": "SELECT COUNT(DISTINCT MaOrder) AS SoDonDangMo FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND TrangThaiOrder = 'Đang mở' LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q016",
+          "difficulty": "easy",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 2036.4,
+          "sql": "SELECT MAX(SoLuongTon) AS MaxTonKho FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q017",
+          "difficulty": "easy",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 2192.3,
+          "sql": "",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q018",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 1405.8,
+          "sql": "SELECT COUNT(DISTINCT MaBan) AS SoBanDuocPhucVu FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND BusinessDate = CURRENT_DATE LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q019",
+          "difficulty": "easy",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 2300.5,
+          "sql": "",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q020",
+          "difficulty": "easy",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 2397.8,
+          "sql": "",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q021",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 1932.2,
+          "sql": "SELECT COUNT(DISTINCT MaOrder) AS SoDonBiHuy FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND BusinessDate = CURRENT_DATE AND TrangThaiOrder = 'Đã hủy' LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q022",
+          "difficulty": "easy",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 1781.6,
+          "sql": "SELECT SUM(SoLuong) AS TongSoLuongNhap FROM vw_ai_kho WHERE LoaiBanGhi = 'GIAO_DICH_KHO' AND LoaiGiaoDich = 'Nhập' LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q023",
+          "difficulty": "easy",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 2223.8,
+          "sql": "SELECT COUNT(*) AS SoHoaDon FROM vw_ai_thungan WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate = CURRENT_DATE LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q024",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 1056.6,
+          "sql": "SELECT COUNT(DISTINCT MaNguyenLieu) AS SoLuongNguyenLieu FROM vw_ai_quanly WHERE LoaiBanGhi = 'TON_KHO' LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q025",
+          "difficulty": "easy",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 3126.4,
+          "sql": "SELECT COUNT(DISTINCT MaNguyenLieu) AS SoNguyenLieuHetHang FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' AND SoLuongTon = 0 LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q026",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 4029.7,
+          "sql": "SELECT BusinessDate AS Ngay, SUM(TongTien) AS DoanhThu FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) AND MONTH(BusinessDate) = MONTH(CURRENT_DATE) GROUP BY BusinessDate ORDER BY BusinessDate LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q027",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 5085.8,
+          "sql": "SELECT MaBan, SUM(TongTien) AS DoanhThu FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND NOT MaBan IS NULL AND DATE_FORMAT(BusinessDate, '%Y-%m') = DATE_FORMAT(CURRENT_DATE, '%Y-%m') GROUP BY MaBan ORDER BY DoanhThu DESC LIMIT 5",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q028",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 3836.8,
+          "sql": "SELECT PhuongThuc, SUM(SoTien) AS DoanhThu FROM vw_ai_quanly WHERE LoaiBanGhi = 'THANH_TOAN' AND DATE_FORMAT(BusinessDate, '%Y%m') = DATE_FORMAT(CURRENT_DATE, '%Y%m') GROUP BY PhuongThuc LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q029",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 4606.0,
+          "sql": "SELECT BusinessDate, COUNT(DISTINCT MaOrder) AS SoDon FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND BusinessDate BETWEEN DATE_SUB(CURRENT_DATE, INTERVAL (WEEKDAY(CURRENT_DATE) + 7) DAY) AND DATE_SUB(CURRENT_DATE, INTERVAL (WEEKDAY(CURRENT_DATE) + 1) DAY) GROUP BY BusinessDate ORDER BY BusinessDate LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q030",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 3449.5,
+          "sql": "SELECT DATE_FORMAT(BusinessDate, '%m') AS Thang, COUNT(DISTINCT MaHoaDon) AS SoHoaDon FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) GROUP BY DATE_FORMAT(BusinessDate, '%m') ORDER BY Thang LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q031",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 4051.1,
+          "sql": "SELECT DATE_FORMAT(BusinessDate, '%Y-%m') AS Thang, SUM(TongTien) AS DoanhThu FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) GROUP BY DATE_FORMAT(BusinessDate, '%Y-%m') ORDER BY Thang LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q032",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 33547.0,
+          "sql": "SELECT LoaiDon, COUNT(MaOrder) AS SoDon FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND BusinessDate >= CURRENT_DATE - INTERVAL '29' DAY AND LoaiDon IN ('Tại chỗ', 'Mang về') GROUP BY LoaiDon LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q033",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 3482.7,
+          "sql": "SELECT PhuongThuc, SUM(SoTien) AS TongTien FROM vw_ai_quanly WHERE LoaiBanGhi = 'THANH_TOAN' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '7' DAY) AND BusinessDate <= CURRENT_DATE GROUP BY PhuongThuc LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q034",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 6187.6,
+          "sql": "SELECT BusinessDate, SUM(TongTien) AS DoanhThu FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND DATE_FORMAT(BusinessDate, '%Y-%m') = DATE_FORMAT(CURRENT_DATE, '%Y-%m') GROUP BY BusinessDate ORDER BY DoanhThu DESC LIMIT 1",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q035",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 3438.1,
+          "sql": "SELECT DATE_FORMAT(ThoiDiemXuat, '%H') AS Gio, COUNT(*) AS SoHoaDon FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate = DATE_SUB(CURRENT_DATE, INTERVAL '1' DAY) GROUP BY DATE_FORMAT(ThoiDiemXuat, '%H') ORDER BY Gio LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q036",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 11727.5,
+          "sql": "SELECT SUM(TongTien) / 30 AS DoanhThuTrungBinhMoiNgay FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '29' DAY) AND BusinessDate <= CURRENT_DATE LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q037",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 2149.1,
+          "sql": "SELECT BusinessDate, DAYOFWEEK(BusinessDate) AS ThuTrongTuan, COUNT(*) AS SoGiaoDich FROM vw_ai_quanly WHERE LoaiBanGhi = 'THANH_TOAN' AND YEARWEEK(BusinessDate, 1) = YEARWEEK(CURRENT_DATE, 1) GROUP BY BusinessDate, DAYOFWEEK(BusinessDate) ORDER BY BusinessDate LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q038",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 2376.1,
+          "sql": "SELECT MaNguyenLieu, TenNguyenLieu, DonViTinh, SoLuongTon FROM vw_ai_quanly WHERE LoaiBanGhi = 'TON_KHO' ORDER BY SoLuongTon DESC LIMIT 10",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q039",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 2270.6,
+          "sql": "SELECT BusinessDate, COUNT(DISTINCT MaOrder) AS SoDonBiHuy FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND TrangThaiOrder = 'Đã hủy' AND DATE_FORMAT(BusinessDate, '%Y-%m') = DATE_FORMAT(CURRENT_DATE, '%Y-%m') GROUP BY BusinessDate ORDER BY BusinessDate LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q040",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 2481.8,
+          "sql": "SELECT MaBan, SUM(TongTien) AS DoanhThu FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate BETWEEN DATE_SUB(CURRENT_DATE, INTERVAL '6' DAY) AND CURRENT_DATE GROUP BY MaBan ORDER BY MaBan LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q041",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 4305.8,
+          "sql": "SELECT DATE_FORMAT(BusinessDate, '%Y-%m') AS Thang, COUNT(DISTINCT MaHoaDon) AS SoHoaDon FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate >= DATE_FORMAT(DATE_SUB(CURRENT_DATE, INTERVAL '5' MONTH), '%Y-%m-01') GROUP BY DATE_FORMAT(BusinessDate, '%Y-%m') ORDER BY Thang LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q042",
+          "difficulty": "medium",
+          "role": "CASHIER",
+          "status": "sai",
+          "latency_ms": 10843.6,
+          "sql": "SELECT BusinessDate, SUM(SoTien) AS DoanhThu FROM vw_ai_thungan WHERE LoaiBanGhi = 'THANH_TOAN' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL (WEEKDAY(CURRENT_DATE)) DAY) AND BusinessDate < DATE_ADD(DATE_SUB(CURRENT_DATE, INTERVAL (WEEKDAY(CURRENT_DATE)) DAY), INTERVAL '7' DAY) GROUP BY BusinessDate ORDER BY BusinessDate LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q043",
+          "difficulty": "medium",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 2443.2,
+          "sql": "SELECT HOUR(ThoiDiemXuat) AS Gio, COUNT(DISTINCT MaHoaDon) AS SoHoaDon FROM vw_ai_thungan WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate = CURRENT_DATE GROUP BY HOUR(ThoiDiemXuat) ORDER BY Gio LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q044",
+          "difficulty": "medium",
+          "role": "CASHIER",
+          "status": "sai",
+          "latency_ms": 17042.0,
+          "sql": "SELECT BusinessDate, SUM(TongTien) AS DoanhThu FROM vw_ai_thungan WHERE LoaiBanGhi = 'HOA_DON' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) AND MONTH(BusinessDate) = MONTH(CURRENT_DATE) GROUP BY BusinessDate ORDER BY DoanhThu DESC LIMIT 5",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q045",
+          "difficulty": "medium",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 1370.4,
+          "sql": "SELECT PhuongThuc, COUNT(DISTINCT MaOrder) AS SoDon FROM vw_ai_thungan WHERE LoaiBanGhi = 'THANH_TOAN' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '30' DAY) GROUP BY PhuongThuc LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q046",
+          "difficulty": "medium",
+          "role": "CASHIER",
+          "status": "sai",
+          "latency_ms": 2862.9,
+          "sql": "SELECT BusinessDate, SUM(SoTien) AS TongTienThu FROM vw_ai_thungan WHERE LoaiBanGhi = 'THANH_TOAN' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '6' DAY) AND BusinessDate <= CURRENT_DATE GROUP BY BusinessDate ORDER BY BusinessDate LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q047",
+          "difficulty": "medium",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 2720.7,
+          "sql": "",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q048",
+          "difficulty": "medium",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 2739.5,
+          "sql": "SELECT BusinessDate, COUNT(DISTINCT MaHoaDon) AS SoHoaDon FROM vw_ai_thungan WHERE LoaiBanGhi = 'HOA_DON' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) AND MONTH(BusinessDate) = MONTH(CURRENT_DATE) GROUP BY BusinessDate ORDER BY BusinessDate LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q049",
+          "difficulty": "medium",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 4027.1,
+          "sql": "SELECT BusinessDate, SUM(SoLuong) AS TongSoLuongNhap FROM vw_ai_kho WHERE LoaiBanGhi = 'GIAO_DICH_KHO' AND LoaiGiaoDich = 'Nhập' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) AND MONTH(BusinessDate) = MONTH(CURRENT_DATE) GROUP BY BusinessDate ORDER BY BusinessDate LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q050",
+          "difficulty": "medium",
+          "role": "WAREHOUSE",
+          "status": "sai",
+          "latency_ms": 1938.3,
+          "sql": "SELECT MaNguyenLieu, TenNguyenLieu, DonViTinh, SoLuongTon FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' ORDER BY SoLuongTon ASC LIMIT 5",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q051",
+          "difficulty": "medium",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 6586.5,
+          "sql": "SELECT LoaiGiaoDich, COUNT(DISTINCT MaGiaoDichKho) AS SoGiaoDich FROM vw_ai_kho WHERE LoaiBanGhi = 'GIAO_DICH_KHO' GROUP BY LoaiGiaoDich LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q052",
+          "difficulty": "medium",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 3172.0,
+          "sql": "",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q053",
+          "difficulty": "medium",
+          "role": "WAREHOUSE",
+          "status": "sai",
+          "latency_ms": 1198.9,
+          "sql": "SELECT MaNguyenLieu, TenNguyenLieu, DonViTinh, SoLuongTon FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q054",
+          "difficulty": "medium",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 2503.1,
+          "sql": "",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q055",
+          "difficulty": "medium",
+          "role": "WAREHOUSE",
+          "status": "sai",
+          "latency_ms": 1457.2,
+          "sql": "SELECT MaNguyenLieu, TenNguyenLieu, SUM(SoLuong) AS TongSoLuongNhap FROM vw_ai_kho WHERE LoaiBanGhi = 'GIAO_DICH_KHO' AND LoaiGiaoDich = 'Nhập' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '30' DAY) GROUP BY MaNguyenLieu, TenNguyenLieu LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q056",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 9184.2,
+          "sql": "SELECT ROUND(((SELECT SUM(TongTien) FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND DATE_FORMAT(BusinessDate, '%Y%m') = DATE_FORMAT(CURRENT_DATE, '%Y%m')) - (SELECT SUM(TongTien) FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND DATE_FORMAT(BusinessDate, '%Y%m') = DATE_FORMAT(DATE_SUB(CURRENT_DATE, INTERVAL '1' MONTH), '%Y%m'))) * 100.0 / NULLIF((SELECT SUM(TongTien) FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND DATE_FORMAT(BusinessDate, '%Y%m') = DATE_FORMAT(DATE_SUB(CURRENT_DATE, INTERVAL '1' MONTH), '%Y%m')), 0), 2) AS PhanTramTangGiam LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q057",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 6644.1,
+          "sql": "SELECT DATE_FORMAT(BusinessDate, '%Y-%m') AS Thang, ROUND(SUM(TongTien) / COUNT(DISTINCT MaOrder), 2) AS DoanhThuTrungBinhMoiDon FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) GROUP BY DATE_FORMAT(BusinessDate, '%Y-%m') ORDER BY Thang LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q058",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 5976.9,
+          "sql": "SELECT BusinessDate FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) AND MONTH(BusinessDate) = MONTH(CURRENT_DATE) GROUP BY BusinessDate HAVING SUM(TongTien) > (SELECT AVG(DailyRevenue) FROM (SELECT SUM(TongTien) AS DailyRevenue FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) AND MONTH(BusinessDate) = MONTH(CURRENT_DATE) GROUP BY BusinessDate) AS Daily) ORDER BY BusinessDate LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q059",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 10165.8,
+          "sql": "SELECT DATE_FORMAT(ThoiDiemXuat, '%Y-%m-%d %H:00:00') AS Gio, SUM(TongTien) AS DoanhThu FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '7' DAY) AND BusinessDate <= CURRENT_DATE GROUP BY DATE_FORMAT(ThoiDiemXuat, '%Y-%m-%d %H:00:00') ORDER BY Gio LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q060",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 4964.2,
+          "sql": "SELECT LoaiDon, DATE_FORMAT(BusinessDate, '%Y-%m') AS Thang, COUNT(DISTINCT MaOrder) AS SoDon FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '3' MONTH) GROUP BY LoaiDon, DATE_FORMAT(BusinessDate, '%Y-%m') ORDER BY Thang, LoaiDon LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q061",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 13667.6,
+          "sql": "SELECT r.MaBan, r.BusinessDate, r.DoanhThu FROM (SELECT d.MaBan, d.BusinessDate, d.DoanhThu, RANK() OVER (PARTITION BY d.MaBan ORDER BY d.DoanhThu DESC) AS rnk FROM (SELECT o.MaBan, hd.BusinessDate, SUM(hd.TongTien) AS DoanhThu FROM vw_ai_quanly AS hd JOIN vw_ai_quanly AS o ON o.LoaiBanGhi = 'ORDER' AND o.MaOrder = hd.MaOrder WHERE hd.LoaiBanGhi = 'HOA_DON' AND DATE_FORMAT(hd.BusinessDate, '%Y%m') = DATE_FORMAT(CURRENT_DATE, '%Y%m') GROUP BY o.MaBan, hd.BusinessDate) AS d) AS r WHERE r.rnk = 1 LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q062",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 1869.8,
+          "sql": "SELECT BusinessDate, SUM(TongTien) AS DoanhThuNgay, SUM(SUM(TongTien)) OVER (ORDER BY BusinessDate) AS DoanhThuLuyKe FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate >= DATE_FORMAT(CURRENT_DATE, '%Y-%m-01') AND BusinessDate < DATE_FORMAT(DATE_ADD(CURRENT_DATE, INTERVAL '1' MONTH), '%Y-%m-01') GROUP BY BusinessDate ORDER BY BusinessDate LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q063",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 3140.3,
+          "sql": "SELECT MaNguyenLieu, TenNguyenLieu, DonViTinh, SoLuongTon FROM vw_ai_quanly WHERE LoaiBanGhi = 'TON_KHO' AND SoLuongTon > (SELECT AVG(SoLuongTon) FROM vw_ai_quanly WHERE LoaiBanGhi = 'TON_KHO') LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q064",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 13534.9,
+          "sql": "SELECT DATE_FORMAT(BusinessDate, '%Y-%m') AS Thang, COUNT(DISTINCT MaOrder) / DAY(LAST_DAY(MAX(BusinessDate))) AS SoDonTrungBinhMoiNgay FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) GROUP BY DATE_FORMAT(BusinessDate, '%Y-%m') ORDER BY Thang LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q065",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 4712.3,
+          "sql": "SELECT PhuongThuc, SUM(SoTien) AS TongSoTien, ROUND(SUM(SoTien) * 100 / SUM(SUM(SoTien)) OVER (), 2) AS TiLePhanTram FROM vw_ai_quanly WHERE LoaiBanGhi = 'THANH_TOAN' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '30' DAY) AND BusinessDate <= CURRENT_DATE GROUP BY PhuongThuc ORDER BY TongSoTien DESC LIMIT 1",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q066",
+          "difficulty": "hard",
+          "role": "CASHIER",
+          "status": "lỗi",
+          "latency_ms": 40381.1,
+          "sql": "",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q067",
+          "difficulty": "hard",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 18739.2,
+          "sql": "SELECT HOUR(ThoiDiemXuat) AS Gio, SUM(TongTien) AS DoanhThu FROM vw_ai_thungan WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '30' DAY) AND BusinessDate <= CURRENT_DATE GROUP BY HOUR(ThoiDiemXuat) ORDER BY DoanhThu DESC LIMIT 1",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q068",
+          "difficulty": "hard",
+          "role": "CASHIER",
+          "status": "sai",
+          "latency_ms": 8727.7,
+          "sql": "SELECT BusinessDate AS Ngay, SUM(TongTien) AS DoanhThuNgay, SUM(SUM(TongTien)) OVER (ORDER BY BusinessDate) AS DoanhThuLuyKe FROM vw_ai_thungan WHERE LoaiBanGhi = 'HOA_DON' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) AND MONTH(BusinessDate) = MONTH(CURRENT_DATE) GROUP BY BusinessDate ORDER BY BusinessDate LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q069",
+          "difficulty": "hard",
+          "role": "CASHIER",
+          "status": "sai",
+          "latency_ms": 10547.1,
+          "sql": "SELECT BusinessDate, COUNT(DISTINCT MaOrder) AS SoDon FROM vw_ai_thungan WHERE LoaiBanGhi = 'ORDER' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '29' DAY) AND BusinessDate <= CURRENT_DATE GROUP BY BusinessDate HAVING COUNT(DISTINCT MaOrder) > (SELECT AVG(DailyCount) FROM (SELECT COUNT(DISTINCT MaOrder) AS DailyCount FROM vw_ai_thungan WHERE LoaiBanGhi = 'ORDER' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '29' DAY) AND BusinessDate <= CURRENT_DATE GROUP BY BusinessDate) AS t) ORDER BY BusinessDate LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q070",
+          "difficulty": "hard",
+          "role": "CASHIER",
+          "status": "sai",
+          "latency_ms": 9347.3,
+          "sql": "SELECT SUM(CASE WHEN YEARWEEK(BusinessDate, 1) = YEARWEEK(CURRENT_DATE, 1) THEN TongTien ELSE 0 END) AS DoanhThuTuanNay, SUM(CASE WHEN YEARWEEK(BusinessDate, 1) = YEARWEEK(DATE_SUB(CURRENT_DATE, INTERVAL '1' WEEK), 1) THEN TongTien ELSE 0 END) AS DoanhThuTuanTruoc, SUM(CASE WHEN YEARWEEK(BusinessDate, 1) = YEARWEEK(CURRENT_DATE, 1) THEN TongTien ELSE 0 END) - SUM(CASE WHEN YEARWEEK(BusinessDate, 1) = YEARWEEK(DATE_SUB(CURRENT_DATE, INTERVAL '1' WEEK), 1) THEN TongTien ELSE 0 END) AS ChenhLech FROM vw_ai_thungan WHERE LoaiBanGhi = 'HOA_DON' AND YEARWEEK(BusinessDate, 1) IN (YEARWEEK(CURRENT_DATE, 1), YEARWEEK(DATE_SUB(CURRENT_DATE, INTERVAL '1' WEEK), 1)) LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q071",
+          "difficulty": "hard",
+          "role": "WAREHOUSE",
+          "status": "sai",
+          "latency_ms": 3636.3,
+          "sql": "SELECT MaNguyenLieu, TenNguyenLieu, DonViTinh, SoLuongTon, MucTonToiThieu, CanhBaoTonThap FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' AND SoLuongTon < (SELECT AVG(SoLuongTon) FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO') LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q072",
+          "difficulty": "hard",
+          "role": "WAREHOUSE",
+          "status": "sai",
+          "latency_ms": 5497.4,
+          "sql": "SELECT LoaiGiaoDich FROM vw_ai_kho WHERE LoaiBanGhi = 'GIAO_DICH_KHO' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '30' DAY) GROUP BY LoaiGiaoDich ORDER BY SUM(SoLuong) DESC LIMIT 1",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q073",
+          "difficulty": "hard",
+          "role": "WAREHOUSE",
+          "status": "sai",
+          "latency_ms": 15148.1,
+          "sql": "SELECT MaNguyenLieu, TenNguyenLieu, DonViTinh, SUM(CASE WHEN LoaiGiaoDich = 'Nhập' THEN SoLuong ELSE 0 END) AS SoLuongNhap, SUM(CASE WHEN LoaiGiaoDich = 'Xuất thủ công' THEN SoLuong ELSE 0 END) AS SoLuongXuat FROM vw_ai_kho WHERE LoaiBanGhi = 'GIAO_DICH_KHO' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '30' DAY) GROUP BY MaNguyenLieu, TenNguyenLieu, DonViTinh ORDER BY MaNguyenLieu LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q074",
+          "difficulty": "hard",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 6159.5,
+          "sql": "SELECT BusinessDate, COUNT(DISTINCT MaGiaoDichKho) AS SoGiaoDich FROM vw_ai_kho WHERE LoaiBanGhi = 'GIAO_DICH_KHO' AND DATE_FORMAT(BusinessDate, '%Y-%m') = DATE_FORMAT(CURRENT_DATE, '%Y-%m') GROUP BY BusinessDate ORDER BY SoGiaoDich DESC LIMIT 1",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q075",
+          "difficulty": "hard",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 3178.1,
+          "sql": "SELECT DISTINCT MaNguyenLieu, TenNguyenLieu, DonViTinh FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' AND NOT MaNguyenLieu IN (SELECT MaNguyenLieu FROM vw_ai_kho WHERE LoaiBanGhi = 'GIAO_DICH_KHO') LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q076",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 11274.9,
+          "sql": "SELECT TenMon FROM vw_ai_quanly WHERE LoaiBanGhi = 'DONG_MON' AND YEARWEEK(BusinessDate, 1) = YEARWEEK(CURRENT_DATE, 1) GROUP BY TenMon ORDER BY SUM(SoLuongMon) DESC LIMIT 1",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q077",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 6752.9,
+          "sql": "SELECT TenMon, SUM(ThanhTienMon) AS DoanhThu FROM vw_ai_quanly WHERE LoaiBanGhi = 'DONG_MON' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) AND MONTH(BusinessDate) = MONTH(CURRENT_DATE) GROUP BY TenMon ORDER BY DoanhThu ASC LIMIT 1",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q078",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 2543.8,
+          "sql": "SELECT DonGiaNhap FROM vw_ai_quanly WHERE LoaiBanGhi = 'PHIEU_NHAP' AND TenNguyenLieu = 'Thịt bò' ORDER BY BusinessDate DESC, MaPhieuNhap DESC LIMIT 1",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q079",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 7263.1,
+          "sql": "SELECT COALESCE(SUM(dm.ThanhTienMon), 0) AS TongGiaTriOrderHuy FROM vw_ai_quanly AS dm JOIN vw_ai_quanly AS o ON o.MaOrder = dm.MaOrder WHERE dm.LoaiBanGhi = 'DONG_MON' AND o.LoaiBanGhi = 'ORDER' AND o.TrangThaiOrder = 'Đã hủy' AND DATE_FORMAT(o.BusinessDate, '%Y-%m') = DATE_FORMAT(CURRENT_DATE, '%Y-%m') LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q080",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 3867.5,
+          "sql": "SELECT LyDoHuyOrder, COUNT(*) AS SoLanXuatHien FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND BusinessDate >= DATE_FORMAT(CURRENT_DATE, '%Y-%m-01') AND BusinessDate < DATE_ADD(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL '1' MONTH) AND NOT LyDoHuyOrder IS NULL AND LyDoHuyOrder <> '' GROUP BY LyDoHuyOrder ORDER BY SoLanXuatHien DESC LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q081",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 1472.1,
+          "sql": "SELECT TenNhom, SUM(ThanhTienMon) AS DoanhThu FROM vw_ai_quanly WHERE LoaiBanGhi = 'DONG_MON' AND DATE_FORMAT(BusinessDate, '%Y%m') = DATE_FORMAT(CURRENT_DATE, '%Y%m') GROUP BY TenNhom ORDER BY DoanhThu DESC LIMIT 3",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q082",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 2356.6,
+          "sql": "SELECT GiaBinhQuanThang FROM vw_ai_quanly WHERE LoaiBanGhi = 'GIA_VON_THANG' AND TenNguyenLieu = 'Gạo tẻ' AND Thang = DATE_FORMAT(DATE_SUB(CURRENT_DATE, INTERVAL '1' MONTH), '%Y%m') LIMIT 1",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q083",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 2588.1,
+          "sql": "SELECT TenNhaCungCap, SUM(DonGiaNhap * SoLuongNhap) AS TongGiaTriNhap FROM vw_ai_quanly WHERE LoaiBanGhi = 'PHIEU_NHAP' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '30' DAY) AND BusinessDate <= CURRENT_DATE GROUP BY TenNhaCungCap ORDER BY TongGiaTriNhap DESC LIMIT 1",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q084",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 15039.8,
+          "sql": "SELECT ROUND(((SELECT COALESCE(SUM(TongTien), 0) FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND DATE_FORMAT(BusinessDate, '%Y%m') = DATE_FORMAT(DATE_SUB(CURRENT_DATE, INTERVAL '1' MONTH), '%Y%m')) - (SELECT COALESCE(SUM(ABS(gd.SoLuong) * gv.GiaBinhQuanThang), 0) FROM vw_ai_quanly AS gd JOIN vw_ai_quanly AS gv ON gv.LoaiBanGhi = 'GIA_VON_THANG' AND gv.MaNguyenLieu = gd.MaNguyenLieu AND gv.Thang = DATE_FORMAT(DATE_SUB(CURRENT_DATE, INTERVAL '1' MONTH), '%Y%m') WHERE gd.LoaiBanGhi = 'GIAO_DICH_KHO' AND gd.LoaiGiaoDich = 'Trừ tự động' AND DATE_FORMAT(gd.BusinessDate, '%Y%m') = DATE_FORMAT(DATE_SUB(CURRENT_DATE, INTERVAL '1' MONTH), '%Y%m'))) / NULLIF((SELECT SUM(TongTien) FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND DATE_FORMAT(BusinessDate, '%Y%m') = DATE_FORMAT(DATE_SUB(CURRENT_DATE, INTERVAL '1' MONTH), '%Y%m')), 0) * 100, 2) AS BienLoiNhuanGopUocTinhThangTruoc LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q085",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 12677.6,
+          "sql": "SELECT MaNguyenLieu, TenNguyenLieu, SUM(CASE WHEN LoaiGiaoDich = 'Nhập' THEN SoLuong ELSE 0 END) AS SoLuongNhap, SUM(CASE WHEN LoaiGiaoDich = 'Trừ tự động' THEN SoLuong ELSE 0 END) AS SoLuongTieuHao FROM vw_ai_quanly WHERE LoaiBanGhi = 'GIAO_DICH_KHO' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '30' DAY) GROUP BY MaNguyenLieu, TenNguyenLieu ORDER BY MaNguyenLieu LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q086",
+          "difficulty": "easy",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 14084.8,
+          "sql": "SELECT TenMon, SUM(SoLuongMon) AS TongSoLuong FROM vw_ai_thungan WHERE LoaiBanGhi = 'DONG_MON' AND BusinessDate = CURRENT_DATE GROUP BY TenMon ORDER BY TongSoLuong DESC LIMIT 1",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q087",
+          "difficulty": "medium",
+          "role": "CASHIER",
+          "status": "sai",
+          "latency_ms": 8255.1,
+          "sql": "SELECT dm.TenMon, SUM(dm.ThanhTienMon) AS DoanhThu FROM vw_ai_thungan AS dm JOIN vw_ai_thungan AS o ON o.LoaiBanGhi = 'ORDER' AND o.MaOrder = dm.MaOrder WHERE dm.LoaiBanGhi = 'DONG_MON' AND dm.BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '6' DAY) AND dm.BusinessDate <= CURRENT_DATE AND o.TrangThaiOrder = 'Đã thanh toán' GROUP BY dm.TenMon ORDER BY DoanhThu DESC LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q088",
+          "difficulty": "medium",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 9164.5,
+          "sql": "SELECT DISTINCT TenMon, DonGiaMon FROM vw_ai_thungan WHERE LoaiBanGhi = 'DONG_MON' AND BusinessDate = CURRENT_DATE AND SoLuongMon > 0 AND DonGiaMon = (SELECT MAX(DonGiaMon) FROM vw_ai_thungan WHERE LoaiBanGhi = 'DONG_MON' AND BusinessDate = CURRENT_DATE AND SoLuongMon > 0) LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q089",
+          "difficulty": "hard",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 2449.3,
+          "sql": "SELECT TenNhom, SUM(SoLuongMon) AS SoLuongBan FROM vw_ai_thungan WHERE LoaiBanGhi = 'DONG_MON' AND DATE_FORMAT(BusinessDate, '%Y-%m') = DATE_FORMAT(CURRENT_DATE, '%Y-%m') GROUP BY TenNhom ORDER BY SoLuongBan DESC LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q090",
+          "difficulty": "easy",
+          "role": "WAREHOUSE",
+          "status": "sai",
+          "latency_ms": 1698.0,
+          "sql": "SELECT MaNguyenLieu, TenNguyenLieu, DonViTinh, SoLuongTon, MucTonToiThieu FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' AND CanhBaoTonThap = 1 LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q091",
+          "difficulty": "easy",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 3849.2,
+          "sql": "SELECT COUNT(DISTINCT MaNguyenLieu) AS SoNguyenLieuCanhBaoTonThap FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' AND CanhBaoTonThap = 1 LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q092",
+          "difficulty": "medium",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 12363.0,
+          "sql": "SELECT MaLo, MaNguyenLieu, TenNguyenLieu, DonViTinh, SoLuongConLai, NgayNhapLo, HanSuDungLo, TrangThaiLo FROM vw_ai_kho WHERE LoaiBanGhi = 'LO_NGUYEN_LIEU' AND HanSuDungLo >= NOW() AND HanSuDungLo <= DATE_SUB(NOW(), INTERVAL '-7' DAY) AND SoLuongConLai > 0 ORDER BY HanSuDungLo LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q093",
+          "difficulty": "medium",
+          "role": "WAREHOUSE",
+          "status": "sai",
+          "latency_ms": 3163.4,
+          "sql": "SELECT MaLo, MaNguyenLieu, TenNguyenLieu, DonViTinh, SoLuongConLai, HanSuDungLo FROM vw_ai_kho WHERE LoaiBanGhi = 'LO_NGUYEN_LIEU' AND TrangThaiLo = 'Còn hạn' AND SoLuongConLai > 0 ORDER BY SoLuongConLai DESC LIMIT 1",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q094",
+          "difficulty": "medium",
+          "role": "WAREHOUSE",
+          "status": "sai",
+          "latency_ms": 2273.8,
+          "sql": "SELECT MaNguyenLieu, TenNguyenLieu, DonViTinh, MucTonToiThieu FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q095",
+          "difficulty": "hard",
+          "role": "WAREHOUSE",
+          "status": "sai",
+          "latency_ms": 2931.5,
+          "sql": "SELECT MaNguyenLieu, TenNguyenLieu, COUNT(*) AS SoLuongLoConHan FROM vw_ai_kho WHERE LoaiBanGhi = 'LO_NGUYEN_LIEU' AND TrangThaiLo = 'Còn hạn' GROUP BY MaNguyenLieu, TenNguyenLieu ORDER BY SoLuongLoConHan DESC LIMIT 1",
+          "relaxed": true
+        }
+      ],
+      "failures": [
+        {
+          "question_id": "Q006",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q010",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q027",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q029",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q031",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q032",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q036",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q037",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q038",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q040",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q041",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q042",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q044",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q046",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q050",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q053",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q055",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q056",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q057",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q058",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q059",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q060",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q061",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q063",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q064",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q065",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q066",
+          "reason": "lỗi gọi LLM: The read operation timed out"
+        },
+        {
+          "question_id": "Q068",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q069",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q070",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q071",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q072",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q073",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q076",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q084",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q085",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q087",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q090",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q093",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q094",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q095",
+          "reason": "kết quả khác SQL chuẩn"
+        }
+      ]
+    },
+    "B": {
+      "outcomes": [
+        {
+          "question_id": "Q001",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 1178.4,
+          "sql": "SELECT COUNT(DISTINCT MaOrder) AS SoDonHang FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND BusinessDate = CURRENT_DATE LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q002",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 1380.4,
+          "sql": "SELECT COUNT(*) AS SoHoaDon FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND DATE_FORMAT(BusinessDate, '%Y%m') = DATE_FORMAT(CURRENT_DATE, '%Y%m') LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q003",
+          "difficulty": "easy",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 1722.4,
+          "sql": "SELECT COUNT(DISTINCT MaOrder) AS SoDon FROM vw_ai_thungan WHERE LoaiBanGhi = 'ORDER' AND BusinessDate = CURRENT_DATE LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q004",
+          "difficulty": "easy",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 1876.5,
+          "sql": "SELECT SUM(SoTien) AS TongTienThu FROM vw_ai_thungan WHERE LoaiBanGhi = 'THANH_TOAN' AND BusinessDate = CURRENT_DATE LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q005",
+          "difficulty": "easy",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 4298.5,
+          "sql": "SELECT COUNT(DISTINCT MaNguyenLieu) AS SoNguyenLieu FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' AND SoLuongTon > 0 LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q006",
+          "difficulty": "easy",
+          "role": "WAREHOUSE",
+          "status": "sai",
+          "latency_ms": 2098.8,
+          "sql": "SELECT TenNguyenLieu, DonViTinh, SoLuongTon FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' AND SoLuongTon < 5 ORDER BY TenNguyenLieu LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q007",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 2239.5,
+          "sql": "SELECT COALESCE(SUM(TongTien), 0) AS DoanhThuHomQua FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate = CURRENT_DATE - INTERVAL '1' DAY LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q008",
+          "difficulty": "easy",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 3605.3,
+          "sql": "SELECT COUNT(*) AS SoGiaoDichQR FROM vw_ai_thungan WHERE LoaiBanGhi = 'THANH_TOAN' AND BusinessDate = CURRENT_DATE AND PhuongThuc = 'QR' LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q009",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 3629.3,
+          "sql": "SELECT COUNT(*) AS SoDonMangVe FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND BusinessDate = CURRENT_DATE AND LoaiDon = 'Mang về' LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q010",
+          "difficulty": "easy",
+          "role": "WAREHOUSE",
+          "status": "sai",
+          "latency_ms": 2818.6,
+          "sql": "SELECT TenNguyenLieu, SoLuongTon, DonViTinh FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' AND TenNguyenLieu = 'Thịt bò' LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q011",
+          "difficulty": "easy",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 4252.2,
+          "sql": "SELECT COUNT(DISTINCT MaOrder) AS SoDonMangVe FROM vw_ai_thungan WHERE LoaiBanGhi = 'ORDER' AND BusinessDate = CURRENT_DATE AND LoaiDon = 'Mang về' LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q012",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 2109.6,
+          "sql": "SELECT AVG(TongTien) AS TrungBinhMoiHoaDon FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate = CURRENT_DATE LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q013",
+          "difficulty": "easy",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 3095.1,
+          "sql": "SELECT COUNT(*) AS SoLuongGiaoDichKho FROM vw_ai_kho WHERE LoaiBanGhi = 'GIAO_DICH_KHO' LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q014",
+          "difficulty": "easy",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 3713.1,
+          "sql": "SELECT COUNT(DISTINCT MaGiaoDich) AS SoLuongGiaoDichTienMat FROM vw_ai_thungan WHERE LoaiBanGhi = 'THANH_TOAN' AND BusinessDate = CURRENT_DATE AND PhuongThuc = 'Tiền mặt' LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q015",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 2772.4,
+          "sql": "SELECT COUNT(*) AS SoDonDangMo FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND TrangThaiOrder = 'Đang mở' LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q016",
+          "difficulty": "easy",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 1821.3,
+          "sql": "SELECT MAX(SoLuongTon) AS SoLuongTonLonNhat FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q017",
+          "difficulty": "easy",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 2156.9,
+          "sql": "",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q018",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 4699.5,
+          "sql": "SELECT COUNT(DISTINCT MaBan) AS SoBanDuocPhucVu FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND BusinessDate = CURRENT_DATE AND TrangThaiOrder <> 'Đã hủy' LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q019",
+          "difficulty": "easy",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 2136.4,
+          "sql": "",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q020",
+          "difficulty": "easy",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 2185.7,
+          "sql": "",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q021",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 2024.7,
+          "sql": "SELECT COUNT(DISTINCT MaOrder) AS SoDonHuy FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND TrangThaiOrder = 'Đã hủy' AND BusinessDate = CURRENT_DATE LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q022",
+          "difficulty": "easy",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 2115.2,
+          "sql": "SELECT SUM(SoLuong) AS TongSoLuongNhap FROM vw_ai_kho WHERE LoaiBanGhi = 'GIAO_DICH_KHO' AND LoaiGiaoDich = 'Nhập' LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q023",
+          "difficulty": "easy",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 1683.7,
+          "sql": "SELECT COUNT(DISTINCT MaHoaDon) AS SoHoaDon FROM vw_ai_thungan WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate = CURRENT_DATE LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q024",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 2220.1,
+          "sql": "SELECT COUNT(DISTINCT MaNguyenLieu) AS SoNguyenLieu FROM vw_ai_quanly WHERE LoaiBanGhi = 'TON_KHO' LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q025",
+          "difficulty": "easy",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 2425.9,
+          "sql": "SELECT COUNT(DISTINCT MaNguyenLieu) AS SoNguyenLieuHetHang FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' AND SoLuongTon <= 0 LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q026",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 3820.4,
+          "sql": "SELECT BusinessDate, SUM(TongTien) AS DoanhThu FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) AND MONTH(BusinessDate) = MONTH(CURRENT_DATE) GROUP BY BusinessDate ORDER BY BusinessDate LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q027",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 7070.5,
+          "sql": "SELECT o.MaBan, SUM(h.TongTien) AS DoanhThu FROM vw_ai_quanly AS h JOIN vw_ai_quanly AS o ON h.MaOrder = o.MaOrder WHERE h.LoaiBanGhi = 'HOA_DON' AND o.LoaiBanGhi = 'ORDER' AND YEAR(h.BusinessDate) = YEAR(CURRENT_DATE) AND MONTH(h.BusinessDate) = MONTH(CURRENT_DATE) GROUP BY o.MaBan ORDER BY DoanhThu DESC LIMIT 5",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q028",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 2905.4,
+          "sql": "SELECT PhuongThuc, SUM(SoTien) AS DoanhThu FROM vw_ai_quanly WHERE LoaiBanGhi = 'THANH_TOAN' AND DATE_FORMAT(BusinessDate, '%Y%m') = DATE_FORMAT(CURRENT_DATE, '%Y%m') GROUP BY PhuongThuc ORDER BY DoanhThu DESC LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q029",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 8264.8,
+          "sql": "SELECT BusinessDate, COUNT(DISTINCT MaOrder) AS SoDon FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND BusinessDate >= DATE_SUB(DATE_SUB(CURRENT_DATE, INTERVAL (WEEKDAY(CURRENT_DATE)) DAY), INTERVAL '7' DAY) AND BusinessDate < DATE_SUB(CURRENT_DATE, INTERVAL (WEEKDAY(CURRENT_DATE)) DAY) GROUP BY BusinessDate ORDER BY BusinessDate LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q030",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 2749.7,
+          "sql": "SELECT MONTH(BusinessDate) AS Thang, COUNT(DISTINCT MaHoaDon) AS SoHoaDon FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) GROUP BY MONTH(BusinessDate) ORDER BY Thang LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q031",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 3262.7,
+          "sql": "SELECT DATE_FORMAT(BusinessDate, '%Y-%m') AS Thang, SUM(TongTien) AS DoanhThu FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) GROUP BY DATE_FORMAT(BusinessDate, '%Y-%m') ORDER BY Thang LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q032",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 6654.9,
+          "sql": "SELECT LoaiDon, COUNT(*) AS SoDon FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '30' DAY) GROUP BY LoaiDon LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q033",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 3759.1,
+          "sql": "SELECT PhuongThuc, SUM(SoTien) AS TongTien FROM vw_ai_quanly WHERE LoaiBanGhi = 'THANH_TOAN' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '7' DAY) GROUP BY PhuongThuc LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q034",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 3340.1,
+          "sql": "SELECT BusinessDate, SUM(TongTien) AS DoanhThu FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND DATE_FORMAT(BusinessDate, '%Y%m') = DATE_FORMAT(CURRENT_DATE, '%Y%m') GROUP BY BusinessDate ORDER BY DoanhThu DESC LIMIT 1",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q035",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 2480.9,
+          "sql": "SELECT HOUR(ThoiDiemXuat) AS Gio, COUNT(*) AS SoHoaDon FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate = CURRENT_DATE - INTERVAL '1' DAY GROUP BY HOUR(ThoiDiemXuat) ORDER BY Gio LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q036",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 14494.6,
+          "sql": "SELECT SUM(TongTien) / COUNT(DISTINCT BusinessDate) AS DoanhThuTrungBinhNgay FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '30' DAY) AND BusinessDate <= CURRENT_DATE LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q037",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 3926.5,
+          "sql": "SELECT BusinessDate, COUNT(*) AS SoGiaoDichThanhToan FROM vw_ai_quanly WHERE LoaiBanGhi = 'THANH_TOAN' AND YEARWEEK(BusinessDate, 1) = YEARWEEK(CURRENT_DATE, 1) GROUP BY BusinessDate ORDER BY BusinessDate LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q038",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 2434.7,
+          "sql": "SELECT TenNguyenLieu, DonViTinh, SoLuongTon FROM vw_ai_quanly WHERE LoaiBanGhi = 'TON_KHO' ORDER BY SoLuongTon DESC LIMIT 10",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q039",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 1368.1,
+          "sql": "SELECT BusinessDate, COUNT(*) AS SoDonBiHuy FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND TrangThaiOrder = 'Đã hủy' AND DATE_FORMAT(BusinessDate, '%Y%m') = DATE_FORMAT(CURRENT_DATE, '%Y%m') GROUP BY BusinessDate ORDER BY BusinessDate LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q040",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 1355.6,
+          "sql": "SELECT MaBan, SUM(TongTien) AS DoanhThu FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '7' DAY) GROUP BY MaBan ORDER BY DoanhThu DESC LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q041",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 1742.7,
+          "sql": "SELECT DATE_FORMAT(BusinessDate, '%Y-%m') AS Thang, COUNT(*) AS SoHoaDon FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '6' MONTH) GROUP BY DATE_FORMAT(BusinessDate, '%Y-%m') ORDER BY Thang LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q042",
+          "difficulty": "medium",
+          "role": "CASHIER",
+          "status": "từ chối",
+          "latency_ms": 8217.1,
+          "sql": "",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q043",
+          "difficulty": "medium",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 3634.2,
+          "sql": "SELECT HOUR(ThoiDiemXuat) AS Gio, COUNT(DISTINCT MaHoaDon) AS SoHoaDon FROM vw_ai_thungan WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate = CURRENT_DATE GROUP BY HOUR(ThoiDiemXuat) ORDER BY Gio LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q044",
+          "difficulty": "medium",
+          "role": "CASHIER",
+          "status": "sai",
+          "latency_ms": 13681.1,
+          "sql": "SELECT BusinessDate, SUM(TongTien) AS DoanhThu FROM vw_ai_thungan WHERE LoaiBanGhi = 'HOA_DON' AND DATE_FORMAT(BusinessDate, '%Y-%m') = DATE_FORMAT(CURRENT_DATE, '%Y-%m') GROUP BY BusinessDate ORDER BY DoanhThu DESC LIMIT 5",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q045",
+          "difficulty": "medium",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 3793.1,
+          "sql": "SELECT PhuongThuc, COUNT(DISTINCT MaOrder) AS SoDon FROM vw_ai_thungan WHERE LoaiBanGhi = 'THANH_TOAN' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '30' DAY) AND BusinessDate <= CURRENT_DATE GROUP BY PhuongThuc LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q046",
+          "difficulty": "medium",
+          "role": "CASHIER",
+          "status": "sai",
+          "latency_ms": 3090.4,
+          "sql": "SELECT BusinessDate, SUM(SoTien) AS TongTienThu FROM vw_ai_thungan WHERE LoaiBanGhi = 'THANH_TOAN' AND BusinessDate BETWEEN DATE_SUB(CURRENT_DATE, INTERVAL '6' DAY) AND CURRENT_DATE GROUP BY BusinessDate ORDER BY BusinessDate LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q047",
+          "difficulty": "medium",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 2890.2,
+          "sql": "",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q048",
+          "difficulty": "medium",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 1599.1,
+          "sql": "SELECT BusinessDate, COUNT(DISTINCT MaHoaDon) AS SoHoaDon FROM vw_ai_thungan WHERE LoaiBanGhi = 'HOA_DON' AND DATE_FORMAT(BusinessDate, '%Y-%m') = DATE_FORMAT(CURRENT_DATE, '%Y-%m') GROUP BY BusinessDate ORDER BY BusinessDate LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q049",
+          "difficulty": "medium",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 1559.4,
+          "sql": "SELECT DATE_FORMAT(BusinessDate, '%Y-%m-%d') AS Ngay, SUM(SoLuong) AS TongSoLuongNhap FROM vw_ai_kho WHERE LoaiBanGhi = 'GIAO_DICH_KHO' AND LoaiGiaoDich = 'Nhập' AND BusinessDate >= DATE_FORMAT(CURRENT_DATE, '%Y-%m-01') AND BusinessDate < DATE_FORMAT(DATE_ADD(CURRENT_DATE, INTERVAL '1' MONTH), '%Y-%m-01') GROUP BY BusinessDate ORDER BY BusinessDate LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q050",
+          "difficulty": "medium",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 1696.6,
+          "sql": "SELECT TenNguyenLieu, SoLuongTon FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' ORDER BY SoLuongTon ASC LIMIT 5",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q051",
+          "difficulty": "medium",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 2259.6,
+          "sql": "SELECT LoaiGiaoDich, COUNT(*) AS SoLuongGiaoDich FROM vw_ai_kho WHERE LoaiBanGhi = 'GIAO_DICH_KHO' GROUP BY LoaiGiaoDich ORDER BY LoaiGiaoDich LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q052",
+          "difficulty": "medium",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 1302.3,
+          "sql": "",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q053",
+          "difficulty": "medium",
+          "role": "WAREHOUSE",
+          "status": "sai",
+          "latency_ms": 1934.9,
+          "sql": "SELECT TenNguyenLieu, DonViTinh, SoLuongTon FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' ORDER BY TenNguyenLieu, DonViTinh LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q054",
+          "difficulty": "medium",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 1904.5,
+          "sql": "",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q055",
+          "difficulty": "medium",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 1479.6,
+          "sql": "SELECT TenNguyenLieu, SUM(SoLuong) AS TongSoLuongNhap FROM vw_ai_kho WHERE LoaiBanGhi = 'GIAO_DICH_KHO' AND LoaiGiaoDich = 'Nhập' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '30' DAY) GROUP BY MaNguyenLieu, TenNguyenLieu ORDER BY TenNguyenLieu LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q056",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 2304.5,
+          "sql": "SELECT ROUND((SUM(CASE WHEN DATE_FORMAT(BusinessDate, '%Y%m') = DATE_FORMAT(CURRENT_DATE, '%Y%m') THEN TongTien ELSE 0 END) - SUM(CASE WHEN DATE_FORMAT(BusinessDate, '%Y%m') = DATE_FORMAT(DATE_SUB(CURRENT_DATE, INTERVAL '1' MONTH), '%Y%m') THEN TongTien ELSE 0 END)) / NULLIF(SUM(CASE WHEN DATE_FORMAT(BusinessDate, '%Y%m') = DATE_FORMAT(DATE_SUB(CURRENT_DATE, INTERVAL '1' MONTH), '%Y%m') THEN TongTien ELSE 0 END), 0) * 100, 2) AS PhanTramTangGiam FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q057",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 7710.1,
+          "sql": "SELECT DATE_FORMAT(BusinessDate, '%Y-%m') AS Thang, AVG(TongTien) AS DoanhThuTrungBinhMoiDon FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) GROUP BY DATE_FORMAT(BusinessDate, '%Y-%m') ORDER BY Thang LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q058",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 8105.0,
+          "sql": "SELECT BusinessDate, SUM(TongTien) AS DoanhThu FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) AND MONTH(BusinessDate) = MONTH(CURRENT_DATE) GROUP BY BusinessDate HAVING SUM(TongTien) > (SELECT AVG(DoanhThuNgay) FROM (SELECT SUM(TongTien) AS DoanhThuNgay FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) AND MONTH(BusinessDate) = MONTH(CURRENT_DATE) GROUP BY BusinessDate) AS t) ORDER BY BusinessDate LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q059",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 11174.0,
+          "sql": "SELECT HOUR(ThoiDiemXuat) AS Gio, SUM(TongTien) AS DoanhThu FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '7' DAY) AND BusinessDate <= CURRENT_DATE GROUP BY HOUR(ThoiDiemXuat) ORDER BY Gio LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q060",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 3834.5,
+          "sql": "SELECT LoaiDon, DATE_FORMAT(BusinessDate, '%Y-%m') AS Thang, COUNT(DISTINCT MaOrder) AS SoDon FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '3' MONTH) GROUP BY LoaiDon, DATE_FORMAT(BusinessDate, '%Y-%m') ORDER BY Thang, LoaiDon LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q061",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 7450.8,
+          "sql": "SELECT MaBan, BusinessDate, DoanhThu FROM (SELECT MaBan, BusinessDate, DoanhThu, RANK() OVER (PARTITION BY MaBan ORDER BY DoanhThu DESC) AS rnk FROM (SELECT MaBan, BusinessDate, SUM(ThanhTienMon) AS DoanhThu FROM vw_ai_quanly WHERE LoaiBanGhi = 'DONG_MON' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) AND MONTH(BusinessDate) = MONTH(CURRENT_DATE) GROUP BY MaBan, BusinessDate) AS s) AS t WHERE rnk = 1 ORDER BY MaBan, BusinessDate LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q062",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 6455.3,
+          "sql": "SELECT BusinessDate, SUM(TongTien) AS DoanhThuNgay, SUM(SUM(TongTien)) OVER (ORDER BY BusinessDate) AS DoanhThuLuyKe FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate >= DATE_FORMAT(CURRENT_DATE, '%Y-%m-01') AND BusinessDate < DATE_ADD(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL '1' MONTH) GROUP BY BusinessDate ORDER BY BusinessDate LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q063",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 3537.2,
+          "sql": "SELECT TenNguyenLieu, SoLuongTon FROM vw_ai_quanly WHERE LoaiBanGhi = 'TON_KHO' AND SoLuongTon > (SELECT AVG(SoLuongTon) FROM vw_ai_quanly WHERE LoaiBanGhi = 'TON_KHO') LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q064",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 8303.4,
+          "sql": "SELECT Thang, AVG(SoDon) AS SoDonTrungBinhMoiNgay FROM (SELECT DATE_FORMAT(BusinessDate, '%Y-%m') AS Thang, BusinessDate, COUNT(DISTINCT MaOrder) AS SoDon FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) GROUP BY Thang, BusinessDate) AS Daily GROUP BY Thang ORDER BY Thang LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q065",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 6042.7,
+          "sql": "SELECT PhuongThuc, SUM(SoTien) AS SoTien, ROUND(SUM(SoTien) * 100 / (SELECT SUM(SoTien) FROM vw_ai_quanly WHERE LoaiBanGhi = 'THANH_TOAN' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '30' DAY) AND BusinessDate <= CURRENT_DATE), 2) AS TiLePhanTram FROM vw_ai_quanly WHERE LoaiBanGhi = 'THANH_TOAN' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '30' DAY) AND BusinessDate <= CURRENT_DATE GROUP BY PhuongThuc ORDER BY SoTien DESC LIMIT 1",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q066",
+          "difficulty": "hard",
+          "role": "CASHIER",
+          "status": "sai",
+          "latency_ms": 35003.5,
+          "sql": "SELECT BusinessDate, SUM(TongTien) AS DoanhThu, COUNT(DISTINCT MaOrder) AS SoDon FROM vw_ai_thungan WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate BETWEEN CURRENT_DATE - INTERVAL '6' DAY AND CURRENT_DATE GROUP BY BusinessDate ORDER BY BusinessDate LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q067",
+          "difficulty": "hard",
+          "role": "CASHIER",
+          "status": "sai",
+          "latency_ms": 15296.4,
+          "sql": "SELECT HOUR(ThoiDiemXuat) AS Gio FROM vw_ai_thungan WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '29' DAY) GROUP BY HOUR(ThoiDiemXuat) ORDER BY SUM(TongTien) DESC LIMIT 1",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q068",
+          "difficulty": "hard",
+          "role": "CASHIER",
+          "status": "sai",
+          "latency_ms": 36417.5,
+          "sql": "WITH RECURSIVE dates AS (SELECT DATE_SUB(CURRENT_DATE, INTERVAL (DAYOFMONTH(CURRENT_DATE) - 1) DAY) AS d UNION ALL SELECT d + INTERVAL '1' DAY FROM dates WHERE d < CURRENT_DATE), daily_revenue AS (SELECT BusinessDate, SUM(TongTien) AS DoanhThu FROM vw_ai_thungan WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate BETWEEN DATE_SUB(CURRENT_DATE, INTERVAL (DAYOFMONTH(CURRENT_DATE) - 1) DAY) AND CURRENT_DATE GROUP BY BusinessDate) SELECT d.d AS Ngay, COALESCE(dr.DoanhThu, 0) AS DoanhThuNgay, SUM(COALESCE(dr.DoanhThu, 0)) OVER (ORDER BY d.d) AS DoanhThuLuyKe FROM dates AS d LEFT JOIN daily_revenue AS dr ON d.d = dr.BusinessDate ORDER BY d.d LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q069",
+          "difficulty": "hard",
+          "role": "CASHIER",
+          "status": "sai",
+          "latency_ms": 7752.0,
+          "sql": "SELECT BusinessDate FROM vw_ai_thungan WHERE LoaiBanGhi = 'ORDER' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '30' DAY) GROUP BY BusinessDate HAVING COUNT(DISTINCT MaOrder) > (SELECT AVG(SoDon) FROM (SELECT COUNT(DISTINCT MaOrder) AS SoDon FROM vw_ai_thungan WHERE LoaiBanGhi = 'ORDER' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '30' DAY) GROUP BY BusinessDate) AS t) ORDER BY BusinessDate LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q070",
+          "difficulty": "hard",
+          "role": "CASHIER",
+          "status": "sai",
+          "latency_ms": 14513.5,
+          "sql": "SELECT SUM(CASE WHEN YEARWEEK(BusinessDate, 1) = YEARWEEK(CURRENT_DATE, 1) THEN SoTien ELSE 0 END) AS DoanhThuTuanNay, SUM(CASE WHEN YEARWEEK(BusinessDate, 1) = YEARWEEK(DATE_SUB(CURRENT_DATE, INTERVAL '1' WEEK), 1) THEN SoTien ELSE 0 END) AS DoanhThuTuanTruoc FROM vw_ai_thungan WHERE LoaiBanGhi = 'THANH_TOAN' AND YEARWEEK(BusinessDate, 1) IN (YEARWEEK(CURRENT_DATE, 1), YEARWEEK(DATE_SUB(CURRENT_DATE, INTERVAL '1' WEEK), 1)) LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q071",
+          "difficulty": "hard",
+          "role": "WAREHOUSE",
+          "status": "sai",
+          "latency_ms": 4732.4,
+          "sql": "SELECT MaNguyenLieu, TenNguyenLieu, SoLuongTon FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' AND SoLuongTon < (SELECT AVG(SoLuongTon) FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO') ORDER BY TenNguyenLieu LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q072",
+          "difficulty": "hard",
+          "role": "WAREHOUSE",
+          "status": "sai",
+          "latency_ms": 4055.0,
+          "sql": "SELECT LoaiGiaoDich, SUM(SoLuong) AS TongSoLuong FROM vw_ai_kho WHERE LoaiBanGhi = 'GIAO_DICH_KHO' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '30' DAY) AND BusinessDate <= CURRENT_DATE GROUP BY LoaiGiaoDich ORDER BY TongSoLuong DESC LIMIT 1",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q073",
+          "difficulty": "hard",
+          "role": "WAREHOUSE",
+          "status": "sai",
+          "latency_ms": 11502.5,
+          "sql": "SELECT MaNguyenLieu, TenNguyenLieu, DonViTinh, SUM(CASE WHEN LoaiGiaoDich = 'Nhập' THEN SoLuong ELSE 0 END) AS SoLuongNhap, SUM(CASE WHEN LoaiGiaoDich = 'Xuất thủ công' THEN SoLuong ELSE 0 END) AS SoLuongXuat FROM vw_ai_kho WHERE LoaiBanGhi = 'GIAO_DICH_KHO' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '30' DAY) AND BusinessDate <= CURRENT_DATE GROUP BY MaNguyenLieu, TenNguyenLieu, DonViTinh ORDER BY TenNguyenLieu LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q074",
+          "difficulty": "hard",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 6076.4,
+          "sql": "SELECT BusinessDate, COUNT(DISTINCT MaGiaoDichKho) AS SoGiaoDich FROM vw_ai_kho WHERE LoaiBanGhi = 'GIAO_DICH_KHO' AND DATE_FORMAT(BusinessDate, '%Y-%m') = DATE_FORMAT(CURRENT_DATE, '%Y-%m') GROUP BY BusinessDate ORDER BY SoGiaoDich DESC, BusinessDate ASC LIMIT 1",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q075",
+          "difficulty": "hard",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 2227.8,
+          "sql": "SELECT TenNguyenLieu, DonViTinh FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' AND NOT MaNguyenLieu IN (SELECT MaNguyenLieu FROM vw_ai_kho WHERE LoaiBanGhi = 'GIAO_DICH_KHO') ORDER BY TenNguyenLieu LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q076",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 2593.4,
+          "sql": "SELECT TenMon, SUM(SoLuongMon) AS SoLuongBan FROM vw_ai_quanly WHERE LoaiBanGhi = 'DONG_MON' AND YEARWEEK(BusinessDate, 1) = YEARWEEK(CURRENT_DATE, 1) GROUP BY TenMon ORDER BY SoLuongBan DESC LIMIT 1",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q077",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 2491.4,
+          "sql": "SELECT TenMon, SUM(ThanhTienMon) AS DoanhThu FROM vw_ai_quanly WHERE LoaiBanGhi = 'DONG_MON' AND DATE_FORMAT(BusinessDate, '%Y%m') = DATE_FORMAT(CURRENT_DATE, '%Y%m') GROUP BY TenMon ORDER BY DoanhThu ASC LIMIT 1",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q078",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 2470.5,
+          "sql": "SELECT DonGiaNhap FROM vw_ai_quanly WHERE LoaiBanGhi = 'PHIEU_NHAP' AND TenNguyenLieu = 'Thịt bò' ORDER BY BusinessDate DESC, MaPhieuNhap DESC LIMIT 1",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q079",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 2273.0,
+          "sql": "SELECT SUM(d.ThanhTienMon) AS TongGiaTriOrderHuy FROM vw_ai_quanly AS d WHERE d.LoaiBanGhi = 'DONG_MON' AND d.MaOrder IN (SELECT MaOrder FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND TrangThaiOrder = 'Đã hủy' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) AND MONTH(BusinessDate) = MONTH(CURRENT_DATE)) LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q080",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 4236.9,
+          "sql": "SELECT LyDoHuyOrder, COUNT(*) AS SoLan FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND TrangThaiOrder = 'Đã hủy' AND DATE_FORMAT(BusinessDate, '%Y%m') = DATE_FORMAT(CURRENT_DATE, '%Y%m') GROUP BY LyDoHuyOrder ORDER BY SoLan DESC LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q081",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 1336.6,
+          "sql": "SELECT TenNhom, SUM(ThanhTienMon) AS DoanhThu FROM vw_ai_quanly WHERE LoaiBanGhi = 'DONG_MON' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) AND MONTH(BusinessDate) = MONTH(CURRENT_DATE) GROUP BY TenNhom ORDER BY DoanhThu DESC LIMIT 3",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q082",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 1359.8,
+          "sql": "SELECT Thang, TenNguyenLieu, GiaBinhQuanThang FROM vw_ai_quanly WHERE LoaiBanGhi = 'GIA_VON_THANG' AND TenNguyenLieu = 'Gạo tẻ' AND Thang = CAST(DATE_FORMAT(DATE_SUB(CURRENT_DATE, INTERVAL '1' MONTH), '%Y%m') AS UNSIGNED) LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q083",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 1555.0,
+          "sql": "SELECT TenNhaCungCap, SUM(SoLuongNhap * DonGiaNhap) AS TongGiaTriNhap FROM vw_ai_quanly WHERE LoaiBanGhi = 'PHIEU_NHAP' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '30' DAY) GROUP BY TenNhaCungCap ORDER BY TongGiaTriNhap DESC LIMIT 1",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q084",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "từ chối",
+          "latency_ms": 36923.9,
+          "sql": "",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q085",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 6627.4,
+          "sql": "SELECT MaNguyenLieu, TenNguyenLieu, DonViTinh, SUM(CASE WHEN LoaiGiaoDich = 'Nhập' THEN SoLuong ELSE 0 END) AS SoLuongNhap, SUM(CASE WHEN LoaiGiaoDich = 'Trừ tự động' THEN SoLuong ELSE 0 END) AS SoLuongTieuHao FROM vw_ai_quanly WHERE LoaiBanGhi = 'GIAO_DICH_KHO' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '30' DAY) GROUP BY MaNguyenLieu, TenNguyenLieu, DonViTinh ORDER BY TenNguyenLieu LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q086",
+          "difficulty": "easy",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 2372.2,
+          "sql": "SELECT TenMon, SUM(SoLuongMon) AS TongSoLuong FROM vw_ai_thungan WHERE LoaiBanGhi = 'DONG_MON' AND BusinessDate = CURRENT_DATE GROUP BY TenMon ORDER BY TongSoLuong DESC LIMIT 1",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q087",
+          "difficulty": "medium",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 12307.9,
+          "sql": "SELECT TenMon, SUM(ThanhTienMon) AS DoanhThu FROM vw_ai_thungan WHERE LoaiBanGhi = 'DONG_MON' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '6' DAY) AND BusinessDate <= CURRENT_DATE GROUP BY TenMon ORDER BY DoanhThu DESC LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q088",
+          "difficulty": "medium",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 1534.6,
+          "sql": "SELECT TenMon FROM vw_ai_thungan WHERE LoaiBanGhi = 'DONG_MON' AND BusinessDate = CURRENT_DATE ORDER BY DonGiaMon DESC LIMIT 1",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q089",
+          "difficulty": "hard",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 2096.8,
+          "sql": "SELECT TenNhom, SUM(SoLuongMon) AS SoLuongBan FROM vw_ai_thungan WHERE LoaiBanGhi = 'DONG_MON' AND DATE_FORMAT(BusinessDate, '%Y-%m') = DATE_FORMAT(CURRENT_DATE, '%Y-%m') GROUP BY TenNhom ORDER BY SoLuongBan DESC LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q090",
+          "difficulty": "easy",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 2242.1,
+          "sql": "SELECT TenNguyenLieu, SoLuongTon, MucTonToiThieu FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' AND SoLuongTon < MucTonToiThieu ORDER BY TenNguyenLieu LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q091",
+          "difficulty": "easy",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 1453.3,
+          "sql": "SELECT COUNT(*) AS SoNguyenLieuCanhBaoTonThap FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' AND CanhBaoTonThap = 1 LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q092",
+          "difficulty": "medium",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 5988.9,
+          "sql": "SELECT MaLo, MaNguyenLieu, TenNguyenLieu, DonViTinh, SoLuongConLai, HanSuDungLo FROM vw_ai_kho WHERE LoaiBanGhi = 'LO_NGUYEN_LIEU' AND TrangThaiLo = 'Còn hạn' AND SoLuongConLai > 0 AND HanSuDungLo >= NOW() AND HanSuDungLo <= DATE_SUB(NOW(), INTERVAL '-7' DAY) ORDER BY HanSuDungLo LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q093",
+          "difficulty": "medium",
+          "role": "WAREHOUSE",
+          "status": "sai",
+          "latency_ms": 1328.1,
+          "sql": "SELECT MaLo, MaNguyenLieu, TenNguyenLieu, SoLuongConLai, HanSuDungLo FROM vw_ai_kho WHERE LoaiBanGhi = 'LO_NGUYEN_LIEU' AND TrangThaiLo = 'Còn hạn' ORDER BY SoLuongConLai DESC LIMIT 1",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q094",
+          "difficulty": "medium",
+          "role": "WAREHOUSE",
+          "status": "sai",
+          "latency_ms": 2438.5,
+          "sql": "SELECT MaNguyenLieu, TenNguyenLieu, DonViTinh, MucTonToiThieu FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' ORDER BY TenNguyenLieu LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q095",
+          "difficulty": "hard",
+          "role": "WAREHOUSE",
+          "status": "sai",
+          "latency_ms": 3724.4,
+          "sql": "SELECT MaNguyenLieu, TenNguyenLieu, COUNT(*) AS SoLoConHan FROM vw_ai_kho WHERE LoaiBanGhi = 'LO_NGUYEN_LIEU' AND TrangThaiLo = 'Còn hạn' GROUP BY MaNguyenLieu, TenNguyenLieu ORDER BY SoLoConHan DESC LIMIT 1",
+          "relaxed": true
+        }
+      ],
+      "failures": [
+        {
+          "question_id": "Q006",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q010",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q029",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q031",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q037",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q038",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q040",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q042",
+          "reason": "từ chối ngoài dự kiến: Bạn muốn doanh thu được tính từ tổng tiền thanh toán (LoaiBanGhi = 'THANH_TOAN') hay từ tổng tiền hóa đơn (LoaiBanGhi = 'HOA_DON')?"
+        },
+        {
+          "question_id": "Q044",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q046",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q053",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q056",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q057",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q060",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q061",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q064",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q065",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q066",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q067",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q068",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q069",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q070",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q071",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q072",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q073",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q076",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q082",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q084",
+          "reason": "từ chối ngoài dự kiến: Bạn có thể cung cấp thêm cách ước tính giá vốn hàng bán (COGS) tháng trước không? View hiện tại không có dữ liệu trực tiếp về chi phí nguyên liệu theo từng món bán hay theo hóa đơn, nên chưa thể tính biên lợi nhuận gộp chính xác."
+        },
+        {
+          "question_id": "Q085",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q093",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q094",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q095",
+          "reason": "kết quả khác SQL chuẩn"
+        }
+      ]
+    },
+    "C": {
+      "outcomes": [
+        {
+          "question_id": "Q001",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 6271.5,
+          "sql": "SELECT COUNT(*) AS SoDonHang FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND BusinessDate = CURRENT_DATE LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q002",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 7892.3,
+          "sql": "SELECT COUNT(DISTINCT MaHoaDon) AS SoHoaDon FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate >= DATE_FORMAT(CURRENT_DATE, '%Y-%m-01') AND BusinessDate < DATE_ADD(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL '1' MONTH) LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q003",
+          "difficulty": "easy",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 3916.4,
+          "sql": "SELECT COUNT(*) AS SoDon FROM vw_ai_thungan WHERE LoaiBanGhi = 'ORDER' AND BusinessDate = CURRENT_DATE LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q004",
+          "difficulty": "easy",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 11597.8,
+          "sql": "SELECT SUM(TongTien) AS TongThu FROM vw_ai_thungan WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate = CURRENT_DATE LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q005",
+          "difficulty": "easy",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 4242.7,
+          "sql": "SELECT COUNT(*) FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q006",
+          "difficulty": "easy",
+          "role": "WAREHOUSE",
+          "status": "sai",
+          "latency_ms": 3208.6,
+          "sql": "SELECT TenNguyenLieu, SoLuongTon, DonViTinh FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' AND SoLuongTon < 5 ORDER BY TenNguyenLieu LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q007",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 10385.1,
+          "sql": "SELECT SUM(TongTien) AS DoanhThuHomQua FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate = DATE_SUB(CURRENT_DATE, INTERVAL '1' DAY) LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q008",
+          "difficulty": "easy",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 8661.6,
+          "sql": "SELECT COUNT(*) AS SoLuongGiaoDichQR FROM vw_ai_thungan WHERE LoaiBanGhi = 'THANH_TOAN' AND BusinessDate = CURRENT_DATE AND LOWER(PhuongThuc) = 'qr' LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q009",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "từ chối",
+          "latency_ms": 5767.2,
+          "sql": "",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q010",
+          "difficulty": "easy",
+          "role": "WAREHOUSE",
+          "status": "sai",
+          "latency_ms": 3866.4,
+          "sql": "SELECT TenNguyenLieu, SoLuongTon, DonViTinh FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' AND TenNguyenLieu LIKE '%Thịt bò%' ORDER BY TenNguyenLieu LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q011",
+          "difficulty": "easy",
+          "role": "CASHIER",
+          "status": "từ chối",
+          "latency_ms": 9447.5,
+          "sql": "",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q012",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 2272.3,
+          "sql": "SELECT AVG(TongTien) AS TrungBinhHoaDon FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate = CURRENT_DATE LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q013",
+          "difficulty": "easy",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 6572.7,
+          "sql": "SELECT COUNT(*) FROM vw_ai_kho WHERE LoaiBanGhi = 'GIAO_DICH_KHO' LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q014",
+          "difficulty": "easy",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 5170.1,
+          "sql": "SELECT COUNT(*) AS SoGiaoDichTienMat FROM vw_ai_thungan WHERE LoaiBanGhi = 'THANH_TOAN' AND BusinessDate = CURRENT_DATE AND PhuongThuc = 'Tiền mặt' LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q015",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 13024.8,
+          "sql": "SELECT COUNT(*) AS SoDonDangMo FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND TrangThaiOrder = 'Đang mở' AND BusinessDate = CURRENT_DATE LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q016",
+          "difficulty": "easy",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 2449.8,
+          "sql": "SELECT MAX(SoLuongTon) FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q017",
+          "difficulty": "easy",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 5092.6,
+          "sql": "",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q018",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 9260.2,
+          "sql": "SELECT COUNT(DISTINCT MaBan) AS SoBanDuocPhucVu FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND BusinessDate = CURRENT_DATE AND TrangThaiOrder <> 'Đã hủy' LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q019",
+          "difficulty": "easy",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 3669.5,
+          "sql": "",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q020",
+          "difficulty": "easy",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 5239.3,
+          "sql": "",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q021",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 4481.1,
+          "sql": "SELECT COUNT(*) AS SoDonHuy FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND BusinessDate = CURRENT_DATE AND TrangThaiOrder = 'Đã hủy' LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q022",
+          "difficulty": "easy",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 3531.6,
+          "sql": "SELECT SUM(SoLuong) AS TongSoLuongNhapKho FROM vw_ai_kho WHERE LoaiBanGhi = 'GIAO_DICH_KHO' AND LoaiGiaoDich = 'Nhập' LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q023",
+          "difficulty": "easy",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 5082.4,
+          "sql": "SELECT COUNT(*) AS SoHoaDon FROM vw_ai_thungan WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate = CURRENT_DATE LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q024",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 6671.2,
+          "sql": "SELECT COUNT(DISTINCT MaNguyenLieu) AS SoLuongNguyenLieu FROM vw_ai_quanly WHERE LoaiBanGhi = 'TON_KHO' LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q025",
+          "difficulty": "easy",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 4827.8,
+          "sql": "SELECT COUNT(*) AS SoLuongNguyenLieuHetHang FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' AND SoLuongTon = 0 LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q026",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 5694.7,
+          "sql": "SELECT BusinessDate, SUM(TongTien) AS DoanhThu FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate >= DATE_FORMAT(CURRENT_DATE, '%Y-%m-01') AND BusinessDate <= CURRENT_DATE GROUP BY BusinessDate ORDER BY BusinessDate LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q027",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 6073.0,
+          "sql": "SELECT MaBan, SUM(TongTien) AS DoanhThu FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND DATE_FORMAT(BusinessDate, '%Y-%m') = DATE_FORMAT(CURRENT_DATE, '%Y-%m') GROUP BY MaBan ORDER BY DoanhThu DESC LIMIT 5",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q028",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 6493.9,
+          "sql": "SELECT PhuongThuc, SUM(SoTien) AS DoanhThu FROM vw_ai_quanly WHERE LoaiBanGhi = 'THANH_TOAN' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) AND MONTH(BusinessDate) = MONTH(CURRENT_DATE) GROUP BY PhuongThuc LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q029",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 15991.6,
+          "sql": "SELECT BusinessDate, COUNT(*) AS SoDon FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '7' DAY) AND BusinessDate < CURRENT_DATE GROUP BY BusinessDate ORDER BY BusinessDate LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q030",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "lỗi",
+          "latency_ms": 7436.2,
+          "sql": "SELECT DATE_FORMAT(BusinessDate, '%Y-%m') AS Thang, COUNT(MaHoaDon) AS SoHoaDon FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) GROUP BY Thang ORDER BY Thang LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q031",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 12559.8,
+          "sql": "SELECT MONTH(BusinessDate) AS Thang, SUM(TongTien) AS DoanhThu FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) GROUP BY MONTH(BusinessDate) ORDER BY Thang LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q032",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 15669.9,
+          "sql": "SELECT LoaiDon, COUNT(*) AS SoDon FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND BusinessDate >= CURRENT_DATE - INTERVAL '29' DAY AND LoaiDon IN ('Tại chỗ', 'Mang về') GROUP BY LoaiDon ORDER BY SoDon DESC LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q033",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 5360.8,
+          "sql": "SELECT PhuongThuc, SUM(SoTien) AS TongTien FROM vw_ai_quanly WHERE LoaiBanGhi = 'THANH_TOAN' AND BusinessDate >= CURRENT_DATE - 7 GROUP BY PhuongThuc ORDER BY TongTien DESC LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q034",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 7254.2,
+          "sql": "SELECT BusinessDate, SUM(TongTien) AS DoanhThu FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) AND MONTH(BusinessDate) = MONTH(CURRENT_DATE) GROUP BY BusinessDate ORDER BY DoanhThu DESC LIMIT 1",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q035",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 4569.1,
+          "sql": "SELECT HOUR(ThoiDiemXuat) AS Gio, COUNT(MaHoaDon) AS SoHoaDon FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate = CURRENT_DATE - INTERVAL '1' DAY GROUP BY HOUR(ThoiDiemXuat) ORDER BY Gio LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q036",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 13322.7,
+          "sql": "SELECT SUM(TongTien) / 30 AS DoanhThuTrungBinhNgay FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate BETWEEN CURRENT_DATE - INTERVAL '29' DAY AND CURRENT_DATE LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q037",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 10598.6,
+          "sql": "SELECT BusinessDate, COUNT(*) AS SoGiaoDich FROM vw_ai_quanly WHERE LoaiBanGhi = 'THANH_TOAN' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL (WEEKDAY(CURRENT_DATE)) DAY) AND BusinessDate <= CURRENT_DATE GROUP BY BusinessDate ORDER BY BusinessDate LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q038",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 18759.2,
+          "sql": "SELECT TenNguyenLieu, SUM(SoLuongTon) AS SoLuongTon FROM vw_ai_quanly WHERE LoaiBanGhi = 'TON_KHO' GROUP BY MaNguyenLieu, TenNguyenLieu ORDER BY SoLuongTon DESC LIMIT 10",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q039",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 15857.5,
+          "sql": "SELECT BusinessDate, COUNT(*) AS SoDonHuy FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND TrangThaiOrder IN ('Đã hủy', 'Đã huỷ') AND BusinessDate >= DATE_FORMAT(CURRENT_DATE, '%Y-%m-01') AND BusinessDate <= CURRENT_DATE GROUP BY BusinessDate ORDER BY BusinessDate LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q040",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "lỗi",
+          "latency_ms": 20265.0,
+          "sql": "",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q041",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 14828.8,
+          "sql": "SELECT DATE_FORMAT(BusinessDate, '%Y-%m') AS Thang, COUNT(*) AS SoHoaDon FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate >= DATE_FORMAT(DATE_SUB(CURRENT_DATE, INTERVAL '5' MONTH), '%Y-%m-01') GROUP BY DATE_FORMAT(BusinessDate, '%Y-%m') ORDER BY Thang LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q042",
+          "difficulty": "medium",
+          "role": "CASHIER",
+          "status": "sai",
+          "latency_ms": 10764.0,
+          "sql": "SELECT BusinessDate, SUM(TongTien) AS DoanhThu FROM vw_ai_thungan WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate BETWEEN DATE_SUB(CURRENT_DATE, INTERVAL (WEEKDAY(CURRENT_DATE)) DAY) AND CURRENT_DATE GROUP BY BusinessDate ORDER BY BusinessDate LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q043",
+          "difficulty": "medium",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 5914.8,
+          "sql": "SELECT HOUR(ThoiDiemXuat) AS Gio, COUNT(MaHoaDon) AS SoHoaDon FROM vw_ai_thungan WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate = CURRENT_DATE GROUP BY HOUR(ThoiDiemXuat) ORDER BY Gio LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q044",
+          "difficulty": "medium",
+          "role": "CASHIER",
+          "status": "sai",
+          "latency_ms": 7500.5,
+          "sql": "SELECT BusinessDate, SUM(TongTien) AS DoanhThu FROM vw_ai_thungan WHERE LoaiBanGhi = 'HOA_DON' AND DATE_FORMAT(BusinessDate, '%Y%m') = DATE_FORMAT(CURRENT_DATE, '%Y%m') GROUP BY BusinessDate ORDER BY DoanhThu DESC LIMIT 5",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q045",
+          "difficulty": "medium",
+          "role": "CASHIER",
+          "status": "sai",
+          "latency_ms": 15771.5,
+          "sql": "SELECT PhuongThuc, COUNT(*) AS SoDon FROM vw_ai_thungan WHERE LoaiBanGhi = 'THANH_TOAN' AND BusinessDate >= CURRENT_DATE - 30 GROUP BY PhuongThuc LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q046",
+          "difficulty": "medium",
+          "role": "CASHIER",
+          "status": "sai",
+          "latency_ms": 17906.5,
+          "sql": "SELECT BusinessDate, SUM(SoTien) AS TongTienThu FROM vw_ai_thungan WHERE LoaiBanGhi = 'THANH_TOAN' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '6' DAY) GROUP BY BusinessDate ORDER BY BusinessDate LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q047",
+          "difficulty": "medium",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 3611.7,
+          "sql": "",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q048",
+          "difficulty": "medium",
+          "role": "CASHIER",
+          "status": "từ chối",
+          "latency_ms": 1790.6,
+          "sql": "",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q049",
+          "difficulty": "medium",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 6667.0,
+          "sql": "SELECT BusinessDate, SUM(SoLuong) AS TongNhap FROM vw_ai_kho WHERE LoaiBanGhi = 'GIAO_DICH_KHO' AND LoaiGiaoDich = 'Nhập' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) AND MONTH(BusinessDate) = MONTH(CURRENT_DATE) GROUP BY BusinessDate ORDER BY BusinessDate LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q050",
+          "difficulty": "medium",
+          "role": "WAREHOUSE",
+          "status": "sai",
+          "latency_ms": 3119.3,
+          "sql": "SELECT TenNguyenLieu, SoLuongTon, DonViTinh FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' ORDER BY SoLuongTon ASC LIMIT 5",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q051",
+          "difficulty": "medium",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 3352.9,
+          "sql": "SELECT LoaiGiaoDich, COUNT(*) AS SoGiaoDich FROM vw_ai_kho WHERE LoaiBanGhi = 'GIAO_DICH_KHO' GROUP BY LoaiGiaoDich ORDER BY LoaiGiaoDich LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q052",
+          "difficulty": "medium",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 3000.9,
+          "sql": "",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q053",
+          "difficulty": "medium",
+          "role": "WAREHOUSE",
+          "status": "sai",
+          "latency_ms": 2975.3,
+          "sql": "SELECT TenNguyenLieu, DonViTinh, SoLuongTon FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' ORDER BY TenNguyenLieu LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q054",
+          "difficulty": "medium",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 3212.0,
+          "sql": "",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q055",
+          "difficulty": "medium",
+          "role": "WAREHOUSE",
+          "status": "sai",
+          "latency_ms": 7688.8,
+          "sql": "SELECT MaNguyenLieu, TenNguyenLieu, SUM(SoLuong) AS TongNhap FROM vw_ai_kho WHERE LoaiBanGhi = 'GIAO_DICH_KHO' AND LoaiGiaoDich = 'Nhập' AND BusinessDate BETWEEN DATE_SUB(CURRENT_DATE, INTERVAL '30' DAY) AND CURRENT_DATE GROUP BY MaNguyenLieu, TenNguyenLieu ORDER BY TenNguyenLieu LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q056",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 14550.4,
+          "sql": "SELECT ROUND((Cur.DoanhThu - Prev.DoanhThu) / NULLIF(Prev.DoanhThu, 0) * 100, 2) AS PhanTramThayDoi FROM (SELECT COALESCE(SUM(TongTien), 0) AS DoanhThu FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND DATE_FORMAT(BusinessDate, '%Y%m') = DATE_FORMAT(CURRENT_DATE, '%Y%m')) AS Cur, (SELECT COALESCE(SUM(TongTien), 0) AS DoanhThu FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND DATE_FORMAT(BusinessDate, '%Y%m') = DATE_FORMAT(DATE_SUB(CURRENT_DATE, INTERVAL '1' MONTH), '%Y%m')) AS Prev LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q057",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "lỗi",
+          "latency_ms": 6965.6,
+          "sql": "SELECT DATE_FORMAT(BusinessDate, '%Y-%m') AS Thang, AVG(TongTien) AS DoanhThuTrungBinh FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) GROUP BY Thang ORDER BY Thang LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q058",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 9783.5,
+          "sql": "SELECT BusinessDate, SUM(TongTien) AS doanh_thu FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate >= DATE_FORMAT(CURRENT_DATE, '%Y-%m-01') AND BusinessDate <= CURRENT_DATE GROUP BY BusinessDate HAVING SUM(TongTien) > (SELECT AVG(tong_ngay) FROM (SELECT SUM(TongTien) AS tong_ngay FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate >= DATE_FORMAT(CURRENT_DATE, '%Y-%m-01') AND BusinessDate <= CURRENT_DATE GROUP BY BusinessDate) AS sub) LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q059",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 10632.1,
+          "sql": "SELECT HOUR(ThoiDiemXuat) AS Gio, SUM(TongTien) AS DoanhThu FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND ThoiDiemXuat >= NOW() - INTERVAL '7' DAY GROUP BY HOUR(ThoiDiemXuat) ORDER BY Gio LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q060",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 12054.9,
+          "sql": "SELECT DATE_FORMAT(BusinessDate, '%Y-%m') AS Thang, LoaiDon, COUNT(*) AS SoDon FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND BusinessDate >= DATE_SUB(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL '2' MONTH) GROUP BY DATE_FORMAT(BusinessDate, '%Y-%m'), LoaiDon ORDER BY Thang, LoaiDon LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q061",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "lỗi",
+          "latency_ms": 20192.5,
+          "sql": "",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q062",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 11616.5,
+          "sql": "SELECT BusinessDate, SUM(SUM(TongTien)) OVER (ORDER BY BusinessDate) AS DoanhThuLuyKe FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate >= DATE_FORMAT(CURRENT_DATE, '%Y-%m-01') AND BusinessDate <= CURRENT_DATE GROUP BY BusinessDate ORDER BY BusinessDate LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q063",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 9192.9,
+          "sql": "SELECT TenNguyenLieu, SoLuongTon FROM vw_ai_quanly WHERE LoaiBanGhi = 'TON_KHO' AND SoLuongTon > (SELECT AVG(SoLuongTon) FROM vw_ai_quanly WHERE LoaiBanGhi = 'TON_KHO') LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q064",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "lỗi",
+          "latency_ms": 20245.1,
+          "sql": "",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q065",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 9592.3,
+          "sql": "SELECT PhuongThuc, SUM(SoTien) AS SoTien, (SUM(SoTien) / (SELECT SUM(SoTien) FROM vw_ai_quanly WHERE LoaiBanGhi = 'THANH_TOAN' AND BusinessDate >= CURRENT_DATE - INTERVAL '30' DAY)) * 100 AS TyLePhanTram FROM vw_ai_quanly WHERE LoaiBanGhi = 'THANH_TOAN' AND BusinessDate >= CURRENT_DATE - INTERVAL '30' DAY GROUP BY PhuongThuc ORDER BY SoTien DESC LIMIT 1",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q066",
+          "difficulty": "hard",
+          "role": "CASHIER",
+          "status": "sai",
+          "latency_ms": 9294.2,
+          "sql": "SELECT BusinessDate, SUM(TongTien) AS DoanhThu, COUNT(MaHoaDon) AS SoDon FROM vw_ai_thungan WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate BETWEEN DATE_SUB(CURRENT_DATE, INTERVAL '6' DAY) AND CURRENT_DATE GROUP BY BusinessDate ORDER BY BusinessDate LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q067",
+          "difficulty": "hard",
+          "role": "CASHIER",
+          "status": "sai",
+          "latency_ms": 16801.4,
+          "sql": "SELECT HOUR(ThoiDiemXuat) AS Gio, SUM(TongTien) AS DoanhThu FROM vw_ai_thungan WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate BETWEEN CURRENT_DATE - 30 AND CURRENT_DATE - 1 GROUP BY HOUR(ThoiDiemXuat) ORDER BY DoanhThu DESC LIMIT 1",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q068",
+          "difficulty": "hard",
+          "role": "CASHIER",
+          "status": "sai",
+          "latency_ms": 10016.0,
+          "sql": "SELECT BusinessDate, SUM(TongTien) AS DoanhThuNgay, SUM(SUM(TongTien)) OVER (ORDER BY BusinessDate) AS DoanhThuLuyKe FROM vw_ai_thungan WHERE LoaiBanGhi = 'HOA_DON' AND BusinessDate >= DATE_FORMAT(CURRENT_DATE, '%Y-%m-01') AND BusinessDate <= CURRENT_DATE GROUP BY BusinessDate ORDER BY BusinessDate LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q069",
+          "difficulty": "hard",
+          "role": "CASHIER",
+          "status": "lỗi",
+          "latency_ms": 20397.7,
+          "sql": "",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q070",
+          "difficulty": "hard",
+          "role": "CASHIER",
+          "status": "từ chối",
+          "latency_ms": 16395.5,
+          "sql": "",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q071",
+          "difficulty": "hard",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 4801.1,
+          "sql": "SELECT TenNguyenLieu, SoLuongTon FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' AND SoLuongTon < (SELECT AVG(SoLuongTon) FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO') ORDER BY TenNguyenLieu LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q072",
+          "difficulty": "hard",
+          "role": "WAREHOUSE",
+          "status": "lỗi",
+          "latency_ms": 20222.2,
+          "sql": "",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q073",
+          "difficulty": "hard",
+          "role": "WAREHOUSE",
+          "status": "sai",
+          "latency_ms": 20280.3,
+          "sql": "SELECT MaNguyenLieu, TenNguyenLieu, SUM(CASE WHEN LoaiGiaoDich IN ('Nhập', 'Hoàn kho') THEN SoLuong ELSE 0 END) AS SoLuongNhap, SUM(CASE WHEN LoaiGiaoDich IN ('Trừ tự động', 'Xuất thủ công') THEN SoLuong ELSE 0 END) AS SoLuongXuat FROM vw_ai_kho WHERE LoaiBanGhi = 'GIAO_DICH_KHO' AND BusinessDate >= DATE_SUB(CURRENT_DATE, INTERVAL '29' DAY) AND BusinessDate <= CURRENT_DATE GROUP BY MaNguyenLieu, TenNguyenLieu ORDER BY TenNguyenLieu LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q074",
+          "difficulty": "hard",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 2706.4,
+          "sql": "SELECT BusinessDate, COUNT(MaGiaoDichKho) AS SoGiaoDich FROM vw_ai_kho WHERE LoaiBanGhi = 'GIAO_DICH_KHO' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) AND MONTH(BusinessDate) = MONTH(CURRENT_DATE) GROUP BY BusinessDate ORDER BY SoGiaoDich DESC LIMIT 1",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q075",
+          "difficulty": "hard",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 2538.3,
+          "sql": "SELECT n.TenNguyenLieu FROM vw_ai_kho AS n WHERE n.LoaiBanGhi = 'TON_KHO' AND NOT EXISTS(SELECT 1 FROM vw_ai_kho AS g WHERE g.LoaiBanGhi = 'GIAO_DICH_KHO' AND g.MaNguyenLieu = n.MaNguyenLieu) ORDER BY n.TenNguyenLieu LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q076",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 6831.9,
+          "sql": "SELECT TenMon, SUM(SoLuongMon) AS TongSoLuong FROM vw_ai_quanly WHERE LoaiBanGhi = 'DONG_MON' AND YEARWEEK(BusinessDate, 1) = YEARWEEK(CURRENT_DATE, 1) GROUP BY TenMon ORDER BY TongSoLuong DESC LIMIT 1",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q077",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 6655.7,
+          "sql": "SELECT TenMon, SUM(ThanhTienMon) AS DoanhThu FROM vw_ai_quanly WHERE LoaiBanGhi = 'DONG_MON' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) AND MONTH(BusinessDate) = MONTH(CURRENT_DATE) GROUP BY TenMon ORDER BY DoanhThu ASC LIMIT 1",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q078",
+          "difficulty": "easy",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 6211.0,
+          "sql": "SELECT DonGiaNhap FROM vw_ai_quanly WHERE LoaiBanGhi = 'PHIEU_NHAP' AND TenNguyenLieu = 'Thịt bò' ORDER BY MaPhieuNhap DESC LIMIT 1",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q079",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 18206.0,
+          "sql": "SELECT SUM(ThanhTienMon) AS TongGiaTriOrderHuy FROM vw_ai_quanly WHERE LoaiBanGhi = 'DONG_MON' AND MaOrder IN (SELECT MaOrder FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND TrangThaiOrder = 'Đã hủy' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) AND MONTH(BusinessDate) = MONTH(CURRENT_DATE)) LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q080",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 15866.1,
+          "sql": "SELECT LyDoHuyOrder, COUNT(*) AS SoLanXuatHien FROM vw_ai_quanly WHERE LoaiBanGhi = 'ORDER' AND TrangThaiOrder = 'Đã hủy' AND BusinessDate >= DATE_FORMAT(CURRENT_DATE, '%Y-%m-01') AND BusinessDate < DATE_FORMAT(DATE_ADD(CURRENT_DATE, INTERVAL '1' MONTH), '%Y-%m-01') GROUP BY LyDoHuyOrder ORDER BY SoLanXuatHien DESC LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q081",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 7017.9,
+          "sql": "SELECT TenNhom, SUM(ThanhTienMon) AS DoanhThu FROM vw_ai_quanly WHERE LoaiBanGhi = 'DONG_MON' AND BusinessDate >= DATE_FORMAT(CURRENT_DATE, '%Y-%m-01') GROUP BY TenNhom ORDER BY DoanhThu DESC LIMIT 3",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q082",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 7497.3,
+          "sql": "SELECT GiaBinhQuanThang FROM vw_ai_quanly WHERE LoaiBanGhi = 'GIA_VON_THANG' AND TenNguyenLieu = 'Gạo tẻ' AND Thang = DATE_FORMAT(DATE_SUB(CURRENT_DATE, INTERVAL '1' MONTH), '%Y%m') LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q083",
+          "difficulty": "medium",
+          "role": "MANAGER",
+          "status": "đúng",
+          "latency_ms": 4296.7,
+          "sql": "SELECT TenNhaCungCap, SUM(SoLuongNhap * DonGiaNhap) AS TongGiaTriNhap FROM vw_ai_quanly WHERE LoaiBanGhi = 'PHIEU_NHAP' AND BusinessDate >= CURRENT_DATE - INTERVAL '30' DAY GROUP BY TenNhaCungCap ORDER BY TongGiaTriNhap DESC LIMIT 1",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q084",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "từ chối",
+          "latency_ms": 9087.2,
+          "sql": "",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q085",
+          "difficulty": "hard",
+          "role": "MANAGER",
+          "status": "sai",
+          "latency_ms": 9582.1,
+          "sql": "SELECT MaNguyenLieu, TenNguyenLieu, SUM(CASE WHEN LoaiGiaoDich = 'Nhập' THEN SoLuong ELSE 0 END) AS TongNhap, SUM(CASE WHEN LoaiGiaoDich IN ('Trừ tự động', 'Xuất thủ công') THEN SoLuong ELSE 0 END) AS TongTieuHao FROM vw_ai_quanly WHERE LoaiBanGhi = 'GIAO_DICH_KHO' AND BusinessDate >= CURRENT_DATE - 30 GROUP BY MaNguyenLieu, TenNguyenLieu LIMIT 500",
+          "relaxed": false
+        },
+        {
+          "question_id": "Q086",
+          "difficulty": "easy",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 10644.2,
+          "sql": "SELECT TenMon, SUM(SoLuongMon) AS TongSoLuong FROM vw_ai_thungan WHERE LoaiBanGhi = 'DONG_MON' AND BusinessDate = CURRENT_DATE GROUP BY TenMon ORDER BY TongSoLuong DESC LIMIT 1",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q087",
+          "difficulty": "medium",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 11266.7,
+          "sql": "SELECT TenMon, SUM(ThanhTienMon) AS DoanhThu FROM vw_ai_thungan WHERE LoaiBanGhi = 'DONG_MON' AND BusinessDate BETWEEN CURRENT_DATE - INTERVAL '6' DAY AND CURRENT_DATE GROUP BY TenMon ORDER BY DoanhThu DESC LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q088",
+          "difficulty": "medium",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 8477.0,
+          "sql": "SELECT TenMon, DonGiaMon FROM vw_ai_thungan WHERE LoaiBanGhi = 'DONG_MON' AND BusinessDate = CURRENT_DATE ORDER BY DonGiaMon DESC LIMIT 1",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q089",
+          "difficulty": "hard",
+          "role": "CASHIER",
+          "status": "đúng",
+          "latency_ms": 4286.9,
+          "sql": "SELECT TenNhom, SUM(SoLuongMon) AS TongSoLuong FROM vw_ai_thungan WHERE LoaiBanGhi = 'DONG_MON' AND DATE_FORMAT(BusinessDate, '%Y-%m') = DATE_FORMAT(CURRENT_DATE, '%Y-%m') GROUP BY TenNhom ORDER BY TongSoLuong DESC LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q090",
+          "difficulty": "easy",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 8251.9,
+          "sql": "SELECT TenNguyenLieu, SoLuongTon, MucTonToiThieu FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' AND SoLuongTon < MucTonToiThieu ORDER BY TenNguyenLieu LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q091",
+          "difficulty": "easy",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 4774.6,
+          "sql": "SELECT COUNT(*) FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' AND CanhBaoTonThap = 1 LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q092",
+          "difficulty": "medium",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 8986.4,
+          "sql": "SELECT MaLo, TenNguyenLieu, HanSuDungLo, SoLuongConLai, TrangThaiLo FROM vw_ai_kho WHERE LoaiBanGhi = 'LO_NGUYEN_LIEU' AND HanSuDungLo BETWEEN CURRENT_DATE AND DATE_ADD(CURRENT_DATE, INTERVAL '7' DAY) ORDER BY HanSuDungLo LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q093",
+          "difficulty": "medium",
+          "role": "WAREHOUSE",
+          "status": "sai",
+          "latency_ms": 4259.9,
+          "sql": "SELECT MaLo, TenNguyenLieu, SoLuongConLai FROM vw_ai_kho WHERE LoaiBanGhi = 'LO_NGUYEN_LIEU' AND TrangThaiLo = 'Còn hạn' ORDER BY SoLuongConLai DESC LIMIT 1",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q094",
+          "difficulty": "medium",
+          "role": "WAREHOUSE",
+          "status": "đúng",
+          "latency_ms": 1850.8,
+          "sql": "SELECT TenNguyenLieu, MucTonToiThieu FROM vw_ai_kho WHERE LoaiBanGhi = 'TON_KHO' ORDER BY TenNguyenLieu LIMIT 500",
+          "relaxed": true
+        },
+        {
+          "question_id": "Q095",
+          "difficulty": "hard",
+          "role": "WAREHOUSE",
+          "status": "sai",
+          "latency_ms": 5963.4,
+          "sql": "SELECT MaNguyenLieu, TenNguyenLieu, COUNT(*) AS SoLoConHan FROM vw_ai_kho WHERE LoaiBanGhi = 'LO_NGUYEN_LIEU' AND TrangThaiLo = 'Còn hạn' GROUP BY MaNguyenLieu, TenNguyenLieu ORDER BY SoLoConHan DESC LIMIT 1",
+          "relaxed": true
+        }
+      ],
+      "failures": [
+        {
+          "question_id": "Q006",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q009",
+          "reason": "từ chối ngoài dự kiến: Giá trị cụ thể của cột LoaiDon tương ứng với loại đơn \"mang về\" trong hệ thống là gì?"
+        },
+        {
+          "question_id": "Q010",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q011",
+          "reason": "từ chối ngoài dự kiến: Giá trị cột LoaiDon nào trong view đại diện cho \"đơn mang về\"? (Ví dụ: 'MANG_VE' hay 'TAKE_AWAY'?)"
+        },
+        {
+          "question_id": "Q027",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q029",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q030",
+          "reason": "lỗi thực thi: (asyncmy.errors.OperationalError) (1055, \"Expression #1 of SELECT list is not in GROUP BY clause and contains nonaggregated column 'restaurant_eval.vw_ai_quanly.BusinessDate' which is not functionally dependent on columns in GROUP BY clause; this is incompatible with sql_mode=only_full_group_by\")\n[SQL: SELECT DATE_FORMAT(BusinessDate, '%%Y-%%m') AS Thang, COUNT(MaHoaDon) AS SoHoaDon FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) GROUP BY Thang ORDER BY Thang LIMIT 500]\n(Background on this error at: https://sqlalche.me/e/20/e3q8)"
+        },
+        {
+          "question_id": "Q032",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q036",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q037",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q040",
+          "reason": "lỗi gọi LLM: The read operation timed out"
+        },
+        {
+          "question_id": "Q041",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q042",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q044",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q045",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q046",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q048",
+          "reason": "từ chối ngoài dự kiến: Không thể tạo truy vấn an toàn cho câu hỏi này."
+        },
+        {
+          "question_id": "Q050",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q053",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q055",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q056",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q057",
+          "reason": "lỗi thực thi: (asyncmy.errors.OperationalError) (1055, \"Expression #1 of SELECT list is not in GROUP BY clause and contains nonaggregated column 'restaurant_eval.vw_ai_quanly.BusinessDate' which is not functionally dependent on columns in GROUP BY clause; this is incompatible with sql_mode=only_full_group_by\")\n[SQL: SELECT DATE_FORMAT(BusinessDate, '%%Y-%%m') AS Thang, AVG(TongTien) AS DoanhThuTrungBinh FROM vw_ai_quanly WHERE LoaiBanGhi = 'HOA_DON' AND YEAR(BusinessDate) = YEAR(CURRENT_DATE) GROUP BY Thang ORDER BY Thang LIMIT 500]\n(Background on this error at: https://sqlalche.me/e/20/e3q8)"
+        },
+        {
+          "question_id": "Q059",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q060",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q061",
+          "reason": "lỗi gọi LLM: The read operation timed out"
+        },
+        {
+          "question_id": "Q062",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q064",
+          "reason": "lỗi gọi LLM: The read operation timed out"
+        },
+        {
+          "question_id": "Q065",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q066",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q067",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q068",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q069",
+          "reason": "lỗi gọi LLM: The read operation timed out"
+        },
+        {
+          "question_id": "Q070",
+          "reason": "từ chối ngoài dự kiến: Bạn muốn so sánh doanh thu tuần này và tuần trước theo tiêu chí nào? (1) Tuần bắt đầu từ thứ Hai và so sánh cùng số ngày từ đầu tuần đến hôm nay, (2) So sánh toàn bộ tuần trước (thứ Hai đến Chủ nhật) với tuần này từ thứ Hai đến hôm nay, hay (3) Tuần bắt đầu từ Chủ nhật?"
+        },
+        {
+          "question_id": "Q072",
+          "reason": "lỗi gọi LLM: The read operation timed out"
+        },
+        {
+          "question_id": "Q073",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q076",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q084",
+          "reason": "từ chối ngoài dự kiến: Bạn có thể cung cấp cách ước tính giá vốn hàng bán cho tháng trước không, hoặc dữ liệu giá vốn từng món để tính biên lợi nhuận gộp?"
+        },
+        {
+          "question_id": "Q085",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q093",
+          "reason": "kết quả khác SQL chuẩn"
+        },
+        {
+          "question_id": "Q095",
+          "reason": "kết quả khác SQL chuẩn"
+        }
+      ]
+    }
+  }
+}

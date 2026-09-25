@@ -13,8 +13,9 @@ hỏi – SQL chấm được trên ba cấu hình A/B/C, và số liệu thực
 
 ## Hiện trạng
 
-Cập nhật 2026-09-25: **Phase 0 → 7 đã xong** trên `main` (`make gate` xanh), trừ **Task 5 của Phase 7**
-(lần chạy thực nghiệm A/B/C để lấy số liệu Chương 4) đang chờ nhà cung cấp LLM — Q5 và Q6 bên dưới.
+Cập nhật 2026-09-26: **Phase 0 → 7 đã xong**, kể cả Task 5 của Phase 7: thực nghiệm A/B/C đã chạy trên
+DeepSeek (95 câu, dữ liệu 12 tháng); số liệu ở `docs/eval-results.json` và §4.2 của báo cáo. Còn lại là SUS và
+UAT với người dùng thật (tài liệu ở `docs/testing/`).
 
 | Hạng mục | Trạng thái |
 | --- | --- |
@@ -26,7 +27,7 @@ Cập nhật 2026-09-25: **Phase 0 → 7 đã xong** trên `main` (`make gate` x
 | View `vw_ai_*` + tài khoản chỉ-đọc | **Xong** (Phase 0, cập nhật ở Phase 7 theo đặc tả `db/views/README.md`) |
 | Sáu module nghiệp vụ | Phase 1–6 xong (Cài đặt · Danh mục · Kho · Bán hàng · Báo cáo · Trợ lý AI) |
 | Pipeline AI | **Xong** (Phase 6): prompt theo view, sinh SQL qua guard, thực thi trên tài khoản vai trò, diễn giải + biểu đồ |
-| Seed dữ liệu, bộ đánh giá | **Xong** (Phase 7): `make seed` (12 tháng qua tầng service), 75 câu hỏi – SQL chuẩn, harness A/B/C. **Số liệu thực nghiệm chưa có** — cần Q5/Q6 |
+| Seed dữ liệu, bộ đánh giá | **Xong** (Phase 7): `make seed` (12 tháng qua tầng service), 95 câu hỏi – SQL chuẩn, harness A/B/C. **Số liệu thực nghiệm đã có** (§4.2, Bảng 37–38) |
 
 ## Ràng buộc bất biến
 
@@ -153,8 +154,8 @@ tự chốt được chưa, hay vẫn đang chờ bạn trả lời — plan vi�
 | Q2 | **Máy in nhiệt** (§1.4.3 loại chi tiết driver/khổ giấy khỏi phạm vi). | Phase 4 | Backend sinh **nội dung phiếu** (text + cấu trúc) và ghi `PHIEU_BEP`; tầng in thật để ngoài hệ thống. Giao diện có nút in gọi `window.print()`. | Plan đi theo đề xuất; §1.4.3 đã loại driver khỏi phạm vi nên không cần chốt. |
 | Q3 | **Sao lưu/phục hồi** (FR-SET-06/07, FR-SET-07 ghi rõ "(Mở rộng)"). | Phase 1 | Làm FR-SET-06 (xuất bản sao thủ công) trong MVP; FR-SET-07 để lại sau, ghi rõ trong plan là mở rộng. | **Đã chốt trong plan** (Phase 1 Task 2 + mục Rủi ro). Phục hồi là thao tác phá huỷ — bàn riêng trước khi làm. |
 | Q4 | **Tên biến môi trường LLM**: báo cáo §1.4.2 và §4.1.1 ghi `LLM_MODEL`, repo hiện dùng `AI_MODEL`. | Phase 6 | Đổi sang `LLM_MODEL` cho khớp báo cáo, giữ `AI_PROVIDER` để chọn nhà cung cấp. Xác nhận giúp. | **Đã xong ở Phase 6 Task 2** — `core/config.py`, `.env.example` và `llm.py` nay dùng `LLM_MODEL`. |
-| Q5 | **Phạm vi thực nghiệm A/B/C**: cấu hình C là "cấu hình B trên một mô hình khác" — cần model nào? Ollama chưa cài trên máy này (`ollama not found`). | Phase 7 | Cần bạn chốt model cho cấu hình C, hoặc cho phép dùng model thương mại thứ hai (ví dụ Gemini Flash) thay vì Ollama. | **Chờ bạn chốt** (Phase 7 Task 4 + mục Rủi ro ghi rõ hai đường). Không chặn Phase 0–6. |
-| Q6 | **Mô hình LLM chính**: `AI_MODEL=gpt-4o-mini` trong `.env.example`, nhưng sandbox chỉ cho phép các domain trong `~/.codex/config.toml` — API của OpenAI chưa nằm trong allowlist. | Phase 6 | Cần bạn thêm domain API của nhà cung cấp vào allowlist, hoặc dùng provider đã có sẵn (`bedrock.viber.vn`). | **Chờ bạn chốt.** Ảnh hưởng duy nhất là lúc chạy thật; test Phase 6 dùng `fake_llm` nên không bị chặn. |
+| Q5 | **Phạm vi thực nghiệm A/B/C**: cấu hình C là "cấu hình B trên một mô hình khác" — cần model nào? Ollama chưa cài trên máy này (`ollama not found`). | Phase 7 | Cần bạn chốt model cho cấu hình C, hoặc cho phép dùng model thương mại thứ hai (ví dụ Gemini Flash) thay vì Ollama. | **Đã chốt 2026-09-26:** cấu hình C dùng `deepseek-v4-pro`. |
+| Q6 | **Mô hình LLM chính**: `AI_MODEL=gpt-4o-mini` trong `.env.example`, nhưng sandbox chỉ cho phép các domain trong `~/.codex/config.toml` — API của OpenAI chưa nằm trong allowlist. | Phase 6 | Cần bạn thêm domain API của nhà cung cấp vào allowlist, hoặc dùng provider đã có sẵn (`bedrock.viber.vn`). | **Đã chốt 2026-09-26:** DeepSeek, `LLM_MODEL=deepseek-flash` (DeepSeek-V4.1-Flash). |
 
 ## Rủi ro toàn dự án
 
