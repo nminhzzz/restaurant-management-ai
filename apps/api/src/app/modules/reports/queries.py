@@ -11,18 +11,21 @@ from datetime import date
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import and_, func, select
+from sqlalchemy import Integer, and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import BusinessRuleError
+from app.modules.catalog.models import Dish
 from app.modules.reports.periods import BusinessPeriod
-from app.modules.sales.models import Invoice, Order, PaymentTransaction
+from app.modules.sales.models import Invoice, Order, OrderLine, PaymentTransaction
 
 STATUS_PENDING = "Chờ đối soát"
 STATUS_DISPUTED = "Tranh chấp"
 STATUS_PAID = "Thành công"
 UNKNOWN_METHOD = "Chưa xác định"
 GROUP_BY_VALUES = ("period", "table", "payment_method")
+CANCELLED_ORDER_STATUSES = ("Đã hủy", "Tự động đóng")
+LINE_CANCELLED = "Đã hủy"
 
 
 @dataclass(frozen=True)
@@ -213,4 +216,127 @@ async def revenue_summary(session: AsyncSession, period: BusinessPeriod) -> Reve
         total=invoices_total + pending - disputed,
         provisional=pending,
         SoDon=invoice_count + pending_count,
+    )
+
+
+# --- Task 2: dish ranking and hourly distribution (FR-REP-03, FR-REP-07) ---
+
+
+@dataclass(frozen=True)
+class DishRank:
+    MaMon: int
+    TenMon: str
+    SoLuong: int
+    DoanhThu: Decimal
+
+
+@dataclass(frozen=True)
+class HourBucket:
+    ThoiDiem: int
+    SoDon: int
+    DoanhThu: Decimal
+
+
+@dataclass(frozen=True)
+class WeekdayBucket:
+    Thu: int
+    SoDon: int
+
+
+@dataclass(frozen=True)
+class HourDistribution:
+    items: list[HourBucket]
+    by_weekday: list[WeekdayBucket]
+
+
+def _dialect_name(session: AsyncSession) -> str:
+    try:
+        bind = session.get_bind()
+        if bind is not None:
+            return bind.dialect.name
+    except Exception:  # pragma: no cover - defensive, mirrors inventory.stock
+        pass
+    return "sqlite"
+
+
+def _weekday_iso(session: AsyncSession):
+    if _dialect_name(session) == "mysql":
+        # WEEKDAY(): Monday=0 … Sunday=6, so +1 gives the ISO numbering.
+        return func.weekday(Order.created_at) + 1
+    # strftime('%w'): Sunday=0 … Saturday=6; shift it onto ISO (Monday=1).
+    return (func.cast(func.strftime("%w", Order.created_at), Integer) + 6) % 7 + 1
+
+
+def _sold_orders_window(period: BusinessPeriod):
+    return (
+        Order.business_date >= period.start,
+        Order.business_date <= period.end,
+        Order.status.notin_(CANCELLED_ORDER_STATUSES),
+    )
+
+
+async def dish_ranking(
+    session: AsyncSession, period: BusinessPeriod, order_by: str = "quantity"
+) -> list[DishRank]:
+    """FR-REP-03: dishes ranked over the period, cancelled lines left out."""
+    if order_by not in ("quantity", "revenue"):
+        raise BusinessRuleError("order_by phải là quantity/revenue.")
+    quantity = func.sum(OrderLine.quantity)
+    revenue = func.sum(OrderLine.quantity * OrderLine.unit_price)
+    stmt = (
+        select(OrderLine.dish_id, Dish.name, quantity, revenue)
+        .join(Order, Order.id == OrderLine.order_id)
+        .join(Dish, Dish.id == OrderLine.dish_id)
+        .where(*_sold_orders_window(period), OrderLine.status != LINE_CANCELLED)
+        .group_by(OrderLine.dish_id, Dish.name)
+    )
+    stmt = stmt.order_by(
+        (revenue if order_by == "revenue" else quantity).desc(), OrderLine.dish_id.asc()
+    )
+    rows = (await session.execute(stmt)).all()
+    return [
+        DishRank(
+            MaMon=int(row[0]),
+            TenMon=str(row[1]),
+            SoLuong=int(row[2] or 0),
+            DoanhThu=Decimal(str(row[3] or 0)),
+        )
+        for row in rows
+    ]
+
+
+async def hourly_distribution(session: AsyncSession, period: BusinessPeriod) -> HourDistribution:
+    """FR-REP-07: orders per hour of the clock and per ISO weekday."""
+    window = _sold_orders_window(period)
+    line_join = and_(OrderLine.order_id == Order.id, OrderLine.status != LINE_CANCELLED)
+
+    hour_expr = func.extract("hour", Order.created_at)
+    hour_stmt = (
+        select(
+            hour_expr,
+            func.count(func.distinct(Order.id)),
+            func.coalesce(func.sum(OrderLine.quantity * OrderLine.unit_price), 0),
+        )
+        .outerjoin(OrderLine, line_join)
+        .where(*window)
+        .group_by(hour_expr)
+        .order_by(hour_expr)
+    )
+    hour_rows = (await session.execute(hour_stmt)).all()
+
+    weekday_expr = _weekday_iso(session)
+    weekday_stmt = (
+        select(weekday_expr, func.count(func.distinct(Order.id)))
+        .where(*window)
+        .group_by(weekday_expr)
+        .order_by(weekday_expr)
+    )
+    weekday_rows = (await session.execute(weekday_stmt)).all()
+
+    return HourDistribution(
+        items=[
+            HourBucket(ThoiDiem=int(row[0]), SoDon=int(row[1]), DoanhThu=Decimal(str(row[2] or 0)))
+            for row in hour_rows
+        ],
+        by_weekday=[WeekdayBucket(Thu=int(row[0]), SoDon=int(row[1])) for row in weekday_rows],
     )
