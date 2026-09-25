@@ -125,3 +125,34 @@ async def test_an_llm_outage_is_measured_as_an_error_not_a_crash(
 
     assert result.error_rate == 1.0
     assert [outcome.status for outcome in result.outcomes] == ["lỗi"]
+
+
+def test_relaxed_match_ignores_extra_columns_but_not_wrong_values():
+    """Returning the unit next to the stock is still the right answer; a wrong number is not."""
+    from data.eval.harness import relaxed_match
+
+    gold = [{"TenNguyenLieu": "Thịt bò", "SoLuongTon": "3.2000"}]
+    wider = [{"Ma": 7, "TenNguyenLieu": "Thịt bò", "DonVi": "kg", "SoLuongTon": 3.2}]
+    wrong = [{"TenNguyenLieu": "Thịt bò", "DonVi": "kg", "SoLuongTon": 4}]
+
+    assert relaxed_match(wider, gold)
+    assert not relaxed_match(wrong, gold)
+    assert not relaxed_match(wider * 2, gold)
+
+
+def test_strict_match_treats_equal_numbers_as_equal():
+    from data.eval.harness import strict_match
+
+    assert strict_match([{"n": 10}], [{"SoDon": "10.0000"}])
+    assert not strict_match([{"n": 10, "x": 1}], [{"SoDon": 10}])
+
+
+@pytest.mark.anyio
+async def test_both_accuracies_are_reported(fake_llm, one_question):
+    fake_llm.reply(f"SELECT COUNT(MaOrder) AS so_don FROM {one_question['view']}")
+
+    row = compare([await run_configuration(Config.A, [one_question])]).rows[0]
+
+    assert row["execution_accuracy"] == 1.0
+    assert row["relaxed_accuracy"] == 1.0
+    assert row["by_difficulty_relaxed"] == {one_question["difficulty"]: 1.0}
