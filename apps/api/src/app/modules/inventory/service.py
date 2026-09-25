@@ -147,6 +147,7 @@ async def cancel_receipt(session: AsyncSession, actor_id: int, receipt_id: int) 
         .scalars()
         .all()
     )
+    affected_ingredient_ids: list[int] = []
     for gl in lines:
         lot = (
             await session.execute(
@@ -183,12 +184,86 @@ async def cancel_receipt(session: AsyncSession, actor_id: int, receipt_id: int) 
                 performed_by=actor_id,
             )
             session.add(m)
+            affected_ingredient_ids.append(gl.ingredient_id)
         lot.status = "Đã hủy"
     receipt.status = "Đã hủy"
     session.add(
         SystemAuditLog(
             user_id=actor_id,
             action="CANCEL_RECEIPT",
+            target_entity="PHIEU_NHAP_KHO",
+            target_id=str(receipt_id),
+        )
+    )
+    await session.flush()
+    if affected_ingredient_ids:
+        await recompute_automatic_out_of_stock(session, affected_ingredient_ids)
+
+
+async def update_receipt(
+    session: AsyncSession, actor_id: int, receipt_id: int, lines: list[dict]
+) -> None:
+    """FR-INV-02: correct quantity/unit price on lines that have not been drawn yet.
+
+    Editing is only allowed while the receipt is still "Nháp" and its lot has not
+    been touched by any later issue/order/stocktake (quantity_remaining == the
+    line's original quantity). There is no migration adding a separate purchase
+    unit/conversion column to CHI_TIET_PHIEU_NHAP, so the edited quantity is the
+    already-converted standard-unit quantity stored on the line.
+    """
+    receipt = await session.get(GoodsReceipt, receipt_id)
+    if receipt is None:
+        raise NotFoundError("Không tìm thấy phiếu nhập.")
+    if receipt.status != "Nháp":
+        raise BusinessRuleError("Chỉ được sửa phiếu ở trạng thái Nháp.")
+    for ln in lines:
+        line_id = ln["line_id"]
+        new_qty = Decimal(str(ln["quantity"]))
+        new_price = Decimal(str(ln["unit_price"]))
+        gl = await session.get(GoodsReceiptLine, line_id)
+        if gl is None or gl.receipt_id != receipt_id:
+            raise BusinessRuleError("Dòng phiếu nhập không hợp lệ.")
+        lot = (
+            await session.execute(
+                select(IngredientLot).where(IngredientLot.receipt_line_id == gl.id)
+            )
+        ).scalar_one_or_none()
+        if lot is None:
+            raise BusinessRuleError("Không tìm thấy lô hàng của dòng phiếu nhập.")
+        if Decimal(str(lot.quantity_remaining)) != Decimal(str(gl.quantity)):
+            raise BusinessRuleError(
+                "Đã có giao dịch xuất kho liên quan, phải điều chỉnh qua kiểm kê định kỳ."
+            )
+        delta = new_qty - Decimal(str(gl.quantity))
+        from app.modules.catalog.models import Ingredient
+        from app.modules.inventory.models import StockMovement
+
+        ing = await session.get(Ingredient, gl.ingredient_id)
+        if ing is not None and Decimal(str(ing.stock_qty)) + delta < 0:
+            raise BusinessRuleError("Tồn kho sau khi sửa không được âm.")
+        gl.quantity = new_qty
+        gl.unit_price = new_price
+        lot.quantity_remaining = new_qty
+        if ing is not None:
+            ing.stock_qty = ing.stock_qty + delta
+        if delta != 0:
+            session.add(
+                StockMovement(
+                    ingredient_id=gl.ingredient_id,
+                    lot_id=None,
+                    kind="Nhập",
+                    qty=delta,
+                    business_date=_bd(),
+                    receipt_line_id=gl.id,
+                    performed_by=actor_id,
+                )
+            )
+        await session.flush()
+        await recompute_automatic_out_of_stock(session, [gl.ingredient_id])
+    session.add(
+        SystemAuditLog(
+            user_id=actor_id,
+            action="UPDATE_RECEIPT",
             target_entity="PHIEU_NHAP_KHO",
             target_id=str(receipt_id),
         )
@@ -302,7 +377,9 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
     )
     if not lines:
         raise BusinessRuleError("Chưa ghi nhận kiểm kê.")
+    affected_ingredient_ids: list[int] = []
     for line in lines:
+        affected_ingredient_ids.append(line.ingredient_id)
         diff = Decimal(str(line.actual_qty)) - Decimal(str(line.system_qty))
         if diff == 0:
             continue
@@ -395,6 +472,8 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
         )
     )
     await session.flush()
+    if affected_ingredient_ids:
+        await recompute_automatic_out_of_stock(session, affected_ingredient_ids)
 
 
 async def list_stock(
@@ -424,7 +503,7 @@ async def list_stock(
         all_rows = (await session.execute(base.order_by(Ingredient.id))).scalars().all()
         filtered = []
         for ing in all_rows:
-            thr = float(ing.min_stock) if ing.min_stock is not None else default
+            thr = float(ing.min_stock) if ing.min_stock and float(ing.min_stock) > 0 else default
             alert = float(ing.stock_qty) < thr
             if alert == alerting:
                 filtered.append((ing, thr, alert))
@@ -445,7 +524,7 @@ async def list_stock(
     rows = (await session.execute(q)).scalars().all()
     out = []
     for ing in rows:
-        thr = float(ing.min_stock) if ing.min_stock is not None else default
+        thr = float(ing.min_stock) if ing.min_stock and float(ing.min_stock) > 0 else default
         alert = float(ing.stock_qty) < thr
         out.append(
             {

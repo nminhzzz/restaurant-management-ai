@@ -1,4 +1,4 @@
-import { StockTable } from "@/features/inventory/stock-table";
+import { InventoryWorkspace } from "@/features/inventory/inventory-workspace";
 export default function InventoryPage() {
-  return <StockTable />;
+  return <InventoryWorkspace />;
 }

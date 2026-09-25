@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_session
 from app.core.dependencies import Principal, require_roles
 from app.modules.inventory import service as svc
-from app.modules.inventory.schemas import CountIn, IssueCreate, ReceiptCreate
+from app.modules.inventory.schemas import CountIn, IssueCreate, ReceiptCreate, ReceiptUpdate
 from app.shared.roles import Role
 
 router = APIRouter(prefix="/inventory", tags=["Inventory"])
@@ -27,6 +27,20 @@ async def create_receipt(
     )
     await session.commit()
     return {"MaPhieuNhap": r.id}
+
+
+@router.patch("/receipts/{receipt_id}")
+async def update_receipt(
+    receipt_id: int,
+    payload: ReceiptUpdate,
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    session: AsyncSession = Depends(get_session),
+):
+    await svc.update_receipt(
+        session, user.user_id, receipt_id, [ln.model_dump() for ln in payload.lines]
+    )
+    await session.commit()
+    return {"ok": True}
 
 
 @router.delete("/receipts/{receipt_id}")
