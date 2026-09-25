@@ -407,3 +407,147 @@ async def update_line(
     line.quantity = quantity
     await session.flush()
     return line
+
+# --- Task 2 ---
+LINE_FORWARD = {"Chờ": "Đã xác nhận xong", "Đã xác nhận xong": "Đã phục vụ"}
+
+async def advance_line_status(session, line_id: int, to_status: str):
+    from app.modules.sales.models import OrderLine
+    line = await session.get(OrderLine, line_id)
+    if line is None:
+        raise NotFoundError("Dòng món không tồn tại.")
+    cur = line.status
+    nxt = LINE_FORWARD.get(cur)
+    if nxt != to_status:
+        raise BusinessRuleError(f"Không thể chuyển từ {cur} sang {to_status}.")
+    line.status = to_status
+    await session.flush()
+    return line
+
+
+async def cancel_line(session, line_id: int, reason: str, *, actor_id: int | None = None):
+    from app.modules.sales.models import Order, OrderLine
+    from app.modules.inventory.models import StockMovement
+    from app.shared.audit import SystemAuditLog
+    line = await session.get(OrderLine, line_id)
+    if line is None:
+        raise NotFoundError("Dòng món không tồn tại.")
+    if line.status != "Chờ":
+        raise BusinessRuleError("Chỉ hủy món ở trạng thái Chờ.")
+    order = await session.get(Order, line.order_id)
+    assert order is not None
+    ensure_order_is_open(order)
+    if not reason or not reason.strip():
+        raise BusinessRuleError("Cần lý do hủy.")
+    # reverse stock for this line
+    if line.recipe_id is not None:
+        r = await session.execute(select(StockMovement).where(StockMovement.order_line_id == line.id, StockMovement.qty < 0))
+        moves = list(r.scalars().all())
+        from app.shared.enums import StockMovementType
+        from app.modules.catalog.models import Ingredient
+        from app.modules.inventory.models import IngredientLot
+        for mv in moves:
+            # revert lot
+            if mv.lot_id is not None:
+                lot = await session.get(IngredientLot, mv.lot_id)
+                if lot:
+                    lot.quantity_remaining = float(float(lot.quantity_remaining) - float(mv.qty))
+            ing = await session.get(Ingredient, mv.ingredient_id)
+            if ing:
+                ing.stock_qty = float(float(ing.stock_qty) - float(mv.qty))
+            sm = StockMovement(ingredient_id=mv.ingredient_id, lot_id=mv.lot_id, kind=StockMovementType.HOAN_KHO, qty=float(-mv.qty), business_date=order.business_date, order_line_id=line.id, performed_by=actor_id)
+            session.add(sm)
+        await session.flush()
+    line.status = "Đã hủy"
+    await session.flush()
+    session.add(SystemAuditLog(user_id=actor_id or 0, action="CANCEL_ORDER_LINE", target_entity="CHI_TIET_ORDER", target_id=str(line.id)))
+    await session.flush()
+    # Check if all lines cancelled -> close order
+    from sqlalchemy import select as _sel
+    r2 = await session.execute(_sel(OrderLine).where(OrderLine.order_id == order.id, OrderLine.status != "Đã hủy"))
+    if r2.scalar_one_or_none() is None:
+        order.status = "Tự động đóng"
+        # free table
+        if order.table_id is not None:
+            from app.modules.catalog.models import DiningTable
+            tbl = await session.get(DiningTable, order.table_id)
+            if tbl:
+                tbl.status = "Trống"
+        await session.flush()
+    return line
+
+
+async def move_table(session, order_id: int, to_table_id: int, *, actor_id: int | None = None):
+    from app.modules.sales.models import Order, TableMoveLog
+    from app.modules.catalog.models import DiningTable
+    from app.shared.audit import SystemAuditLog
+    order = await session.get(Order, order_id)
+    if order is None:
+        raise NotFoundError("Order không tồn tại.")
+    ensure_order_is_open(order)
+    dest = await session.get(DiningTable, to_table_id)
+    if dest is None or dest.is_deleted:
+        raise BusinessRuleError("Bàn đích không tồn tại.")
+    if dest.status != "Trống":
+        raise BusinessRuleError("Bàn đích đang bận.")
+    src_id = order.table_id
+    # update tables
+    if src_id is not None:
+        src = await session.get(DiningTable, src_id)
+        if src:
+            src.status = "Trống"
+    dest.status = "Đang phục vụ"
+    order.table_id = to_table_id
+    session.add(TableMoveLog(order_id=order.id, from_table=src_id, to_table=to_table_id))
+    session.add(SystemAuditLog(user_id=actor_id or 0, action="MOVE_ORDER_TABLE", target_entity="ORDER", target_id=str(order.id)))
+    await session.flush()
+    return order
+
+
+async def cancel_order(session, order_id: int, reason: str, *, actor_id: int | None = None):
+    from app.modules.sales.models import Order, OrderLine
+    from app.shared.audit import SystemAuditLog
+    order = await session.get(Order, order_id)
+    if order is None:
+        raise NotFoundError("Order không tồn tại.")
+    ensure_order_is_open(order)
+    if not reason or not reason.strip():
+        raise BusinessRuleError("Cần lý do hủy order.")
+    # only Waiting lines return stock
+    r = await session.execute(select(OrderLine).where(OrderLine.order_id == order.id))
+    lines = list(r.scalars().all())
+    for line in lines:
+        if line.status == "Chờ":
+            # reuse cancel_line stock logic but without double audit
+            from app.modules.inventory.models import StockMovement
+            r2 = await session.execute(select(StockMovement).where(StockMovement.order_line_id == line.id, StockMovement.qty < 0))
+            moves = list(r2.scalars().all())
+            from app.shared.enums import StockMovementType
+            from app.modules.catalog.models import Ingredient
+            from app.modules.inventory.models import IngredientLot
+            for mv in moves:
+                if mv.lot_id is not None:
+                    lot = await session.get(IngredientLot, mv.lot_id)
+                    if lot:
+                        lot.quantity_remaining = float(float(lot.quantity_remaining) - float(mv.qty))
+                ing = await session.get(Ingredient, mv.ingredient_id)
+                if ing:
+                    ing.stock_qty = float(float(ing.stock_qty) - float(mv.qty))
+                sm = StockMovement(ingredient_id=mv.ingredient_id, lot_id=mv.lot_id, kind=StockMovementType.HOAN_KHO, qty=float(-mv.qty), business_date=order.business_date, order_line_id=line.id, performed_by=actor_id)
+                session.add(sm)
+            line.status = "Đã hủy"
+        else:
+            # served lines stay consumed; just mark? keep as is or set Da huy but no stock return
+            if line.status != "Đã hủy":
+                line.status = "Đã hủy"
+    order.status = "Đã hủy"
+    order.cancel_reason = reason
+    if order.table_id is not None:
+        from app.modules.catalog.models import DiningTable
+        tbl = await session.get(DiningTable, order.table_id)
+        if tbl:
+            tbl.status = "Trống"
+    session.add(SystemAuditLog(user_id=actor_id or 0, action="CANCEL_ORDER", target_entity="ORDER", target_id=str(order.id)))
+    await session.flush()
+    return order
+

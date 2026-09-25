@@ -153,3 +153,97 @@ async def patch_order_line(
         raise
     await session.commit()
     return {"MaChiTietOrder": line.id, "SoLuong": line.quantity}
+
+@router.patch("/orders/{order_id}/lines/{line_id}/status")
+async def patch_line_status(
+    order_id: int,
+    line_id: int,
+    payload: dict,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
+):
+    to = payload.get("to") or payload.get("TrangThai")
+    if not to:
+        raise HTTPException(status_code=422, detail="Thieu TrangThai")
+    from app.modules.sales.orders import advance_line_status
+    try:
+        line = await advance_line_status(session, line_id, str(to))
+    except Exception as e:
+        from app.core.errors import BusinessRuleError, NotFoundError
+        if isinstance(e, NotFoundError):
+            raise HTTPException(status_code=404, detail=str(e))
+        if isinstance(e, BusinessRuleError):
+            raise HTTPException(status_code=422, detail=str(e))
+        raise
+    await session.commit()
+    return {"MaChiTietOrder": line.id, "TrangThai": line.status}
+
+
+@router.post("/orders/{order_id}/lines/{line_id}/cancel")
+async def cancel_order_line(
+    order_id: int,
+    line_id: int,
+    payload: dict,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
+):
+    reason = payload.get("reason") or payload.get("LyDo") or ""
+    from app.modules.sales.orders import cancel_line
+    try:
+        line = await cancel_line(session, line_id, str(reason), actor_id=user.user_id)
+    except Exception as e:
+        from app.core.errors import BusinessRuleError, NotFoundError
+        if isinstance(e, NotFoundError):
+            raise HTTPException(status_code=404, detail=str(e))
+        if isinstance(e, BusinessRuleError):
+            raise HTTPException(status_code=422, detail=str(e))
+        raise
+    await session.commit()
+    return {"ok": True}
+
+
+@router.post("/orders/{order_id}/move")
+async def move_order_table(
+    order_id: int,
+    payload: dict,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
+):
+    to_id = payload.get("to_table_id") or payload.get("MaBanDich") or payload.get("to")
+    if to_id is None:
+        raise HTTPException(status_code=422, detail="Thieu MaBanDich")
+    from app.modules.sales.orders import move_table
+    try:
+        order = await move_table(session, order_id, int(to_id), actor_id=user.user_id)
+    except Exception as e:
+        from app.core.errors import BusinessRuleError, NotFoundError
+        if isinstance(e, NotFoundError):
+            raise HTTPException(status_code=404, detail=str(e))
+        if isinstance(e, BusinessRuleError):
+            raise HTTPException(status_code=422, detail=str(e))
+        raise
+    await session.commit()
+    return {"MaOrder": order.id, "MaBan": order.table_id}
+
+
+@router.post("/orders/{order_id}/cancel")
+async def cancel_whole_order(
+    order_id: int,
+    payload: dict,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER)),
+):
+    reason = payload.get("reason") or payload.get("LyDoHuy") or ""
+    from app.modules.sales.orders import cancel_order
+    try:
+        order = await cancel_order(session, order_id, str(reason), actor_id=user.user_id)
+    except Exception as e:
+        from app.core.errors import BusinessRuleError, NotFoundError
+        if isinstance(e, NotFoundError):
+            raise HTTPException(status_code=404, detail=str(e))
+        if isinstance(e, BusinessRuleError):
+            raise HTTPException(status_code=422, detail=str(e))
+        raise
+    await session.commit()
+    return {"MaOrder": order.id, "TrangThai": order.status}
+
