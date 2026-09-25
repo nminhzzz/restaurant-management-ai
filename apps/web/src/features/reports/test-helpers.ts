@@ -18,3 +18,16 @@ export function stubFetch(body: unknown): void {
     apiFetch as unknown as { mockResolvedValue: (value: unknown) => void }
   ).mockResolvedValue(body);
 }
+
+/** Route `apiFetch` responses by a substring of the requested path. */
+export function stubFetchByPath(routes: Record<string, unknown>): void {
+  (
+    apiFetch as unknown as {
+      mockImplementation: (impl: (path: string) => Promise<unknown>) => void;
+    }
+  ).mockImplementation((path: string) => {
+    const match = Object.entries(routes).find(([key]) => path.includes(key));
+    if (!match) throw new Error(`No stub for ${path}`);
+    return Promise.resolve(match[1]);
+  });
+}

@@ -1,3 +1,12 @@
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
 export function ReportTable({
   headers,
   rows,
@@ -6,32 +15,35 @@ export function ReportTable({
   rows: (string | number)[][];
 }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-96 text-sm">
-        <thead>
-          <tr>
-            {headers.map((header) => (
-              <th
-                key={header}
-                className="border-b px-2 py-1 text-left font-medium"
-              >
-                {header}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, rowIndex) => (
-            <tr key={rowIndex}>
-              {row.map((cell, cellIndex) => (
-                <td key={cellIndex} className="border-b px-2 py-1">
-                  {cell}
-                </td>
-              ))}
-            </tr>
+    <Table className="min-w-96">
+      <TableHeader>
+        <TableRow>
+          {headers.map((header, index) => (
+            <TableHead
+              key={header}
+              className={index > 0 ? "text-right" : undefined}
+            >
+              {header}
+            </TableHead>
           ))}
-        </tbody>
-      </table>
-    </div>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((row, rowIndex) => (
+          <TableRow key={rowIndex}>
+            {row.map((cell, cellIndex) => (
+              <TableCell
+                key={cellIndex}
+                className={
+                  cellIndex > 0 ? "text-right tabular-nums" : undefined
+                }
+              >
+                {cell}
+              </TableCell>
+            ))}
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 }
