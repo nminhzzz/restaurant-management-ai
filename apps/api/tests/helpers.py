@@ -253,15 +253,18 @@ async def table_status(session: AsyncSession, table_id: int) -> str | None:
         return None
 
 
-async def lot_total(session: AsyncSession, lot_id: int) -> float:
+async def lot_total(session: AsyncSession, ingredient_id: int) -> float:
+    """Remaining quantity across an ingredient's lots — the second storage tier."""
     from sqlalchemy import text
 
     try:
         r = await session.execute(
-            text("SELECT SoLuongConLai FROM LO_NGUYEN_LIEU WHERE MaLo=:id"), {"id": lot_id}
+            text(
+                "SELECT COALESCE(SUM(SoLuongConLai), 0) FROM LO_NGUYEN_LIEU WHERE MaNguyenLieu=:id"
+            ),
+            {"id": ingredient_id},
         )
-        v = r.scalar_one_or_none()
-        return float(v or 0)
+        return float(r.scalar_one() or 0)
     except Exception:
         return 0
 
@@ -494,16 +497,70 @@ async def session_count(session: AsyncSession) -> int:
 
 
 async def order_status_counts(session: AsyncSession) -> dict[str, int]:
-    return {}
+    from sqlalchemy import text
+
+    try:
+        r = await session.execute(
+            text("SELECT TrangThai, COUNT(*) FROM `ORDER` GROUP BY TrangThai")
+        )
+        return {row[0]: int(row[1]) for row in r.all()}
+    except Exception:
+        return {}
 
 
-async def order_count_between(session: AsyncSession, start: date, end: date) -> int:
-    return 0
+async def order_count_between(session: AsyncSession, start, end) -> int:
+    """Orders whose time of day falls in [start, end].
+
+    Used to prove the generator covers both sides of the 06:00 boundary, which a
+    daytime-only dataset would hide.
+    """
+    from sqlalchemy import text
+
+    try:
+        r = await session.execute(
+            text("SELECT COUNT(*) FROM `ORDER` WHERE TIME(NgayTao) BETWEEN :a AND :b"),
+            {"a": start.strftime("%H:%M:%S"), "b": end.strftime("%H:%M:%S")},
+        )
+        return int(r.scalar_one())
+    except Exception:
+        return 0
 
 
 async def lot_cache_mismatch_count(session: AsyncSession) -> int:
-    return 0
+    """Ingredients whose own total disagrees with the sum of their lots."""
+    from sqlalchemy import text
+
+    try:
+        r = await session.execute(
+            text(
+                "SELECT COUNT(*) FROM ("
+                " SELECT nl.MaNguyenLieu FROM NGUYEN_LIEU nl"
+                " LEFT JOIN LO_NGUYEN_LIEU l ON l.MaNguyenLieu = nl.MaNguyenLieu"
+                " GROUP BY nl.MaNguyenLieu, nl.SoLuongTon"
+                " HAVING ABS(nl.SoLuongTon - COALESCE(SUM(l.SoLuongConLai), 0)) > 0.0001"
+                ") rows_checked"
+            )
+        )
+        return int(r.scalar_one())
+    except Exception:
+        return 0
 
 
 async def ledger_mismatch_count(session: AsyncSession) -> int:
-    return 0
+    """Ingredients whose own total disagrees with the movement ledger."""
+    from sqlalchemy import text
+
+    try:
+        r = await session.execute(
+            text(
+                "SELECT COUNT(*) FROM ("
+                " SELECT nl.MaNguyenLieu FROM NGUYEN_LIEU nl"
+                " LEFT JOIN GIAO_DICH_KHO g ON g.MaNguyenLieu = nl.MaNguyenLieu"
+                " GROUP BY nl.MaNguyenLieu, nl.SoLuongTon"
+                " HAVING ABS(nl.SoLuongTon - COALESCE(SUM(g.SoLuong), 0)) > 0.0001"
+                ") rows_checked"
+            )
+        )
+        return int(r.scalar_one())
+    except Exception:
+        return 0

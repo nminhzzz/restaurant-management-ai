@@ -48,6 +48,15 @@ def _verify_signature(payload: str, signature: str) -> bool:
     return hmac.compare_digest(_gateway_sign(payload), signature)
 
 
+def sign_payload(payload: str) -> str:
+    """Signature the mock gateway would send for `payload`.
+
+    Exposed so the seed and the harness drive the webhook the same way the gateway
+    does, instead of re-implementing the signing rule.
+    """
+    return _gateway_sign(payload)
+
+
 async def _order_total(session: AsyncSession, order: Order) -> Decimal:
     lines = (
         (await session.execute(select(OrderLine).where(OrderLine.order_id == order.id)))

@@ -8,6 +8,7 @@ price versioning, audit rows).
 
 import random
 from dataclasses import dataclass
+from datetime import datetime, time, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
 from typing import Any
@@ -16,8 +17,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.catalog import service as catalog_service
 from app.modules.settings import service as settings_service
+from app.shared import business_date
 from app.shared.roles import Role
-from scripts.seed.config import DISH_COUNT_RANGE, SUPPLIER_COUNT, TABLE_COUNT, SeedConfig
+from scripts.seed.config import (
+    DISH_COUNT_RANGE,
+    SUPPLIER_COUNT,
+    TABLE_COUNT,
+    SeedConfig,
+    frozen_clock,
+)
 
 GROUP_NAMES: tuple[str, ...] = ("Khai vị", "Món chính", "Tráng miệng", "Đồ uống")
 
@@ -271,38 +279,51 @@ async def seed_catalog(session: AsyncSession, config: SeedConfig) -> CatalogIds:
     manager_id = users[0].id
     await session.commit()
 
-    ingredient_ids: dict[str, int] = {}
-    for name in plan.ingredient_names:
-        ingredient = await catalog_service.create_ingredient(session, manager_id, name, "kg", 5)
-        ingredient_ids[name] = ingredient.id
+    # Prices and recipes are effective-dated, so they must be stamped before the first
+    # generated business date or every historical order would be priced at zero.
+    window_start = business_date.business_date_of(config.now) - timedelta(
+        days=config.months * 30 + 1
+    )
+    with frozen_clock(datetime.combine(window_start, time(8))):
+        ingredient_ids: dict[str, int] = {}
+        for name in plan.ingredient_names:
+            ingredient = await catalog_service.create_ingredient(
+                session, manager_id, name, "kg", 5
+            )
+            ingredient_ids[name] = ingredient.id
 
-    group_ids: dict[str, int] = {}
-    for name in plan.group_names:
-        group = await catalog_service.create_group(session, manager_id, name)
-        group_ids[name] = group.id
+        group_ids: dict[str, int] = {}
+        for name in plan.group_names:
+            group = await catalog_service.create_group(session, manager_id, name)
+            group_ids[name] = group.id
 
-    dish_ids: list[int] = []
-    group_keys = list(group_ids)
-    for index, name in enumerate(plan.dish_names):
-        group_name = group_keys[index % len(group_keys)]
-        dish = await catalog_service.create_dish(
-            session, manager_id, name, group_ids[group_name], None, plan.prices[name]
-        )
-        dish_ids.append(dish.id)
-        items = [
-            (ingredient_ids[ingredient], Decimal(str(quantity)))
-            for ingredient, quantity in plan.recipes[name].items()
+        dish_ids: list[int] = []
+        group_keys = list(group_ids)
+        for index, name in enumerate(plan.dish_names):
+            group_name = group_keys[index % len(group_keys)]
+            dish = await catalog_service.create_dish(
+                session, manager_id, name, group_ids[group_name], None, plan.prices[name]
+            )
+            dish_ids.append(dish.id)
+            # `create_dish` does not persist a price; a dish without an active price
+            # version would be ordered at zero and poison every revenue report.
+            await catalog_service.apply_price_directly(
+                session, manager_id, dish.id, Decimal(str(plan.prices[name]))
+            )
+            items = [
+                (ingredient_ids[ingredient], Decimal(str(quantity)))
+                for ingredient, quantity in plan.recipes[name].items()
+            ]
+            await catalog_service.assign_recipe(session, manager_id, dish.id, items)
+
+        table_ids = [
+            (await catalog_service.create_table(session, manager_id, name)).id
+            for name in plan.tables
         ]
-        await catalog_service.assign_recipe(session, manager_id, dish.id, items)
-
-    table_ids = [
-        (await catalog_service.create_table(session, manager_id, name)).id
-        for name in plan.tables
-    ]
-    supplier_ids = [
-        (await catalog_service.create_supplier(session, manager_id, name, None)).id
-        for name in plan.supplier_names
-    ]
+        supplier_ids = [
+            (await catalog_service.create_supplier(session, manager_id, name, None)).id
+            for name in plan.supplier_names
+        ]
 
     await session.commit()
     return CatalogIds(

@@ -4,10 +4,28 @@ Every random draw in the generator goes through `random.Random(config.seed)`, ne
 global `random`, so the same seed always rebuilds the same dataset.
 """
 
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Iterator
 
 from app.shared import business_date
+
+
+@contextmanager
+def frozen_clock(moment: datetime) -> Iterator[None]:
+    """Point the shared clock seam at `moment` for the duration of the block.
+
+    The whole dataset is historical, so every write that stamps a Business Date — a
+    price version, a recipe, an order — must happen with the clock pinned to that
+    moment, otherwise the data is dated today and reported as if nothing was sold.
+    """
+    original = business_date.now
+    business_date.now = lambda: moment
+    try:
+        yield
+    finally:
+        business_date.now = original
 
 
 @dataclass(frozen=True)
