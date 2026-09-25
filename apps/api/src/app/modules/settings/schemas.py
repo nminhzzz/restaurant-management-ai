@@ -1,7 +1,7 @@
 """Schemas for Module 5 Settings."""
 
 from datetime import datetime, time
-from typing import Annotated
+from typing import Annotated, Any
 
 from pydantic import BaseModel, Field, StringConstraints
 
@@ -80,6 +80,7 @@ class BackupDump(BaseModel):
     created_at: datetime
     covers_until: datetime
     tables: list[str]
+    data: dict[str, list[dict[str, Any]]]
 
 
 class AuditEntryOut(BaseModel):

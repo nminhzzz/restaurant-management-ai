@@ -1,6 +1,5 @@
-import { ModulePlaceholder } from "@/components/module-placeholder";
-import { MODULES } from "@/lib/modules";
+import { SettingsScreen } from "@/features/settings/settings-screen";
 
 export default function SettingsPage() {
-  return <ModulePlaceholder descriptor={MODULES.settings} />;
+  return <SettingsScreen />;
 }

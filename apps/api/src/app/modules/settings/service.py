@@ -120,17 +120,19 @@ async def create_user(
     return user
 
 
-async def lock_user(session: AsyncSession, actor_id: int, user_id: int) -> User:
+async def _set_user_status(
+    session: AsyncSession, actor_id: int, user_id: int, status: str, action: str
+) -> User:
     user = await session.get(User, user_id)
     if user is None:
         raise NotFoundError("Kh\u00f4ng t\u00ecm th\u1ea5y t\u00e0i kho\u1ea3n.")
     before = {"TrangThai": user.status}
-    user.status = "\u0110\u00e3 kh\u00f3a"
+    user.status = status
     await session.flush()
     session.add(
         SystemAuditLog(
             user_id=actor_id,
-            action="LOCK_USER",
+            action=action,
             target_entity="NGUOI_DUNG",
             target_id=str(user_id),
             before=before,
@@ -139,6 +141,21 @@ async def lock_user(session: AsyncSession, actor_id: int, user_id: int) -> User:
     )
     await session.flush()
     return user
+
+
+async def lock_user(session: AsyncSession, actor_id: int, user_id: int) -> User:
+    # Locking yourself could leave the restaurant with no manager able to log in.
+    if actor_id == user_id:
+        raise BusinessRuleError(
+            "Kh\u00f4ng th\u1ec3 t\u1ef1 kh\u00f3a t\u00e0i kho\u1ea3n c\u1ee7a ch\u00ednh m\u00ecnh."
+        )
+    return await _set_user_status(session, actor_id, user_id, "\u0110\u00e3 kh\u00f3a", "LOCK_USER")
+
+
+async def unlock_user(session: AsyncSession, actor_id: int, user_id: int) -> User:
+    return await _set_user_status(
+        session, actor_id, user_id, "Ho\u1ea1t \u0111\u1ed9ng", "UNLOCK_USER"
+    )
 
 
 async def reset_password(
@@ -252,8 +269,16 @@ async def list_audit(
 
 
 async def export_backup(session: AsyncSession, actor_id: int) -> dict:
-    """Create backup dump and audit in same transaction (NFR-10)."""
+    """Dump every table and audit the export in the same transaction (NFR-10).
+
+    Rows are read through the mapped tables, so column names are the physical
+    Vietnamese ones and the file can be restored table by table.
+    """
     now = datetime.now(UTC)
+    data: dict[str, list[dict]] = {}
+    for table in Base.metadata.sorted_tables:
+        rows = (await session.execute(select(table))).mappings().all()
+        data[table.name] = [dict(row) for row in rows]
     session.add(
         SystemAuditLog(
             user_id=actor_id, action="EXPORT_BACKUP", target_entity="SYSTEM", target_id="backup"
@@ -261,7 +286,8 @@ async def export_backup(session: AsyncSession, actor_id: int) -> dict:
     )
     await session.flush()
     return {
-        "created_at": now.isoformat(),
-        "covers_until": now.isoformat(),
-        "size": len(Base.metadata.tables),
+        "created_at": now,
+        "covers_until": now,
+        "tables": list(data),
+        "data": data,
     }
