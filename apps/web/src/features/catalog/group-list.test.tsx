@@ -19,6 +19,34 @@ describe("GroupList", () => {
 
   afterEach(() => clearSession());
 
+  it("narrows rows by search, pages through the rest, and resets to page 1 on a new filter", async () => {
+    const groups = Array.from({ length: 25 }, (_, i) => ({
+      MaNhomMon: i + 1,
+      TenNhom: `Nhóm ${i + 1}`,
+    }));
+    mockFetch.mockImplementation((path: string, opts?: { method?: string }) => {
+      if (path === "/catalog/groups" && (!opts || opts.method === undefined)) {
+        return Promise.resolve(groups);
+      }
+      return Promise.resolve([]);
+    });
+    render(<GroupList />);
+
+    await screen.findByText("Nhóm 1");
+    expect(screen.getByText("Hiển thị 1–20 trên 25")).toBeInTheDocument();
+    expect(screen.queryByText("Nhóm 21")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Trang 2" }));
+    expect(await screen.findByText("Nhóm 21")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Tìm nhóm"), {
+      target: { value: "Nhóm 1" },
+    });
+    expect(screen.getByText("Hiển thị 1–11 trên 11")).toBeInTheDocument();
+    expect(screen.getByText("Nhóm 1")).toBeInTheDocument();
+    expect(screen.queryByText("Nhóm 2")).not.toBeInTheDocument();
+  });
+
   it("surfaces the API's message inline when a delete is rejected", async () => {
     mockFetch.mockImplementation((path: string, opts?: { method?: string }) => {
       if (path === "/catalog/groups" && (!opts || opts.method === undefined)) {

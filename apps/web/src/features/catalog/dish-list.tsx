@@ -8,13 +8,14 @@ import {
   PackageX,
   Pencil,
   Plus,
-  Search,
   Trash2,
   UtensilsCrossed,
 } from "lucide-react";
 import { useState } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { DataPagination } from "@/components/data-pagination";
+import { FilterBar, SearchFilter, SelectFilter } from "@/components/filter-bar";
 import { FormField } from "@/components/form-field";
 import {
   EmptyState,
@@ -45,6 +46,7 @@ import { useCanWrite } from "@/features/catalog/use-role";
 import { apiFetch } from "@/lib/api-client";
 import { formatVnd } from "@/lib/format";
 import { useAction } from "@/lib/use-action";
+import { useClientPagination } from "@/lib/use-client-pagination";
 import { useResource } from "@/lib/use-resource";
 
 const WRITE_ROLES = ["MANAGER"];
@@ -221,6 +223,8 @@ export function DishList() {
   const catalog = useResource(loadCatalog);
   const canWrite = useCanWrite(WRITE_ROLES);
   const [query, setQuery] = useState("");
+  const [groupFilter, setGroupFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [editDish, setEditDish] = useState<Dish | null>(null);
   const [deleteDish, setDeleteDish] = useState<Dish | null>(null);
@@ -233,8 +237,31 @@ export function DishList() {
   const dishes = catalog.status === "ready" ? catalog.data.dishes : null;
   const groups = catalog.status === "ready" ? catalog.data.groups : [];
   const groupName = new Map(groups.map((g) => [g.MaNhomMon, g.TenNhom]));
-  const visible = (dishes ?? []).filter((d) =>
-    d.TenMon.toLowerCase().includes(query.trim().toLowerCase()),
+  const statusOptions = [
+    ...new Set((dishes ?? []).map((d) => d.TrangThai)),
+  ].map((status) => ({ value: status, label: status }));
+  const groupOptions = groups.map((g) => ({
+    value: String(g.MaNhomMon),
+    label: g.TenNhom,
+  }));
+  const trimmedQuery = query.trim().toLowerCase();
+  const visible = (dishes ?? []).filter(
+    (d) =>
+      d.TenMon.toLowerCase().includes(trimmedQuery) &&
+      (groupFilter === "" || String(d.MaNhomMon ?? "") === groupFilter) &&
+      (statusFilter === "" || d.TrangThai === statusFilter),
+  );
+  const filtersActive =
+    query.trim() !== "" || groupFilter !== "" || statusFilter !== "";
+  function resetFilters() {
+    setQuery("");
+    setGroupFilter("");
+    setStatusFilter("");
+  }
+  const pagination = useClientPagination(
+    visible,
+    JSON.stringify({ trimmedQuery, groupFilter, statusFilter }),
+    20,
   );
 
   function handleCreate(values: DishFormValues) {
@@ -308,21 +335,24 @@ export function DishList() {
         />
       ) : (
         <>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="relative w-full max-w-xs">
-              <Search
-                className="absolute top-2.5 left-2.5 size-4 text-subtle"
-                aria-hidden
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <FilterBar active={filtersActive} onReset={resetFilters}>
+              <SearchFilter label="Tìm món" value={query} onChange={setQuery} />
+              <SelectFilter
+                label="Lọc theo nhóm"
+                value={groupFilter}
+                onChange={setGroupFilter}
+                options={groupOptions}
+                allLabel="Tất cả nhóm"
               />
-              <Input
-                type="search"
-                aria-label="Tìm món"
-                placeholder="Tìm món"
-                className="pl-8"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
+              <SelectFilter
+                label="Trạng thái"
+                value={statusFilter}
+                onChange={setStatusFilter}
+                options={statusOptions}
+                allLabel="Tất cả trạng thái"
               />
-            </div>
+            </FilterBar>
             {addButton}
           </div>
           <Table>
@@ -337,7 +367,7 @@ export function DishList() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {visible.map((d) => (
+              {pagination.pageItems.map((d) => (
                 <TableRow
                   key={d.MaMon}
                   className="cursor-pointer"
@@ -408,12 +438,21 @@ export function DishList() {
                     colSpan={5}
                     className="py-8 text-center text-muted"
                   >
-                    Không có món nào khớp “{query}”.
+                    Không có món nào khớp bộ lọc.
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
+          {visible.length > 0 && (
+            <DataPagination
+              page={pagination.page}
+              pageSize={pagination.pageSize}
+              total={pagination.total}
+              onPageChange={pagination.setPage}
+              onPageSizeChange={pagination.setPageSize}
+            />
+          )}
         </>
       )}
 
