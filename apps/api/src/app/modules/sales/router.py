@@ -247,3 +247,20 @@ async def cancel_whole_order(
     await session.commit()
     return {"MaOrder": order.id, "TrangThai": order.status}
 
+@router.post("/orders/{order_id}/tickets/{ticket_id}/reprint")
+async def reprint_ticket(
+    order_id: int,
+    ticket_id: int,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
+):
+    from app.modules.sales.models import KitchenTicket
+    t = await session.get(KitchenTicket, ticket_id)
+    if t is None or t.order_id != order_id:
+        raise HTTPException(status_code=404, detail="Phiếu bếp không tồn tại.")
+    # unlimited reprint
+    from app.modules.sales.tickets import record_print_result
+    record_print_result(t, True)
+    await session.commit()
+    return {"MaPhieuBep": t.id, "SoLanIn": t.print_count}
+
