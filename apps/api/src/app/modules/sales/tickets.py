@@ -1,7 +1,5 @@
 """Sales tickets — Task 3."""
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.modules.sales.models import KitchenTicket, Order, OrderLine
 
 

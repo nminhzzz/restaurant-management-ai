@@ -21,10 +21,16 @@ def ensure_order_is_open(order: Order) -> None:
 
 
 async def next_display_code(session: AsyncSession, bd: date) -> str:
-    # Burn-on-rollback: commit counter in its own transaction via insert on duplicate
-    # Use a nested transaction that commits immediately; caller must have committed outer before?
-    # For SQLite (tests) use upsert emulation.
+    # MySQL: atomic counter with FOR UPDATE; SQLite fallback via ORM row locking
+    bind_name = "sqlite"
     try:
+        bind = session.get_bind()
+        if bind is not None:
+            bind_name = bind.dialect.name  # type: ignore[union-attr]
+    except Exception:
+        pass
+    if bind_name == "mysql":
+        # Use INSERT ... ON DUPLICATE with explicit FOR UPDATE read to avoid bare except swallowing
         await session.execute(
             text(
                 "INSERT INTO DEM_ORDER (BusinessDate, SoDaCap) VALUES (:bd, 1) ON DUPLICATE KEY UPDATE SoDaCap = SoDaCap + 1"
@@ -32,30 +38,25 @@ async def next_display_code(session: AsyncSession, bd: date) -> str:
             {"bd": bd.isoformat()},
         )
         await session.flush()
-    except Exception:
-        # SQLite fallback - do NOT rollback outer tx, just use ORM upsert
-        try:
-            row2 = await session.get(DemOrder, bd)
-            if row2 is None:
-                session.add(DemOrder(business_date=bd, count=1))
-                await session.flush()
-            else:
-                row2.count = int(row2.count) + 1
-                await session.flush()
-        except Exception:
-            pass
-    # Read current
-    row = await session.get(DemOrder, bd)
-    if row is None:
-        # Should not happen; fallback
-        r = await session.execute(
-            text("SELECT SoDaCap FROM DEM_ORDER WHERE BusinessDate=:bd"), {"bd": bd.isoformat()}
-        )
-        v = r.scalar_one_or_none()
-        n = int(v or 1)
-    else:
-        n = int(row.count)
-    return f"ORD-{bd.strftime('%d%m%y')}-{n:03d}"
+        q = text("SELECT SoDaCap FROM DEM_ORDER WHERE BusinessDate=:bd FOR UPDATE")
+        r = await session.execute(q, {"bd": bd.isoformat()})
+        n = int(r.scalar_one())
+        return f"ORD-{bd.strftime('%d%m%y')}-{n:03d}"
+    # SQLite / fallback: SELECT FOR UPDATE emulated
+    from sqlalchemy import select as _sel
+
+    row = await session.execute(
+        _sel(DemOrder).where(DemOrder.business_date == bd).with_for_update()
+    )
+    obj = row.scalar_one_or_none()
+    if obj is None:
+        obj = DemOrder(business_date=bd, count=1)
+        session.add(obj)
+        await session.flush()
+        return f"ORD-{bd.strftime('%d%m%y')}-001"
+    obj.count = int(obj.count) + 1
+    await session.flush()
+    return f"ORD-{bd.strftime('%d%m%y')}-{int(obj.count):03d}"
 
 
 async def _next_display_code_with_commit(session_factory, bd: date) -> str:
@@ -408,11 +409,14 @@ async def update_line(
     await session.flush()
     return line
 
+
 # --- Task 2 ---
 LINE_FORWARD = {"Chờ": "Đã xác nhận xong", "Đã xác nhận xong": "Đã phục vụ"}
 
+
 async def advance_line_status(session, line_id: int, to_status: str):
     from app.modules.sales.models import OrderLine
+
     line = await session.get(OrderLine, line_id)
     if line is None:
         raise NotFoundError("Dòng món không tồn tại.")
@@ -426,9 +430,10 @@ async def advance_line_status(session, line_id: int, to_status: str):
 
 
 async def cancel_line(session, line_id: int, reason: str, *, actor_id: int | None = None):
-    from app.modules.sales.models import Order, OrderLine
     from app.modules.inventory.models import StockMovement
+    from app.modules.sales.models import Order, OrderLine
     from app.shared.audit import SystemAuditLog
+
     line = await session.get(OrderLine, line_id)
     if line is None:
         raise NotFoundError("Dòng món không tồn tại.")
@@ -441,11 +446,16 @@ async def cancel_line(session, line_id: int, reason: str, *, actor_id: int | Non
         raise BusinessRuleError("Cần lý do hủy.")
     # reverse stock for this line
     if line.recipe_id is not None:
-        r = await session.execute(select(StockMovement).where(StockMovement.order_line_id == line.id, StockMovement.qty < 0))
+        r = await session.execute(
+            select(StockMovement).where(
+                StockMovement.order_line_id == line.id, StockMovement.qty < 0
+            )
+        )
         moves = list(r.scalars().all())
-        from app.shared.enums import StockMovementType
         from app.modules.catalog.models import Ingredient
         from app.modules.inventory.models import IngredientLot
+        from app.shared.enums import StockMovementType
+
         for mv in moves:
             # revert lot
             if mv.lot_id is not None:
@@ -455,21 +465,40 @@ async def cancel_line(session, line_id: int, reason: str, *, actor_id: int | Non
             ing = await session.get(Ingredient, mv.ingredient_id)
             if ing:
                 ing.stock_qty = float(float(ing.stock_qty) - float(mv.qty))
-            sm = StockMovement(ingredient_id=mv.ingredient_id, lot_id=mv.lot_id, kind=StockMovementType.HOAN_KHO, qty=float(-mv.qty), business_date=order.business_date, order_line_id=line.id, performed_by=actor_id)
+            sm = StockMovement(
+                ingredient_id=mv.ingredient_id,
+                lot_id=mv.lot_id,
+                kind=StockMovementType.HOAN_KHO,
+                qty=float(-mv.qty),
+                business_date=order.business_date,
+                order_line_id=line.id,
+                performed_by=actor_id,
+            )
             session.add(sm)
         await session.flush()
     line.status = "Đã hủy"
     await session.flush()
-    session.add(SystemAuditLog(user_id=actor_id or 0, action="CANCEL_ORDER_LINE", target_entity="CHI_TIET_ORDER", target_id=str(line.id)))
+    session.add(
+        SystemAuditLog(
+            user_id=actor_id or 0,
+            action="CANCEL_ORDER_LINE",
+            target_entity="CHI_TIET_ORDER",
+            target_id=str(line.id),
+        )
+    )
     await session.flush()
     # Check if all lines cancelled -> close order
     from sqlalchemy import select as _sel
-    r2 = await session.execute(_sel(OrderLine).where(OrderLine.order_id == order.id, OrderLine.status != "Đã hủy"))
+
+    r2 = await session.execute(
+        _sel(OrderLine).where(OrderLine.order_id == order.id, OrderLine.status != "Đã hủy")
+    )
     if r2.scalar_one_or_none() is None:
         order.status = "Tự động đóng"
         # free table
         if order.table_id is not None:
             from app.modules.catalog.models import DiningTable
+
             tbl = await session.get(DiningTable, order.table_id)
             if tbl:
                 tbl.status = "Trống"
@@ -478,9 +507,10 @@ async def cancel_line(session, line_id: int, reason: str, *, actor_id: int | Non
 
 
 async def move_table(session, order_id: int, to_table_id: int, *, actor_id: int | None = None):
-    from app.modules.sales.models import Order, TableMoveLog
     from app.modules.catalog.models import DiningTable
+    from app.modules.sales.models import Order, TableMoveLog
     from app.shared.audit import SystemAuditLog
+
     order = await session.get(Order, order_id)
     if order is None:
         raise NotFoundError("Order không tồn tại.")
@@ -499,7 +529,14 @@ async def move_table(session, order_id: int, to_table_id: int, *, actor_id: int 
     dest.status = "Đang phục vụ"
     order.table_id = to_table_id
     session.add(TableMoveLog(order_id=order.id, from_table=src_id, to_table=to_table_id))
-    session.add(SystemAuditLog(user_id=actor_id or 0, action="MOVE_ORDER_TABLE", target_entity="ORDER", target_id=str(order.id)))
+    session.add(
+        SystemAuditLog(
+            user_id=actor_id or 0,
+            action="MOVE_ORDER_TABLE",
+            target_entity="ORDER",
+            target_id=str(order.id),
+        )
+    )
     await session.flush()
     return order
 
@@ -507,6 +544,7 @@ async def move_table(session, order_id: int, to_table_id: int, *, actor_id: int 
 async def cancel_order(session, order_id: int, reason: str, *, actor_id: int | None = None):
     from app.modules.sales.models import Order, OrderLine
     from app.shared.audit import SystemAuditLog
+
     order = await session.get(Order, order_id)
     if order is None:
         raise NotFoundError("Order không tồn tại.")
@@ -522,20 +560,36 @@ async def cancel_order(session, order_id: int, reason: str, *, actor_id: int | N
         if line.status == "Chờ":
             # reuse cancel_line stock logic but without double audit
             from app.modules.inventory.models import StockMovement
-            r2 = await session.execute(select(StockMovement).where(StockMovement.order_line_id == line.id, StockMovement.qty < 0))
+
+            r2 = await session.execute(
+                select(StockMovement).where(
+                    StockMovement.order_line_id == line.id, StockMovement.qty < 0
+                )
+            )
             moves = list(r2.scalars().all())
-            from app.shared.enums import StockMovementType
             from app.modules.catalog.models import Ingredient
             from app.modules.inventory.models import IngredientLot
+            from app.shared.enums import StockMovementType
+
             for mv in moves:
                 if mv.lot_id is not None:
                     lot = await session.get(IngredientLot, mv.lot_id)
                     if lot:
-                        lot.quantity_remaining = float(float(lot.quantity_remaining) - float(mv.qty))
+                        lot.quantity_remaining = float(
+                            float(lot.quantity_remaining) - float(mv.qty)
+                        )
                 ing = await session.get(Ingredient, mv.ingredient_id)
                 if ing:
                     ing.stock_qty = float(float(ing.stock_qty) - float(mv.qty))
-                sm = StockMovement(ingredient_id=mv.ingredient_id, lot_id=mv.lot_id, kind=StockMovementType.HOAN_KHO, qty=float(-mv.qty), business_date=order.business_date, order_line_id=line.id, performed_by=actor_id)
+                sm = StockMovement(
+                    ingredient_id=mv.ingredient_id,
+                    lot_id=mv.lot_id,
+                    kind=StockMovementType.HOAN_KHO,
+                    qty=float(-mv.qty),
+                    business_date=order.business_date,
+                    order_line_id=line.id,
+                    performed_by=actor_id,
+                )
                 session.add(sm)
             line.status = "Đã hủy"
         else:
@@ -546,10 +600,17 @@ async def cancel_order(session, order_id: int, reason: str, *, actor_id: int | N
     order.cancel_reason = reason
     if order.table_id is not None:
         from app.modules.catalog.models import DiningTable
+
         tbl = await session.get(DiningTable, order.table_id)
         if tbl:
             tbl.status = "Trống"
-    session.add(SystemAuditLog(user_id=actor_id or 0, action="CANCEL_ORDER", target_entity="ORDER", target_id=str(order.id)))
+    session.add(
+        SystemAuditLog(
+            user_id=actor_id or 0,
+            action="CANCEL_ORDER",
+            target_entity="ORDER",
+            target_id=str(order.id),
+        )
+    )
     await session.flush()
     return order
-

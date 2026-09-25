@@ -11,7 +11,15 @@ from app.modules.settings.models import User
 from app.modules.settings.service import seed_reference_data
 from app.shared import business_date
 from app.shared.enums import VersionStatus
-from app.modules.catalog.models import Dish, DishGroup, Ingredient, Recipe, RecipeItem, DishPriceVersion, DiningTable
+from app.modules.catalog.models import (
+    Dish,
+    DishGroup,
+    Ingredient,
+    Recipe,
+    RecipeItem,
+    DishPriceVersion,
+    DiningTable,
+)
 from app.modules.inventory.models import GoodsReceipt, GoodsReceiptLine, IngredientLot
 from app.core.config import get_settings
 
@@ -21,6 +29,7 @@ from tests.helpers import order_status, payment_status
 async def _make_client(session):
     async def _get_session():
         yield session
+
     app.dependency_overrides[get_session] = _get_session
     return AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
 
@@ -28,41 +37,77 @@ async def _make_client(session):
 async def _headers(session, role="CASHIER", username="tester"):
     await seed_reference_data(session)
     from sqlalchemy import select as sel
+
     r = await session.execute(sel(User).where(User.username == username))
     u = r.scalar_one_or_none()
     if u is None:
-        u = User(username=username, password_hash=hash_password("pass"), full_name=username, role_id=role, status="Hoạt động")
-        session.add(u); await session.flush(); await session.commit()
+        u = User(
+            username=username,
+            password_hash=hash_password("pass"),
+            full_name=username,
+            role_id=role,
+            status="Hoạt động",
+        )
+        session.add(u)
+        await session.flush()
+        await session.commit()
     tok = create_access_token(str(u.id), {"role": u.role_id, "username": u.username})
     return {"Authorization": f"Bearer {tok}"}, u
 
 
 async def _setup(session):
     g = DishGroup(name="Nhóm", display_order=1, is_deleted=False)
-    session.add(g); await session.flush()
+    session.add(g)
+    await session.flush()
     d = Dish(name="Món", group_id=g.id, is_deleted=False)
-    session.add(d); await session.flush()
+    session.add(d)
+    await session.flush()
     ing = Ingredient(name="NL", unit="kg", min_stock=1, stock_qty=20, is_deleted=False)
-    session.add(ing); await session.flush()
+    session.add(ing)
+    await session.flush()
     bd = business_date.business_date_of(business_date.now())
-    pv = DishPriceVersion(dish_id=d.id, price=50000, business_date=bd, status=VersionStatus.HIEU_LUC.value, change_type="Tạo mới")
-    session.add(pv); await session.flush()
-    rc = Recipe(dish_id=d.id, business_date=bd, status=VersionStatus.HIEU_LUC.value, change_type="Tạo mới")
-    session.add(rc); await session.flush()
+    pv = DishPriceVersion(
+        dish_id=d.id,
+        price=50000,
+        business_date=bd,
+        status=VersionStatus.HIEU_LUC.value,
+        change_type="Tạo mới",
+    )
+    session.add(pv)
+    await session.flush()
+    rc = Recipe(
+        dish_id=d.id, business_date=bd, status=VersionStatus.HIEU_LUC.value, change_type="Tạo mới"
+    )
+    session.add(rc)
+    await session.flush()
     session.add(RecipeItem(recipe_id=rc.id, ingredient_id=ing.id, quantity=1))
     gr = GoodsReceipt(supplier_id=None, status="Nháp", receipt_date=business_date.now())
-    session.add(gr); await session.flush()
+    session.add(gr)
+    await session.flush()
     gl = GoodsReceiptLine(receipt_id=gr.id, ingredient_id=ing.id, quantity=20, unit_price=1000)
-    session.add(gl); await session.flush()
-    lot = IngredientLot(ingredient_id=ing.id, receipt_line_id=gl.id, quantity_remaining=20, status="Còn hạn", received_at=business_date.now())
+    session.add(gl)
+    await session.flush()
+    lot = IngredientLot(
+        ingredient_id=ing.id,
+        receipt_line_id=gl.id,
+        quantity_remaining=20,
+        status="Còn hạn",
+        received_at=business_date.now(),
+    )
     session.add(lot)
     t = DiningTable(name="Bàn 1", is_deleted=False, status="Trống")
-    session.add(t); await session.flush(); await session.commit()
+    session.add(t)
+    await session.flush()
+    await session.commit()
     return d, t
 
 
 async def _submit(session, client, h, d, t):
-    r = await client.post("/api/v1/sales/orders", json={"MaBan": t.id, "lines": [{"MaMon": d.id, "SoLuong": 1}]}, headers=h)
+    r = await client.post(
+        "/api/v1/sales/orders",
+        json={"MaBan": t.id, "lines": [{"MaMon": d.id, "SoLuong": 1}]},
+        headers=h,
+    )
     assert r.status_code == 201, r.text
     return r.json()["MaOrder"]
 
@@ -117,9 +162,13 @@ async def test_webhook_settles(session):
     r = await client.post(f"/api/v1/sales/orders/{oid}/pay/qr", headers=h)
     pid = r.json()["MaGiaoDich"]
     from tests.helpers import order_count as _oc
+
     # need amount: order total is 50000
     sig = _sign(pid, 50000)
-    r2 = await client.post("/api/v1/sales/webhooks/payment", json={"payment_id": pid, "amount": 50000, "signature": sig})
+    r2 = await client.post(
+        "/api/v1/sales/webhooks/payment",
+        json={"payment_id": pid, "amount": 50000, "signature": sig},
+    )
     assert r2.status_code == 200
     assert await payment_status(session, oid) == "Thành công"
 
@@ -133,9 +182,16 @@ async def test_webhook_idempotent(session):
     r = await client.post(f"/api/v1/sales/orders/{oid}/pay/qr", headers=h)
     pid = r.json()["MaGiaoDich"]
     sig = _sign(pid, 50000)
-    await client.post("/api/v1/sales/webhooks/payment", json={"payment_id": pid, "amount": 50000, "signature": sig})
-    await client.post("/api/v1/sales/webhooks/payment", json={"payment_id": pid, "amount": 50000, "signature": sig})
+    await client.post(
+        "/api/v1/sales/webhooks/payment",
+        json={"payment_id": pid, "amount": 50000, "signature": sig},
+    )
+    await client.post(
+        "/api/v1/sales/webhooks/payment",
+        json={"payment_id": pid, "amount": 50000, "signature": sig},
+    )
     from sqlalchemy import text
+
     rr = await session.execute(text("SELECT COUNT(*) FROM HOA_DON WHERE MaOrder=:id"), {"id": oid})
     assert rr.scalar_one() == 1
 
@@ -148,7 +204,10 @@ async def test_webhook_bad_sig(session):
     oid = await _submit(session, client, h, d, t)
     r = await client.post(f"/api/v1/sales/orders/{oid}/pay/qr", headers=h)
     pid = r.json()["MaGiaoDich"]
-    r2 = await client.post("/api/v1/sales/webhooks/payment", json={"payment_id": pid, "amount": 50000, "signature": "bad"})
+    r2 = await client.post(
+        "/api/v1/sales/webhooks/payment",
+        json={"payment_id": pid, "amount": 50000, "signature": "bad"},
+    )
     assert r2.status_code == 401
 
 

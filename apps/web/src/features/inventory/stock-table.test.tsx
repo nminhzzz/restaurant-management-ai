@@ -4,8 +4,16 @@ import { StockTable } from "./stock-table";
 vi.mock("@/lib/api-client", () => ({
   apiFetch: vi.fn().mockResolvedValue({
     items: [
-      { MaNguyenLieu: 1, TenNguyenLieu: "B\u1ed9t m\u00ec", CanhBaoTonThap: false },
-      { MaNguyenLieu: 2, TenNguyenLieu: "\u0110\u01b0\u1eddng", CanhBaoTonThap: true },
+      {
+        MaNguyenLieu: 1,
+        TenNguyenLieu: "B\u1ed9t m\u00ec",
+        CanhBaoTonThap: false,
+      },
+      {
+        MaNguyenLieu: 2,
+        TenNguyenLieu: "\u0110\u01b0\u1eddng",
+        CanhBaoTonThap: true,
+      },
     ],
   }),
 }));

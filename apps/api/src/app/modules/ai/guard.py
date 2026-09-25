@@ -107,7 +107,18 @@ def validate_sql(
     if not isinstance(expression, (exp.Select, exp.Union, exp.Intersect, exp.Except)):
         raise BusinessRuleError(SQL_REJECTED_MESSAGE)
 
+    # Block SELECT without FROM (e.g. SELECT database()) unless allow-listed explicitly
+    has_table = False
+    for _ in expression.find_all(exp.Table):
+        has_table = True
+        break
+    if not has_table:
+        # Allow CTE-only or trivial? No - require at least one allowed view
+        raise BusinessRuleError(SQL_REJECTED_MESSAGE)
     for node in expression.walk():
+        if isinstance(node, exp.Parameter):
+            raise BusinessRuleError(SQL_REJECTED_MESSAGE)
+        # Variables like @a are Parameter(Var), already caught; plain Var inside Parameter handled above
         if isinstance(node, (*_FORBIDDEN_NODES, exp.Into)):
             raise BusinessRuleError(SQL_REJECTED_MESSAGE)
         callee = _function_name(node)
