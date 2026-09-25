@@ -1,10 +1,12 @@
 """Fixtures for settings and catalog modules."""
 
+import time
 from datetime import date, datetime
 from decimal import Decimal
 from itertools import count
 from types import SimpleNamespace
 
+import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
@@ -762,3 +764,133 @@ async def two_months(session):
         left_month="2026-08",
         right_month="2026-09",
     )
+
+
+# --- Phase 6 assistant fixtures ---
+
+
+@pytest.fixture
+def quota_reached(fake_llm):
+    """Spend the daily quota before the test runs, so no call reaches the model."""
+    from app.core.config import get_settings
+    from app.modules.ai.pipeline import generator
+    from app.shared import business_date
+
+    today = business_date.business_date_of(business_date.now()).isoformat()
+    generator.set_daily_calls(today, get_settings().ai_daily_question_quota)
+    return fake_llm
+
+
+class _FakeResult:
+    def __init__(self, factory) -> None:
+        self._factory = factory
+
+    def keys(self) -> list[str]:
+        return list(self._factory.columns)
+
+    def fetchall(self) -> list[tuple]:
+        return list(self._factory.rows)
+
+
+class _FakeConnection:
+    def __init__(self, factory) -> None:
+        self._factory = factory
+
+    async def execute(self, statement):
+        self._factory.executed.append(str(statement))
+        if self._factory.error is not None:
+            raise self._factory.error
+        return _FakeResult(self._factory)
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+
+class _FakeEngine:
+    def __init__(self, factory, url) -> None:
+        self._factory = factory
+        self._url = url
+
+    def connect(self):
+        return _FakeConnection(self._factory)
+
+    async def dispose(self) -> None:
+        self._factory.disposed += 1
+
+
+class FakeEngineFactory:
+    """Records which read-only URL each role opened and what ran on it (NFR-06)."""
+
+    def __init__(self) -> None:
+        self.urls: list[str] = []
+        self.executed: list[str] = []
+        self.rows: list[tuple] = []
+        self.columns: list[str] = ["MaNguyenLieu", "TenNguyenLieu"]
+        self.disposed = 0
+        self.error: Exception | None = None
+
+    def __call__(self, url: str) -> _FakeEngine:
+        self.urls.append(url)
+        return _FakeEngine(self, url)
+
+
+@pytest.fixture
+def fake_engine_factory(monkeypatch) -> FakeEngineFactory:
+    from app.modules.ai.pipeline import executor
+
+    factory = FakeEngineFactory()
+    monkeypatch.setattr(executor, "_create_engine", factory)
+    return factory
+
+
+@pytest.fixture
+def readonly_urls(monkeypatch):
+    """Distinct per-role account URLs, so a test can prove they are not shared."""
+    from app.core.config import get_settings
+
+    monkeypatch.setenv("AI_READONLY_URL_MANAGER", "mysql+asyncmy://ai_manager@db/restaurant")
+    monkeypatch.setenv("AI_READONLY_URL_CASHIER", "mysql+asyncmy://ai_cashier@db/restaurant")
+    monkeypatch.setenv("AI_READONLY_URL_WAREHOUSE", "mysql+asyncmy://ai_warehouse@db/restaurant")
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
+
+
+@pytest.fixture
+def ai_engine(fake_engine_factory, readonly_urls):
+    """Fake execution layer with a plausible single-row result, for pipeline tests."""
+    fake_engine_factory.columns = ["SoDon"]
+    fake_engine_factory.rows = [(2,)]
+    return fake_engine_factory
+
+
+class _SlowLlm:
+    def __init__(self, delay: float) -> None:
+        self._delay = delay
+        self.calls = 0
+
+    def complete(self, prompt: str) -> str:
+        self.calls += 1
+        time.sleep(self._delay)
+        return "SELECT 1 AS n FROM vw_ai_thungan"
+
+
+@pytest.fixture
+def slow_llm(monkeypatch):
+    """A model that stalls past a deliberately tiny response budget (NFR-02)."""
+    from app.core.config import get_settings
+    from app.modules.ai import llm
+    from app.modules.ai.pipeline import generator
+
+    monkeypatch.setenv("AI_RESPONSE_BUDGET_SECONDS", "0.05")
+    get_settings.cache_clear()
+    slow = _SlowLlm(0.4)
+    llm.set_client(slow)
+    generator.reset_state()
+    yield slow
+    llm.set_client(None)
+    generator.reset_state()
+    get_settings.cache_clear()

@@ -31,7 +31,8 @@ class Settings(BaseSettings):
     # AI Assistant (NFR-02 response budget, NFR-16 cost control).
     ai_provider: str = "openai"
     ai_api_key: str = ""
-    ai_model: str = "gpt-4o-mini"
+    llm_model: str = "gpt-4o-mini"
+    llm_base_url: str = ""
     ai_ollama_base_url: str = "http://localhost:11434"
     ai_max_rows: int = 500
     ai_response_budget_seconds: float = 8.0

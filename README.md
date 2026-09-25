@@ -68,13 +68,14 @@ Quyền được kiểm tra ở tầng API (`app.core.dependencies.require_roles
 
 ## Hiện trạng
 
-Đã xong **Phase 0 → 5**: lược đồ CSDL 29 bảng theo báo cáo cộng `DEM_ORDER` (`migrations/versions/`),
-ba view phân quyền `vw_ai_*` và tài khoản chỉ-đọc riêng (`db/views/`), cùng năm module nghiệp vụ
-Cài đặt · Danh mục · Kho · Bán hàng · Báo cáo có API và giao diện dùng được.
+Đã xong **Phase 0 → 6**: lược đồ CSDL 29 bảng theo báo cáo cộng `DEM_ORDER` (`migrations/versions/`),
+ba view phân quyền `vw_ai_*` và tài khoản chỉ-đọc riêng (`db/views/`), cùng sáu module nghiệp vụ
+Cài đặt · Danh mục · Kho · Bán hàng · Báo cáo · Trợ lý AI có API và giao diện dùng được.
 
-Còn lại: **Phase 6** (pipeline trợ lý AI: `normalize` và `guard` đã xong, bốn bước prompt/sinh
-SQL/thực thi/diễn giải còn là interface) và **Phase 7** (seed 12 tháng, bộ câu hỏi đánh giá,
-harness A/B/C — mới có khung).
+Trợ lý AI chạy thật cần cấu hình nhà cung cấp LLM (`AI_PROVIDER`, `LLM_MODEL`, `AI_API_KEY`, hoặc
+`AI_PROVIDER=ollama`); bộ test dùng client giả nên không cần khoá.
+
+Còn lại: **Phase 7** (seed 12 tháng, bộ câu hỏi đánh giá, harness A/B/C — mới có khung).
 
 Kế hoạch triển khai đầy đủ nằm ở [`docs/plans/2026-09-24-master-roadmap.md`](docs/plans/2026-09-24-master-roadmap.md):
 **tám phase** từ lược đồ CSDL tới dữ liệu đánh giá, kèm thứ tự phụ thuộc và các cổng cần duyệt. Kế hoạch

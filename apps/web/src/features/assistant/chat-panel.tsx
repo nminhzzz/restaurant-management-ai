@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { ChartView } from "@/features/assistant/chart-view";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import type { ChatResponse, QueryDetail } from "@/types/api";
 
@@ -113,6 +114,7 @@ export function ChatPanel() {
             {result.answer}
           </p>
           <ResultTable rows={result.data} />
+          <ChartView spec={result.chart} rows={result.data} />
           {result.detail === null ? null : <SqlDetail detail={result.detail} />}
         </div>
       )}

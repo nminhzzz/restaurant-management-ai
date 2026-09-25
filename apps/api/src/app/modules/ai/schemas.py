@@ -24,3 +24,4 @@ class ChatResponse(BaseModel):
     data: list[dict[str, Any]] = Field(default_factory=list)
     chart: dict[str, Any] | None = None
     detail: QueryDetail | None = None
+    session_id: int | None = None
