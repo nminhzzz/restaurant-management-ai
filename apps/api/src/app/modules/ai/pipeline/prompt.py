@@ -108,6 +108,7 @@ async def schema_block(session: AsyncSession, role: Role) -> str:
     view = ROLE_VIEWS[role]
     lines = [f"View được phép truy vấn: {view}"]
     for name, type_name in await _columns_of(session, view):
+        note: str | None
         if name == "LoaiBanGhi":
             values = ", ".join(f"'{value}'" for value in VIEW_LOAIBANGHI_VALUES[view])
             note = (
