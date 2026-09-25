@@ -1,11 +1,10 @@
 """HTTP layer of the AI Assistant.
 
-`POST /assistant/chat` is the single entry point; it is wired to the service now
-so the frontend can integrate against the real route shape, and returns 501
-until the pipeline steps are implemented.
+`POST /assistant/chat` is the single entry point: one turn in, one answer out, with
+every turn logged in `TRUY_VAN_AI` by the service.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
@@ -22,10 +21,10 @@ async def chat(
     user: CurrentUser,
     session: AsyncSession = Depends(get_session),
 ) -> ChatResponse:
-    try:
-        return await service.answer(session, payload.question, user.role)
-    except NotImplementedError:
-        raise HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail="Trợ lý AI chưa được triển khai.",
-        ) from None
+    return await service.answer(
+        session,
+        payload.question,
+        user.role,
+        user.user_id,
+        payload.session_id,
+    )

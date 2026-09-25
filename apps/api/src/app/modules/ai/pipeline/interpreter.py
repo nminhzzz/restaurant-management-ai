@@ -5,6 +5,7 @@ rule 16): the sentence that tells the reader which view the numbers came from mu
 depend on the model choosing to mention it.
 """
 
+import asyncio
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -42,7 +43,7 @@ async def interpret(
         f"Câu SQL đã chạy: {sql}\n"
         f"Kết quả ({len(rows)} dòng, hiển thị tối đa 20): {rows[:20]}"
     )
-    text = (llm.get_client().complete(prompt) or "").strip()
+    text = (await asyncio.to_thread(llm.get_client().complete, prompt) or "").strip()
     if not text:
         text = FALLBACK_ANSWER
     return f"{text}\n\n{note}"

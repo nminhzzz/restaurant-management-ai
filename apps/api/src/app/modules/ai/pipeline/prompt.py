@@ -40,10 +40,15 @@ COLUMN_NOTES: dict[str, str] = {
 
 
 async def _columns_of(session: AsyncSession, view: str) -> list[tuple[str, str]]:
-    """Column name and type of the view, through the dialect-agnostic inspector."""
+    """Column name and type of the view, through the dialect-agnostic inspector.
+
+    Reflection goes through the session's **own** connection: the inspector rolls back
+    a connection it obtained from the engine itself, which (with a single-connection
+    pool) would discard work the caller had already flushed.
+    """
 
     def _read(sync_session: Any) -> list[tuple[str, str]]:
-        inspector = inspect(sync_session.get_bind())
+        inspector = inspect(sync_session.connection())
         return [(column["name"], str(column["type"])) for column in inspector.get_columns(view)]
 
     return await session.run_sync(_read)

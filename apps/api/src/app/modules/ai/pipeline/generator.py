@@ -9,6 +9,8 @@ Daily quota and cache are process-local on purpose: NFR-16 asks for cost control
 for durable accounting, and keeping them here avoids a table the report never mentions.
 """
 
+import asyncio
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -70,7 +72,7 @@ async def generate_sql(session: AsyncSession, question: str, role: Role) -> str:
         prompt = await build_prompt(session, normalized, role)
         if last_error is not None:
             prompt += f"\n\nLần trước câu SQL chưa hợp lệ: {last_error}. Hãy sửa lại."
-        raw = client.complete(prompt) or ""
+        raw = await asyncio.to_thread(client.complete, prompt) or ""
         text = raw.strip()
 
         if text.upper().startswith(CLARIFY_PREFIX):

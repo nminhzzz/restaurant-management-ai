@@ -1,5 +1,6 @@
 """Fixtures for settings and catalog modules."""
 
+import time
 from datetime import date, datetime
 from decimal import Decimal
 from itertools import count
@@ -855,4 +856,41 @@ def readonly_urls(monkeypatch):
     monkeypatch.setenv("AI_READONLY_URL_WAREHOUSE", "mysql+asyncmy://ai_warehouse@db/restaurant")
     get_settings.cache_clear()
     yield
+    get_settings.cache_clear()
+
+
+@pytest.fixture
+def ai_engine(fake_engine_factory, readonly_urls):
+    """Fake execution layer with a plausible single-row result, for pipeline tests."""
+    fake_engine_factory.columns = ["SoDon"]
+    fake_engine_factory.rows = [(2,)]
+    return fake_engine_factory
+
+
+class _SlowLlm:
+    def __init__(self, delay: float) -> None:
+        self._delay = delay
+        self.calls = 0
+
+    def complete(self, prompt: str) -> str:
+        self.calls += 1
+        time.sleep(self._delay)
+        return "SELECT 1 AS n FROM vw_ai_thungan"
+
+
+@pytest.fixture
+def slow_llm(monkeypatch):
+    """A model that stalls past a deliberately tiny response budget (NFR-02)."""
+    from app.core.config import get_settings
+    from app.modules.ai import llm
+    from app.modules.ai.pipeline import generator
+
+    monkeypatch.setenv("AI_RESPONSE_BUDGET_SECONDS", "0.05")
+    get_settings.cache_clear()
+    slow = _SlowLlm(0.4)
+    llm.set_client(slow)
+    generator.reset_state()
+    yield slow
+    llm.set_client(None)
+    generator.reset_state()
     get_settings.cache_clear()
