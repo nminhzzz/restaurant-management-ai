@@ -2,6 +2,11 @@
 CREATE USER IF NOT EXISTS 'ai_manager'@'%' IDENTIFIED BY '__AI_READONLY_PASSWORD_MANAGER__';
 CREATE USER IF NOT EXISTS 'ai_cashier'@'%' IDENTIFIED BY '__AI_READONLY_PASSWORD_CASHIER__';
 CREATE USER IF NOT EXISTS 'ai_warehouse'@'%' IDENTIFIED BY '__AI_READONLY_PASSWORD_WAREHOUSE__';
+-- IF NOT EXISTS leaves an existing account's password alone, so rotating the
+-- passwords would silently keep the old ones; ALTER makes every run authoritative.
+ALTER USER 'ai_manager'@'%' IDENTIFIED BY '__AI_READONLY_PASSWORD_MANAGER__';
+ALTER USER 'ai_cashier'@'%' IDENTIFIED BY '__AI_READONLY_PASSWORD_CASHIER__';
+ALTER USER 'ai_warehouse'@'%' IDENTIFIED BY '__AI_READONLY_PASSWORD_WAREHOUSE__';
 
 REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'ai_manager'@'%';
 GRANT SELECT ON restaurant.vw_ai_quanly TO 'ai_manager'@'%';

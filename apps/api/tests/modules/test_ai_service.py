@@ -2,7 +2,7 @@
 
 import pytest
 
-from app.modules.ai.service import answer
+from app.modules.ai.service import TIMEOUT_ANSWER, answer
 from app.shared.roles import Role
 from tests.helpers import latest_query, session_count
 
@@ -126,10 +126,13 @@ async def test_the_endpoint_no_longer_returns_501(
 
 @pytest.mark.anyio
 async def test_a_slow_turn_is_cut_off_at_the_response_budget(session, seed_views, slow_llm):
-    """NFR-02: the whole chain must fit in the budget, not just the database part."""
-    with pytest.raises(TimeoutError):
-        await answer(session, "hỏi", Role.CASHIER, user_id=1)
+    """NFR-02: the whole chain must fit in the budget, not just the database part.
 
+    Running out of time is an answer the user can act on, not a server error.
+    """
+    response = await answer(session, "hỏi", Role.CASHIER, user_id=1)
+
+    assert response.answer == TIMEOUT_ANSWER
     assert (await latest_query(session))["TrangThai"] == "Lỗi"
 
 

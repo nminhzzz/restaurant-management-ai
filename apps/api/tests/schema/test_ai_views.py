@@ -9,15 +9,88 @@ from pathlib import Path
 import pytest
 from sqlalchemy import text
 
-# Expected column sets from db/views/README.md contract (stub typed)
-# Keep minimal to pass on current stubs; Phase 6 replaces with full sets
+# Expected column sets from db/views/README.md contract (FR-AI-02/03/04).
 EXPECTED_COLUMNS = {
-    "vw_ai_quanly": {"MaOrder", "BusinessDate", "LoaiDon", "TrangThaiOrder", "MaBan"},
-    "vw_ai_thungan": {"MaOrder", "BusinessDate", "LoaiDon", "TrangThaiOrder", "MaBan"},
-    "vw_ai_kho": {"MaNguyenLieu", "TenNguyenLieu", "DonViTinh", "SoLuongTon"},
+    "vw_ai_quanly": {
+        "LoaiBanGhi",
+        "MaOrder",
+        "BusinessDate",
+        "LoaiDon",
+        "TrangThaiOrder",
+        "MaBan",
+        "LyDoHuyOrder",
+        "MaHoaDon",
+        "ThoiDiemXuat",
+        "TongTien",
+        "MaGiaoDich",
+        "PhuongThuc",
+        "SoTien",
+        "TenMon",
+        "TenNhom",
+        "SoLuongMon",
+        "DonGiaMon",
+        "ThanhTienMon",
+        "MaNguyenLieu",
+        "TenNguyenLieu",
+        "DonViTinh",
+        "SoLuongTon",
+        "MucTonToiThieu",
+        "Thang",
+        "GiaBinhQuanThang",
+        "TongSoLuongNhapThang",
+        "MaGiaoDichKho",
+        "SoLuong",
+        "LoaiGiaoDich",
+        "MaPhieuNhap",
+        "TenNhaCungCap",
+        "DonGiaNhap",
+        "SoLuongNhap",
+    },
+    "vw_ai_thungan": {
+        "LoaiBanGhi",
+        "MaOrder",
+        "BusinessDate",
+        "LoaiDon",
+        "TrangThaiOrder",
+        "MaBan",
+        "MaHoaDon",
+        "ThoiDiemXuat",
+        "TongTien",
+        "MaGiaoDich",
+        "PhuongThuc",
+        "SoTien",
+        "TenMon",
+        "TenNhom",
+        "SoLuongMon",
+        "DonGiaMon",
+        "ThanhTienMon",
+    },
+    "vw_ai_kho": {
+        "LoaiBanGhi",
+        "MaNguyenLieu",
+        "TenNguyenLieu",
+        "DonViTinh",
+        "SoLuongTon",
+        "MucTonToiThieu",
+        "CanhBaoTonThap",
+        "MaGiaoDichKho",
+        "BusinessDate",
+        "SoLuong",
+        "LoaiGiaoDich",
+        "MaLo",
+        "SoLuongConLai",
+        "TrangThaiLo",
+        "NgayNhapLo",
+        "HanSuDungLo",
+    },
 }
 
-FORBIDDEN = {"MatKhauHash", "GiaVonUocTinh"}
+FORBIDDEN = {"MatKhauHash", "GiaVonUocTinh", "SoDienThoai"}
+
+# FR-AI-03: the cashier must never see cost/purchase-price columns.
+FORBIDDEN_CASHIER = {"DonGiaNhap", "GiaBinhQuanThang", "TenNhaCungCap", "MaNguyenLieu"}
+# FR-AI-04: the warehouse role must never see revenue/invoice/amount columns.
+FORBIDDEN_WAREHOUSE = {"TongTien", "SoTien", "DonGia", "DonGiaMon", "DonGiaNhap"}
 
 
 def test_view_column_contract_is_documented() -> None:
@@ -27,6 +100,16 @@ def test_view_column_contract_is_documented() -> None:
     assert "Hợp đồng cột" in readme
     for view in EXPECTED_COLUMNS:
         assert view in readme
+
+
+def test_cashier_view_never_carries_cost_or_purchase_price_columns() -> None:
+    """FR-AI-03, NFR-06/12: no giá nhập / giá vốn / lợi nhuận theo món."""
+    assert EXPECTED_COLUMNS["vw_ai_thungan"].isdisjoint(FORBIDDEN_CASHIER)
+
+
+def test_warehouse_view_never_carries_revenue_or_amount_columns() -> None:
+    """FR-AI-04, NFR-06/12: no doanh thu / hóa đơn / lợi nhuận."""
+    assert EXPECTED_COLUMNS["vw_ai_kho"].isdisjoint(FORBIDDEN_WAREHOUSE)
 
 
 @pytest.mark.integration
@@ -45,6 +128,10 @@ async def test_view_columns_match_contract_on_mysql(mysql_engine_factory) -> Non
             cols = {row[0] for row in result.all()}
             assert cols == expected, f"{view}: got {cols}"
             assert cols.isdisjoint(FORBIDDEN), f"{view} leaks forbidden columns"
+            if view == "vw_ai_thungan":
+                assert cols.isdisjoint(FORBIDDEN_CASHIER), f"{view} leaks cost/purchase columns"
+            if view == "vw_ai_kho":
+                assert cols.isdisjoint(FORBIDDEN_WAREHOUSE), f"{view} leaks revenue columns"
 
     await engine.dispose()
 

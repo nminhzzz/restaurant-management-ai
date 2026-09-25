@@ -25,17 +25,46 @@ ROLE_SCOPE_NOTE: dict[Role, str] = {
 }
 
 COLUMN_NOTES: dict[str, str] = {
+    "LoaiBanGhi": (
+        "loại bản ghi của dòng này — luôn lọc bằng WHERE LoaiBanGhi = '...' trước, "
+        "vì các cột khác chỉ có dữ liệu ở đúng nhánh của nó"
+    ),
     "BusinessDate": "ngày kinh doanh, mốc 06:00 → 06:00 hôm sau",
     "MaOrder": "mã đơn hàng",
+    "TrangThaiOrder": "trạng thái order (Đang mở, Đã thanh toán, Đã hủy, ...)",
+    "LyDoHuyOrder": "lý do hủy order, chỉ có ở LoaiBanGhi = 'ORDER'",
     "MaHoaDon": "mã hóa đơn",
     "TongTien": "tổng tiền của hóa đơn",
     "SoTien": "số tiền của giao dịch thanh toán",
     "ThoiDiemXuat": "thời điểm xuất hóa đơn",
+    "TenMon": "tên món ăn, ở LoaiBanGhi = 'DONG_MON'",
+    "TenNhom": "tên nhóm món",
+    "SoLuongMon": "số lượng món trong dòng order",
+    "DonGiaMon": "đơn giá bán của món tại thời điểm order",
+    "ThanhTienMon": "thành tiền của dòng món = SoLuongMon * DonGiaMon",
     "MaNguyenLieu": "mã nguyên liệu",
     "TenNguyenLieu": "tên nguyên liệu",
     "DonViTinh": "đơn vị tính",
-    "SoLuongTon": "số lượng tồn hiện tại",
-    "MucTonToiThieu": "mức tồn tối thiểu để cảnh báo",
+    "SoLuongTon": "số lượng tồn hiện tại, chỉ có ở LoaiBanGhi = 'TON_KHO'",
+    "MucTonToiThieu": "mức tồn tối thiểu hiệu lực để cảnh báo",
+    "CanhBaoTonThap": "1 nếu tồn hiện tại dưới mức tối thiểu, ngược lại 0",
+    "Thang": "tháng (1-12) của giá vốn bình quân, ở LoaiBanGhi = 'GIA_VON_THANG'",
+    "GiaBinhQuanThang": "giá vốn bình quân gia quyền trong tháng của nguyên liệu",
+    "TongSoLuongNhapThang": "tổng số lượng nhập trong tháng dùng để tính giá bình quân",
+    "MaGiaoDichKho": "mã giao dịch kho",
+    "SoLuong": "số lượng của giao dịch kho (nhập/xuất/trừ tự động/điều chỉnh)",
+    "LoaiGiaoDich": (
+        "loại giao dịch kho: Nhập, Trừ tự động, Hoàn kho, Xuất thủ công, Điều chỉnh kiểm kê"
+    ),
+    "MaPhieuNhap": "mã phiếu nhập kho, ở LoaiBanGhi = 'PHIEU_NHAP'",
+    "TenNhaCungCap": "tên nhà cung cấp của phiếu nhập",
+    "DonGiaNhap": "đơn giá nhập (giá mua) của nguyên liệu trong phiếu nhập",
+    "SoLuongNhap": "số lượng nhập trong dòng phiếu nhập",
+    "MaLo": "mã lô nguyên liệu, ở LoaiBanGhi = 'LO_NGUYEN_LIEU'",
+    "SoLuongConLai": "số lượng còn lại của lô",
+    "TrangThaiLo": "trạng thái lô (Còn hạn, Hết hạn, ...)",
+    "NgayNhapLo": "ngày nhập của lô",
+    "HanSuDungLo": "hạn sử dụng tính từ ngày nhập lô + số ngày bảo quản",
 }
 
 
