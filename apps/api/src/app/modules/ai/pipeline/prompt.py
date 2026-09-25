@@ -24,6 +24,23 @@ ROLE_SCOPE_NOTE: dict[Role, str] = {
     Role.WAREHOUSE: "tồn kho và nguyên liệu; không có doanh thu, hóa đơn hay lợi nhuận",
 }
 
+# The exact LoaiBanGhi branch values of each view (must match db/views/*.sql), so the
+# model is told what to filter on instead of guessing or asking a clarifying question.
+VIEW_LOAIBANGHI_VALUES: dict[str, tuple[str, ...]] = {
+    "vw_ai_quanly": (
+        "ORDER",
+        "DONG_MON",
+        "HOA_DON",
+        "THANH_TOAN",
+        "TON_KHO",
+        "GIA_VON_THANG",
+        "GIAO_DICH_KHO",
+        "PHIEU_NHAP",
+    ),
+    "vw_ai_thungan": ("ORDER", "DONG_MON", "HOA_DON", "THANH_TOAN"),
+    "vw_ai_kho": ("TON_KHO", "GIAO_DICH_KHO", "LO_NGUYEN_LIEU"),
+}
+
 COLUMN_NOTES: dict[str, str] = {
     "LoaiBanGhi": (
         "loại bản ghi của dòng này — luôn lọc bằng WHERE LoaiBanGhi = '...' trước, "
@@ -48,7 +65,10 @@ COLUMN_NOTES: dict[str, str] = {
     "SoLuongTon": "số lượng tồn hiện tại, chỉ có ở LoaiBanGhi = 'TON_KHO'",
     "MucTonToiThieu": "mức tồn tối thiểu hiệu lực để cảnh báo",
     "CanhBaoTonThap": "1 nếu tồn hiện tại dưới mức tối thiểu, ngược lại 0",
-    "Thang": "tháng (1-12) của giá vốn bình quân, ở LoaiBanGhi = 'GIA_VON_THANG'",
+    "Thang": (
+        "tháng của giá vốn bình quân, định dạng YYYYMM (ví dụ 202609, không phải 1-12), "
+        "ở LoaiBanGhi = 'GIA_VON_THANG'"
+    ),
     "GiaBinhQuanThang": "giá vốn bình quân gia quyền trong tháng của nguyên liệu",
     "TongSoLuongNhapThang": "tổng số lượng nhập trong tháng dùng để tính giá bình quân",
     "MaGiaoDichKho": "mã giao dịch kho",
@@ -88,7 +108,16 @@ async def schema_block(session: AsyncSession, role: Role) -> str:
     view = ROLE_VIEWS[role]
     lines = [f"View được phép truy vấn: {view}"]
     for name, type_name in await _columns_of(session, view):
-        note = COLUMN_NOTES.get(name)
+        note: str | None
+        if name == "LoaiBanGhi":
+            values = ", ".join(f"'{value}'" for value in VIEW_LOAIBANGHI_VALUES[view])
+            note = (
+                f"loại bản ghi của dòng này — giá trị hợp lệ duy nhất của view này: {values}; "
+                "luôn lọc bằng WHERE LoaiBanGhi = '...' trước, vì các cột khác chỉ có dữ liệu "
+                "ở đúng nhánh của nó"
+            )
+        else:
+            note = COLUMN_NOTES.get(name)
         lines.append(f"- {name} ({type_name})" + (f": {note}" if note else ""))
     return "\n".join(lines)
 
@@ -126,6 +155,12 @@ async def build_prompt(
         f"Bạn chỉ được truy vấn đúng một view: {view}.",
         "Không được dùng bảng lõi, cũng không được dùng view của vai trò khác.",
         "Chỉ sinh đúng một câu lệnh SELECT, không kèm giải thích hay định dạng thừa.",
+        # Without the dialect the model drifts to SQL Server (GETDATE, TOP), which MySQL
+        # rejects; this is an instruction, so the schema-only baseline carries it too.
+        "Hệ quản trị là MySQL 8.4: chỉ dùng cú pháp MySQL (CURDATE(), NOW(), DATE_SUB, "
+        "DATE_FORMAT, LIMIT), không dùng GETDATE, TOP hay cú pháp của hệ quản trị khác.",
+        "Ngày kinh doanh nằm ở cột BusinessDate (một ngày kinh doanh chạy từ 06:00 tới "
+        "06:00 hôm sau); 'hôm nay' nghĩa là BusinessDate = CURDATE().",
         f"Phạm vi dữ liệu của vai trò này: {ROLE_SCOPE_NOTE[role]}.",
         "Nếu câu hỏi nằm ngoài phạm vi hoặc còn thiếu thông tin, hãy trả lời bắt đầu bằng "
         "'CLARIFY:' kèm một câu hỏi làm rõ thay vì đoán.",

@@ -2,7 +2,8 @@
 
 import pytest
 
-from app.modules.ai.pipeline.prompt import build_prompt, schema_block
+from app.modules.ai.pipeline.prompt import VIEW_LOAIBANGHI_VALUES, build_prompt, schema_block
+from app.modules.ai.scope import ROLE_VIEWS
 from app.shared.roles import Role
 
 
@@ -49,3 +50,32 @@ async def test_the_prompt_names_the_forbidden_tables_explicitly(session, seed_vi
     assert "vw_ai_kho" not in prompt
     assert "chỉ được" in prompt
     assert "một câu lệnh" in prompt
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("role", list(Role))
+async def test_the_schema_block_lists_the_exact_loaibanghi_values_of_the_role_view(
+    session, seed_views, role
+):
+    """A first benchmark run had the model ask which LoaiBanGhi means stock movements
+    instead of just using it — spell out every branch value so it never has to guess."""
+    block = await schema_block(session, role)
+    view = ROLE_VIEWS[role]
+
+    for value in VIEW_LOAIBANGHI_VALUES[view]:
+        assert value in block
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("role", list(Role))
+async def test_the_prompt_names_the_sql_dialect_even_without_examples(session, seed_views, role):
+    """Without it the model writes SQL Server (GETDATE, TOP) and MySQL rejects it.
+
+    The dialect is an instruction, not an example, so the schema-only baseline
+    (configuration A, no few-shot) must carry it too.
+    """
+    prompt = await build_prompt(session, "Hôm nay có bao nhiêu đơn?", role, examples=[])
+
+    assert "MySQL 8.4" in prompt
+    assert "CURDATE()" in prompt
+    assert "BusinessDate" in prompt

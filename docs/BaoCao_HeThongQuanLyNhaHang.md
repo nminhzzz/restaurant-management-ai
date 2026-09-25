@@ -118,6 +118,16 @@ Bảng 33. Ma trận quyền hạn theo chức năng và vai trò	97
 
 Bảng 34. Trách nhiệm và thẩm quyền theo từng vai trò	100
 
+Bảng 35. Mức độ đáp ứng yêu cầu chức năng theo module
+
+Bảng 36. Thời gian xử lý báo cáo trên dữ liệu 12 tháng
+
+Bảng 37. Kết quả thực nghiệm ba cấu hình trên 95 câu hỏi
+
+Bảng 38. Độ chính xác thực thi theo mức độ khó so với mục tiêu MT5
+
+Bảng 39. Đối chiếu kết quả với mục tiêu đề tài
+
 # DANH MỤC HÌNH ẢNH
 
 **Hình 1. Use Case tổng quan	34**
@@ -1817,13 +1827,95 @@ Theo dõi tiến độ: nhóm họp trao đổi định kỳ hằng tuần để
 
 ## 4.2. Kết quả thực hiện
 
-Kết quả thực nghiệm dự kiến đo lường trên bộ dữ liệu đánh giá 50–100 cặp câu hỏi tiếng Việt – SQL chuẩn (phân tầng ba mức độ khó), với các chỉ số: độ chính xác thực thi, tỷ lệ SQL lỗi, tỷ lệ từ chối, thời gian phản hồi trung bình. Mục tiêu: độ chính xác thực thi tối thiểu 80% (câu hỏi đơn giản/trung bình) và 55% (câu hỏi phức tạp); thời gian phản hồi dưới 8 giây/câu hỏi. Ba cấu hình đối chứng được thực nghiệm: (A) chỉ dùng lược đồ, (B) bổ sung few-shot và chuẩn hóa tiếng Việt, (C) cấu hình B trên một mô hình khác. Kết quả cụ thể sẽ được cập nhật sau khi hoàn thành thực nghiệm.
+### 4.2.1. Kết quả xây dựng chương trình
+
+Hệ thống được xây dựng đầy đủ sáu module theo mục 1.4.1, mỗi module gồm phần backend (FastAPI, kiểm tra quyền ở tầng API theo NFR-05) và các màn hình tương ứng trên giao diện web (Next.js). Bảng 35 tổng hợp mức độ đáp ứng yêu cầu chức năng tại mục 2.4.
+
+| Module | Số yêu cầu chức năng | Đã đáp ứng | Ghi chú |
+| --- | --- | --- | --- |
+| Quản lý danh mục (FR-CAT) | 28 | 28 | Màn hình món ăn, nhóm món, nguyên liệu, nhà cung cấp, bàn; lên lịch giá/công thức theo Business Date; hiển thị theo Bảng 33 |
+| Quản lý bán hàng (FR-SALE) | 29 | 29 | Máy in nhiệt và cổng thanh toán QR thật nằm ngoài phạm vi (mục 1.4.3): phiếu bếp, hóa đơn in qua trình duyệt; cổng QR dùng bộ giả lập có xác thực chữ ký webhook |
+| Quản lý kho (FR-INV) | 12 | 12 | Nhập kho theo lô, trừ kho FIFO, xuất thủ công, kiểm kê, chốt giá vốn bình quân tháng |
+| Báo cáo thống kê (FR-REP) | 10 | 10 | Doanh thu, xếp hạng món, khung giờ, biên lợi nhuận gộp, giá vốn, so sánh kỳ, order bị hủy; mỗi báo cáo có bảng và biểu đồ |
+| Cài đặt hệ thống (FR-SET) | 9 | 8 | FR-SET-07 (sao lưu tự động, phục hồi) là yêu cầu mở rộng, chưa triển khai; sao lưu thủ công FR-SET-06 đã có |
+| AI Assistant (FR-AI) | 9 | 9 | Mô hình thương mại DeepSeek qua API; mỗi vai trò một view và một tài khoản CSDL chỉ-đọc riêng |
+| **Tổng** | **97** | **96** | |
+
+Bảng 35. Mức độ đáp ứng yêu cầu chức năng theo module
+
+Mã nguồn được kiểm thử tự động ở cả hai tầng: 349 ca kiểm thử backend (pytest) và 89 ca kiểm thử giao diện (Vitest), chạy lại trên hệ thống tích hợp liên tục (CI) trước mỗi lần hợp nhất mã nguồn vào nhánh chính. Bộ test case chức năng đầy đủ theo từng yêu cầu, bao gồm kiểm thử phân quyền và phạm vi dữ liệu AI theo vai trò, được trình bày tại tài liệu kiểm thử đi kèm mã nguồn (thư mục docs/testing).
+
+### 4.2.2. Đánh giá yêu cầu phi chức năng
+
+Hiệu năng báo cáo (NFR-01, NFR-03) được đo trên bộ dữ liệu mô phỏng 12 tháng gồm 15.497 order và 14.560 hóa đơn (Business Date từ 02/10/2025 đến 25/09/2026, 80 món, 68 nguyên liệu, 20 bàn). Bảng 36 ghi thời gian xử lý các báo cáo cho tháng 8/2026, đều thấp hơn nhiều so với ngưỡng 2 giây.
+
+| Báo cáo | Thời gian xử lý | Ngưỡng NFR-01 |
+| --- | --- | --- |
+| Doanh thu theo kỳ | 0,041 giây | 2 giây |
+| Xếp hạng món ăn | 0,012 giây | 2 giây |
+| Phân bố theo khung giờ | 0,006 giây | 2 giây |
+| Cơ cấu giá vốn | 0,013 giây | 2 giây |
+
+Bảng 36. Thời gian xử lý báo cáo trên dữ liệu 12 tháng
+
+Cơ chế cách ly dữ liệu của AI Assistant (NFR-06, NFR-12) được kiểm chứng trực tiếp trên MySQL 8.4: mỗi tài khoản chỉ-đọc chỉ truy vấn được view của vai trò tương ứng, bị từ chối khi truy vấn bảng nghiệp vụ lõi (ví dụ HOA_DON) và view của vai trò khác. Lỗi backend được ghi log kèm thời điểm, thao tác và dữ liệu đầu vào (mật khẩu, token được che), người dùng chỉ nhận thông báo tiếng Việt kèm mã lỗi để tra cứu (NFR-15).
+
+Lưu ý về dữ liệu: bộ sinh dữ liệu nhắm tới 20.000 order nhưng chỉ ghi nhận được 15.497 order, vì các order thiếu nguyên liệu bị từ chối đúng theo quy tắc nghiệp vụ (FR-SALE-05) thay vì được ghi nhận sai. Con số này thấp hơn mức tối thiểu đã đặt ra tại Phụ lục 4; các chỉ số hiệu năng ở Bảng 36 vẫn còn dư địa lớn so với ngưỡng.
+
+### 4.2.3. Thực nghiệm AI Assistant (Text-to-SQL)
+
+Thiết lập thực nghiệm: bộ dữ liệu đánh giá gồm 95 cặp câu hỏi tiếng Việt – SQL chuẩn, phân tầng 31 câu dễ, 40 câu trung bình, 24 câu khó; theo vai trò gồm 45 câu của Quản lý, 24 câu của Thu ngân/Nhân viên order và 26 câu của Nhân viên kho; trong đó 6 câu cố ý hỏi vượt phạm vi vai trò, câu trả lời đúng là từ chối. Ba cấu hình theo Phụ lục 4: A dùng lược đồ view và chỉ dẫn; B bổ sung ví dụ few-shot và chuẩn hóa câu hỏi tiếng Việt; C là cấu hình B trên mô hình suy luận khác. Cấu hình A và B dùng mô hình DeepSeek-V4.1-Flash (mã deepseek-flash), cấu hình C dùng DeepSeek-V4-Pro (mã deepseek-v4-pro), cùng nhiệt độ 0, chạy ngày 26/09/2026 trên dữ liệu mô phỏng mô tả ở mục 4.2.2.
+
+Chỉ số: độ chính xác thực thi được đo bằng cách chạy cả câu SQL do mô hình sinh và câu SQL chuẩn rồi so sánh tập kết quả, không so sánh văn bản SQL. Báo cáo hai mức: chặt (tập kết quả trùng khớp, số được so theo giá trị) và nới lỏng (cho phép kết quả có thêm cột, ví dụ trả thêm đơn vị tính bên cạnh số lượng tồn). Thời gian phản hồi tính từ lúc gửi câu hỏi tới khi có kết quả truy vấn; trong hệ thống thật còn thêm một bước diễn giải bằng LLM.
+
+| Cấu hình | Chính xác (chặt) | Chính xác (nới lỏng) | Tỷ lệ SQL lỗi | Tỷ lệ từ chối | Thời gian trung bình | Trung vị | Phân vị 95 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| A | 56,8% | 69,5% | 1,1% | 6,3% | 5,7 giây | 3,5 giây | 15,0 giây |
+| B | **66,3%** | **75,8%** | 0,0% | 8,4% | **5,1 giây** | **2,8 giây** | 14,5 giây |
+| C | 57,9% | 64,2% | 7,4% | 11,6% | 8,8 giây | 7,4 giây | 20,2 giây |
+
+Bảng 37. Kết quả thực nghiệm ba cấu hình trên 95 câu hỏi
+
+| Mức độ | Mục tiêu (MT5) | A (chặt / nới lỏng) | B (chặt / nới lỏng) | C (chặt / nới lỏng) |
+| --- | --- | --- | --- | --- |
+| Dễ (31 câu) | ≥ 80% | 87,1% / 96,8% | **90,3% / 96,8%** | 83,9% / 90,3% |
+| Trung bình (40 câu) | ≥ 80% | 55,0% / 67,5% | **70,0% / 80,0%** | 57,5% / 65,0% |
+| Khó (24 câu) | ≥ 55% | 20,8% / 37,5% | **29,2% / 41,7%** | 25,0% / 29,2% |
+
+Bảng 38. Độ chính xác thực thi theo mức độ khó so với mục tiêu MT5
+
+Nhận xét:
+
+- Cấu hình B cho kết quả tốt nhất ở mọi mức độ và nhanh nhất: bổ sung few-shot và chuẩn hóa tiếng Việt nâng độ chính xác chặt từ 56,8% lên 66,3%, rõ nhất ở câu trung bình (55,0% lên 70,0%). Với câu dễ, cả ba cấu hình đều vượt mục tiêu 80%.
+- Mục tiêu MT5 chỉ đạt một phần: câu dễ đạt; câu trung bình chỉ chạm mức 80% khi chấm nới lỏng; câu khó (29,2% chặt, 41,7% nới lỏng) còn cách xa mục tiêu 55%. Phần lớn câu khó sai đòi hỏi kết hợp nhiều loại bản ghi trong cùng một view, ví dụ doanh thu theo bàn (mã bàn nằm ở bản ghi order, tổng tiền nằm ở bản ghi hóa đơn) hoặc biên lợi nhuận (kết hợp hóa đơn, giao dịch kho và đơn giá bình quân tháng). Đây là hệ quả trực tiếp của thiết kế một view duy nhất cho mỗi vai trò: đơn giản hóa phân quyền (NFR-06) nhưng làm câu hỏi nhiều bước khó hơn cho mô hình.
+- Mô hình suy luận (cấu hình C) không cải thiện độ chính xác mà còn tăng tỷ lệ lỗi (7,4%, chủ yếu do quá thời gian chờ) và thời gian phản hồi (trung vị 7,4 giây), nên không phù hợp làm mô hình chính; hệ thống dùng nó làm mô hình dự phòng khi mô hình chính không khả dụng.
+- Phân quyền dữ liệu được bảo đảm ở cả ba cấu hình: 6/6 câu hỏi vượt phạm vi vai trò đều bị từ chối (FR-AI-05). Tỷ lệ từ chối còn lại là các trường hợp mô hình hỏi lại để làm rõ (FR-AI-06).
+- Thời gian phản hồi trung bình của cấu hình B (5,1 giây) đạt mục tiêu dưới 8 giây, nhưng 14/95 câu (14,7%) vẫn vượt 8 giây do độ trễ dao động của dịch vụ API; hệ thống cắt ở ngưỡng 8 giây và thông báo cho người dùng thay vì treo (NFR-02).
+
+Giới hạn của thực nghiệm: mỗi cấu hình chạy một lần nên chưa đo độ dao động giữa các lần chạy; bộ câu hỏi và SQL chuẩn do chính nhóm soạn, bước ba thành viên soạn độc lập trên một tập con để tính tỷ lệ đồng thuận (Phụ lục 4) chưa thực hiện; một số câu hỏi về "hôm nay" trả về tập rỗng vì dữ liệu mô phỏng kết thúc ngày 25/09/2026; câu hỏi về lô sắp hết hạn (Q092) luôn trả về tập rỗng do dữ liệu mô phỏng chưa có số ngày bảo quản của nguyên liệu. Trong quá trình thực nghiệm, 23 câu SQL chuẩn được sửa và 3 câu hỏi được diễn đạt lại cho khớp với cấu trúc view đã hoàn thiện; danh sách chi tiết được lưu kèm bộ dữ liệu đánh giá.
+
+### 4.2.4. Đối chiếu với mục tiêu đề tài
+
+| Mục tiêu | Kết quả |
+| --- | --- |
+| MT1 – Khảo sát, đặc tả, thiết kế kiến trúc và CSDL | Đạt: Chương 1–3 |
+| MT2 – Năm module nghiệp vụ cốt lõi | Đạt: 96/97 yêu cầu chức năng (Bảng 35), yêu cầu còn lại là phần mở rộng |
+| MT3 – AI Assistant Text-to-SQL tiếng Việt | Đạt: đủ 9 yêu cầu FR-AI, cách ly dữ liệu theo vai trò đã kiểm chứng |
+| MT4 – Bộ dữ liệu đánh giá 50–100 câu, ba mức độ khó | Đạt: 95 câu (31 dễ, 40 trung bình, 24 khó) |
+| MT5 – Độ chính xác ≥ 80% (dễ/trung bình), ≥ 55% (khó), dưới 8 giây | Đạt một phần: câu dễ và thời gian trung bình đạt; câu trung bình chỉ đạt khi chấm nới lỏng; câu khó chưa đạt (Bảng 38) |
+| MT6 – Kiểm thử chức năng, SUS, UAT | Đạt một phần: kiểm thử tự động và bộ test case theo module đã hoàn thành; khảo sát SUS và nghiệm thu UAT với người dùng thực tế chưa thực hiện tại thời điểm viết báo cáo |
+
+Bảng 39. Đối chiếu kết quả với mục tiêu đề tài
 
 # KẾT LUẬN
 
 Đề tài xây dựng hệ thống quản lý nhà hàng tích hợp AI hỗ trợ hoạt động kinh doanh, gồm hai khối: khối nghiệp vụ quản lý truyền thống (danh mục, bán hàng, kho, báo cáo thống kê, cài đặt hệ thống) và khối AI Assistant cho phép người quản lý hỏi đáp, phân tích dữ liệu kinh doanh bằng ngôn ngữ tự nhiên tiếng Việt qua Text-to-SQL kết hợp LLM. Bên cạnh sản phẩm phần mềm, đề tài đóng góp một bộ dữ liệu đánh giá gồm các cặp câu hỏi tiếng Việt – câu lệnh SQL chuẩn cho nghiệp vụ nhà hàng, dùng để đo lường định lượng chất lượng của khối AI Assistant - Các bộ dữ liệu Text-to-SQL tiếng Việt công bố trước đó (ví dụ ViText2SQL của VinAI Research) tập trung vào các lược đồ tổng quát, chưa có bộ dữ liệu nào xây dựng riêng cho lược đồ nghiệp vụ nhà hàng (order, hóa đơn, tồn kho theo lô/HSD); vì vậy đóng góp của đề tài góp phần lấp khoảng trống này ở phạm vi lược đồ chuyên biệt đó, chứ không phải khoảng trống về Text-to-SQL tiếng Việt nói chung.
 
-Kết quả cụ thể về mức độ hoàn thành các module, số liệu thực nghiệm Text-to-SQL và đánh giá định tính (SUS) sẽ được cập nhật khi hoàn thiện triển khai và thực nghiệm.
+Kết quả đạt được: hệ thống đáp ứng 96/97 yêu cầu chức năng, yêu cầu còn lại (sao lưu tự động, FR-SET-07) là phần mở rộng; các báo cáo xử lý dưới 0,05 giây trên dữ liệu 12 tháng; khối AI Assistant tách biệt dữ liệu theo vai trò bằng view và tài khoản chỉ-đọc riêng, từ chối đúng toàn bộ câu hỏi vượt quyền trong thực nghiệm. Trên bộ 95 câu hỏi, cấu hình tốt nhất (few-shot và chuẩn hóa tiếng Việt trên DeepSeek-V4.1-Flash) đạt độ chính xác thực thi 66,3% (75,8% khi chấm nới lỏng) với thời gian phản hồi trung bình 5,1 giây, vượt mục tiêu ở câu hỏi dễ nhưng chưa đạt mục tiêu ở câu hỏi khó.
+
+Hạn chế: độ chính xác với câu hỏi nhiều bước còn thấp, chủ yếu do mỗi vai trò chỉ có một view gộp nhiều loại bản ghi; một phần câu hỏi vẫn vượt ngưỡng 8 giây do phụ thuộc độ trễ của dịch vụ LLM bên ngoài; khảo sát SUS và nghiệm thu UAT với người dùng thực tế chưa thực hiện; máy in nhiệt và cổng thanh toán QR thật mới ở mức mô phỏng.
+
+Hướng phát triển: tách view theo nhóm nghiệp vụ trong cùng phạm vi vai trò hoặc bổ sung lớp ngữ nghĩa (các chỉ số dựng sẵn như doanh thu theo bàn, biên lợi nhuận) để giảm độ khó cho mô hình; chọn ví dụ few-shot theo độ tương đồng với câu hỏi; tích hợp cổng thanh toán và máy in nhiệt thật; bổ sung tách/gộp hóa đơn, sao lưu tự động và phục hồi dữ liệu; mở rộng cho nhiều chi nhánh.
 
 # TÀI LIỆU THAM KHẢO
 

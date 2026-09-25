@@ -7,6 +7,7 @@ from app.core.database import get_session
 from app.core.dependencies import Principal, require_roles
 from app.modules.inventory import service as svc
 from app.modules.inventory.schemas import CountIn, IssueCreate, ReceiptCreate, ReceiptUpdate
+from app.shared.audit import SystemAuditLog
 from app.shared.roles import Role
 
 router = APIRouter(prefix="/inventory", tags=["Inventory"])
@@ -134,9 +135,22 @@ async def close_month(
     user: Principal = Depends(require_roles(Role.MANAGER)),
     session: AsyncSession = Depends(get_session),
 ):
+    from app.modules.inventory.costing import backfill_issue_costs
     from app.modules.inventory.costing import close_month as _close
 
     items = await _close(session, month)
+    # Without the backfill, write-offs keep a cost of 0 and the report stays
+    # "tạm tính" forever (FR-REP-05b).
+    priced = await backfill_issue_costs(session, month)
+    session.add(
+        SystemAuditLog(
+            user_id=user.user_id,
+            action="CLOSE_COSTING_MONTH",
+            target_entity="GIA_BINH_QUAN_THANG",
+            target_id=str(month),
+            after={"SoNguyenLieu": len(items), "SoDongHaoHutDaTinhGia": priced},
+        )
+    )
     await session.commit()
     # Serialize via dict to keep precision; avoid leaking ORM directly
     return [

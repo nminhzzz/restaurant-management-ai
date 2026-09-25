@@ -90,3 +90,48 @@ async def test_close_month_requires_manager(session):
     month = FIXED_NOW.year * 100 + FIXED_NOW.month
     r = await client.post(f"/api/v1/inventory/costing/{month}/close", headers=h)
     assert r.status_code == 403
+
+
+@pytest.mark.anyio
+async def test_closing_a_month_prices_its_write_offs_and_is_audited(session):
+    """FR-REP-05b: waste stays at cost 0 ("tạm tính") until the month is closed.
+
+    Closing through the API must also backfill the write-offs, otherwise the
+    provisional label on the cost report never clears.
+    """
+    from sqlalchemy import select as sel
+
+    from app.modules.inventory.models import StockIssueLine
+    from app.shared.audit import SystemAuditLog
+
+    ing = await _ingredient(session, "NL hao hụt cần chốt")
+    client = await _make_client(session)
+    h, manager = await _headers(session)
+    await client.post(
+        "/api/v1/inventory/receipts",
+        json={"lines": [{"ingredient_id": ing.id, "quantity": 10, "unit_price": 1500}]},
+        headers=h,
+    )
+    issued = await client.post(
+        "/api/v1/inventory/issues",
+        json={"reason": "Hao hụt", "lines": [{"ingredient_id": ing.id, "quantity": 2}]},
+        headers=h,
+    )
+    assert issued.status_code == 201, issued.text
+
+    month = FIXED_NOW.year * 100 + FIXED_NOW.month
+    r = await client.post(f"/api/v1/inventory/costing/{month}/close", headers=h)
+
+    assert r.status_code == 200, r.text
+    line = (
+        await session.execute(sel(StockIssueLine).where(StockIssueLine.ingredient_id == ing.id))
+    ).scalar_one()
+    await session.refresh(line)
+    assert line.estimated_cost == 3000
+    audit = (
+        await session.execute(
+            sel(SystemAuditLog).where(SystemAuditLog.action == "CLOSE_COSTING_MONTH")
+        )
+    ).scalar_one()
+    assert audit.user_id == manager.id
+    assert audit.target_id == str(month)

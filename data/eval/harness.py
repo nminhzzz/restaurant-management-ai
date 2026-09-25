@@ -16,6 +16,9 @@ Run against a seeded database with that database's read-only accounts in place:
 import argparse
 import asyncio
 import json
+from decimal import Decimal, InvalidOperation
+from itertools import product
+import sys
 import time
 from contextlib import asynccontextmanager
 from dataclasses import asdict, dataclass, field
@@ -23,6 +26,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, AsyncIterator
 
+import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -68,13 +72,40 @@ class Failure:
 
 
 @dataclass(frozen=True)
+class Outcome:
+    """One question's result: status is "đúng", "sai", "lỗi" or "từ chối"."""
+
+    question_id: str
+    difficulty: str
+    role: str
+    status: str
+    latency_ms: float
+    sql: str = ""
+    relaxed: bool = False
+
+
+@dataclass(frozen=True)
 class ConfigResult:
     config: str
     execution_accuracy: float
     error_rate: float
     refusal_rate: float
     mean_latency_ms: float
+    relaxed_accuracy: float = 0.0
     failures: list[Failure] = field(default_factory=list)
+    outcomes: list[Outcome] = field(default_factory=list)
+
+
+def accuracy_by(result: ConfigResult, key: str, relaxed: bool = False) -> dict[str, float]:
+    """Execution accuracy per difficulty or per role (MT5 sets per-difficulty targets)."""
+    totals: dict[str, int] = {}
+    correct: dict[str, int] = {}
+    for outcome in result.outcomes:
+        group = getattr(outcome, key)
+        totals[group] = totals.get(group, 0) + 1
+        hit = outcome.relaxed if relaxed else outcome.status == "đúng"
+        correct[group] = correct.get(group, 0) + hit
+    return {group: round(correct[group] / totals[group], 4) for group in sorted(totals)}
 
 
 @dataclass(frozen=True)
@@ -100,9 +131,54 @@ def _bind_model(client: Any, model: str) -> None:
         client.model = model
 
 
-def _shape(rows: list[dict[str, Any]]) -> list[tuple[str, ...]]:
-    """Rows as ordered tuples of strings, so two result sets compare by value."""
-    return sorted(tuple(str(value) for value in row.values()) for row in rows)
+def _norm(value: Any) -> str:
+    """Compare numbers by value (10 == 10.0000 == Decimal("10")), everything else as text."""
+    if value is None:
+        return "NULL"
+    if isinstance(value, bool):
+        return str(value)
+    try:
+        number = Decimal(str(value))
+    except (InvalidOperation, ValueError):
+        return str(value)
+    if not number.is_finite():
+        return str(value)
+    return format(number.normalize(), "f")
+
+
+def _rows(rows: list[dict[str, Any]]) -> list[tuple[str, ...]]:
+    return [tuple(_norm(value) for value in row.values()) for row in rows]
+
+
+def strict_match(produced: list[dict[str, Any]], gold: list[dict[str, Any]]) -> bool:
+    """Execution accuracy: the same rows with the same columns, in any row order."""
+    return sorted(_rows(produced)) == sorted(_rows(gold))
+
+
+def relaxed_match(produced: list[dict[str, Any]], gold: list[dict[str, Any]]) -> bool:
+    """Like strict_match, but extra columns in the answer are allowed.
+
+    Every gold column must appear among the produced columns with the same value in
+    the same row, e.g. returning the unit next to the stock still answers "how much".
+    """
+    got, want = _rows(produced), _rows(gold)
+    if len(got) != len(want):
+        return False
+    if not want:
+        return True
+    width = len(want[0])
+    column = lambda rows, i: sorted(row[i] for row in rows)  # noqa: E731
+    candidates = [
+        [i for i in range(len(got[0])) if column(got, i) == column(want, j)] for j in range(width)
+    ]
+    target = sorted(want)
+    for mapping in product(*candidates):
+        if (
+            len(set(mapping)) == width
+            and sorted(tuple(row[i] for i in mapping) for row in got) == target
+        ):
+            return True
+    return False
 
 
 async def _generate(session: AsyncSession, config: Config, question: str, role: Role) -> str:
@@ -115,9 +191,7 @@ async def _generate(session: AsyncSession, config: Config, question: str, role: 
     text = raw.strip()
     if text.upper().startswith("CLARIFY:"):
         raise ClarificationNeeded(text[len("CLARIFY:") :].strip())
-    return guard.validate_sql(
-        text, allowed_views=views_for(role), max_rows=settings.ai_max_rows
-    )
+    return guard.validate_sql(text, allowed_views=views_for(role), max_rows=settings.ai_max_rows)
 
 
 async def run_configuration(
@@ -130,13 +204,39 @@ async def run_configuration(
         return await _run(config, questions, opened)
 
 
-async def _run(
-    config: Config, questions: list[Any], session: AsyncSession
-) -> ConfigResult:
+async def _run(config: Config, questions: list[Any], session: AsyncSession) -> ConfigResult:
     settings = get_settings()
     correct = errors = refusals = 0
     latencies: list[float] = []
     failures: list[Failure] = []
+    outcomes: list[Outcome] = []
+
+    def record(
+        question: dict[str, Any],
+        status: str,
+        started: float,
+        sql: str = "",
+        relaxed: bool | None = None,
+    ) -> None:
+        elapsed = (time.perf_counter() - started) * 1000
+        latencies.append(elapsed)
+        print(
+            f"[{config.value}] {len(outcomes) + 1}/{len(questions)} {question['id']} "
+            f"{status} {elapsed:.0f} ms",
+            file=sys.stderr,
+            flush=True,
+        )
+        outcomes.append(
+            Outcome(
+                question["id"],
+                question.get("difficulty", ""),
+                question["role"],
+                status,
+                round(elapsed, 1),
+                sql,
+                status == "đúng" if relaxed is None else relaxed,
+            )
+        )
 
     for question in questions:
         question_id = question["id"]
@@ -155,9 +255,17 @@ async def _run(
             refusals += 1
             if expected_refusal:
                 correct += 1
+                record(question, "đúng", started)
             else:
                 failures.append(Failure(question_id, f"từ chối ngoài dự kiến: {exc}"))
-            latencies.append((time.perf_counter() - started) * 1000)
+                record(question, "từ chối", started)
+            continue
+        except httpx.HTTPError as exc:
+            # An API outage is a measured error for this question, not a reason to
+            # throw away the rest of the run.
+            errors += 1
+            failures.append(Failure(question_id, f"lỗi gọi LLM: {exc}"))
+            record(question, "lỗi", started)
             continue
 
         try:
@@ -172,17 +280,18 @@ async def _run(
         except Exception as exc:  # noqa: BLE001 - a failed query is a measured outcome
             errors += 1
             failures.append(Failure(question_id, f"lỗi thực thi: {exc}"))
-            latencies.append((time.perf_counter() - started) * 1000)
+            record(question, "lỗi", started, sql)
             continue
 
         if expected_refusal:
             failures.append(Failure(question_id, "câu vượt quyền nhưng vẫn trả dữ liệu"))
-        elif _shape(produced) == _shape(reference):
+            record(question, "sai", started, sql)
+        elif strict_match(produced, reference):
             correct += 1
+            record(question, "đúng", started, sql)
         else:
             failures.append(Failure(question_id, "kết quả khác SQL chuẩn"))
-
-        latencies.append((time.perf_counter() - started) * 1000)
+            record(question, "sai", started, sql, relaxed_match(produced, reference))
 
     total = len(questions) or 1
     return ConfigResult(
@@ -191,7 +300,9 @@ async def _run(
         error_rate=errors / total,
         refusal_rate=refusals / total,
         mean_latency_ms=sum(latencies) / len(latencies) if latencies else 0.0,
+        relaxed_accuracy=sum(outcome.relaxed for outcome in outcomes) / total,
         failures=failures,
+        outcomes=outcomes,
     )
 
 
@@ -205,6 +316,11 @@ def compare(results: list[ConfigResult]) -> ComparisonTable:
             "refusal_rate": round(result.refusal_rate, 4),
             "mean_latency_ms": round(result.mean_latency_ms, 1),
             "failures": len(result.failures),
+            "relaxed_accuracy": round(result.relaxed_accuracy, 4),
+            "by_difficulty": accuracy_by(result, "difficulty"),
+            "by_role": accuracy_by(result, "role"),
+            "by_difficulty_relaxed": accuracy_by(result, "difficulty", relaxed=True),
+            "by_role_relaxed": accuracy_by(result, "role", relaxed=True),
         }
         for result in results
     ]
@@ -235,14 +351,23 @@ async def _main(configs: list[Config], out: Path) -> int:
     questions = load_questions()
     results = [await run_configuration(config, questions) for config in configs]
     table = compare(results)
+    detail = {
+        result.config: {
+            "outcomes": [asdict(outcome) for outcome in result.outcomes],
+            "failures": [asdict(failure) for failure in result.failures],
+        }
+        for result in results
+    }
     out.write_text(
-        json.dumps({"rows": table.rows}, ensure_ascii=False, indent=2), encoding="utf-8"
+        json.dumps({"rows": table.rows, "detail": detail}, ensure_ascii=False, indent=2),
+        encoding="utf-8",
     )
     for row in table.rows:
         print(
             f"{row['config']}: chính xác {row['execution_accuracy']:.2%} · "
             f"lỗi {row['error_rate']:.2%} · từ chối {row['refusal_rate']:.2%} · "
-            f"{row['mean_latency_ms']:.0f} ms"
+            f"{row['mean_latency_ms']:.0f} ms · theo độ khó {row['by_difficulty']} · "
+            f"nới lỏng {row['relaxed_accuracy']:.2%} {row['by_difficulty_relaxed']}"
         )
     print(f"Đã ghi {out}")
     return 0

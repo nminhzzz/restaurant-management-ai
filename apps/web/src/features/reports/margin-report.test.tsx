@@ -1,10 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 vi.mock("@/lib/api-client", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api-client")>();
   return { ...actual, apiFetch: vi.fn() };
 });
+import { apiFetch } from "@/lib/api-client";
 import { MarginReport } from "./margin-report";
 import { stubFetchByPath } from "./test-helpers";
 
@@ -56,5 +57,38 @@ describe("MarginReport", () => {
 
     expect(await screen.findByText("Tạm tính")).toBeInTheDocument();
     expect(screen.getByText(/chưa được tính giá vốn/)).toBeInTheDocument();
+  });
+
+  it("closes the month's costing only after confirmation, then reloads", async () => {
+    stubFetchByPath({
+      "/reports/margin": margin,
+      "/reports/costs/dishes": dishCosts,
+      "/reports/costs": {
+        NguyenLieu: "3500000",
+        HaoHut: "0",
+        TongGiaVon: "3500000",
+        TamTinh: true,
+        SoDongChuaTinhGiaVon: 2,
+      },
+      "/inventory/costing": [],
+    });
+    const fetchMock = apiFetch as unknown as ReturnType<typeof vi.fn>;
+    render(<MarginReport />);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Chốt giá vốn tháng" }),
+    );
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      expect.stringContaining("/inventory/costing/"),
+      expect.anything(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Chốt giá vốn" }));
+
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringMatching(/^\/inventory\/costing\/\d{6}\/close$/),
+        expect.objectContaining({ method: "POST" }),
+      ),
+    );
   });
 });

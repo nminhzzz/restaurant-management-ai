@@ -34,6 +34,53 @@ vượt quyền và kỳ vọng là bị từ chối.
 
 `questions.example.jsonl` chỉ là mẫu định dạng để viết harness, **không** phải bộ đánh giá chính thức.
 
+## Lịch sử chỉnh sửa bộ đề
+
+Sau khi ba view `vw_ai_*` được viết lại thành UNION ALL NULL-padded với cột phân biệt
+`LoaiBanGhi`, nhiều SQL chuẩn của `Q001`–`Q075` (soạn cho lược đồ view cũ) trở nên sai lệch dù
+vẫn chạy được. Đợt rà soát sau đây sửa lại để khớp lược đồ view hiện tại (giữ nguyên id, vai trò,
+view, độ khó):
+
+- **Lọc sai nhánh `LoaiBanGhi` (đếm/COUNT(*) bị nhân đôi)**: `Q001`, `Q003`, `Q015`, `Q021`,
+  `Q029`, `Q032`, `Q039`, `Q060`, `Q064`, `Q069` — trước đó lọc bằng `MaOrder IS NOT NULL` hoặc
+  `TrangThaiOrder = ...`, các cột này cũng có dữ liệu ở nhánh `DONG_MON`; đổi sang
+  `WHERE LoaiBanGhi = 'ORDER'`. `Q037` cũng được lọc tường minh bằng `LoaiBanGhi = 'THANH_TOAN'`
+  dù `MaGiaoDich` vốn đã là cột riêng của nhánh đó, cho nhất quán.
+- **Đếm nguyên liệu bị nhân theo số dòng ở các nhánh khác**: `Q005`, `Q024` — `MaNguyenLieu`
+  có mặt ở 3-4 nhánh; đổi sang `COUNT(DISTINCT MaNguyenLieu) ... WHERE LoaiBanGhi = 'TON_KHO'`.
+- **`ORDER BY SoLuongTon ASC` chọn nhầm dòng `NULL`**: `Q050` — nhánh `GIAO_DICH_KHO`/
+  `LO_NGUYEN_LIEU` có `SoLuongTon = NULL`, MySQL xếp `NULL` lên đầu khi `ASC` nên `LIMIT 5` lấy
+  nhầm; thêm `WHERE LoaiBanGhi = 'TON_KHO'`.
+- **`MaBan` và `TongTien` không bao giờ cùng một dòng** (`MaBan` chỉ ở nhánh `ORDER`, `TongTien`
+  chỉ ở nhánh `HOA_DON`) nên `GROUP BY MaBan, SUM(TongTien)` luôn ra `NULL`: `Q027`, `Q040`,
+  `Q061` — viết lại bằng JOIN hai subquery (`ORDER` nối `HOA_DON` qua `MaOrder`).
+- **Trả về danh sách thay vì một số trung bình**: `Q036` "Doanh thu trung bình mỗi ngày trong 30
+  ngày qua?" — SQL cũ trả doanh thu từng ngày; sửa thành `AVG` của doanh thu từng ngày.
+- **Nguyên liệu chưa từng có giao dịch kho bị lặp dòng**: `Q075` — bảng ngoài trước đó quét cả 3
+  nhánh (trùng tên nhiều lần); giới hạn `LoaiBanGhi = 'TON_KHO'` ở ngoài, `'GIAO_DICH_KHO'` ở
+  `NOT EXISTS`.
+- **Cột `Thang` của `GIA_VON_THANG` là `YYYYMM` (vd. `202609`), không phải `1-12`**: `Q082`,
+  `Q084` — SQL cũ so sánh/join bằng `MONTH(BusinessDate)` (1-12) nên không bao giờ khớp; sửa
+  sang `YEAR(...) * 100 + MONTH(...)`. Đồng thời `COLUMN_NOTES["Thang"]` trong
+  `apps/api/src/app/modules/ai/pipeline/prompt.py` được sửa lại vì ghi sai định dạng cột này.
+- **Tháng hiện tại chưa được "đóng tháng" nên không có `GIA_VON_THANG`**: `Q082`, `Q084` hỏi
+  "tháng này" nhưng giá vốn bình quân chỉ tồn tại sau khi quản lý đóng tháng (FR liên quan đến
+  `costing.close_month`); đổi câu hỏi sang "tháng trước" để luôn có dữ liệu. `Q082` cũng dùng
+  tên nguyên liệu không tồn tại trong dữ liệu mô phỏng (`'Gạo'` — chỉ có `'Gạo tẻ'`/`'Gạo
+  nếp'`/`'Bột gạo'`); đổi sang `'Gạo tẻ'`.
+- **Câu hỏi và SQL lệch nhau về "đơn" và "giờ xuất hóa đơn"**: `Q035`, `Q043` — SQL nhóm theo giờ
+  xuất hóa đơn (view không có thời điểm tạo order) nhưng câu hỏi hỏi "đơn"; đổi câu hỏi thành
+  "Số hóa đơn theo từng giờ ..." để khớp SQL, không sửa SQL.
+
+Đã kiểm tra: mọi SQL còn lại vẫn đúng dù dùng `IS NOT NULL` thay vì `LoaiBanGhi = '...'` — cột lọc
+(`MaHoaDon`, `MaGiaoDich`, `PhuongThuc`, `LoaiGiaoDich`, ...) chỉ có dữ liệu ở đúng một nhánh nên
+không bị ảnh hưởng.
+
+**Hạn chế đã biết, ngoài phạm vi sửa (không chạm vào seed/migrations)**: `Q092` ("lô nào sắp hết
+hạn") luôn trả về rỗng trên dữ liệu mô phỏng hiện tại vì `NGUYEN_LIEU.SoNgayBaoQuan` là `NULL`
+cho toàn bộ 68 nguyên liệu, nên `HanSuDungLo` không bao giờ có giá trị; SQL đúng theo đặc tả,
+chỉ là dữ liệu seed chưa phủ trường hạn sử dụng.
+
 ## Ba cấu hình đối chứng
 
 | Cấu hình | Nội dung |
