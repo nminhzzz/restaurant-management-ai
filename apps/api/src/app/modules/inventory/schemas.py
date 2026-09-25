@@ -23,6 +23,16 @@ class ReceiptCreate(BaseModel):
     lines: list[ReceiptLineIn] = Field(min_length=1, max_length=100)
 
 
+class ReceiptLineUpdateIn(BaseModel):
+    line_id: int
+    quantity: float = Field(gt=0)
+    unit_price: float = Field(ge=0)
+
+
+class ReceiptUpdate(BaseModel):
+    lines: list[ReceiptLineUpdateIn] = Field(min_length=1, max_length=100)
+
+
 class ReceiptOut(BaseModel):
     MaPhieuNhap: int
     model_config = ConfigDict(from_attributes=True)

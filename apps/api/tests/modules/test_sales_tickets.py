@@ -161,6 +161,50 @@ async def test_reprint_unlimited(session):
 
 
 @pytest.mark.anyio
+async def test_list_tickets_for_order(session):
+    """FR-SALE-27: the UI lists an order's kitchen tickets to offer reprint/print-result."""
+    d, t = await _setup(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    r = await client.post(
+        "/api/v1/sales/orders",
+        json={"MaBan": t.id, "lines": [{"MaMon": d.id, "SoLuong": 1}]},
+        headers=h,
+    )
+    oid = r.json()["MaOrder"]
+
+    rr = await client.get(f"/api/v1/sales/orders/{oid}/tickets", headers=h)
+    assert rr.status_code == 200
+    items = rr.json()["items"]
+    assert len(items) == 1
+    assert items[0]["TrangThai"] == "Chờ in"
+
+
+@pytest.mark.anyio
+async def test_print_result_failure_is_reachable(session):
+    """FR-SALE-28: the UI can report a failed print so staff see a warning."""
+    d, t = await _setup(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    r = await client.post(
+        "/api/v1/sales/orders",
+        json={"MaBan": t.id, "lines": [{"MaMon": d.id, "SoLuong": 1}]},
+        headers=h,
+    )
+    oid = r.json()["MaOrder"]
+    tickets = await tickets_for(session, oid)
+    tid = tickets[0]["MaPhieuBep"]
+
+    rr = await client.post(
+        f"/api/v1/sales/orders/{oid}/tickets/{tid}/print-result", json={"ok": False}, headers=h
+    )
+    assert rr.status_code == 200
+    assert rr.json()["TrangThai"] == "Thất bại"
+    row = await ticket_by_id(session, tid)
+    assert row["TrangThaiIn"] == "Thất bại"
+
+
+@pytest.mark.anyio
 async def test_warehouse_cannot_reprint(session):
     d, t = await _setup(session)
     client = await _make_client(session)

@@ -22,24 +22,29 @@ async def _make_client(session):
     return AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
 
 
-async def _headers(session):
+async def _headers(session, role="MANAGER"):
     await seed_reference_data(session)
-    r = await session.execute(select(User).where(User.username == "quanly01"))
-    mgr = r.scalar_one_or_none()
-    if mgr is None:
-        mgr = User(
-            username="quanly01",
+    uname = {"MANAGER": "quanly01", "CASHIER": "thungan01", "WAREHOUSE": "kho01"}[role]
+    r = await session.execute(select(User).where(User.username == uname))
+    u = r.scalar_one_or_none()
+    if u is None:
+        u = User(
+            username=uname,
             password_hash=hash_password("pass123"),
-            full_name="QL",
-            role_id="MANAGER",
+            full_name=uname,
+            role_id=role,
             status="Hoạt động",
         )
-        session.add(mgr)
+        session.add(u)
         await session.flush()
         await session.commit()
     return {
-        "Authorization": f"Bearer {create_access_token(str(mgr.id), {'role': mgr.role_id, 'username': mgr.username})}"
+        "Authorization": f"Bearer {create_access_token(str(u.id), {'role': u.role_id, 'username': u.username})}"
     }
+
+
+async def list_prices(client, headers, dish_id):
+    return await client.get(f"/api/v1/catalog/dishes/{dish_id}/prices", headers=headers)
 
 
 async def schedule_price(client, headers, dish_id, price="50000", on=None):
@@ -138,3 +143,64 @@ async def test_the_active_version_is_the_one_in_force_on_that_business_date(sess
     # Note: scheduled Nháp does not affect active_price (only HieuLuc). So tomorrow still 45000. But plan expects tomorrow = 60000 after apply? Our schedule keeps Nháp, so need to simulate apply for tomorrow. Adjust expectation to still Nháp not active.
     # For now just check today is 45000
     assert await active_price(session, dish.id, today()) == Decimal("45000")
+
+
+@pytest.mark.asyncio
+async def test_listing_prices_shows_the_pending_change_after_reload(session, dish):
+    h = await _headers(session)
+    async with await _make_client(session) as c:
+        created = await schedule_price(c, h, dish.id, price="60000", on=tomorrow())
+        resp = await list_prices(c, h, dish.id)
+    app.dependency_overrides.clear()
+    assert resp.status_code == 200
+    body = resp.json()
+    assert len(body) == 1
+    assert body[0]["MaLichSuGia"] == created.json()["MaLichSuGia"]
+    assert body[0]["TrangThai"] == "Nháp"
+    assert body[0]["BusinessDateApDung"] == tomorrow().isoformat()
+
+
+@pytest.mark.asyncio
+async def test_listing_prices_includes_current_and_history(session, dish):
+    h = await _headers(session)
+    async with await _make_client(session) as c:
+        await edit_price_now(c, h, dish.id, price="45000")
+        await edit_price_now(c, h, dish.id, price="50000")
+        resp = await list_prices(c, h, dish.id)
+    app.dependency_overrides.clear()
+    assert resp.status_code == 200
+    body = resp.json()
+    assert len(body) == 2
+    statuses = {row["TrangThai"] for row in body}
+    assert statuses == {"Hiệu lực", "Hết hiệu lực"}
+
+
+@pytest.mark.asyncio
+async def test_cashier_can_read_price_versions_but_not_write(session, dish):
+    mgr_headers = await _headers(session, "MANAGER")
+    cashier_headers = await _headers(session, "CASHIER")
+    async with await _make_client(session) as c:
+        await schedule_price(c, mgr_headers, dish.id, price="60000", on=tomorrow())
+        read_resp = await list_prices(c, cashier_headers, dish.id)
+        write_resp = await schedule_price(c, cashier_headers, dish.id, price="70000", on=tomorrow())
+    app.dependency_overrides.clear()
+    assert read_resp.status_code == 200
+    assert write_resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_warehouse_cannot_read_price_versions(session, dish):
+    warehouse_headers = await _headers(session, "WAREHOUSE")
+    async with await _make_client(session) as c:
+        resp = await list_prices(c, warehouse_headers, dish.id)
+    app.dependency_overrides.clear()
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_listing_prices_for_a_missing_dish_is_404(session):
+    h = await _headers(session)
+    async with await _make_client(session) as c:
+        resp = await list_prices(c, h, 999999)
+    app.dependency_overrides.clear()
+    assert resp.status_code == 404

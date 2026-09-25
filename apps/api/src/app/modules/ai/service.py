@@ -150,7 +150,7 @@ async def answer(
             elapsed_ms=_elapsed_ms(started),
         )
         await session.commit()
-        raise
+        return ChatResponse(answer=TIMEOUT_ANSWER, session_id=chat_session.id)
     except Exception:
         await _record(
             session,

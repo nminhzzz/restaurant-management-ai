@@ -96,6 +96,17 @@ async def lock_user(
     return UserOut.model_validate(u)
 
 
+@router.patch("/users/{user_id}/unlock", response_model=UserOut)
+async def unlock_user(
+    user_id: int,
+    user: Principal = Depends(require_roles(Role.MANAGER)),
+    session: AsyncSession = Depends(get_session),
+) -> UserOut:
+    u = await svc.unlock_user(session, user.user_id, user_id)
+    await session.commit()
+    return UserOut.model_validate(u)
+
+
 @router.post("/users/{user_id}/reset-password", status_code=204)
 async def reset_password(
     user_id: int,

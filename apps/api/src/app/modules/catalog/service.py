@@ -144,6 +144,7 @@ async def create_dish(
     d = Dish(
         name=name,
         group_id=group_id,
+        image_url=image,
         hide_manual=False,
         out_of_stock_manual=False,
         out_of_stock_auto=False,
@@ -183,6 +184,8 @@ async def update_dish(
     dish_id: int,
     name: str | None = None,
     group_id: int | None = None,
+    image: str | None = None,
+    image_provided: bool = False,
 ) -> Dish:
     d = await session.get(Dish, dish_id)
     if d is None or d.is_deleted:
@@ -194,6 +197,8 @@ async def update_dish(
         if g is None or g.is_deleted:
             raise BusinessRuleError("Nhóm món không tồn tại.")
         d.group_id = group_id
+    if image_provided:
+        d.image_url = image
     await session.flush()
     session.add(
         SystemAuditLog(
@@ -483,6 +488,59 @@ async def assign_recipe(session, actor_id: int, dish_id: int, items: list[tuple[
     return r
 
 
+async def apply_recipe_directly(
+    session, actor_id: int, dish_id: int, items: list[tuple[int, _Decimal]]
+):
+    from app.modules.catalog.models import Ingredient as _Ing
+    from app.modules.catalog.models import RecipeItem as _RI
+
+    d = await session.get(Dish, dish_id)
+    if d is None or d.is_deleted:
+        raise NotFoundError("Không tìm thấy món ăn.")
+    for _, qty in items:
+        if _Decimal(str(qty)) <= 0:
+            raise BusinessRuleError("Định lượng phải lớn hơn 0.")
+    for ing_id, _ in items:
+        ing = await session.get(_Ing, ing_id)
+        if ing is None or ing.is_deleted:
+            raise BusinessRuleError(f"Nguyên liệu {ing_id} không tồn tại.")
+    # close current active (Nháp pending changes are untouched — FR-CAT-24)
+    cur = await session.execute(
+        select(Recipe).where(Recipe.dish_id == dish_id, Recipe.status == "Hiệu lực")
+    )
+    for row in cur.scalars().all():
+        row.status = "Hết hiệu lực"
+        row.effective_to = _bd.now()
+    await session.flush()
+    bd = _bd.business_date_of(_bd.now())
+    r = Recipe(
+        dish_id=dish_id,
+        business_date=bd,
+        status="Hiệu lực",
+        change_type="Cập nhật",
+        created_by=actor_id,
+        effective_from=_bd.now(),
+    )
+    session.add(r)
+    await session.flush()
+    for ing_id, qty in items:
+        session.add(_RI(recipe_id=r.id, ingredient_id=ing_id, quantity=float(qty)))
+        ing = await session.get(_Ing, ing_id)
+        if ing:
+            ing.unit_locked = True
+    await session.flush()
+    session.add(
+        SystemAuditLog(
+            user_id=actor_id,
+            action="APPLY_RECIPE_DIRECTLY",
+            target_entity="CONG_THUC",
+            target_id=str(r.id),
+        )
+    )
+    await session.flush()
+    return r
+
+
 async def cancel_pending_recipe_change(session, actor_id: int, recipe_id: int):
     from app.modules.catalog.models import RecipeItem as _RI
 
@@ -658,6 +716,35 @@ async def create_supplier(session, actor_id: int, name: str, phone: str | None =
         SystemAuditLog(
             user_id=actor_id,
             action="CREATE_SUPPLIER",
+            target_entity="NHA_CUNG_CAP",
+            target_id=str(s.id),
+        )
+    )
+    await session.flush()
+    return s
+
+
+async def update_supplier(
+    session,
+    actor_id: int,
+    sup_id: int,
+    name: str | None = None,
+    phone: str | None = None,
+):
+    from app.modules.catalog.models import Supplier as _Sup
+
+    s = await session.get(_Sup, sup_id)
+    if s is None or s.is_deleted:
+        raise NotFoundError("Không tìm thấy nhà cung cấp.")
+    if name is not None:
+        s.name = name
+    if phone is not None:
+        s.phone = phone
+    await session.flush()
+    session.add(
+        SystemAuditLog(
+            user_id=actor_id,
+            action="UPDATE_SUPPLIER",
             target_entity="NHA_CUNG_CAP",
             target_id=str(s.id),
         )

@@ -1,5 +1,5 @@
-import { DishList } from "@/features/catalog/dish-list";
+import { CatalogWorkspace } from "@/features/catalog/catalog-workspace";
 
 export default function CatalogPage() {
-  return <DishList />;
+  return <CatalogWorkspace />;
 }

@@ -243,17 +243,273 @@ def fake_engine_factory(monkeypatch) -> FakeEngineFactory:
     return factory
 
 
-# NOTE: seed_views mirrors `db/views/*.sql` on SQLite. The MySQL DDL is authoritative;
-# this fixture only needs the same column shape so the prompt tests can read it.
+# NOTE: seed_views mirrors `db/views/*.sql` on SQLite (column names/positions only,
+# not the MySQL-specific expressions such as CAST or DATE_ADD). The MySQL DDL is
+# authoritative; this fixture only needs the same column shape so the prompt tests
+# can read it — actual query execution in tests goes through the fake AI engine.
+_QUANLY_COLUMNS = [
+    "LoaiBanGhi",
+    "MaOrder",
+    "BusinessDate",
+    "LoaiDon",
+    "TrangThaiOrder",
+    "MaBan",
+    "LyDoHuyOrder",
+    "MaHoaDon",
+    "ThoiDiemXuat",
+    "TongTien",
+    "MaGiaoDich",
+    "PhuongThuc",
+    "SoTien",
+    "TenMon",
+    "TenNhom",
+    "SoLuongMon",
+    "DonGiaMon",
+    "ThanhTienMon",
+    "MaNguyenLieu",
+    "TenNguyenLieu",
+    "DonViTinh",
+    "SoLuongTon",
+    "MucTonToiThieu",
+    "Thang",
+    "GiaBinhQuanThang",
+    "TongSoLuongNhapThang",
+    "MaGiaoDichKho",
+    "SoLuong",
+    "LoaiGiaoDich",
+    "MaPhieuNhap",
+    "TenNhaCungCap",
+    "DonGiaNhap",
+    "SoLuongNhap",
+]
+_THUNGAN_COLUMNS = [
+    "LoaiBanGhi",
+    "MaOrder",
+    "BusinessDate",
+    "LoaiDon",
+    "TrangThaiOrder",
+    "MaBan",
+    "MaHoaDon",
+    "ThoiDiemXuat",
+    "TongTien",
+    "MaGiaoDich",
+    "PhuongThuc",
+    "SoTien",
+    "TenMon",
+    "TenNhom",
+    "SoLuongMon",
+    "DonGiaMon",
+    "ThanhTienMon",
+]
+_KHO_COLUMNS = [
+    "LoaiBanGhi",
+    "MaNguyenLieu",
+    "TenNguyenLieu",
+    "DonViTinh",
+    "SoLuongTon",
+    "MucTonToiThieu",
+    "CanhBaoTonThap",
+    "MaGiaoDichKho",
+    "BusinessDate",
+    "SoLuong",
+    "LoaiGiaoDich",
+    "MaLo",
+    "SoLuongConLai",
+    "TrangThaiLo",
+    "NgayNhapLo",
+    "HanSuDungLo",
+]
+
+
+def _branch(columns: list[str], values: dict[str, str]) -> str:
+    """Build a SELECT list matching `columns`, NULL-padded except for `values`."""
+    return ", ".join(values.get(col, "NULL") for col in columns)
+
+
 @pytest_asyncio.fixture
 async def seed_views(engine: AsyncEngine) -> None:
-    quanly_columns = (
-        "o.MaOrder, o.BusinessDate, o.LoaiDon, o.TrangThai, o.MaBan, "
-        "NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL"
+    quanly_order = _branch(
+        _QUANLY_COLUMNS,
+        {
+            "LoaiBanGhi": "'ORDER'",
+            "MaOrder": "o.MaOrder",
+            "BusinessDate": "o.BusinessDate",
+            "LoaiDon": "o.LoaiDon",
+            "TrangThaiOrder": "o.TrangThai",
+            "MaBan": "o.MaBan",
+            "LyDoHuyOrder": "o.LyDoHuy",
+        },
     )
-    thungan_columns = (
-        "o.MaOrder, o.BusinessDate, o.LoaiDon, o.TrangThai, o.MaBan, "
-        "NULL, NULL, NULL, NULL, NULL, NULL"
+    quanly_dong_mon = _branch(
+        _QUANLY_COLUMNS,
+        {
+            "LoaiBanGhi": "'DONG_MON'",
+            "MaOrder": "ct.MaOrder",
+            "BusinessDate": "o.BusinessDate",
+            "TrangThaiOrder": "o.TrangThai",
+            "TenMon": "m.TenMon",
+            "TenNhom": "ng.TenNhom",
+            "SoLuongMon": "ct.SoLuong",
+            "DonGiaMon": "ct.DonGia",
+            "ThanhTienMon": "ct.SoLuong * ct.DonGia",
+        },
+    )
+    quanly_hoa_don = _branch(
+        _QUANLY_COLUMNS,
+        {
+            "LoaiBanGhi": "'HOA_DON'",
+            "MaOrder": "h.MaOrder",
+            "BusinessDate": "h.BusinessDate",
+            "MaHoaDon": "h.MaHoaDon",
+            "ThoiDiemXuat": "h.ThoiDiemXuat",
+            "TongTien": "h.TongTien",
+        },
+    )
+    quanly_thanh_toan = _branch(
+        _QUANLY_COLUMNS,
+        {
+            "LoaiBanGhi": "'THANH_TOAN'",
+            "MaOrder": "t.MaOrder",
+            "BusinessDate": "t.BusinessDate",
+            "MaGiaoDich": "t.MaGiaoDich",
+            "PhuongThuc": "t.PhuongThuc",
+            "SoTien": "t.SoTien",
+        },
+    )
+    quanly_ton_kho = _branch(
+        _QUANLY_COLUMNS,
+        {
+            "LoaiBanGhi": "'TON_KHO'",
+            "MaNguyenLieu": "n.MaNguyenLieu",
+            "TenNguyenLieu": "n.TenNguyenLieu",
+            "DonViTinh": "n.DonViTinh",
+            "SoLuongTon": "n.SoLuongTon",
+            "MucTonToiThieu": "n.MucTonToiThieu",
+        },
+    )
+    quanly_gia_von = _branch(
+        _QUANLY_COLUMNS,
+        {
+            "LoaiBanGhi": "'GIA_VON_THANG'",
+            "MaNguyenLieu": "gv.MaNguyenLieu",
+            "TenNguyenLieu": "n.TenNguyenLieu",
+            "DonViTinh": "n.DonViTinh",
+            "Thang": "gv.Thang",
+            "GiaBinhQuanThang": "gv.GiaBinhQuan",
+            "TongSoLuongNhapThang": "gv.TongSoLuongNhap",
+        },
+    )
+    quanly_giao_dich_kho = _branch(
+        _QUANLY_COLUMNS,
+        {
+            "LoaiBanGhi": "'GIAO_DICH_KHO'",
+            "BusinessDate": "g.BusinessDate",
+            "MaNguyenLieu": "g.MaNguyenLieu",
+            "TenNguyenLieu": "n.TenNguyenLieu",
+            "DonViTinh": "n.DonViTinh",
+            "MaGiaoDichKho": "g.MaGiaoDichKho",
+            "SoLuong": "g.SoLuong",
+            "LoaiGiaoDich": "g.LoaiGiaoDich",
+        },
+    )
+    quanly_phieu_nhap = _branch(
+        _QUANLY_COLUMNS,
+        {
+            "LoaiBanGhi": "'PHIEU_NHAP'",
+            "BusinessDate": "pn.NgayNhap",
+            "MaNguyenLieu": "ct.MaNguyenLieu",
+            "TenNguyenLieu": "n.TenNguyenLieu",
+            "DonViTinh": "n.DonViTinh",
+            "MaPhieuNhap": "pn.MaPhieuNhap",
+            "TenNhaCungCap": "ncc.TenNhaCungCap",
+            "DonGiaNhap": "ct.DonGia",
+            "SoLuongNhap": "ct.SoLuong",
+        },
+    )
+    thungan_order = _branch(
+        _THUNGAN_COLUMNS,
+        {
+            "LoaiBanGhi": "'ORDER'",
+            "MaOrder": "o.MaOrder",
+            "BusinessDate": "o.BusinessDate",
+            "LoaiDon": "o.LoaiDon",
+            "TrangThaiOrder": "o.TrangThai",
+            "MaBan": "o.MaBan",
+        },
+    )
+    thungan_dong_mon = _branch(
+        _THUNGAN_COLUMNS,
+        {
+            "LoaiBanGhi": "'DONG_MON'",
+            "MaOrder": "ct.MaOrder",
+            "BusinessDate": "o.BusinessDate",
+            "TrangThaiOrder": "o.TrangThai",
+            "TenMon": "m.TenMon",
+            "TenNhom": "ng.TenNhom",
+            "SoLuongMon": "ct.SoLuong",
+            "DonGiaMon": "ct.DonGia",
+            "ThanhTienMon": "ct.SoLuong * ct.DonGia",
+        },
+    )
+    thungan_hoa_don = _branch(
+        _THUNGAN_COLUMNS,
+        {
+            "LoaiBanGhi": "'HOA_DON'",
+            "MaOrder": "h.MaOrder",
+            "BusinessDate": "h.BusinessDate",
+            "MaHoaDon": "h.MaHoaDon",
+            "ThoiDiemXuat": "h.ThoiDiemXuat",
+            "TongTien": "h.TongTien",
+        },
+    )
+    thungan_thanh_toan = _branch(
+        _THUNGAN_COLUMNS,
+        {
+            "LoaiBanGhi": "'THANH_TOAN'",
+            "MaOrder": "t.MaOrder",
+            "BusinessDate": "t.BusinessDate",
+            "MaGiaoDich": "t.MaGiaoDich",
+            "PhuongThuc": "t.PhuongThuc",
+            "SoTien": "t.SoTien",
+        },
+    )
+    kho_ton_kho = _branch(
+        _KHO_COLUMNS,
+        {
+            "LoaiBanGhi": "'TON_KHO'",
+            "MaNguyenLieu": "n.MaNguyenLieu",
+            "TenNguyenLieu": "n.TenNguyenLieu",
+            "DonViTinh": "n.DonViTinh",
+            "SoLuongTon": "n.SoLuongTon",
+            "MucTonToiThieu": "n.MucTonToiThieu",
+            "CanhBaoTonThap": "CASE WHEN n.SoLuongTon < n.MucTonToiThieu THEN 1 ELSE 0 END",
+        },
+    )
+    kho_giao_dich_kho = _branch(
+        _KHO_COLUMNS,
+        {
+            "LoaiBanGhi": "'GIAO_DICH_KHO'",
+            "MaNguyenLieu": "g.MaNguyenLieu",
+            "TenNguyenLieu": "n.TenNguyenLieu",
+            "DonViTinh": "n.DonViTinh",
+            "MaGiaoDichKho": "g.MaGiaoDichKho",
+            "BusinessDate": "g.BusinessDate",
+            "SoLuong": "g.SoLuong",
+            "LoaiGiaoDich": "g.LoaiGiaoDich",
+        },
+    )
+    kho_lo = _branch(
+        _KHO_COLUMNS,
+        {
+            "LoaiBanGhi": "'LO_NGUYEN_LIEU'",
+            "MaNguyenLieu": "l.MaNguyenLieu",
+            "TenNguyenLieu": "n.TenNguyenLieu",
+            "DonViTinh": "n.DonViTinh",
+            "MaLo": "l.MaLo",
+            "SoLuongConLai": "l.SoLuongConLai",
+            "TrangThaiLo": "l.TrangThai",
+            "NgayNhapLo": "l.NgayNhap",
+        },
     )
     async with engine.begin() as conn:
         await conn.execute(text("DROP VIEW IF EXISTS vw_ai_quanly"))
@@ -261,33 +517,45 @@ async def seed_views(engine: AsyncEngine) -> None:
         await conn.execute(text("DROP VIEW IF EXISTS vw_ai_kho"))
         await conn.execute(
             text(
-                f"CREATE VIEW vw_ai_quanly AS SELECT {quanly_columns} FROM `ORDER` o "
-                "UNION ALL SELECT NULL, h.BusinessDate, NULL, NULL, NULL, h.MaHoaDon, "
-                "h.ThoiDiemXuat, h.TongTien, NULL, NULL, NULL, NULL, NULL, NULL, NULL "
-                "FROM HOA_DON h "
-                "UNION ALL SELECT NULL, t.BusinessDate, NULL, NULL, NULL, NULL, NULL, NULL, "
-                "t.MaGiaoDich, t.PhuongThuc, t.SoTien, NULL, NULL, NULL, NULL "
-                "FROM GIAO_DICH_THANH_TOAN t "
-                "UNION ALL SELECT NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, "
-                "NULL, n.MaNguyenLieu, n.TenNguyenLieu, n.DonViTinh, n.SoLuongTon "
-                "FROM NGUYEN_LIEU n"
+                f"CREATE VIEW vw_ai_quanly ({', '.join(_QUANLY_COLUMNS)}) AS "
+                f"SELECT {quanly_order} FROM `ORDER` o "
+                f"UNION ALL SELECT {quanly_dong_mon} FROM CHI_TIET_ORDER ct "
+                "JOIN `ORDER` o ON o.MaOrder = ct.MaOrder "
+                "JOIN MON_AN m ON m.MaMon = ct.MaMon "
+                "LEFT JOIN NHOM_MON ng ON ng.MaNhomMon = m.MaNhomMon "
+                f"UNION ALL SELECT {quanly_hoa_don} FROM HOA_DON h "
+                f"UNION ALL SELECT {quanly_thanh_toan} FROM GIAO_DICH_THANH_TOAN t "
+                f"UNION ALL SELECT {quanly_ton_kho} FROM NGUYEN_LIEU n "
+                f"UNION ALL SELECT {quanly_gia_von} FROM GIA_BINH_QUAN_THANG gv "
+                "JOIN NGUYEN_LIEU n ON n.MaNguyenLieu = gv.MaNguyenLieu "
+                f"UNION ALL SELECT {quanly_giao_dich_kho} FROM GIAO_DICH_KHO g "
+                "JOIN NGUYEN_LIEU n ON n.MaNguyenLieu = g.MaNguyenLieu "
+                f"UNION ALL SELECT {quanly_phieu_nhap} FROM CHI_TIET_PHIEU_NHAP ct "
+                "JOIN PHIEU_NHAP_KHO pn ON pn.MaPhieuNhap = ct.MaPhieuNhap "
+                "JOIN NGUYEN_LIEU n ON n.MaNguyenLieu = ct.MaNguyenLieu "
+                "LEFT JOIN NHA_CUNG_CAP ncc ON ncc.MaNhaCungCap = pn.MaNhaCungCap"
             )
         )
         await conn.execute(
             text(
-                f"CREATE VIEW vw_ai_thungan AS SELECT {thungan_columns} FROM `ORDER` o "
-                "UNION ALL SELECT NULL, h.BusinessDate, NULL, NULL, NULL, h.MaHoaDon, "
-                "h.ThoiDiemXuat, h.TongTien, NULL, NULL, NULL FROM HOA_DON h "
-                "UNION ALL SELECT NULL, t.BusinessDate, NULL, NULL, NULL, NULL, NULL, NULL, "
-                "t.MaGiaoDich, t.PhuongThuc, t.SoTien FROM GIAO_DICH_THANH_TOAN t"
+                f"CREATE VIEW vw_ai_thungan ({', '.join(_THUNGAN_COLUMNS)}) AS "
+                f"SELECT {thungan_order} FROM `ORDER` o "
+                f"UNION ALL SELECT {thungan_dong_mon} FROM CHI_TIET_ORDER ct "
+                "JOIN `ORDER` o ON o.MaOrder = ct.MaOrder "
+                "JOIN MON_AN m ON m.MaMon = ct.MaMon "
+                "LEFT JOIN NHOM_MON ng ON ng.MaNhomMon = m.MaNhomMon "
+                f"UNION ALL SELECT {thungan_hoa_don} FROM HOA_DON h "
+                f"UNION ALL SELECT {thungan_thanh_toan} FROM GIAO_DICH_THANH_TOAN t"
             )
         )
         await conn.execute(
             text(
-                "CREATE VIEW vw_ai_kho AS SELECT n.MaNguyenLieu, n.TenNguyenLieu, n.DonViTinh, "
-                "n.SoLuongTon, NULL, NULL, NULL, NULL FROM NGUYEN_LIEU n "
-                "UNION ALL SELECT NULL, NULL, NULL, NULL, g.MaGiaoDichKho, g.BusinessDate, "
-                "g.SoLuong, g.LoaiGiaoDich FROM GIAO_DICH_KHO g"
+                f"CREATE VIEW vw_ai_kho ({', '.join(_KHO_COLUMNS)}) AS "
+                f"SELECT {kho_ton_kho} FROM NGUYEN_LIEU n "
+                f"UNION ALL SELECT {kho_giao_dich_kho} FROM GIAO_DICH_KHO g "
+                "JOIN NGUYEN_LIEU n ON n.MaNguyenLieu = g.MaNguyenLieu "
+                f"UNION ALL SELECT {kho_lo} FROM LO_NGUYEN_LIEU l "
+                "JOIN NGUYEN_LIEU n ON n.MaNguyenLieu = l.MaNguyenLieu"
             )
         )
 

@@ -8,7 +8,7 @@ Service functions raise `AppError` subclasses (`NotFoundError`, `BusinessRuleErr
 import contextlib
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -72,7 +72,9 @@ async def create_order(
 async def search_orders(
     code: str | None = None,
     table_id: int | None = None,
-    business_date: str | None = None,
+    business_date: date | None = None,
+    status: str | None = None,
+    limit: int = Query(100, ge=1, le=200),
     session: AsyncSession = Depends(get_session),
     user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER, Role.WAREHOUSE)),
 ):
@@ -81,9 +83,12 @@ async def search_orders(
         query = query.where(Order.display_code == code)
     if table_id is not None:
         query = query.where(Order.table_id == table_id)
-    if business_date:
-        with contextlib.suppress(ValueError):
-            query = query.where(Order.business_date == date.fromisoformat(business_date))
+    if business_date is not None:
+        query = query.where(Order.business_date == business_date)
+    if status:
+        query = query.where(Order.status == status)
+    # A year of orders must never reach the browser in one response.
+    query = query.order_by(Order.id.desc()).limit(limit)
     rows = list((await session.execute(query)).scalars().all())
     items = [
         {
@@ -104,6 +109,8 @@ async def get_order(
     session: AsyncSession = Depends(get_session),
     user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER, Role.WAREHOUSE)),
 ):
+    await payments.expire_stale_qr(session)
+    await session.commit()
     order = await session.get(Order, order_id)
     if order is None:
         raise HTTPException(status_code=404, detail="Order không tồn tại.")
@@ -210,6 +217,38 @@ async def cancel_whole_order(
     return {"MaOrder": order.id, "TrangThai": order.status}
 
 
+@router.get("/orders/{order_id}/tickets")
+async def list_tickets(
+    order_id: int,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER, Role.WAREHOUSE)),
+):
+    """FR-SALE-27/28: kitchen tickets for an order, so the UI can reprint or flag a failed print."""
+    tickets = list(
+        (
+            await session.execute(
+                select(KitchenTicket)
+                .where(KitchenTicket.order_id == order_id)
+                .order_by(KitchenTicket.id.asc())
+            )
+        )
+        .scalars()
+        .all()
+    )
+    return {
+        "items": [
+            {
+                "MaPhieuBep": ticket.id,
+                "NoiDung": ticket.content,
+                "TrangThai": ticket.status,
+                "TrangThaiIn": ticket.print_status,
+                "SoLanIn": ticket.print_count,
+            }
+            for ticket in tickets
+        ]
+    }
+
+
 @router.post("/orders/{order_id}/tickets/{ticket_id}/reprint")
 async def reprint_ticket(
     order_id: int,
@@ -225,6 +264,64 @@ async def reprint_ticket(
     record_print_result(ticket, True)
     await session.commit()
     return {"MaPhieuBep": ticket.id, "SoLanIn": ticket.print_count}
+
+
+@router.post("/orders/{order_id}/tickets/{ticket_id}/print-result")
+async def report_ticket_print_result(
+    order_id: int,
+    ticket_id: int,
+    payload: dict,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
+):
+    """FR-SALE-28: the UI reports a failed print so staff can be warned and retry."""
+    ticket = await session.get(KitchenTicket, ticket_id)
+    if ticket is None or ticket.order_id != order_id:
+        raise HTTPException(status_code=404, detail="Phiếu bếp không tồn tại.")
+    from app.modules.sales.tickets import record_print_result
+
+    ok = bool(payload.get("ok", True))
+    record_print_result(ticket, ok)
+    await session.commit()
+    return {"MaPhieuBep": ticket.id, "TrangThai": ticket.status, "SoLanIn": ticket.print_count}
+
+
+@router.get("/orders/{order_id}/payments")
+async def list_payments(
+    order_id: int,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
+):
+    """Lets the UI recover the live/expired QR transaction after a reload (FR-SALE-17/18)."""
+    await payments.expire_stale_qr(session)
+    await session.commit()
+    from app.modules.sales.models import PaymentTransaction
+
+    rows = list(
+        (
+            await session.execute(
+                select(PaymentTransaction)
+                .where(PaymentTransaction.order_id == order_id)
+                .order_by(PaymentTransaction.id.desc())
+            )
+        )
+        .scalars()
+        .all()
+    )
+    return {
+        "items": [
+            {
+                "MaGiaoDich": p.id,
+                "PhuongThuc": p.method,
+                "TrangThai": p.status,
+                "SoTien": float(p.amount),
+                "ThoiDiemTaoQR": p.created_at.isoformat() if p.created_at else None,
+                "ThoiDiemHetHan": p.deadline.isoformat() if p.deadline else None,
+                "MaThamChieuNganHang": p.bank_ref,
+            }
+            for p in rows
+        ]
+    }
 
 
 @router.post("/orders/{order_id}/pay/cash")
@@ -327,6 +424,65 @@ async def resolve_payment(
     return {"MaGiaoDich": payment.id, "TrangThai": payment.status}
 
 
+async def _invoice_payload(session: AsyncSession, order_id: int, invoice: Invoice) -> dict:
+    """FR-SALE-19/23: enough detail (restaurant info, lines, method, time) to print a receipt."""
+    from app.modules.catalog.models import Dish
+    from app.modules.sales.models import PaymentTransaction
+    from app.modules.settings.service import get_config
+
+    order = await session.get(Order, order_id)
+    lines = list(
+        (await session.execute(select(OrderLine).where(OrderLine.order_id == order_id)))
+        .scalars()
+        .all()
+    )
+    dish_ids = {line.dish_id for line in lines}
+    dish_names: dict[int, str] = {}
+    if dish_ids:
+        rows = (await session.execute(select(Dish).where(Dish.id.in_(dish_ids)))).scalars().all()
+        dish_names = {dish.id: dish.name for dish in rows}
+    payment = (
+        (
+            await session.execute(
+                select(PaymentTransaction)
+                .where(PaymentTransaction.order_id == order_id)
+                .order_by(PaymentTransaction.id.desc())
+            )
+        )
+        .scalars()
+        .first()
+    )
+
+    restaurant_name = None
+    address = None
+    with contextlib.suppress(Exception):
+        cfg = await get_config(session)
+        restaurant_name = cfg.restaurant_name
+        address = cfg.address
+
+    return {
+        "SoHoaDon": str(invoice.id),
+        "MaOrderHienThi": order.display_code if order else None,
+        "TenNhaHang": restaurant_name,
+        "DiaChi": address,
+        "ThoiDiemXuat": invoice.issued_at.isoformat() if invoice.issued_at else None,
+        "PhuongThucThanhToan": payment.method if payment else None,
+        "TongTien": float(invoice.total),
+        "SoLanIn": invoice.print_count,
+        "lines": [
+            {
+                "MaMon": line.dish_id,
+                "TenMon": dish_names.get(line.dish_id, ""),
+                "SoLuong": line.quantity,
+                "DonGia": float(line.unit_price),
+                "ThanhTien": float(line.unit_price) * line.quantity,
+            }
+            for line in lines
+            if line.status != "Đã hủy"
+        ],
+    }
+
+
 @router.get("/orders/{order_id}/invoice")
 async def get_invoice(
     order_id: int,
@@ -338,11 +494,7 @@ async def get_invoice(
     ).scalar_one_or_none()
     if invoice is None:
         raise HTTPException(status_code=404, detail="Hóa đơn không tồn tại.")
-    return {
-        "SoHoaDon": str(invoice.id),
-        "TongTien": float(invoice.total),
-        "SoLanIn": invoice.print_count,
-    }
+    return await _invoice_payload(session, order_id, invoice)
 
 
 @router.post("/orders/{order_id}/invoice/reprint")
@@ -353,8 +505,4 @@ async def reprint_invoice_ep(
 ):
     invoice = await payments.reprint_invoice(session, order_id)
     await session.commit()
-    return {
-        "SoHoaDon": str(invoice.id),
-        "TongTien": float(invoice.total),
-        "SoLanIn": invoice.print_count,
-    }
+    return await _invoice_payload(session, order_id, invoice)

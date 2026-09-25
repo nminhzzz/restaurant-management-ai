@@ -161,6 +161,16 @@ async def test_the_cashier_sees_the_floor_plan_but_cannot_edit_it(session):
 
 
 @pytest.mark.asyncio
+async def test_the_floor_plan_reports_each_tables_status(session, free_table):
+    h = await _headers(session, "MANAGER")
+    async with await _make_client(session) as c:
+        listed = await list_tables(c, h)
+    app.dependency_overrides.clear()
+    row = next(x for x in listed.json() if x["MaBan"] == free_table.id)
+    assert row["TrangThai"] == "Trống"
+
+
+@pytest.mark.asyncio
 async def test_soft_delete_is_a_state_of_its_own(session, dish):
     h = await _headers(session, "MANAGER")
     async with await _make_client(session) as c:

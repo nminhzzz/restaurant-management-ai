@@ -1,0 +1,1000 @@
+<title>Hệ thiết kế nhà hàng</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  /* Light-only on purpose: the product ships a single light theme (tokens.md §1). */
+  :root {
+    --canvas: #f5f7fa;
+    --surface: #ffffff;
+    --surface-sunken: #eef1f5;
+    --border: #dde3ea;
+    --border-strong: #c5cdd8;
+    --ink: #0f172a;
+    --muted: #475569;
+    --subtle: #5b6b80;
+    --primary: #1f4fd1;
+    --primary-hover: #1a40ab;
+    --primary-subtle: #eaf0fd;
+    --primary-subtle-fg: #1a3e9e;
+    --success: #15803d;
+    --success-subtle: #e8f5ec;
+    --success-fg: #166534;
+    --warning: #d97706;
+    --warning-subtle: #fdf3e1;
+    --warning-fg: #92400e;
+    --danger: #dc2626;
+    --danger-hover: #b91c1c;
+    --danger-subtle: #fdecec;
+    --danger-fg: #991b1b;
+    --r-control: 8px;
+    --r-container: 12px;
+    --r-overlay: 16px;
+    --shadow-float: 0 8px 24px rgb(15 23 42 / 0.10), 0 2px 6px rgb(15 23 42 / 0.06);
+    --font: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 20px;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4, p { margin: 0; }
+  h1, h2, h3 { text-wrap: balance; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  .num { font-variant-numeric: tabular-nums; }
+  .mono { font-family: var(--mono); font-size: 12.5px; }
+  :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+  .page { max-width: 1320px; margin: 0 auto; padding: 32px 24px 96px; display: grid; gap: 56px; }
+  @media (max-width: 640px) { .page { padding: 20px 16px 80px; gap: 40px; } }
+
+  /* ---------- Page intro ---------- */
+  .intro { display: grid; gap: 16px; }
+  .intro h1 { font-size: 28px; line-height: 36px; font-weight: 600; letter-spacing: -0.01em; }
+  .intro p { color: var(--muted); max-width: 68ch; font-size: 15px; line-height: 24px; }
+  .jump { display: flex; flex-wrap: wrap; gap: 8px; }
+  .jump a {
+    color: var(--muted); text-decoration: none; font-weight: 500;
+    padding: 6px 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface);
+  }
+  .jump a:hover { color: var(--ink); border-color: var(--border-strong); }
+
+  .section { display: grid; gap: 20px; scroll-margin-top: 16px; }
+  .section-head { display: grid; gap: 4px; max-width: 72ch; }
+  .section-head h2 { font-size: 20px; line-height: 28px; font-weight: 600; }
+  .section-head p { color: var(--muted); }
+
+  /* ---------- Primitives ---------- */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    height: 36px; padding: 0 16px; border-radius: var(--r-control);
+    font-weight: 500; font-size: 14px; border: 1px solid transparent; cursor: pointer;
+    white-space: nowrap; transition: background-color .15s, border-color .15s, transform .08s;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-hover); }
+  .btn-secondary { background: var(--surface); border-color: var(--border); color: var(--ink); }
+  .btn-secondary:hover { background: var(--surface-sunken); }
+  .btn-ghost { background: transparent; color: var(--muted); }
+  .btn-ghost:hover { background: var(--surface-sunken); color: var(--ink); }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-danger:hover { background: var(--danger-hover); }
+  .btn-sm { height: 32px; padding: 0 12px; font-size: 13px; }
+  .btn-pos { height: 44px; padding: 0 20px; font-size: 15px; }
+  .btn-icon { width: 36px; padding: 0; }
+  .btn[disabled] { opacity: .5; pointer-events: none; }
+  .btn-block { width: 100%; }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px;
+    border-radius: 999px; font-size: 12px; font-weight: 500; white-space: nowrap;
+  }
+  .t-neutral { background: var(--surface-sunken); color: var(--muted); }
+  .t-primary { background: var(--primary-subtle); color: var(--primary-subtle-fg); }
+  .t-success { background: var(--success-subtle); color: var(--success-fg); }
+  .t-warning { background: var(--warning-subtle); color: var(--warning-fg); }
+  .t-danger { background: var(--danger-subtle); color: var(--danger-fg); }
+  .t-muted { border: 1px dashed var(--border-strong); color: var(--subtle); }
+
+  .field { display: grid; gap: 6px; }
+  .field label { font-weight: 500; }
+  .field .help { font-size: 12px; line-height: 16px; color: var(--subtle); }
+  .field .err { font-size: 12px; line-height: 16px; color: var(--danger-fg); display: flex; gap: 4px; align-items: center; }
+  .input, .select {
+    height: 36px; width: 100%; padding: 0 12px; border: 1px solid var(--border);
+    border-radius: var(--r-control); background: var(--surface); outline: none;
+  }
+  .input::placeholder { color: var(--subtle); }
+  .input:focus, .select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-subtle); }
+  .input.is-invalid { border-color: var(--danger); }
+  .input.is-invalid:focus { box-shadow: 0 0 0 3px var(--danger-subtle); }
+  .input-icon { position: relative; }
+  .input-icon svg { position: absolute; left: 10px; top: 10px; width: 16px; height: 16px; color: var(--subtle); }
+  .input-icon .input { padding-left: 34px; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-container); }
+
+  .seg { display: inline-flex; gap: 2px; padding: 3px; background: var(--surface-sunken); border-radius: var(--r-control); }
+  .seg button {
+    border: 0; background: transparent; height: 30px; padding: 0 12px; border-radius: 6px;
+    font-weight: 500; color: var(--muted); cursor: pointer; white-space: nowrap;
+  }
+  .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgb(15 23 42 / .08); }
+
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); overflow-x: auto; }
+  .tabs button {
+    border: 0; background: none; padding: 8px 12px 10px; font-weight: 500; color: var(--muted);
+    border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; white-space: nowrap;
+  }
+  .tabs button:hover { color: var(--ink); }
+  .tabs button[aria-selected="true"] { color: var(--primary-subtle-fg); border-bottom-color: var(--primary); }
+  .tabs .count { color: var(--subtle); font-weight: 400; margin-left: 4px; }
+
+  .tbl-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--r-container); background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 640px; }
+  th {
+    text-align: left; font-size: 12px; font-weight: 500; color: var(--subtle);
+    background: var(--surface-sunken); padding: 8px 12px; white-space: nowrap;
+  }
+  td { padding: 10px 12px; border-top: 1px solid var(--border); vertical-align: middle; }
+  tbody tr:hover td { background: var(--canvas); }
+  th.r, td.r { text-align: right; }
+
+  /* ---------- Screen preview frame ---------- */
+  .preview-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+  .preview-bar .note { color: var(--subtle); font-size: 13px; }
+  .frame {
+    border: 1px solid var(--border-strong); border-radius: var(--r-overlay); overflow: hidden;
+    background: var(--canvas); box-shadow: var(--shadow-float);
+  }
+  .app { display: grid; grid-template-columns: 232px minmax(0, 1fr); min-height: 720px; }
+  @media (max-width: 1100px) { .app { grid-template-columns: minmax(0, 1fr); } .side { display: none; } }
+
+  .side { background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 16px 12px; gap: 20px; }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 0 8px; font-weight: 600; font-size: 15px; }
+  .brand-mark { width: 30px; height: 30px; border-radius: var(--r-control); background: var(--primary); color: #fff; display: grid; place-items: center; }
+  .brand-mark svg { width: 17px; height: 17px; }
+  .nav { display: grid; gap: 2px; flex: 1; align-content: start; }
+  .nav button {
+    display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px;
+    border: 0; background: none; border-radius: var(--r-control); color: var(--muted);
+    font-weight: 500; cursor: pointer; text-align: left;
+  }
+  .nav button svg { width: 18px; height: 18px; }
+  .nav button:hover { background: var(--surface-sunken); color: var(--ink); }
+  .nav button[aria-current="page"] { background: var(--primary-subtle); color: var(--primary-subtle-fg); }
+  .nav button[aria-disabled="true"] { opacity: .45; cursor: default; }
+  .nav button[aria-disabled="true"]:hover { background: none; color: var(--muted); }
+  .me { display: flex; align-items: center; gap: 10px; padding: 12px 8px 0; border-top: 1px solid var(--border); }
+  .avatar { width: 32px; height: 32px; border-radius: 999px; background: var(--surface-sunken); color: var(--muted); display: grid; place-items: center; font-weight: 600; font-size: 13px; }
+  .me .who { flex: 1; min-width: 0; }
+  .me .who b { display: block; font-weight: 500; }
+  .me .who span { font-size: 12px; color: var(--subtle); }
+
+  .main { min-width: 0; display: flex; flex-direction: column; }
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 12px 24px; background: var(--surface); border-bottom: 1px solid var(--border);
+  }
+  .topbar .crumbs { display: flex; align-items: center; gap: 8px; color: var(--subtle); font-size: 13px; }
+  .topbar .crumbs b { color: var(--ink); font-weight: 500; }
+  .bd { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+  .bd svg { width: 15px; height: 15px; }
+  .content { padding: 24px; display: grid; gap: 20px; align-content: start; }
+  @media (max-width: 640px) { .content { padding: 16px; } .topbar { padding: 12px 16px; } }
+
+  .ph { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
+  .ph h3 { font-size: 20px; line-height: 28px; font-weight: 600; }
+  .ph p { color: var(--muted); }
+  .ph .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* ---------- POS ---------- */
+  .pos { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start; }
+  @media (max-width: 900px) { .pos { grid-template-columns: minmax(0, 1fr); } }
+  .pos-left { display: grid; gap: 16px; min-width: 0; }
+  .tables { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tchip {
+    min-width: 72px; height: 44px; padding: 0 12px; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--surface); font-weight: 500; font-size: 14px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .tchip:hover { border-color: var(--border-strong); }
+  .tchip.busy { background: var(--primary-subtle); color: var(--primary-subtle-fg); border-color: transparent; }
+  .tchip.reserved { border-style: dashed; border-color: var(--border-strong); color: var(--muted); }
+  .tchip[aria-pressed="true"] { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 12px; color: var(--subtle); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 12px; height: 12px; border-radius: 999px; display: inline-block; border: 1px solid var(--border); background: var(--surface); }
+  .legend i.busy { background: var(--primary-subtle); border-color: transparent; }
+  .legend i.reserved { border-style: dashed; border-color: var(--border-strong); }
+
+  .menu-tools { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+  .menu-tools .input-icon { width: min(260px, 100%); }
+  .dishes { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .dish {
+    position: relative; text-align: left; cursor: pointer; min-height: 92px; padding: 12px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-container);
+    display: flex; flex-direction: column; justify-content: space-between; gap: 8px;
+    transition: border-color .15s, transform .08s;
+  }
+  .dish:hover { border-color: var(--border-strong); }
+  .dish:active { transform: scale(.98); }
+  .dish .name { font-size: 15px; line-height: 20px; font-weight: 500; padding-right: 24px; }
+  .dish .price { color: var(--muted); }
+  .dish .qty {
+    position: absolute; top: 10px; right: 10px; min-width: 24px; height: 24px; padding: 0 6px;
+    border-radius: 999px; background: var(--primary); color: #fff; font-size: 12px; font-weight: 600;
+    display: grid; place-items: center;
+  }
+  .dish.in-cart { border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); }
+  .dish[disabled] { cursor: not-allowed; background: var(--canvas); }
+  .dish[disabled] .name, .dish[disabled] .price { color: var(--subtle); }
+  .dish[disabled]:active { transform: none; }
+
+  .cart { position: sticky; top: 16px; display: flex; flex-direction: column; max-height: 680px; }
+  .cart-head { padding: 16px; border-bottom: 1px solid var(--border); display: grid; gap: 4px; }
+  .cart-head .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .cart-head h4 { font-size: 16px; line-height: 24px; font-weight: 600; }
+  .cart-head .code { color: var(--subtle); }
+  .lines { overflow-y: auto; flex: 1; }
+  .line { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .line .ln { font-weight: 500; }
+  .line .lp { color: var(--muted); font-size: 13px; }
+  .line .lt { text-align: right; font-weight: 500; }
+  .line .note {
+    grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; color: var(--subtle); font-size: 13px;
+  }
+  .line .note input { border: 0; background: none; padding: 2px 0; flex: 1; min-width: 0; outline: none; color: var(--ink); }
+  .line .note input::placeholder { color: var(--subtle); }
+  .line .note svg { width: 14px; height: 14px; flex-shrink: 0; }
+  .stepper { display: inline-flex; align-items: center; border: 1px solid var(--border); border-radius: var(--r-control); overflow: hidden; }
+  .stepper button { width: 40px; height: 40px; border: 0; background: var(--surface); cursor: pointer; display: grid; place-items: center; color: var(--muted); }
+  .stepper button:hover { background: var(--surface-sunken); color: var(--ink); }
+  .stepper button svg { width: 16px; height: 16px; }
+  .stepper output { min-width: 36px; text-align: center; font-weight: 600; }
+  .line-ctrl { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; }
+  .cart-empty { padding: 40px 24px; text-align: center; color: var(--subtle); display: grid; gap: 8px; justify-items: center; }
+  .cart-empty svg { width: 28px; height: 28px; color: var(--border-strong); }
+  .cart-foot { padding: 16px; display: grid; gap: 12px; border-top: 1px solid var(--border); }
+  .sum { display: flex; justify-content: space-between; color: var(--muted); }
+  .total { display: flex; justify-content: space-between; align-items: baseline; }
+  .total b { font-size: 24px; line-height: 32px; font-weight: 600; }
+  .cart-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  /* ---------- Reports ---------- */
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 1000px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 480px) { .kpis { grid-template-columns: minmax(0, 1fr); } }
+  .kpi { padding: 16px; display: grid; gap: 6px; }
+  .kpi .k { color: var(--muted); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .kpi .v { font-size: 24px; line-height: 32px; font-weight: 600; }
+  .kpi .d { font-size: 12px; color: var(--subtle); display: flex; align-items: center; gap: 4px; }
+  .kpi .d .up { color: var(--success-fg); font-weight: 500; }
+  .kpi .d .down { color: var(--danger-fg); font-weight: 500; }
+  .rep-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 12px; }
+  @media (max-width: 1000px) { .rep-grid { grid-template-columns: minmax(0, 1fr); } }
+  .panel { padding: 16px; display: grid; gap: 12px; align-content: start; }
+  .panel-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; flex-wrap: wrap; }
+  .panel-head h4 { font-size: 15px; font-weight: 600; }
+  .panel-head p { color: var(--subtle); font-size: 12px; }
+  .chart svg { width: 100%; height: auto; display: block; }
+  .rank { display: grid; gap: 12px; }
+  .rank-row { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; }
+  .rank-row .i { color: var(--subtle); font-size: 12px; }
+  .rank-row .bar { grid-column: 2 / 4; height: 6px; border-radius: 999px; background: var(--primary); opacity: .85; }
+  .split { display: flex; height: 10px; border-radius: 999px; overflow: hidden; gap: 2px; }
+  .split span:first-child { background: var(--ink); }
+  .split span:last-child { background: var(--primary); }
+  .split-legend { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); }
+  .split-legend b { color: var(--ink); font-weight: 500; }
+  .sample { font-size: 12px; color: var(--subtle); display: inline-flex; align-items: center; gap: 6px; }
+  .sample svg { width: 14px; height: 14px; }
+
+  /* ---------- Inventory ---------- */
+  .toolbar { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: end; }
+  .toolbar .input-icon { width: min(280px, 100%); }
+  .ing { display: flex; align-items: center; gap: 10px; }
+  .ing b { font-weight: 500; }
+  .lot { color: var(--muted); }
+  .lot.soon { color: var(--warning-fg); font-weight: 500; }
+  .under { color: var(--danger-fg); font-weight: 600; }
+
+  /* ---------- Assistant ---------- */
+  .chat { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 20px; align-items: start; }
+  @media (max-width: 1000px) { .chat { grid-template-columns: minmax(0, 1fr); } }
+  .thread { display: grid; gap: 16px; }
+  .scope { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--primary-subtle); color: var(--primary-subtle-fg); border-radius: var(--r-control); font-size: 13px; }
+  .scope svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .q { justify-self: end; max-width: 80%; background: var(--ink); color: #fff; padding: 10px 14px; border-radius: 14px 14px 4px 14px; }
+  .a { padding: 16px; display: grid; gap: 14px; }
+  .a .lead { font-size: 15px; line-height: 24px; }
+  .a .lead b { font-weight: 600; }
+  .sql { border: 1px solid var(--border); border-radius: var(--r-control); background: var(--canvas); }
+  .sql summary { cursor: pointer; padding: 8px 12px; color: var(--muted); font-size: 13px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .sql summary::-webkit-details-marker { display: none; }
+  .sql summary svg { width: 14px; height: 14px; }
+  .sql pre { margin: 0; padding: 12px; border-top: 1px solid var(--border); overflow-x: auto; white-space: pre; line-height: 20px; }
+  .composer { padding: 12px; display: grid; gap: 10px; }
+  .composer textarea { border: 0; resize: none; outline: none; min-height: 48px; background: none; }
+  .composer .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .composer .quota { color: var(--subtle); font-size: 12px; }
+  .suggest { display: grid; gap: 8px; }
+  .suggest h4 { font-size: 13px; font-weight: 600; color: var(--muted); }
+  .suggest button {
+    text-align: left; border: 1px solid var(--border); background: var(--surface); border-radius: var(--r-control);
+    padding: 10px 12px; cursor: pointer; color: var(--ink);
+  }
+  .suggest button:hover { border-color: var(--border-strong); }
+  .mini-tbl table { min-width: 0; }
+
+  /* ---------- Foundations ---------- */
+  .fix { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 760px) { .fix { grid-template-columns: minmax(0, 1fr); } }
+  .fix .card { padding: 16px; display: grid; gap: 12px; }
+  .fix h4 { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .fix h4 svg { width: 16px; height: 16px; }
+  .fix .demo { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .fix p { color: var(--muted); }
+  .old-cta { background: #d97706; color: #fff; }
+  .old-warn { background: #fffbeb; color: #b45309; }
+
+  .swatch-groups { display: grid; gap: 24px; }
+  .swatch-group h3 { font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+  .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+  .sw { border: 1px solid var(--border); border-radius: var(--r-container); overflow: hidden; background: var(--surface); }
+  .sw .chip { height: 56px; border-bottom: 1px solid var(--border); }
+  .sw .meta { padding: 10px 12px; display: grid; gap: 2px; }
+  .sw .meta b { font-weight: 500; }
+  .sw .meta .mono { color: var(--subtle); }
+  .sw .meta span:last-child { color: var(--muted); font-size: 12px; line-height: 16px; }
+  .tri { display: grid; grid-template-columns: repeat(3, 1fr); height: 56px; border-bottom: 1px solid var(--border); }
+  .tri div { display: grid; place-items: center; font-size: 12px; font-weight: 500; }
+
+  .status-map { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+  .status-map .card { padding: 12px 14px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .status-map .card p { width: 100%; color: var(--subtle); font-size: 12px; margin-bottom: 2px; }
+
+  .type-scale { display: grid; }
+  .type-row { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 16px; padding: 14px 0; border-top: 1px solid var(--border); align-items: baseline; }
+  .type-row:first-child { border-top: 0; }
+  .type-row .spec { color: var(--subtle); font-size: 12px; line-height: 16px; }
+  .type-row .spec b { display: block; color: var(--ink); font-family: var(--mono); font-weight: 500; }
+  @media (max-width: 560px) { .type-row { grid-template-columns: minmax(0, 1fr); gap: 4px; } }
+
+  .radii { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+  .radius-card { padding: 16px; display: grid; gap: 12px; }
+  .radius-card .shape { height: 64px; border: 1.5px solid var(--primary); background: var(--primary-subtle); }
+  .radius-card p { color: var(--muted); font-size: 13px; }
+
+  .comp-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 860px) { .comp-grid { grid-template-columns: minmax(0, 1fr); } }
+  .comp { padding: 20px; display: grid; gap: 16px; align-content: start; }
+  .comp h3 { font-size: 15px; font-weight: 600; }
+  .comp .rule { color: var(--muted); font-size: 13px; }
+  .row-wrap { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .form-demo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  @media (max-width: 560px) { .form-demo { grid-template-columns: minmax(0, 1fr); } }
+  .empty { border: 1px dashed var(--border-strong); border-radius: var(--r-container); padding: 28px 20px; text-align: center; display: grid; gap: 8px; justify-items: center; }
+  .empty .ic { width: 44px; height: 44px; border-radius: 999px; background: var(--surface-sunken); display: grid; place-items: center; color: var(--muted); }
+  .empty .ic svg { width: 20px; height: 20px; }
+  .empty h4 { font-size: 15px; font-weight: 600; }
+  .empty p { color: var(--muted); max-width: 40ch; }
+  .sk { background: var(--surface-sunken); border-radius: 6px; height: 12px; }
+  @media (prefers-reduced-motion: no-preference) {
+    .sk { animation: pulse 1.6s ease-in-out infinite; }
+    @keyframes pulse { 50% { opacity: .5; } }
+  }
+  .sk-card { padding: 14px; display: grid; gap: 10px; }
+  .toast-demo { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: var(--r-control); background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-float); }
+  .toast-demo svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; }
+  .toast-demo b { display: block; font-weight: 500; }
+  .toast-demo span { color: var(--muted); font-size: 13px; }
+
+  .toast {
+    position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 20;
+    max-width: min(380px, calc(100vw - 32px));
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .toast:not([hidden]) { animation: rise .2s ease-out; }
+    @keyframes rise { from { transform: translateY(8px); opacity: 0; } }
+  }
+</style>
+
+<div class="page">
+  <header class="intro">
+    <h1>Hệ thiết kế nhà hàng</h1>
+    <p>Bộ quy tắc giao diện cho cả sáu module: màu, chữ, bo góc, component và bốn màn hình mẫu dựng đúng theo quy tắc đó. Nguồn token nằm ở <span class="mono">docs/design/tokens.md</span> và <span class="mono">apps/web/src/app/globals.css</span>.</p>
+    <nav class="jump" aria-label="Mục lục">
+      <a href="#screens">Màn hình mẫu</a>
+      <a href="#fixes">Đã sửa gì</a>
+      <a href="#color">Màu</a>
+      <a href="#type">Chữ</a>
+      <a href="#shape">Bo góc và bóng</a>
+      <a href="#components">Component</a>
+    </nav>
+  </header>
+
+  <!-- ================= SCREENS ================= -->
+  <section class="section" id="screens">
+    <div class="preview-bar">
+      <div class="section-head">
+        <h2>Màn hình mẫu</h2>
+        <p>Bấm vào món để thêm vào order, đổi bàn, tăng giảm số lượng. Dữ liệu là dữ liệu minh họa.</p>
+      </div>
+      <div class="seg" role="group" aria-label="Chọn màn hình">
+        <button type="button" data-screen="sales" aria-pressed="true">Bán hàng</button>
+        <button type="button" data-screen="reports" aria-pressed="false">Báo cáo</button>
+        <button type="button" data-screen="inventory" aria-pressed="false">Kho</button>
+        <button type="button" data-screen="assistant" aria-pressed="false">Trợ lý AI</button>
+      </div>
+    </div>
+
+    <div class="frame">
+      <div class="app">
+        <aside class="side">
+          <div class="brand"><span class="brand-mark"><i data-lucide="utensils-crossed"></i></span>Quản lý nhà hàng</div>
+          <nav class="nav" aria-label="Module">
+            <button type="button" data-screen="sales" aria-current="page"><i data-lucide="receipt-text"></i>Bán hàng</button>
+            <button type="button" aria-disabled="true" title="Không có trong bản mẫu"><i data-lucide="book-open"></i>Danh mục</button>
+            <button type="button" data-screen="inventory"><i data-lucide="package"></i>Kho</button>
+            <button type="button" data-screen="reports"><i data-lucide="chart-column"></i>Báo cáo</button>
+            <button type="button" data-screen="assistant"><i data-lucide="message-square-text"></i>Trợ lý AI</button>
+            <button type="button" aria-disabled="true" title="Không có trong bản mẫu"><i data-lucide="settings"></i>Cài đặt</button>
+          </nav>
+          <div class="me">
+            <span class="avatar">LT</span>
+            <div class="who"><b>Lê Thảo</b><span>Quản lý</span></div>
+            <button type="button" class="btn btn-ghost btn-icon" aria-label="Đăng xuất"><i data-lucide="log-out"></i></button>
+          </div>
+        </aside>
+
+        <div class="main">
+          <div class="topbar">
+            <div class="crumbs"><span>Nhà hàng</span><i data-lucide="chevron-right" style="width:14px;height:14px"></i><b id="crumb">Bán hàng</b></div>
+            <span class="bd" title="Business Date chạy từ 06:00 hôm nay tới 06:00 hôm sau"><i data-lucide="calendar-clock"></i>Business Date 25/09/2026</span>
+          </div>
+
+          <!-- Sales -->
+          <div class="content" data-view="sales">
+            <div class="pos">
+              <div class="pos-left">
+                <div class="ph">
+                  <div><h3>Order mới</h3><p>Chọn bàn, chạm vào món để thêm.</p></div>
+                  <div class="seg" role="group" aria-label="Loại đơn">
+                    <button type="button" data-type="Tại chỗ" aria-pressed="true">Tại chỗ</button>
+                    <button type="button" data-type="Mang về" aria-pressed="false">Mang về</button>
+                  </div>
+                </div>
+                <div id="tableBlock" style="display:grid;gap:10px">
+                  <div class="tables" id="tables" role="group" aria-label="Chọn bàn"></div>
+                  <div class="legend"><span><i></i>Trống</span><span><i class="busy"></i>Đang phục vụ</span><span><i class="reserved"></i>Đã đặt</span></div>
+                </div>
+                <div class="menu-tools">
+                  <div class="tabs" role="tablist" id="groups"></div>
+                  <div class="input-icon"><i data-lucide="search"></i><input class="input" id="dishSearch" type="search" placeholder="Tìm món" aria-label="Tìm món"></div>
+                </div>
+                <div class="dishes" id="dishes"></div>
+              </div>
+
+              <aside class="card cart" aria-label="Order đang soạn">
+                <div class="cart-head">
+                  <div class="row"><h4 id="cartTitle">Bàn 05</h4><span class="badge t-primary">Đang mở</span></div>
+                  <span class="code mono" id="cartCode">ORD-250926-042</span>
+                </div>
+                <div class="lines" id="lines"></div>
+                <div class="cart-foot">
+                  <div class="sum"><span>Số món</span><span class="num" id="sumQty">0</span></div>
+                  <div class="total"><span>Tổng cộng</span><b class="num" id="sumTotal">0 ₫</b></div>
+                  <div class="cart-actions">
+                    <button type="button" class="btn btn-secondary btn-pos" id="payBtn"><i data-lucide="wallet"></i>Thanh toán</button>
+                    <button type="button" class="btn btn-primary btn-pos" id="sendBtn"><i data-lucide="chef-hat"></i>Gửi bếp</button>
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </div>
+
+          <!-- Reports -->
+          <div class="content" data-view="reports" hidden>
+            <div class="ph">
+              <div><h3>Báo cáo doanh thu</h3><p>Business Date 25/09/2026, so với cùng thứ tuần trước.</p></div>
+              <div class="actions">
+                <div class="seg" role="group" aria-label="Kỳ báo cáo">
+                  <button type="button" aria-pressed="true">Ngày</button>
+                  <button type="button" aria-pressed="false">Tuần</button>
+                  <button type="button" aria-pressed="false">Tháng</button>
+                </div>
+                <button type="button" class="btn btn-secondary"><i data-lucide="download"></i>Xuất Excel</button>
+              </div>
+            </div>
+            <div class="kpis">
+              <div class="card kpi"><span class="k">Doanh thu</span><span class="v num">18.640.000 ₫</span><span class="d"><span class="up">+6,2%</span> so với 18/09</span></div>
+              <div class="card kpi"><span class="k">Số hóa đơn</span><span class="v num">142</span><span class="d"><span class="up">+9</span> hóa đơn</span></div>
+              <div class="card kpi"><span class="k">Giá trị trung bình</span><span class="v num">131.268 ₫</span><span class="d"><span class="down">-1,4%</span> mỗi hóa đơn</span></div>
+              <div class="card kpi"><span class="k">Biên lợi nhuận gộp <span class="badge t-warning">Tạm tính</span></span><span class="v num">61,4%</span><span class="d">Giá vốn chốt khi đóng tháng</span></div>
+            </div>
+            <div class="rep-grid">
+              <div class="card panel">
+                <div class="panel-head">
+                  <div><h4>Doanh thu theo khung giờ</h4><p>Từ 06:00 tới 06:00 hôm sau, đơn vị triệu đồng</p></div>
+                  <span class="sample"><i data-lucide="info"></i>Dữ liệu minh họa</span>
+                </div>
+                <div class="chart" id="hourChart"></div>
+              </div>
+              <div style="display:grid;gap:12px;align-content:start">
+                <div class="card panel">
+                  <div class="panel-head"><h4>Món bán chạy</h4><p>Số phần</p></div>
+                  <div class="rank" id="rank"></div>
+                </div>
+                <div class="card panel">
+                  <div class="panel-head"><h4>Phương thức thanh toán</h4></div>
+                  <div class="split"><span style="flex:54"></span><span style="flex:46"></span></div>
+                  <div class="split-legend"><span>Tiền mặt <b class="num">54%</b></span><span>QR <b class="num">46%</b></span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Inventory -->
+          <div class="content" data-view="inventory" hidden>
+            <div class="ph">
+              <div><h3>Tồn kho</h3><p>48 nguyên liệu, 6 cần xử lý hôm nay.</p></div>
+              <div class="actions">
+                <button type="button" class="btn btn-secondary"><i data-lucide="clipboard-check"></i>Kiểm kê</button>
+                <button type="button" class="btn btn-primary"><i data-lucide="plus"></i>Tạo phiếu nhập</button>
+              </div>
+            </div>
+            <div class="toolbar">
+              <div class="tabs" role="tablist" id="stockTabs">
+                <button type="button" role="tab" data-f="all" aria-selected="true">Tất cả<span class="count num">48</span></button>
+                <button type="button" role="tab" data-f="low" aria-selected="false">Sắp hết<span class="count num">5</span></button>
+                <button type="button" role="tab" data-f="out" aria-selected="false">Hết hàng<span class="count num">1</span></button>
+              </div>
+              <div class="input-icon"><i data-lucide="search"></i><input class="input" type="search" placeholder="Tìm nguyên liệu" aria-label="Tìm nguyên liệu"></div>
+            </div>
+            <div class="tbl-wrap">
+              <table>
+                <caption hidden>Tồn kho nguyên liệu</caption>
+                <thead><tr><th scope="col">Nguyên liệu</th><th scope="col">Đơn vị</th><th scope="col" class="r">Tồn hiện tại</th><th scope="col" class="r">Mức tối thiểu</th><th scope="col">Trạng thái</th><th scope="col">Lô gần hết hạn</th><th scope="col"></th></tr></thead>
+                <tbody id="stockBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Assistant -->
+          <div class="content" data-view="assistant" hidden>
+            <div class="ph"><div><h3>Trợ lý AI</h3><p>Hỏi về doanh thu, order và tồn kho bằng tiếng Việt.</p></div></div>
+            <div class="chat">
+              <div class="thread">
+                <div class="scope"><i data-lucide="shield-check"></i><span>Bạn đang hỏi trong phạm vi dữ liệu của vai trò <b>Quản lý</b>. Trợ lý chỉ đọc, không sửa được dữ liệu.</span></div>
+                <div class="q">Hôm qua khung giờ nào bán được nhiều tiền nhất?</div>
+                <div class="card a">
+                  <p class="lead">Ngày 24/09/2026, khung <b>18:00 tới 19:00</b> có doanh thu cao nhất: <b class="num">3.215.000 ₫</b>, chiếm 17,8% cả ngày. Khung trưa 11:00 tới 12:00 đứng thứ hai.</p>
+                  <div class="tbl-wrap mini-tbl">
+                    <table>
+                      <thead><tr><th scope="col">Khung giờ</th><th scope="col" class="r">Doanh thu</th><th scope="col" class="r">Số hóa đơn</th></tr></thead>
+                      <tbody>
+                        <tr><td>18:00 - 19:00</td><td class="r num">3.215.000 ₫</td><td class="r num">23</td></tr>
+                        <tr><td>11:00 - 12:00</td><td class="r num">2.870.000 ₫</td><td class="r num">24</td></tr>
+                        <tr><td>19:00 - 20:00</td><td class="r num">2.540.000 ₫</td><td class="r num">18</td></tr>
+                        <tr><td>12:00 - 13:00</td><td class="r num">2.105.000 ₫</td><td class="r num">17</td></tr>
+                        <tr><td>07:00 - 08:00</td><td class="r num">1.260.000 ₫</td><td class="r num">15</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <details class="sql">
+                    <summary><i data-lucide="code-xml"></i>Câu SQL đã chạy<span class="mono">vw_ai_quanly</span><span>5 dòng, 412 ms</span></summary>
+<pre class="mono">SELECT HOUR(ThoiDiemXuat) AS Gio,
+       SUM(TongTien)       AS DoanhThu,
+       COUNT(MaHoaDon)     AS SoHoaDon
+FROM vw_ai_quanly
+WHERE BusinessDate = '2026-09-24'
+  AND MaHoaDon IS NOT NULL
+GROUP BY Gio
+ORDER BY DoanhThu DESC
+LIMIT 5;</pre>
+                  </details>
+                </div>
+                <div class="card composer">
+                  <label for="ask" class="sr" hidden>Câu hỏi</label>
+                  <textarea id="ask" rows="2" placeholder="Ví dụ: Doanh thu 7 ngày gần nhất theo từng ngày?"></textarea>
+                  <div class="row"><span class="quota">Còn 37 câu hỏi hôm nay</span><button type="button" class="btn btn-primary"><i data-lucide="send-horizontal"></i>Gửi câu hỏi</button></div>
+                </div>
+              </div>
+              <div class="suggest">
+                <h4>Câu hỏi gợi ý</h4>
+                <button type="button">Món nào bán chạy nhất tuần này?</button>
+                <button type="button">So sánh doanh thu tiền mặt và QR tháng 9</button>
+                <button type="button">Nguyên liệu nào đang dưới mức tối thiểu?</button>
+                <button type="button">Có bao nhiêu order bị hủy hôm qua?</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= FIXES ================= -->
+  <section class="section" id="fixes">
+    <div class="section-head">
+      <h2>Đã sửa gì so với bản cũ</h2>
+      <p>Bốn lỗi gốc khiến giao diện trông lộn xộn, và cách hệ mới xử lý từng lỗi.</p>
+    </div>
+    <div class="fix">
+      <div class="card">
+        <h4><i data-lucide="palette"></i>Màu chính trùng màu cảnh báo</h4>
+        <div class="demo">
+          <span class="btn btn-sm old-cta">Thanh toán</span>
+          <span class="badge old-warn">Sắp hết</span>
+          <i data-lucide="arrow-right" style="width:16px;height:16px;color:var(--subtle)"></i>
+          <span class="btn btn-sm btn-primary">Thanh toán</span>
+          <span class="badge t-warning">Sắp hết</span>
+        </div>
+        <p>Cam là màu của cảnh báo trong nhà hàng. Màu thương hiệu chuyển sang xanh chàm để nút hành động và trạng thái không bao giờ lẫn nhau.</p>
+      </div>
+      <div class="card">
+        <h4><i data-lucide="component"></i>Có component nhưng không ai dùng</h4>
+        <p>11 component shadcn đã cài nhưng các màn hình vẫn viết thẻ HTML thô. Giờ các primitive chỉ dùng token (không còn <span class="mono">amber-50</span>, <span class="mono">slate-700</span> gắn cứng), và mọi màn hình mới bắt buộc đi qua chúng.</p>
+      </div>
+      <div class="card">
+        <h4><i data-lucide="layout-template"></i>Không có khuôn trang</h4>
+        <p>Mỗi màn hình tự sắp xếp một kiểu. Hệ mới chốt một khuôn: tiêu đề trang và hành động chính, thanh công cụ, rồi nội dung. Kèm trạng thái đang tải, rỗng và lỗi.</p>
+      </div>
+      <div class="card">
+        <h4><i data-lucide="eye-off"></i>Nội dung dành cho dev lộ ra ngoài</h4>
+        <p>Mã <span class="mono">FR-CAT-01</span>, tên người phụ trách, dòng "chưa triển khai" và vai trò <span class="mono">MANAGER</span> không còn xuất hiện. Vai trò hiển thị là Quản lý, Thu ngân, Thủ kho.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= COLOR ================= -->
+  <section class="section" id="color">
+    <div class="section-head">
+      <h2>Màu</h2>
+      <p>Một màu nhấn duy nhất (xanh chàm). Xanh lá, cam, đỏ chỉ xuất hiện khi dữ liệu thật sự mang trạng thái đó.</p>
+    </div>
+    <div class="swatch-groups" id="swatches"></div>
+    <div class="swatch-group">
+      <h3>Trạng thái nghiệp vụ và badge tương ứng</h3>
+      <div class="status-map">
+        <div class="card"><p>success</p><span class="badge t-success">Hoạt động</span><span class="badge t-success">Đã thanh toán</span><span class="badge t-success">Còn hạn</span><span class="badge t-success">Trống</span></div>
+        <div class="card"><p>warning</p><span class="badge t-warning">Sắp hết</span><span class="badge t-warning">Chờ đối soát</span><span class="badge t-warning">Tạm tính</span></div>
+        <div class="card"><p>danger</p><span class="badge t-danger">Hết nguyên liệu</span><span class="badge t-danger">Đã hủy</span><span class="badge t-danger">Hết hạn</span></div>
+        <div class="card"><p>primary</p><span class="badge t-primary">Đang mở</span><span class="badge t-primary">Chờ</span><span class="badge t-primary">Chờ in</span><span class="badge t-primary">Đang phục vụ</span></div>
+        <div class="card"><p>neutral</p><span class="badge t-neutral">Ẩn</span><span class="badge t-neutral">Đã khóa</span><span class="badge t-neutral">Đã phục vụ</span></div>
+        <div class="card"><p>muted</p><span class="badge t-muted">Nháp</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= TYPE ================= -->
+  <section class="section" id="type">
+    <div class="section-head">
+      <h2>Chữ</h2>
+      <p>Be Vietnam Pro, thiết kế riêng cho tiếng Việt nên dấu chồng như "Hủ tiếu", "Bánh xèo" không bị đè. Mã order và SQL dùng JetBrains Mono. Mọi con số canh cột bằng tabular-nums.</p>
+    </div>
+    <div class="card" style="padding:4px 20px">
+      <div class="type-scale">
+        <div class="type-row"><div class="spec"><b>text-2xl</b>24/32, 600</div><div style="font-size:24px;line-height:32px;font-weight:600" class="num">1.245.000 ₫</div></div>
+        <div class="type-row"><div class="spec"><b>text-xl</b>20/28, 600</div><div style="font-size:20px;line-height:28px;font-weight:600">Báo cáo doanh thu theo Business Date</div></div>
+        <div class="type-row"><div class="spec"><b>text-base</b>16/24, 500</div><div style="font-size:16px;line-height:24px;font-weight:500">Bún bò Huế, Hủ tiếu Nam Vang, Bánh xèo</div></div>
+        <div class="type-row"><div class="spec"><b>text-sm</b>14/20, 400</div><div>Phiếu nhập kho được ghi theo lô, xuất theo nguyên tắc FIFO. Đây là cỡ chữ mặc định của bảng và form.</div></div>
+        <div class="type-row"><div class="spec"><b>text-xs</b>12/16, 500</div><div style="font-size:12px;line-height:16px;font-weight:500;color:var(--subtle)">Cập nhật lúc 14:32, bởi Lê Thảo</div></div>
+        <div class="type-row"><div class="spec"><b>mono</b>12.5/20, 400</div><div class="mono">ORD-250926-042</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SHAPE ================= -->
+  <section class="section" id="shape">
+    <div class="section-head">
+      <h2>Bo góc và bóng</h2>
+      <p>Ba bậc bo góc theo loại phần tử, không trộn. Card và bảng chỉ có viền. Bóng chỉ dành cho lớp nổi lên trên trang.</p>
+    </div>
+    <div class="radii">
+      <div class="card radius-card"><div class="shape" style="border-radius:8px"></div><b>rounded-control, 8px</b><p>Nút, input, select, tab, mục menu.</p></div>
+      <div class="card radius-card"><div class="shape" style="border-radius:12px"></div><b>rounded-container, 12px</b><p>Card, bảng, ô món POS, panel.</p></div>
+      <div class="card radius-card"><div class="shape" style="border-radius:16px;box-shadow:var(--shadow-float)"></div><b>rounded-overlay, 16px</b><p>Dialog, sheet. Kèm bóng nổi.</p></div>
+      <div class="card radius-card"><div class="shape" style="border-radius:999px"></div><b>rounded-full</b><p>Badge trạng thái, chip chọn bàn.</p></div>
+    </div>
+  </section>
+
+  <!-- ================= COMPONENTS ================= -->
+  <section class="section" id="components">
+    <div class="section-head">
+      <h2>Component</h2>
+      <p>Tất cả có sẵn trong <span class="mono">src/components/ui</span> hoặc sẽ thêm khi chuyển màn hình. Không màn hình nào tự viết lại.</p>
+    </div>
+    <div class="comp-grid">
+      <div class="card comp">
+        <h3>Button</h3>
+        <div class="row-wrap">
+          <button type="button" class="btn btn-primary">Lưu</button>
+          <button type="button" class="btn btn-secondary">Hủy</button>
+          <button type="button" class="btn btn-ghost btn-icon" aria-label="Thêm tùy chọn"><i data-lucide="ellipsis"></i></button>
+          <button type="button" class="btn btn-danger"><i data-lucide="trash-2"></i>Hủy order</button>
+          <button type="button" class="btn btn-primary" disabled>Đang lưu</button>
+        </div>
+        <div class="row-wrap">
+          <button type="button" class="btn btn-primary btn-sm">Nhỏ 32px</button>
+          <button type="button" class="btn btn-primary">Mặc định 36px</button>
+          <button type="button" class="btn btn-primary btn-pos">POS 44px</button>
+        </div>
+        <p class="rule">Mỗi vùng chỉ một nút primary. Nút danger luôn đi qua bước xác nhận.</p>
+      </div>
+
+      <div class="card comp">
+        <h3>Form field</h3>
+        <div class="form-demo">
+          <div class="field">
+            <label for="f-unit">Đơn vị mua</label>
+            <select class="select" id="f-unit"><option>Thùng</option><option>Bao</option><option>kg</option></select>
+            <span class="help">Đơn vị ghi trên hóa đơn nhà cung cấp.</span>
+          </div>
+          <div class="field">
+            <label for="f-factor">Hệ số quy đổi</label>
+            <input class="input is-invalid num" id="f-factor" inputmode="decimal" value="0" aria-invalid="true" aria-describedby="f-factor-err">
+            <span class="err" id="f-factor-err"><i data-lucide="circle-alert" style="width:14px;height:14px"></i>Hệ số phải lớn hơn 0.</span>
+          </div>
+        </div>
+        <p class="rule">Label nằm trên, lỗi nằm dưới và nói cách sửa. Không dùng placeholder thay label.</p>
+      </div>
+
+      <div class="card comp">
+        <h3>Trạng thái rỗng</h3>
+        <div class="empty">
+          <span class="ic"><i data-lucide="truck"></i></span>
+          <h4>Chưa có nhà cung cấp</h4>
+          <p>Thêm nhà cung cấp trước khi tạo phiếu nhập kho đầu tiên.</p>
+          <button type="button" class="btn btn-primary btn-sm"><i data-lucide="plus"></i>Thêm nhà cung cấp</button>
+        </div>
+      </div>
+
+      <div class="card comp">
+        <h3>Đang tải và thông báo</h3>
+        <div class="card sk-card" aria-hidden="true">
+          <div class="sk" style="width:40%"></div>
+          <div class="sk"></div>
+          <div class="sk" style="width:75%"></div>
+        </div>
+        <div class="toast-demo"><i data-lucide="circle-check" style="color:var(--success)"></i><div><b>Đã gửi order xuống bếp</b><span>ORD-250926-042, 3 món, Bàn 05</span></div></div>
+        <div class="toast-demo"><i data-lucide="circle-x" style="color:var(--danger)"></i><div><b>Không gửi được order</b><span>Bún bò Huế vừa hết nguyên liệu. Bỏ món này rồi gửi lại.</span></div></div>
+        <p class="rule">Skeleton có hình giống nội dung thật, không dùng chữ "Đang tải…" trơn.</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden>
+  <div class="toast-demo"><i data-lucide="circle-check" style="color:var(--success)"></i><div><b id="toastTitle"></b><span id="toastBody"></span></div></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script>
+(function () {
+  const vnd = (n) => n.toLocaleString("vi-VN") + " ₫";
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const icons = () => { try { window.lucide && window.lucide.createIcons(); } catch (e) {} };
+
+  /* ---------- screen switching ---------- */
+  const titles = { sales: "Bán hàng", reports: "Báo cáo", inventory: "Kho", assistant: "Trợ lý AI" };
+  function show(screen) {
+    $$("[data-view]").forEach((v) => (v.hidden = v.dataset.view !== screen));
+    $$(".seg [data-screen]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.screen === screen)));
+    $$(".nav [data-screen]").forEach((b) => b.dataset.screen === screen ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"));
+    $("#crumb").textContent = titles[screen];
+  }
+  $$("[data-screen]").forEach((b) => b.addEventListener("click", () => show(b.dataset.screen)));
+
+  /* ---------- POS ---------- */
+  const groups = ["Tất cả", "Khai vị", "Món chính", "Tráng miệng", "Đồ uống"];
+  const dishes = [
+    { id: 1, n: "Gỏi cuốn", g: "Khai vị", p: 45000 },
+    { id: 2, n: "Chả giò", g: "Khai vị", p: 55000 },
+    { id: 3, n: "Nem nướng", g: "Khai vị", p: 65000 },
+    { id: 4, n: "Gỏi ngó sen", g: "Khai vị", p: 75000 },
+    { id: 5, n: "Phở bò", g: "Món chính", p: 65000 },
+    { id: 6, n: "Bún chả", g: "Món chính", p: 60000 },
+    { id: 7, n: "Bún bò Huế", g: "Món chính", p: 70000 },
+    { id: 8, n: "Mì Quảng", g: "Món chính", p: 60000, out: true },
+    { id: 9, n: "Cơm tấm sườn", g: "Món chính", p: 60000 },
+    { id: 10, n: "Cơm gà Hội An", g: "Món chính", p: 65000 },
+    { id: 11, n: "Bò lúc lắc khoai tây", g: "Món chính", p: 145000 },
+    { id: 12, n: "Cá lóc nướng trui", g: "Món chính", p: 185000 },
+    { id: 13, n: "Chè đậu xanh", g: "Tráng miệng", p: 30000 },
+    { id: 14, n: "Chuối nướng", g: "Tráng miệng", p: 35000 },
+    { id: 15, n: "Cà phê sữa đá", g: "Đồ uống", p: 30000 },
+    { id: 16, n: "Trà chanh", g: "Đồ uống", p: 25000 },
+    { id: 17, n: "Bia", g: "Đồ uống", p: 35000 },
+  ];
+  const tables = [
+    ["Bàn 01", "free"], ["Bàn 02", "busy"], ["Bàn 03", "free"], ["Bàn 04", "reserved"],
+    ["Bàn 05", "busy"], ["Bàn 06", "free"], ["Bàn 07", "free"], ["Bàn 08", "busy"],
+    ["Bàn 09", "free"], ["Bàn 10", "reserved"], ["Bàn 11", "free"], ["Bàn 12", "free"],
+  ];
+  const state = { group: "Tất cả", q: "", table: "Bàn 05", type: "Tại chỗ", cart: new Map([[5, { qty: 2, note: "" }], [1, { qty: 1, note: "Không rau mùi" }], [15, { qty: 2, note: "Ít đá" }]]) };
+
+  function renderTables() {
+    $("#tables").innerHTML = tables.map(([name, s]) =>
+      `<button type="button" class="tchip ${s === "free" ? "" : s}" aria-pressed="${name === state.table}" data-t="${name}">${name.replace("Bàn ", "")}</button>`
+    ).join("");
+    $$("#tables .tchip").forEach((b) => b.addEventListener("click", () => { state.table = b.dataset.t; renderTables(); renderCart(); }));
+  }
+
+  function renderGroups() {
+    $("#groups").innerHTML = groups.map((g) =>
+      `<button type="button" role="tab" aria-selected="${g === state.group}" data-g="${g}">${g}</button>`
+    ).join("");
+    $$("#groups button").forEach((b) => b.addEventListener("click", () => { state.group = b.dataset.g; renderGroups(); renderDishes(); }));
+  }
+
+  function renderDishes() {
+    const q = state.q.trim().toLowerCase();
+    const list = dishes.filter((d) => (state.group === "Tất cả" || d.g === state.group) && (!q || d.n.toLowerCase().includes(q)));
+    $("#dishes").innerHTML = list.map((d) => {
+      const line = state.cart.get(d.id);
+      if (d.out) {
+        return `<button type="button" class="dish" disabled aria-label="${d.n}, hết nguyên liệu"><span class="name">${d.n}</span><span class="badge t-danger">Hết nguyên liệu</span></button>`;
+      }
+      return `<button type="button" class="dish ${line ? "in-cart" : ""}" data-d="${d.id}" aria-label="Thêm ${d.n}">
+        <span class="name">${d.n}</span><span class="price num">${vnd(d.p)}</span>
+        ${line ? `<span class="qty num">${line.qty}</span>` : ""}</button>`;
+    }).join("") || `<p style="color:var(--subtle)">Không có món nào khớp "${state.q}".</p>`;
+    $$("#dishes [data-d]").forEach((b) => b.addEventListener("click", () => add(+b.dataset.d, 1)));
+  }
+
+  function add(id, delta) {
+    const line = state.cart.get(id) || { qty: 0, note: "" };
+    line.qty += delta;
+    if (line.qty <= 0) state.cart.delete(id); else state.cart.set(id, line);
+    renderDishes(); renderCart();
+  }
+
+  function renderCart() {
+    $("#cartTitle").textContent = state.type === "Mang về" ? "Mang về" : state.table;
+    const box = $("#lines");
+    let qty = 0, total = 0;
+    if (state.cart.size === 0) {
+      box.innerHTML = `<div class="cart-empty"><i data-lucide="shopping-basket"></i><span>Chưa có món nào. Chạm vào món bên trái để thêm.</span></div>`;
+    } else {
+      box.innerHTML = Array.from(state.cart.entries()).map(([id, l]) => {
+        const d = dishes.find((x) => x.id === id);
+        qty += l.qty; total += l.qty * d.p;
+        return `<div class="line">
+          <div><div class="ln">${d.n}</div><div class="lp num">${vnd(d.p)}</div></div>
+          <div class="lt num">${vnd(l.qty * d.p)}</div>
+          <label class="note"><i data-lucide="pencil-line"></i><input id="note-${id}" data-note="${id}" value="${l.note}" placeholder="Thêm ghi chú cho bếp"></label>
+          <div class="line-ctrl">
+            <div class="stepper">
+              <button type="button" data-step="${id}" data-v="-1" aria-label="Bớt một ${d.n}"><i data-lucide="${l.qty === 1 ? "trash-2" : "minus"}"></i></button>
+              <output class="num" aria-live="polite">${l.qty}</output>
+              <button type="button" data-step="${id}" data-v="1" aria-label="Thêm một ${d.n}"><i data-lucide="plus"></i></button>
+            </div>
+            <span class="badge t-primary">Chờ</span>
+          </div>
+        </div>`;
+      }).join("");
+      $$("[data-step]", box).forEach((b) => b.addEventListener("click", () => add(+b.dataset.step, +b.dataset.v)));
+      $$("[data-note]", box).forEach((i) => i.addEventListener("input", () => { state.cart.get(+i.dataset.note).note = i.value; }));
+    }
+    $("#sumQty").textContent = qty;
+    $("#sumTotal").textContent = vnd(total);
+    $("#sendBtn").disabled = state.cart.size === 0;
+    $("#payBtn").disabled = state.cart.size === 0;
+    icons();
+  }
+
+  $$("[data-type]").forEach((b) => b.addEventListener("click", () => {
+    state.type = b.dataset.type;
+    $$("[data-type]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    $("#tableBlock").hidden = state.type === "Mang về";
+    renderCart();
+  }));
+  $("#dishSearch").addEventListener("input", (e) => { state.q = e.target.value; renderDishes(); });
+
+  let toastTimer;
+  function toast(title, body) {
+    $("#toastTitle").textContent = title; $("#toastBody").textContent = body;
+    $("#toast").hidden = false; clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => ($("#toast").hidden = true), 3000);
+  }
+  $("#sendBtn").addEventListener("click", () => {
+    const n = Array.from(state.cart.values()).reduce((s, l) => s + l.qty, 0);
+    toast("Đã gửi order xuống bếp", `ORD-250926-042, ${n} món, ${state.type === "Mang về" ? "mang về" : state.table}`);
+  });
+  $("#payBtn").addEventListener("click", () => toast("Mở màn hình thanh toán", "Trong bản thật, bước này mở panel tiền mặt hoặc QR."));
+
+  /* ---------- Reports ---------- */
+  const hours = [
+    [6, 0.42], [7, 1.26], [8, 0.95], [9, 0.38], [10, 0.61], [11, 2.87], [12, 2.1], [13, 0.84],
+    [14, 0.36], [15, 0.29], [16, 0.47], [17, 1.18], [18, 3.22], [19, 2.54], [20, 1.46], [21, 0.74],
+  ];
+  function drawHours() {
+    const W = 640, H = 240, L = 36, R = 8, T = 16, B = 28;
+    const max = 3.5, ticks = [0, 1, 2, 3];
+    const bw = (W - L - R) / hours.length;
+    const y = (v) => T + (H - T - B) * (1 - v / max);
+    const peak = Math.max(...hours.map((h) => h[1]));
+    let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Doanh thu theo giờ, cao nhất 18 giờ với 3,22 triệu đồng">`;
+    ticks.forEach((t) => {
+      s += `<line x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}" stroke="#dde3ea" stroke-width="1"/>`;
+      s += `<text x="${L - 8}" y="${y(t) + 4}" text-anchor="end" font-size="11" fill="#5b6b80">${t}</text>`;
+    });
+    hours.forEach(([h, v], i) => {
+      const x = L + i * bw + bw * 0.18, w = bw * 0.64;
+      const isPeak = v === peak;
+      s += `<rect x="${x}" y="${y(v)}" width="${w}" height="${y(0) - y(v)}" rx="3" fill="${isPeak ? "#1f4fd1" : "#9fb4ec"}"/>`;
+      if (isPeak) s += `<text x="${x + w / 2}" y="${y(v) - 6}" text-anchor="middle" font-size="11" font-weight="600" fill="#0f172a">${String(v).replace(".", ",")}</text>`;
+      if (i % 2 === 0) s += `<text x="${x + w / 2}" y="${H - 8}" text-anchor="middle" font-size="11" fill="#5b6b80">${String(h).padStart(2, "0")}h</text>`;
+    });
+    $("#hourChart").innerHTML = s + "</svg>";
+  }
+  const top = [["Phở bò", 58], ["Bún chả", 41], ["Cơm tấm sườn", 37], ["Bún bò Huế", 33], ["Gỏi cuốn", 29]];
+  $("#rank").innerHTML = top.map(([n, v], i) =>
+    `<div class="rank-row"><span class="i num">${i + 1}</span><span>${n}</span><span class="num" style="font-weight:500">${v}</span><span class="bar" style="width:${(v / top[0][1]) * 100}%"></span></div>`
+  ).join("");
+
+  /* ---------- Inventory ---------- */
+  const stock = [
+    ["Cá lóc", "kg", 0, 3, "out", "Không còn lô"],
+    ["Thịt bò thăn", "kg", 3.2, 5, "low", "26/09, lô NK-0918"],
+    ["Hành lá", "kg", 0.8, 1.5, "low", "26/09, lô NK-0921"],
+    ["Rau thơm", "kg", 0.9, 1, "low", "25/09, lô NK-0922"],
+    ["Bánh phở", "kg", 12.5, 8, "ok", "27/09, lô NK-0923"],
+    ["Nước mắm", "lít", 9, 4, "ok", "03/2027"],
+    ["Gạo tẻ", "kg", 46, 20, "ok", "12/2026"],
+    ["Sả", "kg", 2.4, 1, "ok", "30/09, lô NK-0920"],
+  ];
+  const fmt = (n) => n.toLocaleString("vi-VN", { minimumFractionDigits: n % 1 ? 1 : 0, maximumFractionDigits: 2 });
+  const badge = { out: '<span class="badge t-danger">Hết hàng</span>', low: '<span class="badge t-warning">Sắp hết</span>', ok: '<span class="badge t-success">Đủ hàng</span>' };
+  function renderStock(f) {
+    $("#stockBody").innerHTML = stock.filter((r) => f === "all" || r[4] === f).map((r) => {
+      const soon = /^2[5-6]\/09/.test(r[5]);
+      return `<tr><td><span class="ing"><b>${r[0]}</b></span></td><td>${r[1]}</td>
+        <td class="r num ${r[4] !== "ok" ? "under" : ""}">${fmt(r[2])}</td><td class="r num">${fmt(r[3])}</td>
+        <td>${badge[r[4]]}</td><td class="lot ${soon ? "soon" : ""}">${r[5]}</td>
+        <td class="r"><button type="button" class="btn btn-ghost btn-sm">${r[4] === "ok" ? "Chi tiết" : "Nhập thêm"}</button></td></tr>`;
+    }).join("");
+  }
+  $$("#stockTabs button").forEach((b) => b.addEventListener("click", () => {
+    $$("#stockTabs button").forEach((x) => x.setAttribute("aria-selected", String(x === b)));
+    renderStock(b.dataset.f);
+  }));
+
+  /* ---------- Swatches ---------- */
+  const sw = [
+    ["Nền và chữ", [
+      ["canvas", "#F5F7FA", "Nền trang"], ["surface", "#FFFFFF", "Card, panel, input"], ["surface-sunken", "#EEF1F5", "Header bảng, hover"],
+      ["border", "#DDE3EA", "Viền, đường chia"], ["ink", "#0F172A", "Chữ chính"], ["muted", "#475569", "Chữ phụ"], ["subtle", "#5B6B80", "Caption, placeholder"],
+    ]],
+    ["Thương hiệu", [
+      ["primary", "#1F4FD1", "Nút chính, link, focus. Chữ trắng 6,8:1"], ["primary-hover", "#1A40AB", "Hover của nút chính"], ["primary-subtle", "#EAF0FD", "Nav và tab đang chọn, đang xử lý"],
+    ]],
+  ];
+  const tri = [
+    ["success", "#15803D", "#E8F5EC", "#166534", "Đã thanh toán, còn hạn"],
+    ["warning", "#D97706", "#FDF3E1", "#92400E", "Sắp hết, tạm tính. Không làm nền nút"],
+    ["danger", "#DC2626", "#FDECEC", "#991B1B", "Hết hàng, đã hủy, lỗi"],
+  ];
+  $("#swatches").innerHTML = sw.map(([title, items]) =>
+    `<div class="swatch-group"><h3>${title}</h3><div class="swatches">${items.map(([n, hex, use]) =>
+      `<div class="sw"><div class="chip" style="background:${hex}"></div><div class="meta"><b>${n}</b><span class="mono">${hex}</span><span>${use}</span></div></div>`
+    ).join("")}</div></div>`
+  ).join("") + `<div class="swatch-group"><h3>Trạng thái (nền đặc, nền nhạt, chữ trên nền nhạt)</h3><div class="swatches">${tri.map(([n, s, sub, fg, use]) =>
+    `<div class="sw"><div class="tri"><div style="background:${s}"></div><div style="background:${sub};color:${fg}">Aa</div><div style="background:${fg}"></div></div><div class="meta"><b>${n}</b><span class="mono">${s}</span><span>${use}</span></div></div>`
+  ).join("")}</div></div>`;
+
+  renderTables(); renderGroups(); renderDishes(); renderCart(); drawHours(); renderStock("all"); icons();
+})();
+</script>

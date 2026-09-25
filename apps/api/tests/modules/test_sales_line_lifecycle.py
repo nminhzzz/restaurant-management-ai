@@ -233,6 +233,82 @@ async def test_cancel_whole_requires_reason(session):
 
 
 @pytest.mark.anyio
+async def test_cancel_order_refused_while_qr_pending(session):
+    """FR-SALE-25: a live QR transaction must be cancelled/expired before the order can be."""
+    d, ing = await _setup_dish_with_stock(session)
+    t = await _table(session)
+    client = await _make_client(session)
+    h_mgr, _ = await _headers(session, role="MANAGER", username="mgr3")
+    oid, _ = await _submit(session, client, h_mgr, d, t)
+    await client.post(f"/api/v1/sales/orders/{oid}/pay/qr", headers=h_mgr)
+
+    r = await client.post(
+        f"/api/v1/sales/orders/{oid}/cancel", json={"reason": "khách đổi ý"}, headers=h_mgr
+    )
+    assert r.status_code == 422
+    assert await order_status(session, oid) == "Đang mở"
+
+
+@pytest.mark.anyio
+async def test_cancel_order_allowed_after_qr_expired(session, monkeypatch):
+    """FR-SALE-25: once the QR has expired, cancelling the order is allowed again."""
+    from datetime import datetime, timedelta
+
+    d, ing = await _setup_dish_with_stock(session)
+    t = await _table(session)
+    client = await _make_client(session)
+    h_mgr, _ = await _headers(session, role="MANAGER", username="mgr4")
+    oid, _ = await _submit(session, client, h_mgr, d, t)
+    r = await client.post(f"/api/v1/sales/orders/{oid}/pay/qr", headers=h_mgr)
+    created = datetime.fromisoformat(r.json()["ThoiDiemTaoQR"])
+    monkeypatch.setattr(business_date, "now", lambda: created + timedelta(minutes=11))
+
+    r2 = await client.post(
+        f"/api/v1/sales/orders/{oid}/cancel", json={"reason": "khách đổi ý"}, headers=h_mgr
+    )
+    assert r2.status_code == 200
+    assert await order_status(session, oid) == "Đã hủy"
+
+
+@pytest.mark.anyio
+async def test_cancel_order_allowed_after_qr_cancelled(session):
+    """FR-SALE-25/29: cancelling the QR first frees the order to be cancelled too."""
+    d, ing = await _setup_dish_with_stock(session)
+    t = await _table(session)
+    client = await _make_client(session)
+    h_mgr, _ = await _headers(session, role="MANAGER", username="mgr5")
+    oid, _ = await _submit(session, client, h_mgr, d, t)
+    r = await client.post(f"/api/v1/sales/orders/{oid}/pay/qr", headers=h_mgr)
+    pid = r.json()["MaGiaoDich"]
+    await client.post(f"/api/v1/sales/payments/{pid}/cancel", headers=h_mgr)
+
+    r2 = await client.post(
+        f"/api/v1/sales/orders/{oid}/cancel", json={"reason": "khách đổi ý"}, headers=h_mgr
+    )
+    assert r2.status_code == 200
+    assert await order_status(session, oid) == "Đã hủy"
+
+
+@pytest.mark.anyio
+async def test_cancelling_last_live_line_auto_closes_order(session):
+    """FR-SALE-12: cancelling the last live line closes the order and frees the table."""
+    d, ing = await _setup_dish_with_stock(session, qty=10)
+    t = await _table(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    oid, lid = await _submit(session, client, h, d, t)
+    before = await ingredient_total(session, d)
+
+    r = await client.post(
+        f"/api/v1/sales/orders/{oid}/lines/{lid}/cancel", json={"reason": "khách đổi ý"}, headers=h
+    )
+    assert r.status_code == 200
+    assert await ingredient_total(session, d) == before + 1
+    assert await order_status(session, oid) == "Tự động đóng"
+    assert await table_status(session, t.id) == "Trống"
+
+
+@pytest.mark.anyio
 async def test_reducing_then_cancelling_returns_exactly_what_was_drawn(session):
     """FR-SALE-08/11: the reduce and the cancel together return the line's charge, no more."""
     d, ing = await _setup_dish_with_stock(session, qty=10)

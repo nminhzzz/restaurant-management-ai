@@ -3,10 +3,27 @@
 from datetime import date
 from decimal import Decimal
 from typing import Annotated
+from urllib.parse import urlparse
 
-from pydantic import BaseModel, Field, StringConstraints
+from pydantic import BaseModel, Field, StringConstraints, field_validator
 
 Name = Annotated[str, StringConstraints(min_length=1, max_length=100)]
+
+
+def _validate_image_url(value: str | None) -> str | None:
+    """HinhAnh is rendered in <img src>: only http(s) URLs or site-relative
+    paths are accepted, never a `javascript:`/`data:` scheme or similar."""
+    if value is None:
+        return None
+    v = value.strip()
+    if v == "":
+        return None
+    parsed = urlparse(v)
+    if parsed.scheme in ("http", "https") and parsed.netloc:
+        return v
+    if v.startswith("/") and not v.startswith("//"):
+        return v
+    raise ValueError("HinhAnh phải là URL http(s) hoặc đường dẫn nội bộ hợp lệ.")
 
 
 class GroupCreate(BaseModel):
@@ -37,11 +54,15 @@ class DishCreate(BaseModel):
     HinhAnh: str | None = Field(default=None, max_length=500)
     GiaHienTai: float | None = Field(default=None, ge=0)
 
+    _check_hinh_anh = field_validator("HinhAnh")(_validate_image_url)
+
 
 class DishUpdate(BaseModel):
     TenMon: Name | None = None
     MaNhomMon: int | None = None
     HinhAnh: str | None = Field(default=None, max_length=500)
+
+    _check_hinh_anh = field_validator("HinhAnh")(_validate_image_url)
 
 
 class DishOut(BaseModel):
@@ -91,6 +112,10 @@ class RecipeAssignRequest(BaseModel):
     items: list[RecipeItemIn] = Field(min_length=1)
 
 
+class RecipeApplyNowRequest(BaseModel):
+    items: list[RecipeItemIn] = Field(min_length=1)
+
+
 class RecipeOut(BaseModel):
     MaCongThuc: int = Field(validation_alias="id")
     MaMon: int = Field(validation_alias="dish_id")
@@ -98,6 +123,22 @@ class RecipeOut(BaseModel):
     TrangThai: str = Field(validation_alias="status")
 
     model_config = {"from_attributes": True, "populate_by_name": True}
+
+
+class RecipeLineOut(BaseModel):
+    MaNguyenLieu: int
+    TenNguyenLieu: str
+    SoLuong: float
+    DonViTinh: str
+
+
+class RecipeVersionOut(BaseModel):
+    MaCongThuc: int
+    MaMon: int
+    BusinessDateApDung: date
+    TrangThai: str
+    LoaiThayDoi: str
+    items: list[RecipeLineOut]
 
 
 class IngredientCreate(BaseModel):
@@ -127,6 +168,11 @@ class SupplierCreate(BaseModel):
     SoDienThoai: str | None = Field(default=None, max_length=20)
 
 
+class SupplierUpdate(BaseModel):
+    TenNhaCungCap: Name | None = None
+    SoDienThoai: str | None = Field(default=None, max_length=20)
+
+
 class SupplierOut(BaseModel):
     MaNhaCungCap: int = Field(validation_alias="id")
     TenNhaCungCap: str = Field(validation_alias="name")
@@ -144,6 +190,7 @@ class TableCreate(BaseModel):
 class TableOut(BaseModel):
     MaBan: int = Field(validation_alias="id")
     TenBan: str = Field(validation_alias="name")
+    TrangThai: str = Field(validation_alias="status")
     DaXoa: bool = Field(validation_alias="is_deleted")
 
     model_config = {"from_attributes": True, "populate_by_name": True}

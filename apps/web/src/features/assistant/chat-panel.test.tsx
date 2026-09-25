@@ -35,6 +35,7 @@ const chatResponseWithSql = {
     view: "vw_ai_thungan",
     elapsed_ms: 12,
   },
+  session_id: 42,
 };
 
 const chatResponseWithScope = {
@@ -121,5 +122,92 @@ describe("ChatPanel", () => {
     ask();
 
     expect(await screen.findByText(/vw_ai_thungan/)).toBeInTheDocument();
+  });
+
+  it("keeps earlier answers when a second question is asked", async () => {
+    fetchMock
+      .mockResolvedValueOnce({
+        ...chatResponseWithSql,
+        answer: "Câu trả lời một",
+      })
+      .mockResolvedValueOnce({
+        ...chatResponseWithSql,
+        answer: "Câu trả lời hai",
+      });
+
+    render(<ChatPanel />);
+    ask();
+    await screen.findByText("Câu trả lời một");
+    ask();
+
+    expect(await screen.findByText("Câu trả lời hai")).toBeInTheDocument();
+    expect(screen.getByText("Câu trả lời một")).toBeInTheDocument();
+  });
+
+  it("carries the session_id from the first response into the second request", async () => {
+    fetchMock
+      .mockResolvedValueOnce({
+        ...chatResponseWithSql,
+        answer: "Câu trả lời một",
+        session_id: 42,
+      })
+      .mockResolvedValueOnce({
+        ...chatResponseWithSql,
+        answer: "Câu trả lời hai",
+      });
+
+    render(<ChatPanel />);
+    ask();
+    await screen.findByText("Câu trả lời một");
+    expect(fetchMock).toHaveBeenNthCalledWith(1, "/assistant/chat", {
+      method: "POST",
+      body: { question: "Doanh thu hôm qua?" },
+    });
+
+    ask();
+    await screen.findByText("Câu trả lời hai");
+
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "/assistant/chat", {
+      method: "POST",
+      body: { question: "Doanh thu hôm qua?", session_id: 42 },
+    });
+  });
+
+  it('starts a new conversation and drops the session_id on "Cuộc trò chuyện mới"', async () => {
+    fetchMock.mockResolvedValueOnce(chatResponseWithSql);
+
+    render(<ChatPanel />);
+    ask();
+    await screen.findByText(chatResponseWithSql.answer);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Cuộc trò chuyện mới" }),
+    );
+
+    expect(
+      screen.queryByText(chatResponseWithSql.answer),
+    ).not.toBeInTheDocument();
+
+    fetchMock.mockResolvedValueOnce({ ...chatResponseWithSql, session_id: 7 });
+    ask();
+    await screen.findByText(chatResponseWithSql.answer);
+
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "/assistant/chat", {
+      method: "POST",
+      body: { question: "Doanh thu hôm qua?" },
+    });
+  });
+
+  it("puts a suggested question into the composer without sending it", () => {
+    render(<ChatPanel />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Món nào bán chạy nhất tuần này?" }),
+    );
+
+    expect(screen.getByLabelText("Câu hỏi bằng tiếng Việt")).toHaveValue(
+      "Món nào bán chạy nhất tuần này?",
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

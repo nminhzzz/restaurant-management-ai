@@ -1,3 +1,4 @@
+import { formatNumber } from "@/lib/format";
 import type { ChartSpec } from "@/types/api";
 
 const LABELS: Record<string, string> = {
@@ -6,22 +7,20 @@ const LABELS: Record<string, string> = {
   doughnut: "Biểu đồ tròn",
 };
 
-const COLORS = [
-  "#f59e0b",
-  "#0ea5e9",
-  "#10b981",
-  "#8b5cf6",
-  "#ef4444",
-  "#64748b",
-];
-const WIDTH = 320;
-const HEIGHT = 120;
+const COLORS = [1, 2, 3, 4, 5, 6].map((i) => `var(--color-chart-${i})`);
+const WIDTH = 480;
+const HEIGHT = 180;
+const PAD = { top: 12, bottom: 24, side: 8 };
 
 function values(rows: Record<string, unknown>[], spec: ChartSpec): number[] {
   return rows.map((row) => {
     const raw = Number(row[spec.y[0]]);
     return Number.isFinite(raw) ? raw : 0;
   });
+}
+
+function labelOf(row: Record<string, unknown>, spec: ChartSpec): string {
+  return String(row[spec.x] ?? "");
 }
 
 export function ChartView({
@@ -37,70 +36,157 @@ export function ChartView({
 
   const series = values(rows, spec);
   const peak = Math.max(...series, 1);
-  const step = series.length > 1 ? WIDTH / (series.length - 1) : WIDTH;
+  const plotH = HEIGHT - PAD.top - PAD.bottom;
+  const plotW = WIDTH - PAD.side * 2;
+  const y = (v: number) => PAD.top + plotH * (1 - v / peak);
+  // Label the first, middle and last points so the axis never crowds.
+  const labelled = new Set([
+    0,
+    Math.floor((rows.length - 1) / 2),
+    rows.length - 1,
+  ]);
+
+  if (spec.type === "doughnut") {
+    const total = series.reduce((sum, value) => sum + value, 0) || 1;
+    const circumference = 2 * Math.PI * 52;
+    const starts = series.map(
+      (_, index) =>
+        series.slice(0, index).reduce((sum, v) => sum + v, 0) / total,
+    );
+    return (
+      <div className="flex flex-wrap items-center gap-6">
+        <svg
+          role="img"
+          aria-label={LABELS.doughnut}
+          viewBox="0 0 140 140"
+          className="size-36 shrink-0"
+        >
+          {series.map((value, index) => {
+            const fraction = value / total;
+            return (
+              <circle
+                key={index}
+                cx={70}
+                cy={70}
+                r={52}
+                fill="none"
+                strokeWidth={22}
+                stroke={COLORS[index % COLORS.length]}
+                strokeDasharray={`${fraction * circumference} ${circumference}`}
+                strokeDashoffset={-starts[index] * circumference}
+                transform="rotate(-90 70 70)"
+              />
+            );
+          })}
+        </svg>
+        <ul className="space-y-1.5">
+          {rows.map((row, index) => (
+            <li key={index} className="flex items-center gap-2">
+              <span
+                aria-hidden
+                className="size-2.5 rounded-full"
+                style={{ background: COLORS[index % COLORS.length] }}
+              />
+              <span>{labelOf(row, spec)}</span>
+              <span className="text-muted tabular-nums">
+                {formatNumber(series[index])}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+
+  const step = series.length > 1 ? plotW / (series.length - 1) : 0;
+  const slot = plotW / series.length;
+  const xOf = (index: number) =>
+    spec.type === "line"
+      ? PAD.side + index * step
+      : PAD.side + slot * (index + 0.5);
 
   return (
     <svg
       role="img"
       aria-label={LABELS[spec.type] ?? "Biểu đồ"}
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-      className="h-40 w-full max-w-xl"
+      className="h-auto w-full max-w-2xl"
     >
+      <line
+        x1={PAD.side}
+        x2={WIDTH - PAD.side}
+        y1={y(0)}
+        y2={y(0)}
+        stroke="var(--color-border-strong)"
+      />
+      <line
+        x1={PAD.side}
+        x2={WIDTH - PAD.side}
+        y1={y(peak)}
+        y2={y(peak)}
+        stroke="var(--color-border)"
+        strokeDasharray="3 4"
+      />
+
       {spec.type === "line" && (
-        <polyline
-          fill="none"
-          stroke={COLORS[0]}
-          strokeWidth={2}
-          points={series
-            .map(
-              (value, index) =>
-                `${index * step},${HEIGHT - (value / peak) * (HEIGHT - 10)}`,
-            )
-            .join(" ")}
-        />
+        <>
+          <polygon
+            fill="var(--color-chart-1)"
+            fillOpacity={0.1}
+            points={[
+              `${xOf(0)},${y(0)}`,
+              ...series.map((value, index) => `${xOf(index)},${y(value)}`),
+              `${xOf(series.length - 1)},${y(0)}`,
+            ].join(" ")}
+          />
+          <polyline
+            fill="none"
+            stroke="var(--color-chart-1)"
+            strokeWidth={2}
+            strokeLinejoin="round"
+            points={series
+              .map((value, index) => `${xOf(index)},${y(value)}`)
+              .join(" ")}
+          />
+        </>
       )}
 
       {spec.type === "bar" &&
         series.map((value, index) => {
-          const barWidth = WIDTH / series.length - 4;
-          const height = (value / peak) * (HEIGHT - 10);
+          const width = Math.min(slot * 0.64, 36);
           return (
             <rect
               key={index}
-              x={index * (WIDTH / series.length) + 2}
-              y={HEIGHT - height}
-              width={barWidth}
-              height={Math.max(height, 1)}
-              fill={COLORS[0]}
+              x={xOf(index) - width / 2}
+              y={y(value)}
+              width={width}
+              height={Math.max(y(0) - y(value), 1)}
+              rx={3}
+              fill="var(--color-chart-1)"
             />
           );
         })}
 
-      {spec.type === "doughnut" &&
-        (() => {
-          const total = series.reduce((sum, value) => sum + value, 0) || 1;
-          const circumference = 2 * Math.PI * 40;
-          let consumed = 0;
-          return series.map((value, index) => {
-            const fraction = value / total;
-            const segment = (
-              <circle
-                key={index}
-                cx={WIDTH / 2}
-                cy={HEIGHT / 2}
-                r={40}
-                fill="none"
-                strokeWidth={20}
-                stroke={COLORS[index % COLORS.length]}
-                strokeDasharray={`${fraction * circumference} ${circumference}`}
-                strokeDashoffset={-consumed * circumference}
-                transform={`rotate(-90 ${WIDTH / 2} ${HEIGHT / 2})`}
-              />
-            );
-            consumed += fraction;
-            return segment;
-          });
-        })()}
+      {rows.map((row, index) =>
+        labelled.has(index) ? (
+          <text
+            key={index}
+            x={xOf(index)}
+            y={HEIGHT - 6}
+            fontSize={11}
+            fill="var(--color-subtle)"
+            textAnchor={
+              spec.type === "line" && index === 0
+                ? "start"
+                : spec.type === "line" && index === rows.length - 1
+                  ? "end"
+                  : "middle"
+            }
+          >
+            {labelOf(row, spec)}
+          </text>
+        ) : null,
+      )}
     </svg>
   );
 }

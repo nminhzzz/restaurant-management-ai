@@ -29,10 +29,17 @@ class Settings(BaseSettings):
     access_token_ttl_minutes: int = 480
 
     # AI Assistant (NFR-02 response budget, NFR-16 cost control).
-    ai_provider: str = "openai"
+    # DeepSeek's OpenAI-compatible API is the default commercial provider.
+    ai_provider: str = "deepseek"
     ai_api_key: str = ""
-    llm_model: str = "gpt-4o-mini"
+    llm_model: str = "deepseek-flash"
     llm_base_url: str = ""
+    # Runtime fallback (report §1.4.2, §4.1.1): used only when the primary model call
+    # fails (transport error, timeout, 429 or 5xx); empty falls back to `ai_config_c_model`.
+    llm_fallback_model: str = ""
+    # DeepSeek thinks at "high" by default; two LLM calls per question then overrun
+    # the 8s budget (NFR-02). Only sent when AI_PROVIDER=deepseek; empty = send nothing.
+    llm_reasoning_effort: str = "low"
     # Configuration C of the A/B/C experiment runs configuration B on a second model
     # (master-roadmap Q5); empty means the harness falls back to a suffixed name.
     ai_config_c_model: str = ""

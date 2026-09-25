@@ -1,30 +1,50 @@
 @import "tailwindcss";
 
 /*
- * System font stack: the app ships without a webfont so `next build` stays
- * offline-capable and Vietnamese diacritics render with the platform's own
- * fonts.
+ * Tokens mirror docs/design/tokens.md — change that file first. The brand hue is cool
+ * on purpose: amber, red and green are reserved for stock and payment states, so a warm
+ * primary would read as a warning.
  */
-body {
-  font-family:
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    Roboto,
-    "Helvetica Neue",
-    Arial,
-    sans-serif;
-}
-
 @theme {
-  --color-primary: #d97706; /* amber-600 */
-  --color-primary-hover: #b45309; /* amber-700 */
-  --color-success: #059669; /* emerald-600 */
-  --color-warning: #f59e0b; /* amber-500 */
-  --color-danger: #dc2626; /* red-600 */
-  --color-info: #0284c7; /* sky-600 */
+  --color-canvas: #f5f7fa;
   --color-surface: #ffffff;
-  --color-muted: #475569; /* slate-600 */
-  --color-subtle: #64748b; /* slate-500 */
-  --color-border: #e2e8f0; /* slate-200 */
+  --color-surface-sunken: #eef1f5;
+  --color-border: #dde3ea;
+  --color-border-strong: #c5cdd8;
+  --color-ink: #0f172a;
+  --color-muted: #475569;
+  --color-subtle: #5b6b80;
+
+  --color-primary: #1f4fd1;
+  --color-primary-hover: #1a40ab;
+  --color-primary-subtle: #eaf0fd;
+  --color-primary-subtle-fg: #1a3e9e;
+
+  --color-success: #15803d;
+  --color-success-subtle: #e8f5ec;
+  --color-success-fg: #166534;
+  --color-warning: #d97706;
+  --color-warning-subtle: #fdf3e1;
+  --color-warning-fg: #92400e;
+  --color-danger: #dc2626;
+  --color-danger-hover: #b91c1c;
+  --color-danger-subtle: #fdecec;
+  --color-danger-fg: #991b1b;
+
+  --color-chart-1: #1f4fd1;
+  --color-chart-2: #7a98e6;
+  --color-chart-3: #b8c8f2;
+  --color-chart-4: #0f172a;
+  --color-chart-5: #5b6b80;
+  --color-chart-6: #c5cdd8;
+
+  /* Self-hosted through @fontsource so `next build` needs no network. */
+  --font-sans:
+    "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, Arial,
+    sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --radius-control: 0.5rem;
+  --radius-container: 0.75rem;
+  --radius-overlay: 1rem;
 }

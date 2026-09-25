@@ -86,6 +86,7 @@ class Dish(Base):
         ForeignKey("NHOM_MON.MaNhomMon", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=True,
     )
+    image_url: Mapped[str | None] = mapped_column("HinhAnh", String(500), nullable=True)
     hide_manual: Mapped[bool] = mapped_column("AnThuCong", default=False, nullable=False)
     out_of_stock_manual: Mapped[bool] = mapped_column("HetNLThuCong", default=False, nullable=False)
     out_of_stock_auto: Mapped[bool] = mapped_column("HetNLTuDong", default=False, nullable=False)

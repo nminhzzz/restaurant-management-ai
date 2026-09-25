@@ -93,6 +93,7 @@ async def _issue_invoice(
 
 
 async def pay_cash(session: AsyncSession, order_id: int, *, actor_id: int | None = None) -> dict:
+    await expire_stale_qr(session)
     now = business_date.now()
     order = await session.get(Order, order_id)
     if order is None:
@@ -128,6 +129,7 @@ async def pay_cash(session: AsyncSession, order_id: int, *, actor_id: int | None
 async def start_qr(
     session: AsyncSession, order_id: int, *, actor_id: int | None = None
 ) -> PaymentTransaction:
+    await expire_stale_qr(session)
     order = await session.get(Order, order_id)
     if order is None:
         raise NotFoundError("Order không tồn tại.")
@@ -267,6 +269,7 @@ async def expire_stale_qr(session: AsyncSession) -> int:
 async def mark_for_reconciliation(
     session: AsyncSession, payment_id: int, *, actor_id: int | None = None
 ) -> PaymentTransaction:
+    await expire_stale_qr(session)
     payment = await session.get(PaymentTransaction, payment_id)
     if payment is None:
         raise NotFoundError("Giao dịch không tồn tại.")

@@ -461,12 +461,26 @@ async def move_table(
 async def cancel_order(
     session: AsyncSession, order_id: int, reason: str, *, actor_id: int | None = None
 ) -> Order:
+    from app.modules.sales.payments import QR_PENDING, PaymentTransaction, expire_stale_qr
+
+    await expire_stale_qr(session)
     order = await session.get(Order, order_id)
     if order is None:
         raise NotFoundError("Order không tồn tại.")
     if order.status == "Chờ đối soát":
         raise BusinessRuleError("Order đang chờ đối soát QR, không thể hủy.")
     ensure_order_is_open(order)
+    live_qr = (
+        await session.execute(
+            select(PaymentTransaction).where(
+                PaymentTransaction.order_id == order.id,
+                PaymentTransaction.method == "QR",
+                PaymentTransaction.status == QR_PENDING,
+            )
+        )
+    ).scalar_one_or_none()
+    if live_qr is not None:
+        raise BusinessRuleError("Giao dịch QR đang chờ xác nhận, không thể hủy order.")
     if not reason or not reason.strip():
         raise BusinessRuleError("Cần lý do hủy order.")
 

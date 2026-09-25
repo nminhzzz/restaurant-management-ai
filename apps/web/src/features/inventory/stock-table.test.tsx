@@ -24,14 +24,13 @@ describe("stock table", () => {
     expect(screen.getByText("\u0110ang t\u1ea3i\u2026")).toBeInTheDocument();
     expect(await screen.findByText("B\u1ed9t m\u00ec")).toBeInTheDocument();
   });
-  it("highlights low-stock rows with alert class", async () => {
+  it("marks low-stock rows with a worded warning badge", async () => {
     render(<StockTable />);
     await screen.findByText("\u0110\u01b0\u1eddng");
     const alertRows = screen.getAllByTestId("alert-row");
     expect(alertRows.length).toBe(1);
-    expect(alertRows[0].className).toContain("bg-red-100");
-    expect(alertRows[0].textContent).toContain("C\u1ea3nh b\u00e1o");
+    expect(alertRows[0].textContent).toContain("S\u1eafp h\u1ebft");
     const okRows = screen.getAllByTestId("ok-row");
-    expect(okRows[0].className).not.toContain("bg-red-100");
+    expect(okRows[0].textContent).not.toContain("S\u1eafp h\u1ebft");
   });
 });

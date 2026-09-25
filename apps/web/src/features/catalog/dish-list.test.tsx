@@ -1,20 +1,28 @@
-import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
+vi.mock("@/lib/api-client", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/api-client")>();
+  return { ...actual, apiFetch: vi.fn() };
+});
+import { apiFetch } from "@/lib/api-client";
+import { clearSession, saveSession } from "@/lib/session";
 import { DishList } from "./dish-list";
 import { PriceScheduler } from "./price-scheduler";
 
-const mockFetch = vi.fn();
-
-vi.mock("@/lib/api-client", () => ({
-  apiFetch: (...args: unknown[]) => mockFetch(...args),
-}));
+const mockFetch = apiFetch as unknown as ReturnType<typeof vi.fn>;
 
 function stubFetch(data: unknown) {
   mockFetch.mockResolvedValue(data);
 }
 
 describe("catalog screens", () => {
-  beforeEach(() => mockFetch.mockReset());
+  beforeEach(() => {
+    mockFetch.mockReset();
+    saveSession({ token: "t", role: "MANAGER", username: "quanly" });
+  });
+
+  afterEach(() => clearSession());
 
   it("shows the four display states of the screen", async () => {
     let resolve!: (v: unknown) => void;
@@ -45,5 +53,136 @@ describe("catalog screens", () => {
       screen.getByText(/phải là một Business Date trong tương lai/),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Lưu" })).toBeDisabled();
+  });
+
+  it("creates a dish with the form's values", async () => {
+    mockFetch.mockImplementation((path: string) => {
+      if (path.startsWith("/catalog/dishes")) {
+        return Promise.resolve({
+          items: [{ MaMon: 1, TenMon: "Phở bò", TrangThai: "Hoạt động" }],
+        });
+      }
+      if (path.startsWith("/catalog/groups")) {
+        return Promise.resolve([{ MaNhomMon: 5, TenNhom: "Món chính" }]);
+      }
+      return Promise.resolve({});
+    });
+    render(<DishList />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Thêm món" }));
+    fireEvent.change(screen.getByLabelText("Tên món"), {
+      target: { value: "Bún chả" },
+    });
+    fireEvent.change(screen.getByLabelText("Nhóm món"), {
+      target: { value: "5" },
+    });
+    fireEvent.change(screen.getByLabelText("Giá bán"), {
+      target: { value: "45000" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Lưu" }));
+
+    await waitFor(() =>
+      expect(mockFetch).toHaveBeenCalledWith(
+        "/catalog/dishes",
+        expect.objectContaining({
+          method: "POST",
+          body: { TenMon: "Bún chả", MaNhomMon: 5, GiaHienTai: 45000 },
+        }),
+      ),
+    );
+  });
+
+  it("requires confirmation before deleting a dish", async () => {
+    mockFetch.mockImplementation((path: string) => {
+      if (path.startsWith("/catalog/dishes")) {
+        return Promise.resolve({
+          items: [{ MaMon: 1, TenMon: "Phở bò", TrangThai: "Hoạt động" }],
+        });
+      }
+      return Promise.resolve([]);
+    });
+    render(<DishList />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Xóa món" }));
+    expect(
+      mockFetch.mock.calls.some(([, opts]) => opts?.method === "DELETE"),
+    ).toBe(false);
+
+    fireEvent.click(screen.getByRole("button", { name: "Xóa" }));
+    await waitFor(() =>
+      expect(mockFetch).toHaveBeenCalledWith(
+        "/catalog/dishes/1",
+        expect.objectContaining({ method: "DELETE" }),
+      ),
+    );
+  });
+
+  it("sends HinhAnh when creating a dish with an image URL", async () => {
+    mockFetch.mockImplementation((path: string) => {
+      if (path.startsWith("/catalog/dishes")) {
+        return Promise.resolve({
+          items: [{ MaMon: 1, TenMon: "Phở bò", TrangThai: "Hoạt động" }],
+        });
+      }
+      if (path.startsWith("/catalog/groups")) {
+        return Promise.resolve([{ MaNhomMon: 5, TenNhom: "Món chính" }]);
+      }
+      return Promise.resolve({});
+    });
+    render(<DishList />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Thêm món" }));
+    fireEvent.change(screen.getByLabelText("Tên món"), {
+      target: { value: "Bún chả" },
+    });
+    fireEvent.change(screen.getByLabelText("Nhóm món"), {
+      target: { value: "5" },
+    });
+    fireEvent.change(screen.getByLabelText("Giá bán"), {
+      target: { value: "45000" },
+    });
+    fireEvent.change(screen.getByLabelText("Ảnh món (URL)"), {
+      target: { value: "https://example.com/bun-cha.jpg" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Lưu" }));
+
+    await waitFor(() =>
+      expect(mockFetch).toHaveBeenCalledWith(
+        "/catalog/dishes",
+        expect.objectContaining({
+          method: "POST",
+          body: {
+            TenMon: "Bún chả",
+            MaNhomMon: 5,
+            GiaHienTai: 45000,
+            HinhAnh: "https://example.com/bun-cha.jpg",
+          },
+        }),
+      ),
+    );
+  });
+
+  it("hides write actions on the dishes tab for the warehouse role", async () => {
+    saveSession({ token: "t", role: "WAREHOUSE", username: "thukho" });
+    mockFetch.mockImplementation((path: string) => {
+      if (path.startsWith("/catalog/dishes")) {
+        return Promise.resolve({
+          items: [{ MaMon: 1, TenMon: "Phở bò", TrangThai: "Hoạt động" }],
+        });
+      }
+      return Promise.resolve([]);
+    });
+    render(<DishList />);
+
+    await screen.findByText("Phở bò");
+    expect(
+      screen.queryByRole("button", { name: "Thêm món" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Sửa món" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Xóa món" }),
+    ).not.toBeInTheDocument();
   });
 });
