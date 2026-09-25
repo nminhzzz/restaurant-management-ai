@@ -13,8 +13,8 @@ hỏi – SQL chấm được trên ba cấu hình A/B/C, và số liệu thực
 
 ## Hiện trạng
 
-Cập nhật 2026-09-25: **Phase 0 → 5 đã xong** trên `main` (`make gate` xanh). Bảng dưới phản ánh
-trạng thái hiện tại; Phase 6–7 còn lại.
+Cập nhật 2026-09-25: **Phase 0 → 6 đã xong** trên `main` (`make gate` xanh). Bảng dưới phản ánh
+trạng thái hiện tại; Phase 7 còn lại.
 
 | Hạng mục | Trạng thái |
 | --- | --- |
@@ -24,8 +24,8 @@ trạng thái hiện tại; Phase 6–7 còn lại.
 | `guard.py` (kiểm duyệt SQL) | Xong, 20 test |
 | Lược đồ CSDL 29 bảng theo báo cáo + `DEM_ORDER` | **Xong** (Phase 0; migration `890db4fbb8b6` + `0f1501bac9b8`) |
 | View `vw_ai_*` + tài khoản chỉ-đọc | **Xong** (Phase 0; `db/views/`) |
-| Sáu module nghiệp vụ | Phase 1–5 xong (Cài đặt · Danh mục · Kho · Bán hàng · Báo cáo) |
-| Pipeline AI | `normalize` + `guard` xong; 4 bước prompt/sinh SQL/thực thi/diễn giải còn là interface |
+| Sáu module nghiệp vụ | Phase 1–6 xong (Cài đặt · Danh mục · Kho · Bán hàng · Báo cáo · Trợ lý AI) |
+| Pipeline AI | **Xong** (Phase 6): prompt theo view, sinh SQL qua guard, thực thi trên tài khoản vai trò, diễn giải + biểu đồ |
 | Seed dữ liệu, bộ đánh giá | **Chưa có** — mới có khung `scripts/seed/README.md` và `data/eval/questions.example.jsonl` |
 
 ## Ràng buộc bất biến
@@ -152,7 +152,7 @@ tự chốt được chưa, hay vẫn đang chờ bạn trả lời — plan vi�
 | Q1 | **Cổng thanh toán QR chưa chọn** (Phụ lục 2, Vấn đề #3). Không có nhà cung cấp thì không có webhook thật để tích hợp. | Phase 4 | Dựng **adapter** với một cổng giả lập (`mock`) làm mặc định, cài đặt theo interface; cắm cổng thật sau chỉ đổi adapter. Webhook vẫn xác thực chữ ký + đối chiếu số tiền + idempotent đầy đủ. | Plan đi theo đề xuất; đổi nhà cung cấp chỉ cần viết thêm một adapter. |
 | Q2 | **Máy in nhiệt** (§1.4.3 loại chi tiết driver/khổ giấy khỏi phạm vi). | Phase 4 | Backend sinh **nội dung phiếu** (text + cấu trúc) và ghi `PHIEU_BEP`; tầng in thật để ngoài hệ thống. Giao diện có nút in gọi `window.print()`. | Plan đi theo đề xuất; §1.4.3 đã loại driver khỏi phạm vi nên không cần chốt. |
 | Q3 | **Sao lưu/phục hồi** (FR-SET-06/07, FR-SET-07 ghi rõ "(Mở rộng)"). | Phase 1 | Làm FR-SET-06 (xuất bản sao thủ công) trong MVP; FR-SET-07 để lại sau, ghi rõ trong plan là mở rộng. | **Đã chốt trong plan** (Phase 1 Task 2 + mục Rủi ro). Phục hồi là thao tác phá huỷ — bàn riêng trước khi làm. |
-| Q4 | **Tên biến môi trường LLM**: báo cáo §1.4.2 và §4.1.1 ghi `LLM_MODEL`, repo hiện dùng `AI_MODEL`. | Phase 6 | Đổi sang `LLM_MODEL` cho khớp báo cáo, giữ `AI_PROVIDER` để chọn nhà cung cấp. Xác nhận giúp. | **Đã đưa vào Phase 6 Task 2** — làm ngay lúc `llm.py` chưa tồn tại, vì để sau phải sửa lan sang `core/config.py`, `.env.example` và mọi chỗ đọc `ai_model`. |
+| Q4 | **Tên biến môi trường LLM**: báo cáo §1.4.2 và §4.1.1 ghi `LLM_MODEL`, repo hiện dùng `AI_MODEL`. | Phase 6 | Đổi sang `LLM_MODEL` cho khớp báo cáo, giữ `AI_PROVIDER` để chọn nhà cung cấp. Xác nhận giúp. | **Đã xong ở Phase 6 Task 2** — `core/config.py`, `.env.example` và `llm.py` nay dùng `LLM_MODEL`. |
 | Q5 | **Phạm vi thực nghiệm A/B/C**: cấu hình C là "cấu hình B trên một mô hình khác" — cần model nào? Ollama chưa cài trên máy này (`ollama not found`). | Phase 7 | Cần bạn chốt model cho cấu hình C, hoặc cho phép dùng model thương mại thứ hai (ví dụ Gemini Flash) thay vì Ollama. | **Chờ bạn chốt** (Phase 7 Task 4 + mục Rủi ro ghi rõ hai đường). Không chặn Phase 0–6. |
 | Q6 | **Mô hình LLM chính**: `AI_MODEL=gpt-4o-mini` trong `.env.example`, nhưng sandbox chỉ cho phép các domain trong `~/.codex/config.toml` — API của OpenAI chưa nằm trong allowlist. | Phase 6 | Cần bạn thêm domain API của nhà cung cấp vào allowlist, hoặc dùng provider đã có sẵn (`bedrock.viber.vn`). | **Chờ bạn chốt.** Ảnh hưởng duy nhất là lúc chạy thật; test Phase 6 dùng `fake_llm` nên không bị chặn. |
 
