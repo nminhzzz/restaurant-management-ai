@@ -1,5 +1,7 @@
 """Audit log FR-SET-08/09."""
 
+from datetime import UTC, datetime
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 
@@ -100,3 +102,126 @@ async def test_the_log_cannot_be_edited_or_deleted(session):
     app.dependency_overrides.clear()
     assert deleted.status_code in (404, 405)
     assert patched.status_code in (404, 405)
+
+
+@pytest.mark.asyncio
+async def test_the_target_filter_narrows_to_that_entity(session):
+    client, token = await _mgr(session)
+    async with client:
+        created = await client.post(
+            "/api/v1/settings/users",
+            json={
+                "username": "moi01",
+                "password": "pass123",
+                "full_name": "Moi",
+                "role": "CASHIER",
+            },
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert created.status_code == 201
+
+        all_entries = await client.get(
+            "/api/v1/settings/audit-log", headers={"Authorization": f"Bearer {token}"}
+        )
+        user_entries = await client.get(
+            "/api/v1/settings/audit-log?target=NGUOI_DUNG",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        other_entries = await client.get(
+            "/api/v1/settings/audit-log?target=SYSTEM",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+    app.dependency_overrides.clear()
+    assert all_entries.status_code == 200
+    assert user_entries.status_code == 200
+    assert other_entries.status_code == 200
+    assert user_entries.json()["total"] >= 1
+    assert all(item["DoiTuong"] == "NGUOI_DUNG" for item in user_entries.json()["items"])
+    assert other_entries.json()["total"] == 0
+
+
+@pytest.mark.asyncio
+async def test_the_date_range_filter_narrows_by_occurred_at(session):
+    client, token = await _mgr(session)
+    async with client:
+        created = await client.post(
+            "/api/v1/settings/users",
+            json={
+                "username": "moi01",
+                "password": "pass123",
+                "full_name": "Moi",
+                "role": "CASHIER",
+            },
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert created.status_code == 201
+
+        today = datetime.now(UTC).date().isoformat()
+        in_range = await client.get(
+            f"/api/v1/settings/audit-log?date_from={today}&date_to={today}",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        out_of_range = await client.get(
+            "/api/v1/settings/audit-log?date_from=2000-01-01&date_to=2000-01-02",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+    app.dependency_overrides.clear()
+    assert in_range.status_code == 200
+    assert in_range.json()["total"] >= 1
+    assert out_of_range.status_code == 200
+    assert out_of_range.json()["total"] == 0
+
+
+@pytest.mark.asyncio
+async def test_a_malformed_date_range_is_rejected(session):
+    client, token = await _mgr(session)
+    async with client:
+        resp = await client.get(
+            "/api/v1/settings/audit-log?date_from=not-a-date",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+    app.dependency_overrides.clear()
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_the_actions_endpoint_lists_distinct_action_codes_for_managers_only(session):
+    client, token = await _mgr(session)
+    async with client:
+        created = await client.post(
+            "/api/v1/settings/users",
+            json={
+                "username": "moi01",
+                "password": "pass123",
+                "full_name": "Moi",
+                "role": "CASHIER",
+            },
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert created.status_code == 201
+
+        resp = await client.get(
+            "/api/v1/settings/audit-log/actions",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        cash = User(
+            username="thungan02",
+            password_hash=hash_password("pass123"),
+            full_name="TN",
+            role_id=Role.CASHIER.value,
+            status="Hoạt động",
+        )
+        session.add(cash)
+        await session.flush()
+        await session.commit()
+        cash_tok = create_access_token(
+            str(cash.id), {"role": cash.role_id, "username": cash.username}
+        )
+        forbidden = await client.get(
+            "/api/v1/settings/audit-log/actions",
+            headers={"Authorization": f"Bearer {cash_tok}"},
+        )
+    app.dependency_overrides.clear()
+    assert resp.status_code == 200
+    assert "CREATE_USER" in resp.json()
+    assert forbidden.status_code == 403

@@ -22,14 +22,14 @@ function route() {
       if (path === "/inventory/stocktakes" && method === "POST") {
         return Promise.resolve({ MaPhieuKiemKe: 1 });
       }
-      if (path === "/inventory/stocktakes") {
-        return Promise.resolve([]);
-      }
       if (path === "/inventory/stocktakes/1/counts") {
         return Promise.resolve({ ok: true });
       }
       if (path === "/inventory/stocktakes/1/confirm") {
         return Promise.resolve({ ok: true });
+      }
+      if (path.startsWith("/inventory/stocktakes")) {
+        return Promise.resolve({ items: [], total: 0 });
       }
       if (path.startsWith("/inventory/stock")) {
         return Promise.resolve({ items: stockItems });
@@ -94,6 +94,91 @@ describe("StocktakePanel", () => {
     expect(fetchMock).toHaveBeenCalledWith(
       "/inventory/stocktakes/1/confirm",
       expect.objectContaining({ method: "POST" }),
+    );
+  });
+
+  it("requests history page 1 with the default page size and shows the real total", async () => {
+    fetchMock.mockImplementation(
+      (path: string, options: { method?: string } = {}) => {
+        if (
+          path === "/inventory/stocktakes" &&
+          (options.method ?? "GET") === "POST"
+        ) {
+          return Promise.resolve({ MaPhieuKiemKe: 1 });
+        }
+        if (path.startsWith("/inventory/stocktakes")) {
+          return Promise.resolve({
+            items: [{ MaPhieuKiemKe: 5, TrangThai: "Đã xác nhận" }],
+            total: 26,
+          });
+        }
+        if (path.startsWith("/inventory/stock")) {
+          return Promise.resolve({ items: stockItems });
+        }
+        return Promise.resolve({});
+      },
+    );
+
+    render(<StocktakePanel />);
+    await screen.findByText("#5");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/inventory/stocktakes?page=1&page_size=20",
+    );
+    expect(screen.getByText("Hiển thị 1–20 trên 26")).toBeInTheDocument();
+  });
+
+  it("sends the status and date range filters and resets history paging to page 1", async () => {
+    fetchMock.mockImplementation(
+      (path: string, options: { method?: string } = {}) => {
+        if (
+          path === "/inventory/stocktakes" &&
+          (options.method ?? "GET") === "POST"
+        ) {
+          return Promise.resolve({ MaPhieuKiemKe: 1 });
+        }
+        if (path.startsWith("/inventory/stocktakes")) {
+          return Promise.resolve({
+            items: [{ MaPhieuKiemKe: 5, TrangThai: "Đã xác nhận" }],
+            total: 26,
+          });
+        }
+        if (path.startsWith("/inventory/stock")) {
+          return Promise.resolve({ items: stockItems });
+        }
+        return Promise.resolve({});
+      },
+    );
+
+    render(<StocktakePanel />);
+    await screen.findByText("#5");
+
+    fireEvent.click(screen.getByRole("button", { name: "Trang 2" }));
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenLastCalledWith(
+        "/inventory/stocktakes?page=2&page_size=20",
+      ),
+    );
+
+    fireEvent.change(screen.getByLabelText("Trạng thái"), {
+      target: { value: "Đã xác nhận" },
+    });
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenLastCalledWith(
+        "/inventory/stocktakes?status=%C4%90%C3%A3+x%C3%A1c+nh%E1%BA%ADn&page=1&page_size=20",
+      ),
+    );
+
+    fireEvent.change(screen.getByLabelText("Từ ngày"), {
+      target: { value: "2026-09-01" },
+    });
+    fireEvent.change(screen.getByLabelText("Đến ngày"), {
+      target: { value: "2026-09-25" },
+    });
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenLastCalledWith(
+        "/inventory/stocktakes?status=%C4%90%C3%A3+x%C3%A1c+nh%E1%BA%ADn&date_from=2026-09-01&date_to=2026-09-25&page=1&page_size=20",
+      ),
     );
   });
 });

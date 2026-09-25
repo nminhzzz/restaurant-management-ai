@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 
@@ -204,6 +206,49 @@ async def test_search_caps_the_number_of_rows(session):
     r = await client.get("/api/v1/sales/orders?limit=2", headers=h)
 
     assert len(r.json()["items"]) == 2
+
+
+@pytest.mark.anyio
+async def test_search_paginates_and_reports_a_real_total(session):
+    """`total` must reflect every matching row, not just the rows on the current page."""
+    d, t = await _setup(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    for _ in range(5):
+        oid, _ = await _submit(session, client, h, d, t)
+        await client.post(f"/api/v1/sales/orders/{oid}/pay/cash", headers=h)
+
+    page1 = await client.get("/api/v1/sales/orders?page=1&size=2", headers=h)
+    page2 = await client.get("/api/v1/sales/orders?page=2&size=2", headers=h)
+
+    assert page1.json()["total"] == 5
+    assert page2.json()["total"] == 5
+    assert len(page1.json()["items"]) == 2
+    assert len(page2.json()["items"]) == 2
+    assert page1.json()["items"] != page2.json()["items"]
+
+
+@pytest.mark.anyio
+async def test_search_filters_by_business_date_range(session):
+    d, t = await _setup(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    oid, _ = await _submit(session, client, h, d, t)
+    today = business_date.business_date_of(business_date.now())
+    yesterday = today - timedelta(days=1)
+    tomorrow = today + timedelta(days=1)
+
+    in_range = await client.get(
+        f"/api/v1/sales/orders?date_from={yesterday.isoformat()}&date_to={today.isoformat()}",
+        headers=h,
+    )
+    out_of_range = await client.get(
+        f"/api/v1/sales/orders?date_from={tomorrow.isoformat()}&date_to={tomorrow.isoformat()}",
+        headers=h,
+    )
+
+    assert oid in [o["MaOrder"] for o in in_range.json()["items"]]
+    assert oid not in [o["MaOrder"] for o in out_of_range.json()["items"]]
 
 
 @pytest.mark.anyio

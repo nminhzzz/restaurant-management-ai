@@ -121,6 +121,7 @@ export function CancelledReport() {
                     formatNumber(r.count),
                     formatVnd(r.total),
                   ])}
+                  pageSize={10}
                 />
               </section>
             );
@@ -134,6 +135,9 @@ export function CancelledReport() {
                 formatVnd(item.TongTien),
                 item.LyDoHuy?.trim() || NO_REASON,
               ])}
+              pageSize={10}
+              searchLabel="Tìm theo lý do"
+              searchColumn={2}
             />
           </section>
         </>

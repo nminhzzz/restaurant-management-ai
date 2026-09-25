@@ -1,9 +1,9 @@
 """Inventory service — receipts, issues, stocktakes."""
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import BusinessRuleError, NotFoundError
@@ -272,14 +272,35 @@ async def update_receipt(
 
 
 async def list_receipts(
-    session: AsyncSession, page: int = 1, page_size: int = 20, supplier_id: int | None = None
-) -> list[GoodsReceipt]:
-    q = select(GoodsReceipt)
+    session: AsyncSession,
+    page: int = 1,
+    page_size: int = 20,
+    supplier_id: int | None = None,
+    status: str | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+) -> tuple[list[GoodsReceipt], int]:
+    filters = []
     if supplier_id is not None:
-        q = q.where(GoodsReceipt.supplier_id == supplier_id)
-    q = q.order_by(GoodsReceipt.id.desc()).offset((page - 1) * page_size).limit(page_size)
+        filters.append(GoodsReceipt.supplier_id == supplier_id)
+    if status is not None:
+        filters.append(GoodsReceipt.status == status)
+    if date_from is not None:
+        filters.append(func.date(GoodsReceipt.receipt_date) >= date_from)
+    if date_to is not None:
+        filters.append(func.date(GoodsReceipt.receipt_date) <= date_to)
+    total = (
+        await session.execute(select(func.count(GoodsReceipt.id)).where(*filters))
+    ).scalar_one()
+    q = (
+        select(GoodsReceipt)
+        .where(*filters)
+        .order_by(GoodsReceipt.id.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
     r = await session.execute(q)
-    return list(r.scalars().all())
+    return list(r.scalars().all()), total
 
 
 # Issues
@@ -322,12 +343,66 @@ async def create_issue(
     return issue
 
 
+async def list_issues(
+    session: AsyncSession,
+    page: int = 1,
+    page_size: int = 20,
+    reason: str | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+) -> tuple[list[StockIssue], int]:
+    filters = []
+    if reason is not None:
+        filters.append(StockIssue.reason == reason)
+    if date_from is not None:
+        filters.append(func.date(StockIssue.created_at) >= date_from)
+    if date_to is not None:
+        filters.append(func.date(StockIssue.created_at) <= date_to)
+    total = (await session.execute(select(func.count(StockIssue.id)).where(*filters))).scalar_one()
+    q = (
+        select(StockIssue)
+        .where(*filters)
+        .order_by(StockIssue.id.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
+    r = await session.execute(q)
+    return list(r.scalars().all()), total
+
+
 # Stocktakes
 async def create_stocktake(session: AsyncSession, actor_id: int) -> Stocktake:
     st = Stocktake(status="Nháp", stocktake_date=business_date.now())
     session.add(st)
     await session.flush()
     return st
+
+
+async def list_stocktakes(
+    session: AsyncSession,
+    page: int = 1,
+    page_size: int = 20,
+    status: str | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+) -> tuple[list[Stocktake], int]:
+    filters = []
+    if status is not None:
+        filters.append(Stocktake.status == status)
+    if date_from is not None:
+        filters.append(func.date(Stocktake.stocktake_date) >= date_from)
+    if date_to is not None:
+        filters.append(func.date(Stocktake.stocktake_date) <= date_to)
+    total = (await session.execute(select(func.count(Stocktake.id)).where(*filters))).scalar_one()
+    q = (
+        select(Stocktake)
+        .where(*filters)
+        .order_by(Stocktake.id.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
+    r = await session.execute(q)
+    return list(r.scalars().all()), total
 
 
 async def record_counts(
@@ -507,6 +582,7 @@ async def list_stock(
             alert = float(ing.stock_qty) < thr
             if alert == alerting:
                 filtered.append((ing, thr, alert))
+        total = len(filtered)
         start_idx = (page - 1) * page_size
         page_items = filtered[start_idx : start_idx + page_size]
         return [
@@ -518,8 +594,9 @@ async def list_stock(
                 "CanhBaoTonThap": alert,
             }
             for ing, thr, alert in page_items
-        ]
+        ], total
     # No alert filter: SQL pagination
+    total = (await session.execute(select(func.count()).select_from(base.subquery()))).scalar_one()
     q = base.order_by(Ingredient.id).offset((page - 1) * page_size).limit(page_size)
     rows = (await session.execute(q)).scalars().all()
     out = []
@@ -535,7 +612,7 @@ async def list_stock(
                 "CanhBaoTonThap": alert,
             }
         )
-    return out
+    return out, total
 
 
 async def recompute_automatic_out_of_stock(session, ingredient_ids: list[int]) -> list[int]:

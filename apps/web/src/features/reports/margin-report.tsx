@@ -165,6 +165,7 @@ export function MarginReport() {
             ["Hao hụt", formatVnd(costs.HaoHut)],
             ["Tổng giá vốn", formatVnd(costs.TongGiaVon)],
           ]}
+          pageSize={10}
         />
       </section>
 
@@ -192,6 +193,9 @@ export function MarginReport() {
             dish.TenMon,
             formatVnd(dish.GiaVon),
           ])}
+          pageSize={10}
+          searchLabel="Tìm món"
+          searchColumn={0}
         />
       </section>
     </div>

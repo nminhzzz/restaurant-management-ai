@@ -162,6 +162,59 @@ describe("catalog screens", () => {
     );
   });
 
+  it("narrows rows by search and pages through the rest", async () => {
+    const dishes = Array.from({ length: 25 }, (_, i) => ({
+      MaMon: i + 1,
+      TenMon: `Món ${i + 1}`,
+      TrangThai: "Hoạt động",
+    }));
+    mockFetch.mockImplementation((path: string) => {
+      if (path.startsWith("/catalog/dishes")) {
+        return Promise.resolve({ items: dishes });
+      }
+      return Promise.resolve([]);
+    });
+    render(<DishList />);
+
+    await screen.findByText("Món 1");
+    expect(screen.getByText("Hiển thị 1–20 trên 25")).toBeInTheDocument();
+    expect(screen.queryByText("Món 21")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Trang 2" }));
+    expect(await screen.findByText("Món 21")).toBeInTheDocument();
+    expect(screen.queryByText("Món 1")).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Tìm món"), {
+      target: { value: "Món 1" },
+    });
+    expect(screen.getByText("Hiển thị 1–11 trên 11")).toBeInTheDocument();
+    expect(screen.getByText("Món 1")).toBeInTheDocument();
+    expect(screen.queryByText("Món 2")).not.toBeInTheDocument();
+  });
+
+  it("shows an empty-result row and clears filters on reset", async () => {
+    mockFetch.mockImplementation((path: string) => {
+      if (path.startsWith("/catalog/dishes")) {
+        return Promise.resolve({
+          items: [{ MaMon: 1, TenMon: "Phở bò", TrangThai: "Hoạt động" }],
+        });
+      }
+      return Promise.resolve([]);
+    });
+    render(<DishList />);
+
+    await screen.findByText("Phở bò");
+    fireEvent.change(screen.getByLabelText("Tìm món"), {
+      target: { value: "không tồn tại" },
+    });
+    expect(
+      screen.getByText("Không có món nào khớp bộ lọc."),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Xóa bộ lọc" }));
+    expect(await screen.findByText("Phở bò")).toBeInTheDocument();
+  });
+
   it("hides write actions on the dishes tab for the warehouse role", async () => {
     saveSession({ token: "t", role: "WAREHOUSE", username: "thukho" });
     mockFetch.mockImplementation((path: string) => {

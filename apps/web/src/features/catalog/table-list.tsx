@@ -4,6 +4,7 @@ import { LayoutGrid, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { FilterBar, SelectFilter } from "@/components/filter-bar";
 import { FormField } from "@/components/form-field";
 import {
   EmptyState,
@@ -39,10 +40,17 @@ export function TableList() {
   const [createOpen, setCreateOpen] = useState(false);
   const [name, setName] = useState("");
   const [deleteTable, setDeleteTable] = useState<DiningTable | null>(null);
+  const [statusFilter, setStatusFilter] = useState("");
   const create = useAction();
   const del = useAction();
 
   const tables = res.status === "ready" ? res.data : [];
+  const statusOptions = [
+    ...new Set(tables.map((t) => t.TrangThai).filter((s): s is string => !!s)),
+  ].map((status) => ({ value: status, label: status }));
+  const visible = tables.filter(
+    (t) => statusFilter === "" || t.TrangThai === statusFilter,
+  );
 
   function handleCreate() {
     void create.run(async () => {
@@ -94,9 +102,28 @@ export function TableList() {
         />
       ) : (
         <>
-          <div className="flex justify-end">{addButton}</div>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <FilterBar
+              active={statusFilter !== ""}
+              onReset={() => setStatusFilter("")}
+            >
+              <SelectFilter
+                label="Trạng thái"
+                value={statusFilter}
+                onChange={setStatusFilter}
+                options={statusOptions}
+                allLabel="Tất cả trạng thái"
+              />
+            </FilterBar>
+            {addButton}
+          </div>
           <div className="flex flex-wrap gap-3">
-            {tables.map((t) => (
+            {visible.length === 0 && (
+              <p className="py-8 text-center text-muted">
+                Không có bàn nào khớp bộ lọc.
+              </p>
+            )}
+            {visible.map((t) => (
               <div
                 key={t.MaBan}
                 className="flex min-w-32 flex-col gap-2 rounded-container border border-border bg-surface px-4 py-3"

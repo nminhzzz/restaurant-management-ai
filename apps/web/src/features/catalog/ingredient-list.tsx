@@ -1,10 +1,12 @@
 "use client";
 
-import { Pencil, Plus, Search, Trash2, Wheat } from "lucide-react";
+import { Pencil, Plus, Trash2, Wheat } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { DataPagination } from "@/components/data-pagination";
+import { FilterBar, SearchFilter, SelectFilter } from "@/components/filter-bar";
 import { FormField } from "@/components/form-field";
 import { EmptyState, ErrorState, LoadingState } from "@/components/page-states";
 import { Button } from "@/components/ui/button";
@@ -29,6 +31,7 @@ import { useCanWrite } from "@/features/catalog/use-role";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import { formatNumber } from "@/lib/format";
 import { useAction } from "@/lib/use-action";
+import { useClientPagination } from "@/lib/use-client-pagination";
 import { useResource } from "@/lib/use-resource";
 
 const WRITE_ROLES = ["MANAGER", "WAREHOUSE"];
@@ -147,6 +150,7 @@ export function IngredientList() {
   const res = useResource(loadIngredients);
   const canWrite = useCanWrite(WRITE_ROLES);
   const [query, setQuery] = useState("");
+  const [unitFilter, setUnitFilter] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [editIngredient, setEditIngredient] = useState<Ingredient | null>(null);
   const [deleteIngredient, setDeleteIngredient] = useState<Ingredient | null>(
@@ -159,8 +163,24 @@ export function IngredientList() {
   const del = useAction();
 
   const items = res.status === "ready" ? res.data : [];
-  const visible = items.filter((i) =>
-    i.TenNguyenLieu.toLowerCase().includes(query.trim().toLowerCase()),
+  const unitOptions = [...new Set(items.map((i) => i.DonViTinh))].map(
+    (unit) => ({ value: unit, label: unit }),
+  );
+  const trimmedQuery = query.trim().toLowerCase();
+  const visible = items.filter(
+    (i) =>
+      i.TenNguyenLieu.toLowerCase().includes(trimmedQuery) &&
+      (unitFilter === "" || i.DonViTinh === unitFilter),
+  );
+  const filtersActive = query.trim() !== "" || unitFilter !== "";
+  function resetFilters() {
+    setQuery("");
+    setUnitFilter("");
+  }
+  const pagination = useClientPagination(
+    visible,
+    JSON.stringify({ trimmedQuery, unitFilter }),
+    20,
   );
 
   function handleCreate(values: FormValues) {
@@ -252,21 +272,21 @@ export function IngredientList() {
         />
       ) : (
         <>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="relative w-full max-w-xs">
-              <Search
-                className="absolute top-2.5 left-2.5 size-4 text-subtle"
-                aria-hidden
-              />
-              <Input
-                type="search"
-                aria-label="Tìm nguyên liệu"
-                placeholder="Tìm nguyên liệu"
-                className="pl-8"
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <FilterBar active={filtersActive} onReset={resetFilters}>
+              <SearchFilter
+                label="Tìm nguyên liệu"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={setQuery}
               />
-            </div>
+              <SelectFilter
+                label="Lọc theo đơn vị"
+                value={unitFilter}
+                onChange={setUnitFilter}
+                options={unitOptions}
+                allLabel="Tất cả đơn vị"
+              />
+            </FilterBar>
             {addButton}
           </div>
           <Table>
@@ -280,7 +300,7 @@ export function IngredientList() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {visible.map((i) => (
+              {pagination.pageItems.map((i) => (
                 <TableRow key={i.MaNguyenLieu}>
                   <TableCell className="font-medium">
                     {i.TenNguyenLieu}
@@ -322,12 +342,21 @@ export function IngredientList() {
                     colSpan={4}
                     className="py-8 text-center text-muted"
                   >
-                    Không có nguyên liệu nào khớp “{query}”.
+                    Không có nguyên liệu nào khớp bộ lọc.
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
+          {visible.length > 0 && (
+            <DataPagination
+              page={pagination.page}
+              pageSize={pagination.pageSize}
+              total={pagination.total}
+              onPageChange={pagination.setPage}
+              onPageSizeChange={pagination.setPageSize}
+            />
+          )}
         </>
       )}
 

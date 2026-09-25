@@ -231,8 +231,71 @@ async def test_list_receipts_filters_by_supplier(session):
     r = await client.get(f"/api/v1/inventory/receipts?supplier_id={sup1.id}", headers=h)
     assert r.status_code == 200
     body = r.json()
-    assert len(body) == 1
-    assert body[0]["MaNhaCungCap"] == sup1.id
+    assert body["total"] == 1
+    assert len(body["items"]) == 1
+    assert body["items"][0]["MaNhaCungCap"] == sup1.id
+
+
+@pytest.mark.anyio
+async def test_list_receipts_filters_by_status_and_date_range(session):
+    from datetime import timedelta
+
+    from app.shared import business_date
+
+    ing = await _ingredient(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    r = await client.post(
+        "/api/v1/inventory/receipts",
+        json={"lines": [{"ingredient_id": ing.id, "quantity": 1, "unit_price": 1000}]},
+        headers=h,
+    )
+    rid = r.json()["MaPhieuNhap"]
+    await client.delete(f"/api/v1/inventory/receipts/{rid}", headers=h)
+    await client.post(
+        "/api/v1/inventory/receipts",
+        json={"lines": [{"ingredient_id": ing.id, "quantity": 1, "unit_price": 1000}]},
+        headers=h,
+    )
+
+    by_status = await client.get("/api/v1/inventory/receipts?status=Đã hủy", headers=h)
+    assert by_status.status_code == 200
+    assert by_status.json()["total"] == 1
+    assert by_status.json()["items"][0]["MaPhieuNhap"] == rid
+
+    today = business_date.now().date()
+    tomorrow = today + timedelta(days=1)
+    out_of_range = await client.get(
+        f"/api/v1/inventory/receipts?date_from={tomorrow.isoformat()}&date_to={tomorrow.isoformat()}",
+        headers=h,
+    )
+    assert out_of_range.json()["total"] == 0
+
+
+@pytest.mark.anyio
+async def test_list_receipts_rejects_a_malformed_date(session):
+    await _headers(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    r = await client.get("/api/v1/inventory/receipts?date_from=25-09-2026", headers=h)
+    assert r.status_code == 422
+
+
+@pytest.mark.anyio
+async def test_list_receipts_total_reflects_all_rows_across_pages(session):
+    ing = await _ingredient(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    for _ in range(3):
+        await client.post(
+            "/api/v1/inventory/receipts",
+            json={"lines": [{"ingredient_id": ing.id, "quantity": 1, "unit_price": 1000}]},
+            headers=h,
+        )
+    r = await client.get("/api/v1/inventory/receipts?page=1&page_size=2", headers=h)
+    body = r.json()
+    assert body["total"] == 3
+    assert len(body["items"]) == 2
 
 
 @pytest.mark.anyio

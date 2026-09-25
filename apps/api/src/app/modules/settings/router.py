@@ -1,5 +1,7 @@
 """HTTP layer for the settings module."""
 
+from datetime import date
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -158,13 +160,26 @@ async def audit_log(
     size: int = Query(20, ge=1, le=200),
     action: str | None = Query(None),
     user_id: int | None = Query(None),
+    target: str | None = Query(None),
+    date_from: date | None = Query(None),
+    date_to: date | None = Query(None),
     user: Principal = Depends(require_roles(Role.MANAGER)),
     session: AsyncSession = Depends(get_session),
 ) -> Page[AuditEntryOut]:
-    items, total = await svc.list_audit(session, page, size, action, user_id)
+    items, total = await svc.list_audit(
+        session, page, size, action, user_id, target, date_from, date_to
+    )
     return Page[AuditEntryOut](
         items=[AuditEntryOut.model_validate(x) for x in items], total=total, page=page, size=size
     )
+
+
+@router.get("/audit-log/actions", response_model=list[str])
+async def audit_log_actions(
+    user: Principal = Depends(require_roles(Role.MANAGER)),
+    session: AsyncSession = Depends(get_session),
+) -> list[str]:
+    return await svc.list_audit_actions(session)
 
 
 @router.post("/backup", response_model=BackupDump)

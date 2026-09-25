@@ -1,5 +1,7 @@
 """Inventory router."""
 
+from datetime import date
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -60,23 +62,37 @@ async def list_receipts(
     page: int = 1,
     page_size: int = 20,
     supplier_id: int | None = None,
+    status: str | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
     user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
     session: AsyncSession = Depends(get_session),
 ):
     page = max(1, page)
     page_size = min(max(1, page_size), 100)
-    items = await svc.list_receipts(
-        session, page=page, page_size=page_size, supplier_id=supplier_id
+    items, total = await svc.list_receipts(
+        session,
+        page=page,
+        page_size=page_size,
+        supplier_id=supplier_id,
+        status=status,
+        date_from=date_from,
+        date_to=date_to,
     )
-    return [
-        {
-            "MaPhieuNhap": x.id,
-            "MaNhaCungCap": x.supplier_id,
-            "NgayNhap": x.receipt_date.isoformat() if x.receipt_date else None,
-            "TrangThai": x.status,
-        }
-        for x in items
-    ]
+    return {
+        "items": [
+            {
+                "MaPhieuNhap": x.id,
+                "MaNhaCungCap": x.supplier_id,
+                "NgayNhap": x.receipt_date.isoformat() if x.receipt_date else None,
+                "TrangThai": x.status,
+            }
+            for x in items
+        ],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+    }
 
 
 @router.post("/issues", status_code=201)
@@ -176,49 +192,63 @@ async def list_stock(
 ):
     page = max(1, page)
     page_size = min(max(1, page_size), 100)
-    items = await svc.list_stock(
+    items, total = await svc.list_stock(
         session, search=search, alerting=alerting, page=page, page_size=page_size
     )
-    return {"items": items, "page": page, "page_size": page_size}
+    return {"items": items, "total": total, "page": page, "page_size": page_size}
 
 
 @router.get("/issues")
 async def list_issues(
     page: int = 1,
     page_size: int = 20,
+    reason: str | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
     user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
     session: AsyncSession = Depends(get_session),
 ):
-    from sqlalchemy import select as sel
-
-    from app.modules.inventory.models import StockIssue
-
-    q = (
-        sel(StockIssue)
-        .order_by(StockIssue.id.desc())
-        .offset((max(1, page) - 1) * min(max(1, page_size), 100))
-        .limit(min(max(1, page_size), 100))
+    page = max(1, page)
+    page_size = min(max(1, page_size), 100)
+    items, total = await svc.list_issues(
+        session,
+        page=page,
+        page_size=page_size,
+        reason=reason,
+        date_from=date_from,
+        date_to=date_to,
     )
-    rows = (await session.execute(q)).scalars().all()
-    return [{"MaPhieuXuat": r.id, "LyDo": r.reason, "TrangThai": r.status} for r in rows]
+    return {
+        "items": [{"MaPhieuXuat": r.id, "LyDo": r.reason, "TrangThai": r.status} for r in items],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+    }
 
 
 @router.get("/stocktakes")
 async def list_stocktakes(
     page: int = 1,
     page_size: int = 20,
+    status: str | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
     user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
     session: AsyncSession = Depends(get_session),
 ):
-    from sqlalchemy import select as sel
-
-    from app.modules.inventory.models import Stocktake
-
-    q = (
-        sel(Stocktake)
-        .order_by(Stocktake.id.desc())
-        .offset((max(1, page) - 1) * min(max(1, page_size), 100))
-        .limit(min(max(1, page_size), 100))
+    page = max(1, page)
+    page_size = min(max(1, page_size), 100)
+    items, total = await svc.list_stocktakes(
+        session,
+        page=page,
+        page_size=page_size,
+        status=status,
+        date_from=date_from,
+        date_to=date_to,
     )
-    rows = (await session.execute(q)).scalars().all()
-    return [{"MaPhieuKiemKe": r.id, "TrangThai": r.status} for r in rows]
+    return {
+        "items": [{"MaPhieuKiemKe": r.id, "TrangThai": r.status} for r in items],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+    }

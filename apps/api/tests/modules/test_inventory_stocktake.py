@@ -198,5 +198,53 @@ async def test_list_stocktakes(session):
     await client.post("/api/v1/inventory/stocktakes", headers=h)
     r = await client.get("/api/v1/inventory/stocktakes", headers=h)
     assert r.status_code == 200
-    assert len(r.json()) == 1
-    assert r.json()[0]["TrangThai"] == "Nháp"
+    body = r.json()
+    assert body["total"] == 1
+    assert len(body["items"]) == 1
+    assert body["items"][0]["TrangThai"] == "Nháp"
+
+
+@pytest.mark.anyio
+async def test_list_stocktakes_filters_by_status_and_date_range(session):
+    from datetime import timedelta
+
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    st = await client.post("/api/v1/inventory/stocktakes", headers=h)
+    sid = st.json()["MaPhieuKiemKe"]
+
+    by_status = await client.get("/api/v1/inventory/stocktakes?status=Nháp", headers=h)
+    assert by_status.status_code == 200
+    assert by_status.json()["total"] == 1
+    assert by_status.json()["items"][0]["MaPhieuKiemKe"] == sid
+
+    confirmed = await client.get("/api/v1/inventory/stocktakes?status=Đã xác nhận", headers=h)
+    assert confirmed.json()["total"] == 0
+
+    today = business_date.now().date()
+    tomorrow = today + timedelta(days=1)
+    out_of_range = await client.get(
+        f"/api/v1/inventory/stocktakes?date_from={tomorrow.isoformat()}&date_to={tomorrow.isoformat()}",
+        headers=h,
+    )
+    assert out_of_range.json()["total"] == 0
+
+
+@pytest.mark.anyio
+async def test_list_stocktakes_rejects_a_malformed_date(session):
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    r = await client.get("/api/v1/inventory/stocktakes?date_from=25-09-2026", headers=h)
+    assert r.status_code == 422
+
+
+@pytest.mark.anyio
+async def test_list_stocktakes_total_reflects_all_rows_across_pages(session):
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    for _ in range(3):
+        await client.post("/api/v1/inventory/stocktakes", headers=h)
+    r = await client.get("/api/v1/inventory/stocktakes?page=1&page_size=2", headers=h)
+    body = r.json()
+    assert body["total"] == 3
+    assert len(body["items"]) == 2

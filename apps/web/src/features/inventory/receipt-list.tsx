@@ -1,8 +1,15 @@
 "use client";
 
 import { PackagePlus, Truck } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
+import { ConfirmDialog } from "@/components/confirm-dialog";
+import { DataPagination } from "@/components/data-pagination";
+import {
+  DateRangeFilter,
+  FilterBar,
+  SelectFilter,
+} from "@/components/filter-bar";
 import {
   EmptyState,
   ErrorState,
@@ -11,7 +18,6 @@ import {
   StatusBadge,
 } from "@/components/page-states";
 import { Button } from "@/components/ui/button";
-import { ConfirmDialog } from "@/components/confirm-dialog";
 import {
   Dialog,
   DialogContent,
@@ -34,7 +40,38 @@ import { useResource } from "@/lib/use-resource";
 import { ReceiptForm } from "./receipt-form";
 import type { IngredientOption, Receipt, SupplierOption } from "./types";
 
-const loadReceipts = () => apiFetch<Receipt[]>("/inventory/receipts");
+const PAGE_SIZE = 20;
+
+const RECEIPT_STATUSES = [
+  { value: "Nháp", label: "Nháp" },
+  { value: "Đã hủy", label: "Đã hủy" },
+];
+
+type ReceiptFilters = {
+  supplierId: string;
+  status: string;
+  dateFrom: string;
+  dateTo: string;
+};
+
+const INITIAL_FILTERS: ReceiptFilters = {
+  supplierId: "",
+  status: "",
+  dateFrom: "",
+  dateTo: "",
+};
+
+function queryOf(filters: ReceiptFilters, page: number): string {
+  const params = new URLSearchParams();
+  if (filters.supplierId) params.set("supplier_id", filters.supplierId);
+  if (filters.status) params.set("status", filters.status);
+  if (filters.dateFrom) params.set("date_from", filters.dateFrom);
+  if (filters.dateTo) params.set("date_to", filters.dateTo);
+  params.set("page", String(page));
+  params.set("page_size", String(PAGE_SIZE));
+  return `/inventory/receipts?${params.toString()}`;
+}
+
 const loadIngredients = () =>
   apiFetch<{ items: IngredientOption[] }>("/catalog/ingredients?size=200").then(
     (d) => d.items || [],
@@ -48,7 +85,14 @@ export function ReceiptList({
   prefillIngredientId?: number | null;
   onPrefillHandled?: () => void;
 } = {}) {
-  const receipts = useResource(loadReceipts);
+  const [filters, setFilters] = useState<ReceiptFilters>(INITIAL_FILTERS);
+  const [page, setPage] = useState(1);
+
+  const fetchReceipts = useCallback(
+    () => apiFetch<{ items: Receipt[]; total: number }>(queryOf(filters, page)),
+    [filters, page],
+  );
+  const receipts = useResource(fetchReceipts);
   const ingredients = useResource(loadIngredients);
   const suppliers = useResource(loadSuppliers);
   const [open, setOpen] = useState(false);
@@ -59,9 +103,20 @@ export function ReceiptList({
     setOpen(true);
   }
 
-  const dialogOpen = open || prefillIngredientId != null;
+  function updateFilters(patch: Partial<ReceiptFilters>) {
+    setFilters((previous) => ({ ...previous, ...patch }));
+    setPage(1);
+  }
 
-  const items = receipts.status === "ready" ? receipts.data : [];
+  const dialogOpen = open || prefillIngredientId != null;
+  const filtersActive =
+    filters.supplierId !== "" ||
+    filters.status !== "" ||
+    filters.dateFrom !== "" ||
+    filters.dateTo !== "";
+
+  const items = receipts.status === "ready" ? receipts.data.items : [];
+  const total = receipts.status === "ready" ? receipts.data.total : 0;
   const supplierName = (id: number | null) =>
     id === null
       ? "—"
@@ -96,11 +151,45 @@ export function ReceiptList({
         }
       />
 
+      <FilterBar
+        active={filtersActive}
+        onReset={() => updateFilters(INITIAL_FILTERS)}
+      >
+        <SelectFilter
+          label="Nhà cung cấp"
+          value={filters.supplierId}
+          onChange={(v) => updateFilters({ supplierId: v })}
+          allLabel="Mọi nhà cung cấp"
+          options={
+            suppliers.status === "ready"
+              ? suppliers.data.map((s) => ({
+                  value: String(s.MaNhaCungCap),
+                  label: s.TenNhaCungCap,
+                }))
+              : []
+          }
+        />
+        <SelectFilter
+          label="Trạng thái"
+          value={filters.status}
+          onChange={(v) => updateFilters({ status: v })}
+          allLabel="Mọi trạng thái"
+          options={RECEIPT_STATUSES}
+        />
+        <DateRangeFilter
+          from={filters.dateFrom}
+          to={filters.dateTo}
+          onChange={({ from, to }) =>
+            updateFilters({ dateFrom: from, dateTo: to })
+          }
+        />
+      </FilterBar>
+
       {receipts.status === "loading" ? (
         <LoadingState />
       ) : receipts.status === "error" ? (
         <ErrorState message={receipts.message} onRetry={receipts.reload} />
-      ) : items.length === 0 ? (
+      ) : items.length === 0 && !filtersActive ? (
         <EmptyState
           icon={Truck}
           title="Chưa có phiếu nhập"
@@ -108,43 +197,62 @@ export function ReceiptList({
           action={<Button onClick={openCreate}>Tạo phiếu nhập</Button>}
         />
       ) : (
-        <Table>
-          <caption className="sr-only">Danh sách phiếu nhập</caption>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Mã phiếu</TableHead>
-              <TableHead>Nhà cung cấp</TableHead>
-              <TableHead>Ngày nhập</TableHead>
-              <TableHead>Trạng thái</TableHead>
-              <TableHead className="text-right">Thao tác</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((r) => (
-              <TableRow key={r.MaPhieuNhap}>
-                <TableCell className="font-medium tabular-nums">
-                  #{r.MaPhieuNhap}
-                </TableCell>
-                <TableCell>{supplierName(r.MaNhaCungCap)}</TableCell>
-                <TableCell>{formatDateTime(r.NgayNhap)}</TableCell>
-                <TableCell>
-                  <StatusBadge status={r.TrangThai} />
-                </TableCell>
-                <TableCell className="text-right">
-                  {r.TrangThai === "Nháp" ? (
-                    <Button
-                      variant="outlineDanger"
-                      size="sm"
-                      onClick={() => setCancelTarget(r.MaPhieuNhap)}
-                    >
-                      Hủy phiếu
-                    </Button>
-                  ) : null}
-                </TableCell>
+        <>
+          <Table>
+            <caption className="sr-only">Danh sách phiếu nhập</caption>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Mã phiếu</TableHead>
+                <TableHead>Nhà cung cấp</TableHead>
+                <TableHead>Ngày nhập</TableHead>
+                <TableHead>Trạng thái</TableHead>
+                <TableHead className="text-right">Thao tác</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {items.map((r) => (
+                <TableRow key={r.MaPhieuNhap}>
+                  <TableCell className="font-medium tabular-nums">
+                    #{r.MaPhieuNhap}
+                  </TableCell>
+                  <TableCell>{supplierName(r.MaNhaCungCap)}</TableCell>
+                  <TableCell>{formatDateTime(r.NgayNhap)}</TableCell>
+                  <TableCell>
+                    <StatusBadge status={r.TrangThai} />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {r.TrangThai === "Nháp" ? (
+                      <Button
+                        variant="outlineDanger"
+                        size="sm"
+                        onClick={() => setCancelTarget(r.MaPhieuNhap)}
+                      >
+                        Hủy phiếu
+                      </Button>
+                    ) : null}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {items.length === 0 && (
+                <TableRow>
+                  <TableCell
+                    colSpan={5}
+                    className="py-8 text-center text-muted"
+                  >
+                    Không có phiếu nhập nào khớp bộ lọc.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+
+          <DataPagination
+            page={page}
+            pageSize={PAGE_SIZE}
+            total={total}
+            onPageChange={setPage}
+          />
+        </>
       )}
 
       <Dialog

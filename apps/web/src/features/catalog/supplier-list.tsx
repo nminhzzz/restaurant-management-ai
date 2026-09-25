@@ -1,9 +1,11 @@
 "use client";
 
-import { Building2, Eye, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Building2, Eye, Pencil, Plus, Trash2 } from "lucide-react";
 import { useCallback, useState } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { DataPagination } from "@/components/data-pagination";
+import { FilterBar, SearchFilter } from "@/components/filter-bar";
 import { FormField } from "@/components/form-field";
 import { EmptyState, ErrorState, LoadingState } from "@/components/page-states";
 import { Button } from "@/components/ui/button";
@@ -27,6 +29,7 @@ import type { Supplier } from "@/features/catalog/types";
 import { useCanWrite } from "@/features/catalog/use-role";
 import { apiFetch } from "@/lib/api-client";
 import { useAction } from "@/lib/use-action";
+import { useClientPagination } from "@/lib/use-client-pagination";
 import { useResource } from "@/lib/use-resource";
 
 const WRITE_ROLES = ["MANAGER", "WAREHOUSE"];
@@ -162,9 +165,13 @@ export function SupplierList() {
   const del = useAction();
 
   const items = res.status === "ready" ? res.data : [];
-  const visible = items.filter((s) =>
-    s.TenNhaCungCap.toLowerCase().includes(query.trim().toLowerCase()),
+  const trimmedQuery = query.trim().toLowerCase();
+  const visible = items.filter(
+    (s) =>
+      s.TenNhaCungCap.toLowerCase().includes(trimmedQuery) ||
+      (s.SoDienThoai ?? "").toLowerCase().includes(trimmedQuery),
   );
+  const pagination = useClientPagination(visible, trimmedQuery, 20);
 
   function handleCreate(values: FormValues) {
     void create.run(async () => {
@@ -228,21 +235,17 @@ export function SupplierList() {
         />
       ) : (
         <>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="relative w-full max-w-xs">
-              <Search
-                className="absolute top-2.5 left-2.5 size-4 text-subtle"
-                aria-hidden
-              />
-              <Input
-                type="search"
-                aria-label="Tìm nhà cung cấp"
-                placeholder="Tìm nhà cung cấp"
-                className="pl-8"
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <FilterBar
+              active={query.trim() !== ""}
+              onReset={() => setQuery("")}
+            >
+              <SearchFilter
+                label="Tìm nhà cung cấp"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={setQuery}
               />
-            </div>
+            </FilterBar>
             {addButton}
           </div>
           <Table>
@@ -255,7 +258,7 @@ export function SupplierList() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {visible.map((s) => (
+              {pagination.pageItems.map((s) => (
                 <TableRow key={s.MaNhaCungCap}>
                   <TableCell className="font-medium">
                     {s.TenNhaCungCap}
@@ -303,12 +306,21 @@ export function SupplierList() {
                     colSpan={3}
                     className="py-8 text-center text-muted"
                   >
-                    Không có nhà cung cấp nào khớp “{query}”.
+                    Không có nhà cung cấp nào khớp bộ lọc.
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
+          {visible.length > 0 && (
+            <DataPagination
+              page={pagination.page}
+              pageSize={pagination.pageSize}
+              total={pagination.total}
+              onPageChange={pagination.setPage}
+              onPageSizeChange={pagination.setPageSize}
+            />
+          )}
         </>
       )}
 

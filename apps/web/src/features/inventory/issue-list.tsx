@@ -1,8 +1,14 @@
 "use client";
 
 import { PackageMinus, Plus, Trash2 } from "lucide-react";
-import { useId, useState } from "react";
+import { useCallback, useId, useState } from "react";
 
+import { DataPagination } from "@/components/data-pagination";
+import {
+  DateRangeFilter,
+  FilterBar,
+  SelectFilter,
+} from "@/components/filter-bar";
 import { FormField } from "@/components/form-field";
 import {
   EmptyState,
@@ -41,7 +47,22 @@ import { useResource } from "@/lib/use-resource";
 import { ISSUE_REASONS } from "./types";
 import type { IngredientOption, StockIssue } from "./types";
 
-const loadIssues = () => apiFetch<StockIssue[]>("/inventory/issues");
+const PAGE_SIZE = 20;
+
+type IssueFilters = { reason: string; dateFrom: string; dateTo: string };
+
+const INITIAL_FILTERS: IssueFilters = { reason: "", dateFrom: "", dateTo: "" };
+
+function queryOf(filters: IssueFilters, page: number): string {
+  const params = new URLSearchParams();
+  if (filters.reason) params.set("reason", filters.reason);
+  if (filters.dateFrom) params.set("date_from", filters.dateFrom);
+  if (filters.dateTo) params.set("date_to", filters.dateTo);
+  params.set("page", String(page));
+  params.set("page_size", String(PAGE_SIZE));
+  return `/inventory/issues?${params.toString()}`;
+}
+
 const loadIngredients = () =>
   apiFetch<{ items: IngredientOption[] }>("/catalog/ingredients?size=200").then(
     (d) => d.items || [],
@@ -205,11 +226,27 @@ function IssueForm({
 }
 
 export function IssueList() {
-  const issues = useResource(loadIssues);
+  const [filters, setFilters] = useState<IssueFilters>(INITIAL_FILTERS);
+  const [page, setPage] = useState(1);
+
+  const fetchIssues = useCallback(
+    () =>
+      apiFetch<{ items: StockIssue[]; total: number }>(queryOf(filters, page)),
+    [filters, page],
+  );
+  const issues = useResource(fetchIssues);
   const ingredients = useResource(loadIngredients);
   const [open, setOpen] = useState(false);
 
-  const items = issues.status === "ready" ? issues.data : [];
+  function updateFilters(patch: Partial<IssueFilters>) {
+    setFilters((previous) => ({ ...previous, ...patch }));
+    setPage(1);
+  }
+
+  const filtersActive =
+    filters.reason !== "" || filters.dateFrom !== "" || filters.dateTo !== "";
+  const items = issues.status === "ready" ? issues.data.items : [];
+  const total = issues.status === "ready" ? issues.data.total : 0;
 
   return (
     <div className="space-y-5">
@@ -224,11 +261,31 @@ export function IssueList() {
         }
       />
 
+      <FilterBar
+        active={filtersActive}
+        onReset={() => updateFilters(INITIAL_FILTERS)}
+      >
+        <SelectFilter
+          label="Lý do"
+          value={filters.reason}
+          onChange={(v) => updateFilters({ reason: v })}
+          allLabel="Mọi lý do"
+          options={ISSUE_REASONS.map((r) => ({ value: r, label: r }))}
+        />
+        <DateRangeFilter
+          from={filters.dateFrom}
+          to={filters.dateTo}
+          onChange={({ from, to }) =>
+            updateFilters({ dateFrom: from, dateTo: to })
+          }
+        />
+      </FilterBar>
+
       {issues.status === "loading" ? (
         <LoadingState />
       ) : issues.status === "error" ? (
         <ErrorState message={issues.message} onRetry={issues.reload} />
-      ) : items.length === 0 ? (
+      ) : items.length === 0 && !filtersActive ? (
         <EmptyState
           icon={PackageMinus}
           title="Chưa có phiếu xuất"
@@ -236,29 +293,48 @@ export function IssueList() {
           action={<Button onClick={() => setOpen(true)}>Tạo phiếu xuất</Button>}
         />
       ) : (
-        <Table>
-          <caption className="sr-only">Danh sách phiếu xuất</caption>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Mã phiếu</TableHead>
-              <TableHead>Lý do</TableHead>
-              <TableHead>Trạng thái</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((it) => (
-              <TableRow key={it.MaPhieuXuat}>
-                <TableCell className="font-medium tabular-nums">
-                  #{it.MaPhieuXuat}
-                </TableCell>
-                <TableCell>{it.LyDo}</TableCell>
-                <TableCell>
-                  <StatusBadge status={it.TrangThai} />
-                </TableCell>
+        <>
+          <Table>
+            <caption className="sr-only">Danh sách phiếu xuất</caption>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Mã phiếu</TableHead>
+                <TableHead>Lý do</TableHead>
+                <TableHead>Trạng thái</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {items.map((it) => (
+                <TableRow key={it.MaPhieuXuat}>
+                  <TableCell className="font-medium tabular-nums">
+                    #{it.MaPhieuXuat}
+                  </TableCell>
+                  <TableCell>{it.LyDo}</TableCell>
+                  <TableCell>
+                    <StatusBadge status={it.TrangThai} />
+                  </TableCell>
+                </TableRow>
+              ))}
+              {items.length === 0 && (
+                <TableRow>
+                  <TableCell
+                    colSpan={3}
+                    className="py-8 text-center text-muted"
+                  >
+                    Không có phiếu xuất nào khớp bộ lọc.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+
+          <DataPagination
+            page={page}
+            pageSize={PAGE_SIZE}
+            total={total}
+            onPageChange={setPage}
+          />
+        </>
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>

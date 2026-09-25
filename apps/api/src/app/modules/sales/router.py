@@ -9,7 +9,7 @@ import contextlib
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
@@ -73,22 +73,35 @@ async def search_orders(
     code: str | None = None,
     table_id: int | None = None,
     business_date: date | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
     status: str | None = None,
-    limit: int = Query(100, ge=1, le=200),
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
+    limit: int | None = Query(None, ge=1, le=200),
     session: AsyncSession = Depends(get_session),
     user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER, Role.WAREHOUSE)),
 ):
-    query = select(Order)
+    filters = []
     if code:
-        query = query.where(Order.display_code == code)
+        filters.append(Order.display_code == code)
     if table_id is not None:
-        query = query.where(Order.table_id == table_id)
+        filters.append(Order.table_id == table_id)
     if business_date is not None:
-        query = query.where(Order.business_date == business_date)
+        filters.append(Order.business_date == business_date)
+    if date_from is not None:
+        filters.append(Order.business_date >= date_from)
+    if date_to is not None:
+        filters.append(Order.business_date <= date_to)
     if status:
-        query = query.where(Order.status == status)
+        filters.append(Order.status == status)
+
+    total = (await session.execute(select(func.count(Order.id)).where(*filters))).scalar_one()
+
     # A year of orders must never reach the browser in one response.
-    query = query.order_by(Order.id.desc()).limit(limit)
+    query = select(Order).where(*filters).order_by(Order.id.desc())
+    # `limit` is a backward-compatible alias for `size` (no offset applied).
+    query = query.limit(limit) if limit is not None else query.offset((page - 1) * size).limit(size)
     rows = list((await session.execute(query)).scalars().all())
     items = [
         {
@@ -100,7 +113,7 @@ async def search_orders(
         }
         for order in rows
     ]
-    return {"total": len(items), "items": items}
+    return {"total": total, "items": items}
 
 
 @router.get("/orders/{order_id}")

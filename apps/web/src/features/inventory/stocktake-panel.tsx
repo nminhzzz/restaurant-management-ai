@@ -1,8 +1,14 @@
 "use client";
 
 import { ClipboardCheck, ClipboardList } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
+import { DataPagination } from "@/components/data-pagination";
+import {
+  DateRangeFilter,
+  FilterBar,
+  SelectFilter,
+} from "@/components/filter-bar";
 import {
   EmptyState,
   ErrorState,
@@ -34,13 +40,51 @@ type StockRow = {
   SoLuongTon?: number;
 };
 
-// page_size is capped at 100 server-side (see inventory router); that covers the
-// expected ingredient catalog size for this MVP.
-const loadStock = () =>
-  apiFetch<{ items: StockRow[] }>("/inventory/stock?page_size=100").then(
-    (d) => d.items || [],
-  );
-const loadStocktakes = () => apiFetch<Stocktake[]>("/inventory/stocktakes");
+const HISTORY_PAGE_SIZE = 20;
+
+const STOCKTAKE_STATUSES = [
+  { value: "Nháp", label: "Nháp" },
+  { value: "Đã xác nhận", label: "Đã xác nhận" },
+];
+
+type HistoryFilters = { status: string; dateFrom: string; dateTo: string };
+
+const INITIAL_HISTORY_FILTERS: HistoryFilters = {
+  status: "",
+  dateFrom: "",
+  dateTo: "",
+};
+
+function historyQueryOf(filters: HistoryFilters, page: number): string {
+  const params = new URLSearchParams();
+  if (filters.status) params.set("status", filters.status);
+  if (filters.dateFrom) params.set("date_from", filters.dateFrom);
+  if (filters.dateTo) params.set("date_to", filters.dateTo);
+  params.set("page", String(page));
+  params.set("page_size", String(HISTORY_PAGE_SIZE));
+  return `/inventory/stocktakes?${params.toString()}`;
+}
+
+// The entry sheet must hold every ingredient at once (a stocktake counts the whole
+// catalog), so it pages through /inventory/stock at the server's max page size
+// (100) until every ingredient is fetched, instead of stopping at page 1.
+const STOCK_FETCH_PAGE_SIZE = 100;
+
+async function loadStock(): Promise<StockRow[]> {
+  const all: StockRow[] = [];
+  let page = 1;
+  for (;;) {
+    const data = await apiFetch<{ items: StockRow[]; total?: number }>(
+      `/inventory/stock?page=${page}&page_size=${STOCK_FETCH_PAGE_SIZE}`,
+    );
+    const items = data.items || [];
+    all.push(...items);
+    const total = data.total ?? all.length;
+    if (all.length >= total || items.length === 0) break;
+    page += 1;
+  }
+  return all;
+}
 
 function DraftStocktake({
   stocktakeId,
@@ -155,9 +199,30 @@ function DraftStocktake({
 
 export function StocktakePanel() {
   const stock = useResource(loadStock);
-  const stocktakes = useResource(loadStocktakes);
+  const [historyFilters, setHistoryFilters] = useState<HistoryFilters>(
+    INITIAL_HISTORY_FILTERS,
+  );
+  const [historyPage, setHistoryPage] = useState(1);
+  const fetchStocktakes = useCallback(
+    () =>
+      apiFetch<{ items: Stocktake[]; total: number }>(
+        historyQueryOf(historyFilters, historyPage),
+      ),
+    [historyFilters, historyPage],
+  );
+  const stocktakes = useResource(fetchStocktakes);
   const createAction = useAction();
   const [draftId, setDraftId] = useState<number | null>(null);
+
+  function updateHistoryFilters(patch: Partial<HistoryFilters>) {
+    setHistoryFilters((previous) => ({ ...previous, ...patch }));
+    setHistoryPage(1);
+  }
+
+  const historyFiltersActive =
+    historyFilters.status !== "" ||
+    historyFilters.dateFrom !== "" ||
+    historyFilters.dateTo !== "";
 
   async function createStocktake() {
     const st = await createAction.run(() =>
@@ -170,8 +235,10 @@ export function StocktakePanel() {
 
   const pastStocktakes =
     stocktakes.status === "ready"
-      ? stocktakes.data.filter((s) => s.MaPhieuKiemKe !== draftId)
+      ? stocktakes.data.items.filter((s) => s.MaPhieuKiemKe !== draftId)
       : [];
+  const historyTotal =
+    stocktakes.status === "ready" ? stocktakes.data.total : 0;
 
   return (
     <div className="space-y-5">
@@ -214,6 +281,27 @@ export function StocktakePanel() {
 
       <div className="space-y-3">
         <h2 className="font-medium">Lịch sử kiểm kê</h2>
+
+        <FilterBar
+          active={historyFiltersActive}
+          onReset={() => updateHistoryFilters(INITIAL_HISTORY_FILTERS)}
+        >
+          <SelectFilter
+            label="Trạng thái"
+            value={historyFilters.status}
+            onChange={(v) => updateHistoryFilters({ status: v })}
+            allLabel="Mọi trạng thái"
+            options={STOCKTAKE_STATUSES}
+          />
+          <DateRangeFilter
+            from={historyFilters.dateFrom}
+            to={historyFilters.dateTo}
+            onChange={({ from, to }) =>
+              updateHistoryFilters({ dateFrom: from, dateTo: to })
+            }
+          />
+        </FilterBar>
+
         {stocktakes.status === "loading" ? (
           <LoadingState rows={3} />
         ) : stocktakes.status === "error" ? (
@@ -221,34 +309,53 @@ export function StocktakePanel() {
             message={stocktakes.message}
             onRetry={stocktakes.reload}
           />
-        ) : pastStocktakes.length === 0 ? (
+        ) : pastStocktakes.length === 0 && !historyFiltersActive ? (
           <EmptyState
             icon={ClipboardList}
             title="Chưa có phiếu kiểm kê"
             description="Phiếu kiểm kê đã xác nhận sẽ hiện tại đây."
           />
         ) : (
-          <Table>
-            <caption className="sr-only">Lịch sử kiểm kê</caption>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Mã phiếu</TableHead>
-                <TableHead>Trạng thái</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {pastStocktakes.map((s) => (
-                <TableRow key={s.MaPhieuKiemKe}>
-                  <TableCell className="font-medium tabular-nums">
-                    #{s.MaPhieuKiemKe}
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge status={s.TrangThai} />
-                  </TableCell>
+          <>
+            <Table>
+              <caption className="sr-only">Lịch sử kiểm kê</caption>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Mã phiếu</TableHead>
+                  <TableHead>Trạng thái</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {pastStocktakes.map((s) => (
+                  <TableRow key={s.MaPhieuKiemKe}>
+                    <TableCell className="font-medium tabular-nums">
+                      #{s.MaPhieuKiemKe}
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge status={s.TrangThai} />
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {pastStocktakes.length === 0 && (
+                  <TableRow>
+                    <TableCell
+                      colSpan={2}
+                      className="py-8 text-center text-muted"
+                    >
+                      Không có phiếu kiểm kê nào khớp bộ lọc.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+
+            <DataPagination
+              page={historyPage}
+              pageSize={HISTORY_PAGE_SIZE}
+              total={historyTotal}
+              onPageChange={setHistoryPage}
+            />
+          </>
         )}
       </div>
     </div>

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 
 vi.mock("@/lib/api-client", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api-client")>();
@@ -27,6 +27,21 @@ describe("HourlyReport", () => {
 
     expect(await screen.findByRole("table")).toBeInTheDocument();
     expect(screen.getAllByRole("img").length).toBe(2);
+  });
+
+  it("pages the 24-hour detail table at 10 rows per page", async () => {
+    stubFetch(hourly);
+
+    render(<HourlyReport />);
+    const table = await screen.findByRole("table");
+
+    expect(within(table).getByText("500.000 ₫")).toBeInTheDocument();
+    expect(within(table).queryByText("800.000 ₫")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Trang 2" }));
+
+    expect(within(table).getByText("800.000 ₫")).toBeInTheDocument();
+    expect(within(table).queryByText("500.000 ₫")).not.toBeInTheDocument();
   });
 
   it("shows the empty state when the period has no orders", async () => {

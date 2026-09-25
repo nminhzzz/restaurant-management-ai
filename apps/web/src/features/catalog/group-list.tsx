@@ -11,6 +11,8 @@ import {
 import { useState } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { DataPagination } from "@/components/data-pagination";
+import { FilterBar, SearchFilter } from "@/components/filter-bar";
 import { FormField } from "@/components/form-field";
 import { EmptyState, ErrorState, LoadingState } from "@/components/page-states";
 import { Button } from "@/components/ui/button";
@@ -26,6 +28,7 @@ import type { Group } from "@/features/catalog/types";
 import { useCanWrite } from "@/features/catalog/use-role";
 import { apiFetch } from "@/lib/api-client";
 import { useAction } from "@/lib/use-action";
+import { useClientPagination } from "@/lib/use-client-pagination";
 import { useResource } from "@/lib/use-resource";
 
 const WRITE_ROLES = ["MANAGER"];
@@ -40,12 +43,18 @@ export function GroupList() {
   const [editGroup, setEditGroup] = useState<Group | null>(null);
   const [deleteGroup, setDeleteGroup] = useState<Group | null>(null);
   const [name, setName] = useState("");
+  const [query, setQuery] = useState("");
   const create = useAction();
   const edit = useAction();
   const del = useAction();
   const reorder = useAction();
 
   const groups = groupsRes.status === "ready" ? groupsRes.data : [];
+  const trimmedQuery = query.trim().toLowerCase();
+  const visible = groups.filter((g) =>
+    g.TenNhom.toLowerCase().includes(trimmedQuery),
+  );
+  const pagination = useClientPagination(visible, trimmedQuery, 20);
 
   function handleCreate() {
     void create.run(async () => {
@@ -83,9 +92,10 @@ export function GroupList() {
     }, "Đã xóa nhóm món.");
   }
 
-  function move(index: number, direction: -1 | 1) {
+  function move(groupId: number, direction: -1 | 1) {
+    const index = groups.findIndex((g) => g.MaNhomMon === groupId);
     const target = index + direction;
-    if (target < 0 || target >= groups.length) return;
+    if (index < 0 || target < 0 || target >= groups.length) return;
     const order = groups.map((g) => g.MaNhomMon);
     [order[index], order[target]] = [order[target], order[index]];
     void reorder.run(async () => {
@@ -121,61 +131,92 @@ export function GroupList() {
         />
       ) : (
         <>
-          <div className="flex justify-end">{addButton}</div>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <FilterBar
+              active={query.trim() !== ""}
+              onReset={() => setQuery("")}
+            >
+              <SearchFilter
+                label="Tìm nhóm"
+                value={query}
+                onChange={setQuery}
+              />
+            </FilterBar>
+            {addButton}
+          </div>
           <ul className="divide-y divide-border rounded-container border border-border bg-surface">
-            {groups.map((g, index) => (
-              <li
-                key={g.MaNhomMon}
-                className="flex items-center justify-between gap-3 px-4 py-3"
-              >
-                <span className="font-medium">{g.TenNhom}</span>
-                {canWrite && (
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Di chuyển lên"
-                      disabled={index === 0}
-                      onClick={() => move(index, -1)}
-                    >
-                      <ArrowUp />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Di chuyển xuống"
-                      disabled={index === groups.length - 1}
-                      onClick={() => move(index, 1)}
-                    >
-                      <ArrowDown />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Sửa nhóm"
-                      onClick={() => {
-                        setEditGroup(g);
-                        setName(g.TenNhom);
-                      }}
-                    >
-                      <Pencil />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Xóa nhóm"
-                      onClick={() => {
-                        del.clearError();
-                        setDeleteGroup(g);
-                      }}
-                    >
-                      <Trash2 />
-                    </Button>
-                  </div>
-                )}
+            {pagination.pageItems.map((g) => {
+              const fullIndex = groups.findIndex(
+                (x) => x.MaNhomMon === g.MaNhomMon,
+              );
+              return (
+                <li
+                  key={g.MaNhomMon}
+                  className="flex items-center justify-between gap-3 px-4 py-3"
+                >
+                  <span className="font-medium">{g.TenNhom}</span>
+                  {canWrite && (
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Di chuyển lên"
+                        disabled={fullIndex === 0}
+                        onClick={() => move(g.MaNhomMon, -1)}
+                      >
+                        <ArrowUp />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Di chuyển xuống"
+                        disabled={fullIndex === groups.length - 1}
+                        onClick={() => move(g.MaNhomMon, 1)}
+                      >
+                        <ArrowDown />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Sửa nhóm"
+                        onClick={() => {
+                          setEditGroup(g);
+                          setName(g.TenNhom);
+                        }}
+                      >
+                        <Pencil />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Xóa nhóm"
+                        onClick={() => {
+                          del.clearError();
+                          setDeleteGroup(g);
+                        }}
+                      >
+                        <Trash2 />
+                      </Button>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+            {visible.length === 0 && (
+              <li className="py-8 text-center text-muted">
+                Không có nhóm nào khớp bộ lọc.
               </li>
-            ))}
+            )}
           </ul>
+          {visible.length > 0 && (
+            <DataPagination
+              page={pagination.page}
+              pageSize={pagination.pageSize}
+              total={pagination.total}
+              onPageChange={pagination.setPage}
+              onPageSizeChange={pagination.setPageSize}
+            />
+          )}
         </>
       )}
 

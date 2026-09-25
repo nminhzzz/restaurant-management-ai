@@ -35,6 +35,22 @@ const oneUser = {
   total: 1,
 };
 
+const twoUsers = {
+  items: [
+    ...oneUser.items,
+    {
+      MaNguoiDung: 3,
+      TenDangNhap: "quanly01",
+      HoTen: "Trần Văn Quản",
+      SoDienThoai: null,
+      MaVaiTro: "MANAGER",
+      TrangThai: "Hoạt động",
+      NgayTao: "2026-09-01T08:00:00",
+    },
+  ],
+  total: 2,
+};
+
 describe("UsersPanel", () => {
   beforeEach(() => vi.resetAllMocks());
   afterEach(cleanup);
@@ -123,5 +139,35 @@ describe("UsersPanel", () => {
         expect.objectContaining({ method: "PATCH" }),
       ),
     );
+  });
+
+  it("narrows the list with the search box", async () => {
+    stubByPath({ "/settings/users": twoUsers });
+    render(<UsersPanel />);
+
+    await screen.findByText("Phạm Thu Hà");
+    expect(screen.getByText("Trần Văn Quản")).toBeInTheDocument();
+
+    fireEvent.change(
+      screen.getByLabelText("Tìm theo tên, tên đăng nhập, số điện thoại"),
+      { target: { value: "Quản" } },
+    );
+
+    expect(screen.queryByText("Phạm Thu Hà")).not.toBeInTheDocument();
+    expect(screen.getByText("Trần Văn Quản")).toBeInTheDocument();
+  });
+
+  it("narrows the list with the role filter", async () => {
+    stubByPath({ "/settings/users": twoUsers });
+    render(<UsersPanel />);
+
+    await screen.findByText("Phạm Thu Hà");
+
+    fireEvent.change(screen.getByLabelText("Vai trò"), {
+      target: { value: "MANAGER" },
+    });
+
+    expect(screen.queryByText("Phạm Thu Hà")).not.toBeInTheDocument();
+    expect(screen.getByText("Trần Văn Quản")).toBeInTheDocument();
   });
 });

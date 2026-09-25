@@ -149,5 +149,64 @@ async def test_list_issues(session):
     r = await client.get("/api/v1/inventory/issues", headers=h)
     assert r.status_code == 200
     body = r.json()
-    assert len(body) == 1
-    assert body[0]["LyDo"] == "Hao hụt"
+    assert body["total"] == 1
+    assert len(body["items"]) == 1
+    assert body["items"][0]["LyDo"] == "Hao hụt"
+
+
+@pytest.mark.anyio
+async def test_list_issues_filters_by_reason_and_date_range(session):
+    from datetime import date, timedelta
+
+    ing = await _ingredient(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    await _receipt(session, client, h, ing, 5)
+    await client.post(
+        "/api/v1/inventory/issues",
+        json={"reason": "Hao hụt", "lines": [{"ingredient_id": ing.id, "quantity": 1}]},
+        headers=h,
+    )
+    await client.post(
+        "/api/v1/inventory/issues",
+        json={"reason": "Hỏng", "lines": [{"ingredient_id": ing.id, "quantity": 1}]},
+        headers=h,
+    )
+
+    by_reason = await client.get("/api/v1/inventory/issues?reason=Hỏng", headers=h)
+    assert by_reason.status_code == 200
+    assert by_reason.json()["total"] == 1
+    assert by_reason.json()["items"][0]["LyDo"] == "Hỏng"
+
+    tomorrow = date.today() + timedelta(days=1)
+    out_of_range = await client.get(
+        f"/api/v1/inventory/issues?date_from={tomorrow.isoformat()}&date_to={tomorrow.isoformat()}",
+        headers=h,
+    )
+    assert out_of_range.json()["total"] == 0
+
+
+@pytest.mark.anyio
+async def test_list_issues_rejects_a_malformed_date(session):
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    r = await client.get("/api/v1/inventory/issues?date_from=25-09-2026", headers=h)
+    assert r.status_code == 422
+
+
+@pytest.mark.anyio
+async def test_list_issues_total_reflects_all_rows_across_pages(session):
+    ing = await _ingredient(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    await _receipt(session, client, h, ing, 10)
+    for _ in range(3):
+        await client.post(
+            "/api/v1/inventory/issues",
+            json={"reason": "Hao hụt", "lines": [{"ingredient_id": ing.id, "quantity": 1}]},
+            headers=h,
+        )
+    r = await client.get("/api/v1/inventory/issues?page=1&page_size=2", headers=h)
+    body = r.json()
+    assert body["total"] == 3
+    assert len(body["items"]) == 2
