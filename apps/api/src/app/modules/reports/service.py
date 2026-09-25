@@ -7,6 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.modules.reports import queries
 from app.modules.reports.periods import BusinessPeriod, month_period, resolve_period
 from app.modules.reports.schemas import (
+    CancelledOrderOut,
+    CancelledReportOut,
+    ComparisonOut,
     CostBreakdownOut,
     DishCostListOut,
     DishCostOut,
@@ -18,6 +21,7 @@ from app.modules.reports.schemas import (
     PeriodOut,
     RevenueBucketOut,
     RevenueOut,
+    RevenueSummaryOut,
     WeekdayBucketOut,
 )
 from app.shared import business_date
@@ -110,4 +114,30 @@ async def dish_costs(session: AsyncSession, month: str) -> DishCostListOut:
     rows = await queries.dish_ingredient_cost(session, month_key(month))
     return DishCostListOut(
         items=[DishCostOut(MaMon=r.MaMon, TenMon=r.TenMon, GiaVon=r.GiaVon) for r in rows]
+    )
+
+
+async def comparison(session: AsyncSession, left: str, right: str) -> ComparisonOut:
+    result = await queries.compare_periods(session, month_period(left), month_period(right))
+    return ComparisonOut(
+        left=RevenueSummaryOut(DoanhThu=result.left.DoanhThu, SoDon=result.left.SoDon),
+        right=RevenueSummaryOut(DoanhThu=result.right.DoanhThu, SoDon=result.right.SoDon),
+        change_percent=result.change_percent,
+    )
+
+
+async def cancelled(session: AsyncSession, month: str) -> CancelledReportOut:
+    result = await queries.cancelled_orders(session, month_period(month))
+    return CancelledReportOut(
+        SoLuong=result.SoLuong,
+        TongGiaTri=result.TongGiaTri,
+        items=[
+            CancelledOrderOut(
+                MaOrder=item.MaOrder,
+                MaOrderHienThi=item.MaOrderHienThi,
+                TongTien=item.TongTien,
+                LyDoHuy=item.LyDoHuy,
+            )
+            for item in result.items
+        ],
     )

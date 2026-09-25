@@ -14,6 +14,8 @@ from app.core.dependencies import Principal, require_roles
 from app.modules.reports import service
 from app.modules.reports.periods import BusinessPeriod
 from app.modules.reports.schemas import (
+    CancelledReportOut,
+    ComparisonOut,
     CostBreakdownOut,
     DishCostListOut,
     DishRankListOut,
@@ -88,3 +90,22 @@ async def costs(
     session: AsyncSession = Depends(get_session),
 ) -> CostBreakdownOut:
     return await service.costs(session, month)
+
+
+@router.get("/comparison", response_model=ComparisonOut)
+async def comparison(
+    left: str = Query(...),
+    right: str = Query(...),
+    user: Principal = Depends(require_roles(Role.MANAGER)),
+    session: AsyncSession = Depends(get_session),
+) -> ComparisonOut:
+    return await service.comparison(session, left, right)
+
+
+@router.get("/cancelled-orders", response_model=CancelledReportOut)
+async def cancelled_orders(
+    month: str = Query(...),
+    user: Principal = Depends(require_roles(Role.MANAGER)),
+    session: AsyncSession = Depends(get_session),
+) -> CancelledReportOut:
+    return await service.cancelled(session, month)

@@ -468,3 +468,84 @@ async def gross_margin(session: AsyncSession, month: int) -> Margin:
     revenue = (await revenue_summary(session, period)).total
     cost = (await cost_of_goods(session, month)).TongGiaVon
     return Margin(DoanhThu=revenue, GiaVon=cost, BienLoiNhuanGop=revenue - cost)
+
+
+# --- Task 4: period comparison and cancelled orders (FR-REP-08, FR-REP-10) ---
+
+
+@dataclass(frozen=True)
+class PeriodRevenue:
+    DoanhThu: Decimal
+    SoDon: int
+
+
+@dataclass(frozen=True)
+class Comparison:
+    left: PeriodRevenue
+    right: PeriodRevenue
+    change_percent: Decimal | None
+
+
+@dataclass(frozen=True)
+class CancelledOrder:
+    MaOrder: int
+    MaOrderHienThi: str | None
+    TongTien: Decimal
+    LyDoHuy: str | None
+
+
+@dataclass(frozen=True)
+class CancelledReport:
+    SoLuong: int
+    TongGiaTri: Decimal
+    items: list[CancelledOrder]
+
+
+async def compare_periods(
+    session: AsyncSession, left: BusinessPeriod, right: BusinessPeriod
+) -> Comparison:
+    """FR-REP-08: percentage change; `None` when the baseline is empty."""
+    left_summary = await revenue_summary(session, left)
+    right_summary = await revenue_summary(session, right)
+    change: Decimal | None = None
+    if left_summary.total != 0:
+        change = ((right_summary.total - left_summary.total) / left_summary.total * 100).quantize(
+            Decimal("0.01")
+        )
+    return Comparison(
+        left=PeriodRevenue(DoanhThu=left_summary.total, SoDon=left_summary.SoDon),
+        right=PeriodRevenue(DoanhThu=right_summary.total, SoDon=right_summary.SoDon),
+        change_percent=change,
+    )
+
+
+async def cancelled_orders(session: AsyncSession, period: BusinessPeriod) -> CancelledReport:
+    """FR-REP-10: both `Đã hủy` and `Tự động đóng` never produced an invoice."""
+    stmt = (
+        select(
+            Order.id,
+            Order.display_code,
+            func.coalesce(func.sum(OrderLine.quantity * OrderLine.unit_price), 0),
+            Order.cancel_reason,
+        )
+        .outerjoin(OrderLine, OrderLine.order_id == Order.id)
+        .where(
+            Order.status.in_(CANCELLED_ORDER_STATUSES),
+            Order.business_date >= period.start,
+            Order.business_date <= period.end,
+        )
+        .group_by(Order.id, Order.display_code, Order.cancel_reason)
+        .order_by(Order.id.asc())
+    )
+    rows = (await session.execute(stmt)).all()
+    items = [
+        CancelledOrder(
+            MaOrder=int(row[0]),
+            MaOrderHienThi=row[1],
+            TongTien=Decimal(str(row[2] or 0)),
+            LyDoHuy=row[3],
+        )
+        for row in rows
+    ]
+    total = sum((item.TongTien for item in items), Decimal(0))
+    return CancelledReport(SoLuong=len(items), TongGiaTri=total, items=items)
