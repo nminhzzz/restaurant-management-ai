@@ -9,6 +9,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Index,
+    Integer,
     String,
     func,
 )
@@ -20,9 +21,18 @@ from app.shared.base import (  # PaymentTransaction defaults match enums.Payment
 )
 
 
+class DemOrder(Base):
+    __tablename__ = "DEM_ORDER"
+    business_date: Mapped[date] = mapped_column("BusinessDate", Date, primary_key=True)
+    count: Mapped[int] = mapped_column("SoDaCap", Integer, nullable=False, default=1)
+
+
 class Order(Base):
     __tablename__ = "ORDER"
     id: Mapped[int] = mapped_column("MaOrder", BigInteger, primary_key=True, autoincrement=True)
+    display_code: Mapped[str | None] = mapped_column(
+        "MaOrderHienThi", String(30), nullable=True, unique=True
+    )
     business_date: Mapped[date] = mapped_column("BusinessDate", Date, nullable=False)
     table_id: Mapped[int | None] = mapped_column(
         "MaBan",
@@ -33,8 +43,9 @@ class Order(Base):
         "LoaiDon", String(20), nullable=False, default="T\u1ea1i ch\u1ed7"
     )
     status: Mapped[str] = mapped_column(
-        "TrangThai", String(30), nullable=False, default="Ch\u1edd x\u00e1c nh\u1eadn"
+        "TrangThai", String(30), nullable=False, default="\u0110ang m\u1edf"
     )
+    cancel_reason: Mapped[str | None] = mapped_column("LyDoHuy", String(500), nullable=True)
     created_by: Mapped[int | None] = mapped_column(
         "NguoiTao",
         ForeignKey("NGUOI_DUNG.MaNguoiDung", ondelete="RESTRICT", onupdate="RESTRICT"),
@@ -46,7 +57,7 @@ class Order(Base):
     updated_at: Mapped[datetime | None] = mapped_column("NgayCapNhat", DateTime, nullable=True)
     __table_args__ = (
         CheckConstraint(
-            "(LoaiDon = 'T\u1ea1i ch\u1ed7' AND MaBan IS NOT NULL) OR (LoaiDon = 'Mang v\u1ec1' AND MaBan IS NULL)",  # noqa: E501
+            "(LoaiDon = 'T\u1ea1i ch\u1ed7' AND MaBan IS NOT NULL) OR (LoaiDon = 'Mang v\u1ec1' AND MaBan IS NULL)",
             name="dine_in_needs_a_table",
         ),
         Index("ix_ORDER_BusinessDate_MaBan", "BusinessDate", "MaBan"),
@@ -78,6 +89,7 @@ class OrderLine(Base):
         ForeignKey("CONG_THUC.MaCongThuc", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=True,
     )
+    note: Mapped[str | None] = mapped_column("GhiChu", String(500), nullable=True)
     quantity: Mapped[int] = mapped_column("SoLuong", nullable=False, default=1)
     unit_price: Mapped[float] = mapped_column("DonGia", DECIMAL(18, 4), nullable=False, default=0)
     status: Mapped[str] = mapped_column("TrangThai", String(20), nullable=False, default="Ch\u1edd")
@@ -154,9 +166,14 @@ class KitchenTicket(Base):
         ForeignKey("ORDER.MaOrder", ondelete="CASCADE", onupdate="RESTRICT"),
         nullable=False,
     )
+    content: Mapped[str | None] = mapped_column("NoiDung", String(2000), nullable=True)
+    print_status: Mapped[str] = mapped_column(
+        "TrangThaiIn", String(20), nullable=False, default="Ch\u1edd in"
+    )
     status: Mapped[str] = mapped_column(
         "TrangThai", String(20), nullable=False, default="Ch\u1edd in"
     )
+    print_count: Mapped[int] = mapped_column("SoLanIn", Integer, nullable=False, default=1)
     created_at: Mapped[datetime] = mapped_column(
         "NgayTao", DateTime, server_default=func.now(), nullable=False
     )
