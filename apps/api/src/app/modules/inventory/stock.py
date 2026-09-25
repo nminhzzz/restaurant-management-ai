@@ -85,7 +85,7 @@ async def apply_stock_movement(
             or change.kind == "Điều chỉnh kiểm kê"
         ) and change.source_stocktake_line_id is None:
             raise BusinessRuleError("Thiếu MaChiTietKiemKe cho điều chỉnh kiểm kê.")
-        ing.stock_qty = float(Decimal(str(ing.stock_qty)) + delta)
+        ing.stock_qty = ing.stock_qty + delta
         kind_val = (
             change.kind if change.kind != StockMovementType.TRU_TU_DONG else StockMovementType.NHAP
         )
@@ -94,7 +94,7 @@ async def apply_stock_movement(
             ingredient_id=change.ingredient_id,
             lot_id=None,
             kind=kind_val,
-            qty=float(delta),
+            qty=delta,
             business_date=bd,
             receipt_line_id=change.source_receipt_line_id,
             order_line_id=change.source_order_line_id,
@@ -126,13 +126,13 @@ async def apply_stock_movement(
             break
         avail = Decimal(str(lot.quantity_remaining))
         take = min(avail, remaining)
-        lot.quantity_remaining = float(avail - take)
+        lot.quantity_remaining = avail - take
         # keep status as is (simplified)
         m = StockMovement(
             ingredient_id=change.ingredient_id,
             lot_id=lot.id,
             kind=change.kind,
-            qty=float(-take),
+            qty=-take,
             business_date=bd,
             receipt_line_id=change.source_receipt_line_id,
             order_line_id=change.source_order_line_id,
@@ -145,7 +145,7 @@ async def apply_stock_movement(
         remaining -= take
 
     # update ingredient total
-    ing.stock_qty = float(Decimal(str(ing.stock_qty)) - need)
+    ing.stock_qty = ing.stock_qty - need
     await session.flush()
     # Task 6: auto-hide dishes whose recipe can no longer be fulfilled
     try:
@@ -166,20 +166,18 @@ async def reverse_movement(
     if movement.lot_id is not None:
         lot = await session.get(IngredientLot, movement.lot_id)
         if lot is not None:
-            lot.quantity_remaining = float(
-                Decimal(str(lot.quantity_remaining)) - Decimal(str(movement.qty))
-            )
+            lot.quantity_remaining = lot.quantity_remaining - movement.qty
             await session.flush()
     ing = await lock_ingredient(session, movement.ingredient_id)
     # movement.qty is negative for draw, so -qty is positive
-    ing.stock_qty = float(Decimal(str(ing.stock_qty)) - Decimal(str(movement.qty)))
+    ing.stock_qty = ing.stock_qty - movement.qty
     await session.flush()
     bd = _bd_now()
     rev = StockMovement(
         ingredient_id=movement.ingredient_id,
         lot_id=movement.lot_id,
         kind=StockMovementType.HOAN_KHO,
-        qty=float(-Decimal(str(movement.qty))),
+        qty=-movement.qty,
         business_date=bd,
         receipt_line_id=movement.receipt_line_id,
         order_line_id=movement.order_line_id,

@@ -1,6 +1,7 @@
 """Inventory module tables."""
 
 from datetime import date, datetime
+from decimal import Decimal
 
 from sqlalchemy import (
     DECIMAL,
@@ -55,8 +56,8 @@ class GoodsReceiptLine(Base):
         ForeignKey("NGUYEN_LIEU.MaNguyenLieu", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=False,
     )
-    quantity: Mapped[float] = mapped_column("SoLuong", DECIMAL(18, 4), nullable=False)
-    unit_price: Mapped[float] = mapped_column("DonGia", DECIMAL(18, 4), nullable=False)
+    quantity: Mapped[Decimal] = mapped_column("SoLuong", DECIMAL(18, 4), nullable=False)
+    unit_price: Mapped[Decimal] = mapped_column("DonGia", DECIMAL(18, 4), nullable=False)
 
 
 class IngredientLot(Base):
@@ -73,7 +74,7 @@ class IngredientLot(Base):
         nullable=True,
         unique=True,
     )
-    quantity_remaining: Mapped[float] = mapped_column(
+    quantity_remaining: Mapped[Decimal] = mapped_column(
         "SoLuongConLai", DECIMAL(18, 4), nullable=False
     )
     status: Mapped[str] = mapped_column(
@@ -120,8 +121,8 @@ class StockIssueLine(Base):
         ForeignKey("NGUYEN_LIEU.MaNguyenLieu", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=False,
     )
-    quantity: Mapped[float] = mapped_column("SoLuong", DECIMAL(18, 4), nullable=False)
-    estimated_cost: Mapped[float] = mapped_column(
+    quantity: Mapped[Decimal] = mapped_column("SoLuong", DECIMAL(18, 4), nullable=False)
+    estimated_cost: Mapped[Decimal] = mapped_column(
         "GiaVonUocTinh", DECIMAL(18, 4), nullable=False, default=0
     )
 
@@ -154,9 +155,9 @@ class StocktakeLine(Base):
         ForeignKey("NGUYEN_LIEU.MaNguyenLieu", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=False,
     )
-    system_qty: Mapped[float] = mapped_column("TonHeThong", DECIMAL(18, 4), nullable=False)
-    actual_qty: Mapped[float] = mapped_column("TonThucTe", DECIMAL(18, 4), nullable=False)
-    difference: Mapped[float | None] = mapped_column(
+    system_qty: Mapped[Decimal] = mapped_column("TonHeThong", DECIMAL(18, 4), nullable=False)
+    actual_qty: Mapped[Decimal] = mapped_column("TonThucTe", DECIMAL(18, 4), nullable=False)
+    difference: Mapped[Decimal | None] = mapped_column(
         "ChenhLech",
         DECIMAL(18, 4),
         Computed("TonThucTe - TonHeThong", persisted=True),
@@ -180,7 +181,7 @@ class StockMovement(Base):
         nullable=True,
     )
     kind: Mapped[str] = mapped_column("LoaiGiaoDich", String(30), nullable=False)
-    qty: Mapped[float] = mapped_column("SoLuong", DECIMAL(18, 4), nullable=False)
+    qty: Mapped[Decimal] = mapped_column("SoLuong", DECIMAL(18, 4), nullable=False)
     occurred_at: Mapped[datetime] = mapped_column(
         "ThoiDiem", DateTime, server_default=func.now(), nullable=False
     )
@@ -231,8 +232,8 @@ class MonthlyAverageCost(Base):
         primary_key=True,
     )
     month: Mapped[int] = mapped_column("Thang", Integer, primary_key=True)
-    avg_cost: Mapped[float] = mapped_column("GiaBinhQuan", DECIMAL(18, 4), nullable=False)
-    total_qty: Mapped[float] = mapped_column(
+    avg_cost: Mapped[Decimal] = mapped_column("GiaBinhQuan", DECIMAL(18, 4), nullable=False)
+    total_qty: Mapped[Decimal] = mapped_column(
         "TongSoLuongNhap", DECIMAL(18, 4), nullable=False, default=0
     )
     computed_at: Mapped[datetime] = mapped_column(

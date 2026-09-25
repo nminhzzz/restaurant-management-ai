@@ -138,7 +138,7 @@ async def submit_order(
         # If no price, treat as 0? But should reject if no active version?
         pv_id: int | None = None
         rc_id: int | None = None
-        unit_price: float = 0
+        unit_price: Decimal = Decimal("0")
         if price is not None:
             # need version id
             from app.modules.catalog.versions import active_price_version
@@ -146,7 +146,7 @@ async def submit_order(
             pv = await active_price_version(session, int(dish_id), bd)
             if pv is not None:
                 pv_id = pv.id
-                unit_price = float(pv.price)
+                unit_price = pv.price
         if recipe is not None:
             rc_id = recipe.id
             # check stock via recipe items
@@ -154,13 +154,13 @@ async def submit_order(
             # For each ingredient, need qty * quantity
             can_fulfill = True
             for it in items:
-                needed = float(it.quantity) * qty
+                needed = it.quantity * Decimal(qty)
                 # Try stock check via apply_stock_movement dry-run? Instead attempt and rollback on BusinessRuleError
                 # We do per-ingredient check by looking at ingredient_total
                 from app.modules.catalog.models import Ingredient
 
                 ing = await session.get(Ingredient, it.ingredient_id)
-                if ing is None or float(ing.stock_qty) < needed:
+                if ing is None or ing.stock_qty < Decimal(str(needed)):
                     can_fulfill = False
                     break
             if not can_fulfill:
@@ -186,7 +186,7 @@ async def submit_order(
         if recipe is not None:
             items = await recipe_items(session, recipe.id)
             for it in items:
-                needed = float(it.quantity) * qty
+                needed = it.quantity * Decimal(qty)
                 try:
                     await apply_stock_movement(
                         session,
@@ -255,21 +255,21 @@ async def add_line(
     recipe = await active_recipe(session, dish_id, bd)
     pv_id: int | None = None
     rc_id: int | None = None
-    unit_price: float = 0
+    unit_price: Decimal = Decimal("0")
     if price is not None:
         pv = await active_price_version(session, dish_id, bd)
         if pv is not None:
             pv_id = pv.id
-            unit_price = float(pv.price)
+            unit_price = pv.price
     if recipe is not None:
         rc_id = recipe.id
         items = await recipe_items(session, recipe.id)
         for it in items:
-            needed = float(it.quantity) * quantity
+            needed = it.quantity * Decimal(quantity)
             from app.modules.catalog.models import Ingredient
 
             ing = await session.get(Ingredient, it.ingredient_id)
-            if ing is None or float(ing.stock_qty) < needed:
+            if ing is None or ing.stock_qty < Decimal(str(needed)):
                 raise BusinessRuleError("Kh\u00f4ng \u0111\u1ee7 t\u1ed3n kho.")
     line = OrderLine(
         order_id=order.id,
@@ -286,7 +286,7 @@ async def add_line(
     if recipe is not None:
         items = await recipe_items(session, recipe.id)
         for it in items:
-            needed = float(it.quantity) * quantity
+            needed = it.quantity * Decimal(quantity)
             await apply_stock_movement(
                 session,
                 StockChange(
@@ -331,14 +331,14 @@ async def update_line(
             )
             items = list(r.scalars().all())
             for it in items:
-                needed = float(it.quantity) * delta_qty
+                needed = it.quantity * Decimal(delta_qty)
                 from app.modules.catalog.models import Ingredient
 
                 ing = await session.get(Ingredient, it.ingredient_id)
-                if ing is None or float(ing.stock_qty) < needed:
+                if ing is None or ing.stock_qty < Decimal(str(needed)):
                     raise BusinessRuleError("Kh\u00f4ng \u0111\u1ee7 t\u1ed3n kho.")
             for it in items:
-                needed = float(it.quantity) * delta_qty
+                needed = it.quantity * Decimal(delta_qty)
                 await apply_stock_movement(
                     session,
                     StockChange(
@@ -375,7 +375,7 @@ async def update_line(
                 .scalars()
                 .all()
             ):
-                ret = float(it.quantity) * (-delta_qty)
+                ret = it.quantity * Decimal(-delta_qty)
                 # Return to original lots via reverse is complex; just add Hoan kho with order_line_id
                 from app.modules.inventory.models import StockMovement as SM
                 from app.shared.enums import StockMovementType
@@ -397,13 +397,13 @@ async def update_line(
 
                 ing = await session.get(Ingredient, it.ingredient_id)
                 if ing:
-                    ing.stock_qty = float(float(ing.stock_qty) + ret)
+                    ing.stock_qty = ing.stock_qty + ret
                 if lot_id:
                     from app.modules.inventory.models import IngredientLot
 
                     lot = await session.get(IngredientLot, lot_id)
                     if lot:
-                        lot.quantity_remaining = float(float(lot.quantity_remaining) + ret)
+                        lot.quantity_remaining = lot.quantity_remaining + ret
             await session.flush()
     line.quantity = quantity
     await session.flush()
@@ -461,15 +461,15 @@ async def cancel_line(session, line_id: int, reason: str, *, actor_id: int | Non
             if mv.lot_id is not None:
                 lot = await session.get(IngredientLot, mv.lot_id)
                 if lot:
-                    lot.quantity_remaining = float(float(lot.quantity_remaining) - float(mv.qty))
+                    lot.quantity_remaining = lot.quantity_remaining - mv.qty
             ing = await session.get(Ingredient, mv.ingredient_id)
             if ing:
-                ing.stock_qty = float(float(ing.stock_qty) - float(mv.qty))
+                ing.stock_qty = ing.stock_qty - mv.qty
             sm = StockMovement(
                 ingredient_id=mv.ingredient_id,
                 lot_id=mv.lot_id,
                 kind=StockMovementType.HOAN_KHO,
-                qty=float(-mv.qty),
+                qty=-mv.qty,
                 business_date=order.business_date,
                 order_line_id=line.id,
                 performed_by=actor_id,
@@ -580,12 +580,12 @@ async def cancel_order(session, order_id: int, reason: str, *, actor_id: int | N
                         )
                 ing = await session.get(Ingredient, mv.ingredient_id)
                 if ing:
-                    ing.stock_qty = float(float(ing.stock_qty) - float(mv.qty))
+                    ing.stock_qty = ing.stock_qty - mv.qty
                 sm = StockMovement(
                     ingredient_id=mv.ingredient_id,
                     lot_id=mv.lot_id,
                     kind=StockMovementType.HOAN_KHO,
-                    qty=float(-mv.qty),
+                    qty=-mv.qty,
                     business_date=order.business_date,
                     order_line_id=line.id,
                     performed_by=actor_id,

@@ -50,15 +50,15 @@ async def close_month(session: AsyncSession, month: int) -> list[MonthlyAverageC
         avg = Decimal(str(total)) / Decimal(str(qty))
         existing = await session.get(MonthlyAverageCost, {"ingredient_id": ing_id, "month": month})
         if existing:
-            existing.avg_cost = float(avg)
-            existing.total_qty = float(qty)
+            existing.avg_cost = avg
+            existing.total_qty = qty
             existing.computed_at = _bd.now()
         else:
             existing = MonthlyAverageCost(
                 ingredient_id=ing_id,
                 month=month,
-                avg_cost=float(avg),
-                total_qty=float(qty),
+                avg_cost=avg,
+                total_qty=qty,
                 computed_at=_bd.now(),
             )
             session.add(existing)
@@ -101,7 +101,7 @@ async def backfill_issue_costs(session: AsyncSession, month: int) -> int:
     for ln in lines:
         avg = costs.get(ln.ingredient_id)
         if avg is not None:
-            ln.estimated_cost = float(avg * Decimal(str(ln.quantity)))
+            ln.estimated_cost = avg * ln.quantity
             updated += 1
     await session.flush()
     return updated

@@ -1,6 +1,7 @@
 """Catalog module tables."""
 
 from datetime import date, datetime
+from decimal import Decimal
 
 from sqlalchemy import (
     DECIMAL,
@@ -32,13 +33,13 @@ class Ingredient(Base):
     )
     name: Mapped[str] = mapped_column("TenNguyenLieu", String(100), nullable=False)
     unit: Mapped[str] = mapped_column("DonViTinh", String(20), nullable=False, default="kg")
-    stock_qty: Mapped[float] = mapped_column(
-        "SoLuongTon", DECIMAL(18, 4), nullable=False, default=0
+    stock_qty: Mapped[Decimal] = mapped_column(
+        "SoLuongTon", DECIMAL(18, 4), nullable=False, default=Decimal("0")
     )
     version: Mapped[int] = mapped_column("Version", Integer, nullable=False, default=1)
     unit_locked: Mapped[bool] = mapped_column("DaKhoaDonVi", default=False, nullable=False)
-    min_stock: Mapped[float] = mapped_column(
-        "MucTonToiThieu", DECIMAL(18, 4), nullable=False, default=0
+    min_stock: Mapped[Decimal] = mapped_column(
+        "MucTonToiThieu", DECIMAL(18, 4), nullable=False, default=Decimal("0")
     )
     shelf_days: Mapped[int | None] = mapped_column("SoNgayBaoQuan", Integer, nullable=True)
     is_deleted: Mapped[bool] = mapped_column("DaXoa", default=False, nullable=False)
@@ -112,7 +113,7 @@ class DishPriceVersion(Base):
         ForeignKey("MON_AN.MaMon", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=False,
     )
-    price: Mapped[float] = mapped_column("Gia", DECIMAL(18, 4), nullable=False)
+    price: Mapped[Decimal] = mapped_column("Gia", DECIMAL(18, 4), nullable=False)
     business_date: Mapped[date] = mapped_column("BusinessDateApDung", Date, nullable=False)
     effective_from: Mapped[datetime | None] = mapped_column(
         "ThoiDiemHieuLuc", DateTime, nullable=True
@@ -174,4 +175,4 @@ class RecipeItem(Base):
         ForeignKey("NGUYEN_LIEU.MaNguyenLieu", ondelete="RESTRICT", onupdate="RESTRICT"),
         primary_key=True,
     )
-    quantity: Mapped[float] = mapped_column("SoLuong", DECIMAL(18, 4), nullable=False)
+    quantity: Mapped[Decimal] = mapped_column("SoLuong", DECIMAL(18, 4), nullable=False)

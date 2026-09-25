@@ -83,8 +83,8 @@ async def create_receipt(
         gl = GoodsReceiptLine(
             receipt_id=receipt.id,
             ingredient_id=ingredient_id,
-            quantity=float(qty_std),
-            unit_price=float(unit_price),
+            quantity=qty_std,
+            unit_price=unit_price,
         )
         session.add(gl)
         await session.flush()
@@ -92,7 +92,7 @@ async def create_receipt(
         lot = IngredientLot(
             ingredient_id=ingredient_id,
             receipt_line_id=gl.id,
-            quantity_remaining=float(qty_std),
+            quantity_remaining=qty_std,
             status="Còn hạn",
             received_at=receipt.receipt_date,
             is_adjustment=False,
@@ -170,14 +170,14 @@ async def cancel_receipt(session: AsyncSession, actor_id: int, receipt_id: int) 
         if remaining > 0:
             if ing and Decimal(str(ing.stock_qty)) < remaining:
                 raise BusinessRuleError("Không đủ tồn kho để hủy phiếu.")
-            lot.quantity_remaining = 0
+            lot.quantity_remaining = Decimal("0")
             if ing:
-                ing.stock_qty = float(Decimal(str(ing.stock_qty)) - remaining)
+                ing.stock_qty = ing.stock_qty - remaining
             m = StockMovement(
                 ingredient_id=gl.ingredient_id,
                 lot_id=lot.id,
                 kind=StockMovementType.HOAN_KHO,
-                qty=float(-remaining),
+                qty=-remaining,
                 business_date=_bd(),
                 receipt_line_id=gl.id,
                 performed_by=actor_id,
@@ -218,7 +218,7 @@ async def create_issue(
         iid = ln["ingredient_id"]
         qty = Decimal(str(ln["quantity"]))
         il = StockIssueLine(
-            issue_id=issue.id, ingredient_id=iid, quantity=float(qty), estimated_cost=0
+            issue_id=issue.id, ingredient_id=iid, quantity=qty, estimated_cost=Decimal("0")
         )
         session.add(il)
         await session.flush()
@@ -278,8 +278,8 @@ async def record_counts(
         line = StocktakeLine(
             stocktake_id=stocktake_id,
             ingredient_id=iid,
-            system_qty=float(sys_qty),
-            actual_qty=float(actual),
+            system_qty=sys_qty,
+            actual_qty=actual,
         )
         session.add(line)
     await session.flush()
@@ -323,14 +323,14 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
                     break
                 avail = Decimal(str(_lot.quantity_remaining))
                 take = min(avail, rem)
-                _lot.quantity_remaining = float(avail - take)
+                _lot.quantity_remaining = avail - take
                 from app.modules.inventory.models import StockMovement as SM2
 
                 m2 = SM2(
                     ingredient_id=line.ingredient_id,
                     lot_id=_lot.id,
                     kind="Điều chỉnh kiểm kê",
-                    qty=float(-take),
+                    qty=-take,
                     business_date=_bd(),
                     stocktake_line_id=line.id,
                     performed_by=actor_id,
@@ -343,7 +343,7 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
             ing2 = await session.get(Ing2, line.ingredient_id)
             if ing2:
                 # ing total should become actual_qty; we already deducted take_total via lots, so set directly
-                ing2.stock_qty = float(line.actual_qty)
+                ing2.stock_qty = line.actual_qty
         else:
             # surplus: create adjustment receipt lineage with unit_price=0 (excluded from avg by receipt status filter in reports) is kept, but tagged is_adjustment
             gr = GoodsReceipt(supplier_id=None, receipt_date=business_date.now(), status="Nháp")
@@ -352,7 +352,7 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
             gl = GoodsReceiptLine(
                 receipt_id=gr.id,
                 ingredient_id=line.ingredient_id,
-                quantity=float(diff),
+                quantity=diff,
                 unit_price=0,
             )
             session.add(gl)
@@ -360,7 +360,7 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
             lot = IngredientLot(
                 ingredient_id=line.ingredient_id,
                 receipt_line_id=gl.id,
-                quantity_remaining=float(diff),
+                quantity_remaining=diff,
                 status="Còn hạn",
                 received_at=business_date.now(),
                 is_adjustment=True,
@@ -373,7 +373,7 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
                 ingredient_id=line.ingredient_id,
                 lot_id=lot.id,
                 kind="Điều chỉnh kiểm kê",
-                qty=float(diff),
+                qty=diff,
                 business_date=_bd(),
                 stocktake_line_id=line.id,
                 performed_by=actor_id,
@@ -383,7 +383,7 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
 
             ing = await session.get(Ing4, line.ingredient_id)
             if ing:
-                ing.stock_qty = float(Decimal(str(ing.stock_qty)) + diff)
+                ing.stock_qty = ing.stock_qty + diff
     st.status = "Đã xác nhận"
     await session.flush()
     session.add(

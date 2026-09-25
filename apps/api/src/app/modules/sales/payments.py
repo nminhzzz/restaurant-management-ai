@@ -64,14 +64,14 @@ async def pay_cash(session, order_id: int, *, actor_id: int | None = None) -> di
         raise BusinessRuleError("Order đã có hóa đơn.")
     pay = PaymentTransaction(
         order_id=order.id,
-        amount=float(total),
+        amount=total,
         method="Tiền mặt",
         status="Thành công",
         business_date=bd,
     )
     session.add(pay)
     await session.flush()
-    inv = Invoice(order_id=order.id, business_date=bd, total=float(total), print_count=1)
+    inv = Invoice(order_id=order.id, business_date=bd, total=total, print_count=1)
     session.add(inv)
     await session.flush()
     order.status = "Đã thanh toán"
@@ -106,7 +106,7 @@ async def start_qr(session, order_id: int, *, actor_id: int | None = None) -> Pa
     now = business_date.now()
     pay = PaymentTransaction(
         order_id=order.id,
-        amount=float(total),
+        amount=total,
         method="QR",
         status="Chờ xác nhận",
         business_date=bd,
@@ -165,7 +165,7 @@ async def handle_webhook(session, payload: dict) -> dict:
     pay.status = "Thành công"
     await session.flush()
     bd = pay.business_date
-    inv = Invoice(order_id=order.id, business_date=bd, total=float(total), print_count=1)
+    inv = Invoice(order_id=order.id, business_date=bd, total=total, print_count=1)
     session.add(inv)
     await session.flush()
     order.status = "Đã thanh toán"
@@ -301,7 +301,7 @@ async def resolve_reconciliation(
         assert order is not None
         total = await _order_total(session, order)
         inv = Invoice(
-            order_id=order.id, business_date=pay.business_date, total=float(total), print_count=1
+            order_id=order.id, business_date=pay.business_date, total=total, print_count=1
         )
         session.add(inv)
         await session.flush()

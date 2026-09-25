@@ -1,6 +1,7 @@
 """Sales module tables."""
 
 from datetime import date, datetime
+from decimal import Decimal
 
 from sqlalchemy import (
     DECIMAL,
@@ -91,7 +92,9 @@ class OrderLine(Base):
     )
     note: Mapped[str | None] = mapped_column("GhiChu", String(500), nullable=True)
     quantity: Mapped[int] = mapped_column("SoLuong", nullable=False, default=1)
-    unit_price: Mapped[float] = mapped_column("DonGia", DECIMAL(18, 4), nullable=False, default=0)
+    unit_price: Mapped[Decimal] = mapped_column(
+        "DonGia", DECIMAL(18, 4), nullable=False, default=Decimal("0")
+    )
     status: Mapped[str] = mapped_column("TrangThai", String(20), nullable=False, default="Ch\u1edd")
     __table_args__ = (Index("ix_CHI_TIET_ORDER_MaMon_MaOrder", "MaMon", "MaOrder"),)
 
@@ -127,7 +130,7 @@ class PaymentTransaction(Base):
         ForeignKey("ORDER.MaOrder", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=False,
     )
-    amount: Mapped[float] = mapped_column("SoTien", DECIMAL(18, 4), nullable=False)
+    amount: Mapped[Decimal] = mapped_column("SoTien", DECIMAL(18, 4), nullable=False)
     method: Mapped[str] = mapped_column(
         "PhuongThuc", String(20), nullable=False, default="Ti\u1ec1n m\u1eb7t"
     )
@@ -157,7 +160,9 @@ class Invoice(Base):
     issued_at: Mapped[datetime] = mapped_column(
         "ThoiDiemXuat", DateTime, server_default=func.now(), nullable=False
     )
-    total: Mapped[float] = mapped_column("TongTien", DECIMAL(18, 4), nullable=False, default=0)
+    total: Mapped[Decimal] = mapped_column(
+        "TongTien", DECIMAL(18, 4), nullable=False, default=Decimal("0")
+    )
     print_count: Mapped[int] = mapped_column("SoLanIn", Integer, nullable=False, default=1)
     __table_args__ = (Index("ix_HOA_DON_ThoiDiemXuat", "ThoiDiemXuat"),)
 
