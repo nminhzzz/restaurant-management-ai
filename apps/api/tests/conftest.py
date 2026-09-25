@@ -172,7 +172,9 @@ async def seed_views(engine: AsyncEngine) -> None:
     async with engine.begin() as conn:
         await conn.execute(
             text(
-                "CREATE TABLE IF NOT EXISTS NGUYEN_LIEU (MaNguyenLieu INTEGER PRIMARY KEY, TenNguyenLieu TEXT)"
+                "CREATE TABLE IF NOT EXISTS NGUYEN_LIEU ("
+                "MaNguyenLieu INTEGER PRIMARY KEY, TenNguyenLieu TEXT, DonViTinh TEXT, "
+                "SoLuongTon REAL, MucTonToiThieu REAL)"
             )
         )
         await conn.execute(
