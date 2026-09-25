@@ -13,8 +13,8 @@ hỏi – SQL chấm được trên ba cấu hình A/B/C, và số liệu thực
 
 ## Hiện trạng
 
-Cập nhật 2026-09-25: **Phase 0 → 6 đã xong** trên `main` (`make gate` xanh). Bảng dưới phản ánh
-trạng thái hiện tại; Phase 7 còn lại.
+Cập nhật 2026-09-25: **Phase 0 → 7 đã xong** trên `main` (`make gate` xanh), trừ **Task 5 của Phase 7**
+(lần chạy thực nghiệm A/B/C để lấy số liệu Chương 4) đang chờ nhà cung cấp LLM — Q5 và Q6 bên dưới.
 
 | Hạng mục | Trạng thái |
 | --- | --- |
@@ -23,10 +23,10 @@ trạng thái hiện tại; Phase 7 còn lại.
 | Primitive dùng chung (`core/`, `shared/`) | Xong, có test |
 | `guard.py` (kiểm duyệt SQL) | Xong, 20 test |
 | Lược đồ CSDL 29 bảng theo báo cáo + `DEM_ORDER` | **Xong** (Phase 0; migration `890db4fbb8b6` + `0f1501bac9b8`) |
-| View `vw_ai_*` + tài khoản chỉ-đọc | **Xong** (Phase 0; `db/views/`) |
+| View `vw_ai_*` + tài khoản chỉ-đọc | **Xong** (Phase 0, cập nhật ở Phase 7 theo đặc tả `db/views/README.md`) |
 | Sáu module nghiệp vụ | Phase 1–6 xong (Cài đặt · Danh mục · Kho · Bán hàng · Báo cáo · Trợ lý AI) |
 | Pipeline AI | **Xong** (Phase 6): prompt theo view, sinh SQL qua guard, thực thi trên tài khoản vai trò, diễn giải + biểu đồ |
-| Seed dữ liệu, bộ đánh giá | **Chưa có** — mới có khung `scripts/seed/README.md` và `data/eval/questions.example.jsonl` |
+| Seed dữ liệu, bộ đánh giá | **Xong** (Phase 7): `make seed` (12 tháng qua tầng service), 75 câu hỏi – SQL chuẩn, harness A/B/C. **Số liệu thực nghiệm chưa có** — cần Q5/Q6 |
 
 ## Ràng buộc bất biến
 

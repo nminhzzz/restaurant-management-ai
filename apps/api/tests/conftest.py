@@ -142,6 +142,9 @@ class FakeLlm:
         self._queue: list[str] = []
         self.calls: int = 0
         self.last_prompt: str | None = None
+        # The A/B/C harness swaps the model per configuration; record what it was told.
+        self.model: str | None = None
+        self.last_model: str | None = None
 
     def reply(self, sql: str) -> None:
         self._queue = [sql]
@@ -152,6 +155,7 @@ class FakeLlm:
     def complete(self, prompt: str) -> str:
         self.calls += 1
         self.last_prompt = prompt
+        self.last_model = self.model
         if not self._queue:
             return "SELECT 1"
         if len(self._queue) == 1:
@@ -173,34 +177,119 @@ def fake_llm() -> Iterator[FakeLlm]:
     generator.reset_state()
 
 
-# NOTE: seed_views creates minimal stub tables (INTEGER PK) for view DDL on SQLite;
-# production NGUYEN_LIEU uses BIGINT AUTO_INCREMENT — typed views replace this in phase-6.
+class _FakeResult:
+    def __init__(self, factory) -> None:
+        self._factory = factory
+
+    def keys(self) -> list[str]:
+        return list(self._factory.columns)
+
+    def fetchall(self) -> list[tuple]:
+        return list(self._factory.rows)
+
+
+class _FakeConnection:
+    def __init__(self, factory) -> None:
+        self._factory = factory
+
+    async def execute(self, statement):
+        self._factory.executed.append(str(statement))
+        if self._factory.error is not None:
+            raise self._factory.error
+        return _FakeResult(self._factory)
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+
+class _FakeEngine:
+    def __init__(self, factory, url) -> None:
+        self._factory = factory
+        self._url = url
+
+    def connect(self):
+        return _FakeConnection(self._factory)
+
+    async def dispose(self) -> None:
+        self._factory.disposed += 1
+
+
+class FakeEngineFactory:
+    """Records which read-only URL each role opened, and what ran on it (NFR-06)."""
+
+    def __init__(self) -> None:
+        self.urls: list[str] = []
+        self.executed: list[str] = []
+        self.rows: list[tuple] = []
+        self.columns: list[str] = ["MaNguyenLieu", "TenNguyenLieu"]
+        self.disposed = 0
+        self.error: Exception | None = None
+
+    def __call__(self, url: str) -> _FakeEngine:
+        self.urls.append(url)
+        return _FakeEngine(self, url)
+
+
+@pytest.fixture
+def fake_engine_factory(monkeypatch) -> FakeEngineFactory:
+    """Replace the assistant's engine factory, shared by the module and eval suites."""
+    from app.modules.ai.pipeline import executor
+
+    factory = FakeEngineFactory()
+    monkeypatch.setattr(executor, "_create_engine", factory)
+    return factory
+
+
+# NOTE: seed_views mirrors `db/views/*.sql` on SQLite. The MySQL DDL is authoritative;
+# this fixture only needs the same column shape so the prompt tests can read it.
 @pytest_asyncio.fixture
 async def seed_views(engine: AsyncEngine) -> None:
+    quanly_columns = (
+        "o.MaOrder, o.BusinessDate, o.LoaiDon, o.TrangThai, o.MaBan, "
+        "NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL"
+    )
+    thungan_columns = (
+        "o.MaOrder, o.BusinessDate, o.LoaiDon, o.TrangThai, o.MaBan, "
+        "NULL, NULL, NULL, NULL, NULL, NULL"
+    )
     async with engine.begin() as conn:
-        await conn.execute(
-            text(
-                "CREATE TABLE IF NOT EXISTS NGUYEN_LIEU ("
-                "MaNguyenLieu INTEGER PRIMARY KEY, TenNguyenLieu TEXT, DonViTinh TEXT, "
-                "SoLuongTon REAL, MucTonToiThieu REAL)"
-            )
-        )
-        await conn.execute(
-            text(
-                "CREATE TABLE IF NOT EXISTS `ORDER` (MaOrder INTEGER PRIMARY KEY, BusinessDate TEXT)"
-            )
-        )
-        await conn.execute(
-            text(
-                "CREATE TABLE IF NOT EXISTS HOA_DON (MaHoaDon INTEGER PRIMARY KEY, BusinessDate TEXT)"
-            )
-        )
         await conn.execute(text("DROP VIEW IF EXISTS vw_ai_quanly"))
         await conn.execute(text("DROP VIEW IF EXISTS vw_ai_thungan"))
         await conn.execute(text("DROP VIEW IF EXISTS vw_ai_kho"))
-        await conn.execute(text("CREATE VIEW vw_ai_quanly AS SELECT * FROM NGUYEN_LIEU"))
-        await conn.execute(text("CREATE VIEW vw_ai_thungan AS SELECT * FROM `ORDER`"))
-        await conn.execute(text("CREATE VIEW vw_ai_kho AS SELECT * FROM NGUYEN_LIEU"))
+        await conn.execute(
+            text(
+                f"CREATE VIEW vw_ai_quanly AS SELECT {quanly_columns} FROM `ORDER` o "
+                "UNION ALL SELECT NULL, h.BusinessDate, NULL, NULL, NULL, h.MaHoaDon, "
+                "h.ThoiDiemXuat, h.TongTien, NULL, NULL, NULL, NULL, NULL, NULL, NULL "
+                "FROM HOA_DON h "
+                "UNION ALL SELECT NULL, t.BusinessDate, NULL, NULL, NULL, NULL, NULL, NULL, "
+                "t.MaGiaoDich, t.PhuongThuc, t.SoTien, NULL, NULL, NULL, NULL "
+                "FROM GIAO_DICH_THANH_TOAN t "
+                "UNION ALL SELECT NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, "
+                "NULL, n.MaNguyenLieu, n.TenNguyenLieu, n.DonViTinh, n.SoLuongTon "
+                "FROM NGUYEN_LIEU n"
+            )
+        )
+        await conn.execute(
+            text(
+                f"CREATE VIEW vw_ai_thungan AS SELECT {thungan_columns} FROM `ORDER` o "
+                "UNION ALL SELECT NULL, h.BusinessDate, NULL, NULL, NULL, h.MaHoaDon, "
+                "h.ThoiDiemXuat, h.TongTien, NULL, NULL, NULL FROM HOA_DON h "
+                "UNION ALL SELECT NULL, t.BusinessDate, NULL, NULL, NULL, NULL, NULL, NULL, "
+                "t.MaGiaoDich, t.PhuongThuc, t.SoTien FROM GIAO_DICH_THANH_TOAN t"
+            )
+        )
+        await conn.execute(
+            text(
+                "CREATE VIEW vw_ai_kho AS SELECT n.MaNguyenLieu, n.TenNguyenLieu, n.DonViTinh, "
+                "n.SoLuongTon, NULL, NULL, NULL, NULL FROM NGUYEN_LIEU n "
+                "UNION ALL SELECT NULL, NULL, NULL, NULL, g.MaGiaoDichKho, g.BusinessDate, "
+                "g.SoLuong, g.LoaiGiaoDich FROM GIAO_DICH_KHO g"
+            )
+        )
 
 
 @pytest.fixture

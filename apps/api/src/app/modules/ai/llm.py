@@ -19,7 +19,7 @@ class LlmClient(Protocol):
 class CommercialClient:
     def __init__(self, *, api_key: str, model: str, base_url: str) -> None:
         self._api_key = api_key
-        self._model = model
+        self.model = model
         self._base_url = base_url.rstrip("/")
 
     def complete(self, prompt: str) -> str:
@@ -27,7 +27,7 @@ class CommercialClient:
             f"{self._base_url}/chat/completions",
             headers={"Authorization": f"Bearer {self._api_key}"},
             json={
-                "model": self._model,
+                "model": self.model,
                 "messages": [{"role": "user", "content": prompt}],
                 "temperature": 0,
             },
@@ -40,13 +40,13 @@ class CommercialClient:
 
 class OllamaClient:
     def __init__(self, *, model: str, base_url: str) -> None:
-        self._model = model
+        self.model = model
         self._base_url = base_url.rstrip("/")
 
     def complete(self, prompt: str) -> str:
         response = httpx.post(
             f"{self._base_url}/api/generate",
-            json={"model": self._model, "prompt": prompt, "stream": False},
+            json={"model": self.model, "prompt": prompt, "stream": False},
             timeout=20.0,
         )
         response.raise_for_status()

@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     ai_api_key: str = ""
     llm_model: str = "gpt-4o-mini"
     llm_base_url: str = ""
+    # Configuration C of the A/B/C experiment runs configuration B on a second model
+    # (master-roadmap Q5); empty means the harness falls back to a suffixed name.
+    ai_config_c_model: str = ""
     ai_ollama_base_url: str = "http://localhost:11434"
     ai_max_rows: int = 500
     ai_response_budget_seconds: float = 8.0
