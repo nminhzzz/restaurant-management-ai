@@ -1,8 +1,10 @@
-"""Fixtures for the benchmark set (Phase 7 Task 3)."""
+"""Fixtures for the benchmark set (Phase 7 Task 3) and the A/B/C harness (Task 4)."""
 
 import json
+from contextlib import asynccontextmanager
 
 import pytest
+import pytest_asyncio
 
 from app.core.config import REPO_ROOT
 
@@ -49,3 +51,24 @@ def refusal_question(questions: list[Question]) -> Question:
         if question.get("notes") and "vượt quyền" in question["notes"]:
             return question
     raise AssertionError("Bộ câu hỏi phải có ít nhất một ca vượt quyền.")
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def benchmark_environment(session, seed_views, fake_engine_factory, monkeypatch):
+    """Point the harness at the test session and a fake execution layer.
+
+    The harness is a batch driver: it opens its own session and executes queries on
+    the role's read-only account. In the suite both seams are replaced, so the
+    measurement logic is exercised without a database server or an LLM.
+    """
+    from data.eval import harness
+
+    fake_engine_factory.columns = ["n"]
+    fake_engine_factory.rows = [(1,)]
+
+    @asynccontextmanager
+    async def _open():
+        yield session
+
+    monkeypatch.setattr(harness, "open_session", _open)
+    return fake_engine_factory

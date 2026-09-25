@@ -142,6 +142,9 @@ class FakeLlm:
         self._queue: list[str] = []
         self.calls: int = 0
         self.last_prompt: str | None = None
+        # The A/B/C harness swaps the model per configuration; record what it was told.
+        self.model: str | None = None
+        self.last_model: str | None = None
 
     def reply(self, sql: str) -> None:
         self._queue = [sql]
@@ -152,6 +155,7 @@ class FakeLlm:
     def complete(self, prompt: str) -> str:
         self.calls += 1
         self.last_prompt = prompt
+        self.last_model = self.model
         if not self._queue:
             return "SELECT 1"
         if len(self._queue) == 1:
@@ -171,6 +175,72 @@ def fake_llm() -> Iterator[FakeLlm]:
     yield fake
     llm.set_client(None)
     generator.reset_state()
+
+
+class _FakeResult:
+    def __init__(self, factory) -> None:
+        self._factory = factory
+
+    def keys(self) -> list[str]:
+        return list(self._factory.columns)
+
+    def fetchall(self) -> list[tuple]:
+        return list(self._factory.rows)
+
+
+class _FakeConnection:
+    def __init__(self, factory) -> None:
+        self._factory = factory
+
+    async def execute(self, statement):
+        self._factory.executed.append(str(statement))
+        if self._factory.error is not None:
+            raise self._factory.error
+        return _FakeResult(self._factory)
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+
+class _FakeEngine:
+    def __init__(self, factory, url) -> None:
+        self._factory = factory
+        self._url = url
+
+    def connect(self):
+        return _FakeConnection(self._factory)
+
+    async def dispose(self) -> None:
+        self._factory.disposed += 1
+
+
+class FakeEngineFactory:
+    """Records which read-only URL each role opened, and what ran on it (NFR-06)."""
+
+    def __init__(self) -> None:
+        self.urls: list[str] = []
+        self.executed: list[str] = []
+        self.rows: list[tuple] = []
+        self.columns: list[str] = ["MaNguyenLieu", "TenNguyenLieu"]
+        self.disposed = 0
+        self.error: Exception | None = None
+
+    def __call__(self, url: str) -> _FakeEngine:
+        self.urls.append(url)
+        return _FakeEngine(self, url)
+
+
+@pytest.fixture
+def fake_engine_factory(monkeypatch) -> FakeEngineFactory:
+    """Replace the assistant's engine factory, shared by the module and eval suites."""
+    from app.modules.ai.pipeline import executor
+
+    factory = FakeEngineFactory()
+    monkeypatch.setattr(executor, "_create_engine", factory)
+    return factory
 
 
 # NOTE: seed_views mirrors `db/views/*.sql` on SQLite. The MySQL DDL is authoritative;
