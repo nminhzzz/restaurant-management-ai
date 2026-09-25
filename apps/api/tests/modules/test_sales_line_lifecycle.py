@@ -6,21 +6,21 @@ from httpx import ASGITransport, AsyncClient
 from app.core.database import get_session
 from app.core.security import create_access_token, hash_password
 from app.main import app
+from app.modules.catalog.models import (
+    DiningTable,
+    Dish,
+    DishGroup,
+    DishPriceVersion,
+    Ingredient,
+    Recipe,
+    RecipeItem,
+)
+from app.modules.inventory.models import GoodsReceipt, GoodsReceiptLine, IngredientLot
 from app.modules.settings.models import User
 from app.modules.settings.service import seed_reference_data
 from app.shared import business_date
 from app.shared.enums import VersionStatus
-from app.modules.catalog.models import (
-    Dish,
-    DishGroup,
-    Ingredient,
-    Recipe,
-    RecipeItem,
-    DishPriceVersion,
-    DiningTable,
-)
-from app.modules.inventory.models import GoodsReceipt, GoodsReceiptLine, IngredientLot
-from tests.helpers import ingredient_total, table_status, order_status, line_status
+from tests.helpers import ingredient_total, line_status, order_status, table_status
 
 
 async def _make_client(session):
@@ -230,3 +230,24 @@ async def test_cancel_whole_requires_reason(session):
     oid, _ = await _submit(session, client, h, d, t)
     r = await client.post(f"/api/v1/sales/orders/{oid}/cancel", json={"reason": ""}, headers=h)
     assert r.status_code == 422
+
+
+@pytest.mark.anyio
+async def test_reducing_then_cancelling_returns_exactly_what_was_drawn(session):
+    """FR-SALE-08/11: the reduce and the cancel together return the line's charge, no more."""
+    d, ing = await _setup_dish_with_stock(session, qty=10)
+    t = await _table(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    oid, lid = await _submit(session, client, h, d, t)
+
+    await client.patch(f"/api/v1/sales/orders/{oid}/lines/{lid}", json={"SoLuong": 3}, headers=h)
+    assert await ingredient_total(session, d) == 7
+    await client.patch(f"/api/v1/sales/orders/{oid}/lines/{lid}", json={"SoLuong": 1}, headers=h)
+    assert await ingredient_total(session, d) == 9
+
+    r = await client.post(
+        f"/api/v1/sales/orders/{oid}/lines/{lid}/cancel", json={"reason": "khách đổi ý"}, headers=h
+    )
+    assert r.status_code == 200
+    assert await ingredient_total(session, d) == 10

@@ -1,14 +1,50 @@
-"""HTTP layer for the sales module — Task 1."""
+"""HTTP layer for the sales module.
+
+Service functions raise `AppError` subclasses (`NotFoundError`, `BusinessRuleError`,
+`UnauthenticatedError`); `app.core.errors.register_error_handlers` already maps them to
+404 / 422 / 401 responses, so the handlers here stay free of per-endpoint translation.
+"""
+
+import contextlib
+from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
 from app.core.dependencies import Principal, require_roles
+from app.modules.sales import orders, payments
+from app.modules.sales.models import Invoice, KitchenTicket, Order, OrderLine
 from app.modules.sales.schemas import SubmitOrderIn
 from app.shared.roles import Role
 
-router = APIRouter(prefix="/sales", tags=["Module 2 \u2014 Sales"])
+router = APIRouter(prefix="/sales", tags=["Module 2 — Sales"])
+
+
+def _line_payload(line: OrderLine) -> dict:
+    return {
+        "MaChiTietOrder": line.id,
+        "MaMon": line.dish_id,
+        "SoLuong": line.quantity,
+        "DonGia": float(line.unit_price),
+        "MaPhienBanGia": line.price_version_id,
+        "MaCongThuc": line.recipe_id,
+        "GhiChu": line.note,
+        "TrangThai": line.status,
+    }
+
+
+def _order_payload(order: Order, lines: list[OrderLine]) -> dict:
+    return {
+        "MaOrder": order.id,
+        "MaOrderHienThi": order.display_code,
+        "MaBan": order.table_id,
+        "TrangThai": order.status,
+        "ThoiDiemTao": order.created_at.isoformat() if order.created_at else None,
+        "ThoiDiemDong": order.updated_at.isoformat() if order.updated_at else None,
+        "lines": [_line_payload(line) for line in lines],
+    }
 
 
 @router.post("/orders", status_code=201)
@@ -17,47 +53,49 @@ async def create_order(
     session: AsyncSession = Depends(get_session),
     user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
 ):
-    from app.modules.sales.orders import submit_order
-
-    try:
-        result = await submit_order(
-            session,
-            {
-                "table_id": payload.table_id,
-                "order_type": payload.order_type,
-                "lines": [l.model_dump() for l in payload.lines],
-            },
-            actor_id=user.user_id,
-        )
-    except Exception as e:
-        from app.core.errors import BusinessRuleError
-
-        if isinstance(e, BusinessRuleError):
-            raise HTTPException(status_code=422, detail=str(e))
-        raise
+    result = await orders.submit_order(
+        session,
+        {
+            "table_id": payload.table_id,
+            "order_type": payload.order_type,
+            "lines": [line.model_dump() for line in payload.lines],
+        },
+        actor_id=user.user_id,
+    )
     await session.commit()
-    order = result["order"]
-    lines = result["lines"]
-    return {
-        "MaOrder": order.id,
-        "MaOrderHienThi": order.display_code,
-        "MaBan": order.table_id,
-        "TrangThai": order.status,
-        "lines": [
-            {
-                "MaChiTietOrder": l.id,
-                "MaMon": l.dish_id,
-                "SoLuong": l.quantity,
-                "DonGia": float(l.unit_price),
-                "MaPhienBanGia": l.price_version_id,
-                "MaCongThuc": l.recipe_id,
-                "GhiChu": l.note,
-                "TrangThai": l.status,
-            }
-            for l in lines
-        ],
-        "rejected": result["rejected"],
-    }
+    body = _order_payload(result["order"], result["lines"])
+    body["rejected"] = result["rejected"]
+    return body
+
+
+@router.get("/orders")
+async def search_orders(
+    code: str | None = None,
+    table_id: int | None = None,
+    business_date: str | None = None,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER, Role.WAREHOUSE)),
+):
+    query = select(Order)
+    if code:
+        query = query.where(Order.display_code == code)
+    if table_id is not None:
+        query = query.where(Order.table_id == table_id)
+    if business_date:
+        with contextlib.suppress(ValueError):
+            query = query.where(Order.business_date == date.fromisoformat(business_date))
+    rows = list((await session.execute(query)).scalars().all())
+    items = [
+        {
+            "MaOrder": order.id,
+            "MaOrderHienThi": order.display_code,
+            "MaBan": order.table_id,
+            "BusinessDate": order.business_date.isoformat(),
+            "TrangThai": order.status,
+        }
+        for order in rows
+    ]
+    return {"total": len(items), "items": items}
 
 
 @router.get("/orders/{order_id}")
@@ -66,34 +104,15 @@ async def get_order(
     session: AsyncSession = Depends(get_session),
     user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER, Role.WAREHOUSE)),
 ):
-    from app.modules.sales.models import Order, OrderLine
-
     order = await session.get(Order, order_id)
     if order is None:
-        raise HTTPException(status_code=404, detail="Order kh\u00f4ng t\u1ed3n t\u1ea1i.")
-    from sqlalchemy import select
-
-    r = await session.execute(select(OrderLine).where(OrderLine.order_id == order_id))
-    lines = list(r.scalars().all())
-    return {
-        "MaOrder": order.id,
-        "MaOrderHienThi": order.display_code,
-        "MaBan": order.table_id,
-        "TrangThai": order.status,
-        "lines": [
-            {
-                "MaChiTietOrder": l.id,
-                "MaMon": l.dish_id,
-                "SoLuong": l.quantity,
-                "DonGia": float(l.unit_price),
-                "MaPhienBanGia": l.price_version_id,
-                "MaCongThuc": l.recipe_id,
-                "GhiChu": l.note,
-                "TrangThai": l.status,
-            }
-            for l in lines
-        ],
-    }
+        raise HTTPException(status_code=404, detail="Order không tồn tại.")
+    lines = list(
+        (await session.execute(select(OrderLine).where(OrderLine.order_id == order_id)))
+        .scalars()
+        .all()
+    )
+    return _order_payload(order, lines)
 
 
 @router.post("/orders/{order_id}/lines", status_code=201)
@@ -103,29 +122,16 @@ async def add_order_line(
     session: AsyncSession = Depends(get_session),
     user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
 ):
-    from app.modules.sales.orders import add_line
-
-    try:
-        _did_raw = (
-            payload.get("dish_id") if payload.get("dish_id") is not None else payload.get("MaMon")
-        )
-        if _did_raw is None:
-            raise HTTPException(status_code=422, detail="Thieu MaMon")
-        _qty = payload.get("quantity") or payload.get("SoLuong") or 1
-        _note = payload.get("note") or payload.get("GhiChu")
-        line = await add_line(
-            session, order_id, int(_did_raw), int(_qty), _note, actor_id=user.user_id
-        )
-    except Exception as e:
-        from app.core.errors import BusinessRuleError, NotFoundError
-
-        if isinstance(e, NotFoundError):
-            raise HTTPException(status_code=404, detail=str(e))
-        if isinstance(e, BusinessRuleError):
-            raise HTTPException(status_code=422, detail=str(e))
-        raise
+    dish_id = payload.get("dish_id") if payload.get("dish_id") is not None else payload.get("MaMon")
+    if dish_id is None:
+        raise HTTPException(status_code=422, detail="Thiếu MaMon")
+    quantity = payload.get("quantity") or payload.get("SoLuong") or 1
+    note = payload.get("note") or payload.get("GhiChu")
+    line = await orders.add_line(
+        session, order_id, int(dish_id), int(quantity), note, actor_id=user.user_id
+    )
     await session.commit()
-    return {"MaChiTietOrder": line.id, "MaMon": line.dish_id, "SoLuong": line.quantity}
+    return _line_payload(line)
 
 
 @router.patch("/orders/{order_id}/lines/{line_id}")
@@ -136,21 +142,12 @@ async def patch_order_line(
     session: AsyncSession = Depends(get_session),
     user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
 ):
-    from app.modules.sales.orders import update_line
-
-    qty = payload.get("quantity") or payload.get("SoLuong")
-    if qty is None:
-        raise HTTPException(status_code=422, detail="Thi\u1ebfu SoLuong")
-    try:
-        line = await update_line(session, order_id, line_id, int(qty), actor_id=user.user_id)
-    except Exception as e:
-        from app.core.errors import BusinessRuleError, NotFoundError
-
-        if isinstance(e, NotFoundError):
-            raise HTTPException(status_code=404, detail=str(e))
-        if isinstance(e, BusinessRuleError):
-            raise HTTPException(status_code=422, detail=str(e))
-        raise
+    quantity = payload.get("quantity") or payload.get("SoLuong")
+    if quantity is None:
+        raise HTTPException(status_code=422, detail="Thiếu SoLuong")
+    line = await orders.update_line(
+        session, order_id, line_id, int(quantity), actor_id=user.user_id
+    )
     await session.commit()
     return {"MaChiTietOrder": line.id, "SoLuong": line.quantity}
 
@@ -163,21 +160,10 @@ async def patch_line_status(
     session: AsyncSession = Depends(get_session),
     user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
 ):
-    to = payload.get("to") or payload.get("TrangThai")
-    if not to:
-        raise HTTPException(status_code=422, detail="Thieu TrangThai")
-    from app.modules.sales.orders import advance_line_status
-
-    try:
-        line = await advance_line_status(session, line_id, str(to))
-    except Exception as e:
-        from app.core.errors import BusinessRuleError, NotFoundError
-
-        if isinstance(e, NotFoundError):
-            raise HTTPException(status_code=404, detail=str(e))
-        if isinstance(e, BusinessRuleError):
-            raise HTTPException(status_code=422, detail=str(e))
-        raise
+    to_status = payload.get("to") or payload.get("TrangThai")
+    if not to_status:
+        raise HTTPException(status_code=422, detail="Thiếu TrangThai")
+    line = await orders.advance_line_status(session, line_id, str(to_status))
     await session.commit()
     return {"MaChiTietOrder": line.id, "TrangThai": line.status}
 
@@ -191,18 +177,7 @@ async def cancel_order_line(
     user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
 ):
     reason = payload.get("reason") or payload.get("LyDo") or ""
-    from app.modules.sales.orders import cancel_line
-
-    try:
-        line = await cancel_line(session, line_id, str(reason), actor_id=user.user_id)
-    except Exception as e:
-        from app.core.errors import BusinessRuleError, NotFoundError
-
-        if isinstance(e, NotFoundError):
-            raise HTTPException(status_code=404, detail=str(e))
-        if isinstance(e, BusinessRuleError):
-            raise HTTPException(status_code=422, detail=str(e))
-        raise
+    await orders.cancel_line(session, line_id, str(reason), actor_id=user.user_id)
     await session.commit()
     return {"ok": True}
 
@@ -214,21 +189,10 @@ async def move_order_table(
     session: AsyncSession = Depends(get_session),
     user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
 ):
-    to_id = payload.get("to_table_id") or payload.get("MaBanDich") or payload.get("to")
-    if to_id is None:
-        raise HTTPException(status_code=422, detail="Thieu MaBanDich")
-    from app.modules.sales.orders import move_table
-
-    try:
-        order = await move_table(session, order_id, int(to_id), actor_id=user.user_id)
-    except Exception as e:
-        from app.core.errors import BusinessRuleError, NotFoundError
-
-        if isinstance(e, NotFoundError):
-            raise HTTPException(status_code=404, detail=str(e))
-        if isinstance(e, BusinessRuleError):
-            raise HTTPException(status_code=422, detail=str(e))
-        raise
+    to_table_id = payload.get("to_table_id") or payload.get("MaBanDich") or payload.get("to")
+    if to_table_id is None:
+        raise HTTPException(status_code=422, detail="Thiếu MaBanDich")
+    order = await orders.move_table(session, order_id, int(to_table_id), actor_id=user.user_id)
     await session.commit()
     return {"MaOrder": order.id, "MaBan": order.table_id}
 
@@ -241,18 +205,7 @@ async def cancel_whole_order(
     user: Principal = Depends(require_roles(Role.MANAGER)),
 ):
     reason = payload.get("reason") or payload.get("LyDoHuy") or ""
-    from app.modules.sales.orders import cancel_order
-
-    try:
-        order = await cancel_order(session, order_id, str(reason), actor_id=user.user_id)
-    except Exception as e:
-        from app.core.errors import BusinessRuleError, NotFoundError
-
-        if isinstance(e, NotFoundError):
-            raise HTTPException(status_code=404, detail=str(e))
-        if isinstance(e, BusinessRuleError):
-            raise HTTPException(status_code=422, detail=str(e))
-        raise
+    order = await orders.cancel_order(session, order_id, str(reason), actor_id=user.user_id)
     await session.commit()
     return {"MaOrder": order.id, "TrangThai": order.status}
 
@@ -264,17 +217,14 @@ async def reprint_ticket(
     session: AsyncSession = Depends(get_session),
     user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
 ):
-    from app.modules.sales.models import KitchenTicket
-
-    t = await session.get(KitchenTicket, ticket_id)
-    if t is None or t.order_id != order_id:
+    ticket = await session.get(KitchenTicket, ticket_id)
+    if ticket is None or ticket.order_id != order_id:
         raise HTTPException(status_code=404, detail="Phiếu bếp không tồn tại.")
-    # unlimited reprint
     from app.modules.sales.tickets import record_print_result
 
-    record_print_result(t, True)
+    record_print_result(ticket, True)
     await session.commit()
-    return {"MaPhieuBep": t.id, "SoLanIn": t.print_count}
+    return {"MaPhieuBep": ticket.id, "SoLanIn": ticket.print_count}
 
 
 @router.post("/orders/{order_id}/pay/cash")
@@ -283,21 +233,13 @@ async def pay_order_cash(
     session: AsyncSession = Depends(get_session),
     user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
 ):
-    from app.modules.sales.payments import pay_cash
-
-    try:
-        res = await pay_cash(session, order_id, actor_id=user.user_id)
-    except Exception as e:
-        from app.core.errors import BusinessRuleError, NotFoundError
-
-        if isinstance(e, NotFoundError):
-            raise HTTPException(status_code=404, detail=str(e))
-        if isinstance(e, BusinessRuleError):
-            raise HTTPException(status_code=422, detail=str(e))
-        raise
+    result = await payments.pay_cash(session, order_id, actor_id=user.user_id)
     await session.commit()
-    inv = res["invoice"]
-    return {"invoice": {"SoHoaDon": str(inv.id), "TongTien": float(inv.total)}, "MaHoaDon": inv.id}
+    invoice = result["invoice"]
+    return {
+        "invoice": {"SoHoaDon": str(invoice.id), "TongTien": float(invoice.total)},
+        "MaHoaDon": invoice.id,
+    }
 
 
 @router.post("/orders/{order_id}/pay/qr", status_code=201)
@@ -306,25 +248,13 @@ async def start_order_qr(
     session: AsyncSession = Depends(get_session),
     user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
 ):
-    from app.modules.sales.payments import start_qr
-
-    try:
-        pay = await start_qr(session, order_id, actor_id=user.user_id)
-    except Exception as e:
-        from app.core.errors import BusinessRuleError, NotFoundError
-
-        if isinstance(e, NotFoundError):
-            raise HTTPException(status_code=404, detail=str(e))
-        if isinstance(e, BusinessRuleError):
-            raise HTTPException(status_code=422, detail=str(e))
-        raise
+    payment = await payments.start_qr(session, order_id, actor_id=user.user_id)
     await session.commit()
-    dl = getattr(pay, "_deadline", None)
     return {
-        "MaGiaoDich": pay.id,
-        "TrangThai": pay.status,
-        "ThoiDiemTaoQR": pay.created_at.isoformat() if pay.created_at else None,
-        "ThoiDiemHetHan": dl.isoformat() if dl else None,
+        "MaGiaoDich": payment.id,
+        "TrangThai": payment.status,
+        "ThoiDiemTaoQR": payment.created_at.isoformat() if payment.created_at else None,
+        "ThoiDiemHetHan": payment.deadline.isoformat() if payment.deadline else None,
     }
 
 
@@ -333,23 +263,9 @@ async def webhook_payment(
     payload: dict,
     session: AsyncSession = Depends(get_session),
 ):
-    from app.modules.sales.payments import handle_webhook
-
-    try:
-        res = await handle_webhook(session, payload)
-    except Exception as e:
-        from app.core.errors import BusinessRuleError, NotFoundError
-
-        if isinstance(e, NotFoundError):
-            raise HTTPException(status_code=404, detail=str(e))
-        if isinstance(e, BusinessRuleError):
-            # signature invalid -> 401
-            if "Chữ ký" in str(e):
-                raise HTTPException(status_code=401, detail=str(e))
-            raise HTTPException(status_code=422, detail=str(e))
-        raise
+    result = await payments.handle_webhook(session, payload)
     await session.commit()
-    return {"ok": True, "MaGiaoDich": res["payment"].id}
+    return {"ok": True, "MaGiaoDich": result["payment"].id}
 
 
 @router.post("/payments/{payment_id}/cancel")
@@ -358,20 +274,9 @@ async def cancel_payment_qr(
     session: AsyncSession = Depends(get_session),
     user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
 ):
-    from app.modules.sales.payments import cancel_qr
-
-    try:
-        pay = await cancel_qr(session, payment_id, actor_id=user.user_id)
-    except Exception as e:
-        from app.core.errors import BusinessRuleError, NotFoundError
-
-        if isinstance(e, NotFoundError):
-            raise HTTPException(status_code=404, detail=str(e))
-        if isinstance(e, BusinessRuleError):
-            raise HTTPException(status_code=422, detail=str(e))
-        raise
+    payment = await payments.cancel_qr(session, payment_id, actor_id=user.user_id)
     await session.commit()
-    return {"MaGiaoDich": pay.id, "TrangThai": pay.status}
+    return {"MaGiaoDich": payment.id, "TrangThai": payment.status}
 
 
 @router.post("/orders/{order_id}/reconcile")
@@ -381,23 +286,14 @@ async def flag_reconcile(
     session: AsyncSession = Depends(get_session),
     user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
 ):
-    pid = payload.get("payment_id") or payload.get("MaGiaoDich")
-    if pid is None:
-        raise HTTPException(status_code=422, detail="Thieu MaGiaoDich")
-    from app.modules.sales.payments import mark_for_reconciliation
-
-    try:
-        pay = await mark_for_reconciliation(session, int(pid), actor_id=user.user_id)
-    except Exception as e:
-        from app.core.errors import BusinessRuleError, NotFoundError
-
-        if isinstance(e, NotFoundError):
-            raise HTTPException(status_code=404, detail=str(e))
-        if isinstance(e, BusinessRuleError):
-            raise HTTPException(status_code=422, detail=str(e))
-        raise
+    payment_id = payload.get("payment_id") or payload.get("MaGiaoDich")
+    if payment_id is None:
+        raise HTTPException(status_code=422, detail="Thiếu MaGiaoDich")
+    payment = await payments.mark_for_reconciliation(
+        session, int(payment_id), actor_id=user.user_id
+    )
     await session.commit()
-    return {"MaGiaoDich": pay.id, "TrangThai": pay.status}
+    return {"MaGiaoDich": payment.id, "TrangThai": payment.status}
 
 
 @router.post("/payments/{payment_id}/reference")
@@ -407,22 +303,13 @@ async def bank_reference(
     session: AsyncSession = Depends(get_session),
     user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
 ):
-    ref = payload.get("reference") or payload.get("MaGiaoDichNganHang") or ""
-    ev = payload.get("evidence") or payload.get("AnhChungTu")
-    from app.modules.sales.payments import record_bank_reference
-
-    try:
-        pay = await record_bank_reference(
-            session, int(payment_id), str(ref), ev, actor_id=user.user_id
-        )
-    except Exception as e:
-        from app.core.errors import NotFoundError
-
-        if isinstance(e, NotFoundError):
-            raise HTTPException(status_code=404, detail=str(e))
-        raise
+    reference = payload.get("reference") or payload.get("MaGiaoDichNganHang") or ""
+    evidence = payload.get("evidence") or payload.get("AnhChungTu")
+    payment = await payments.record_bank_reference(
+        session, int(payment_id), str(reference), evidence, actor_id=user.user_id
+    )
     await session.commit()
-    return {"MaGiaoDich": pay.id}
+    return {"MaGiaoDich": payment.id}
 
 
 @router.post("/payments/{payment_id}/resolve")
@@ -433,62 +320,11 @@ async def resolve_payment(
     user: Principal = Depends(require_roles(Role.MANAGER)),
 ):
     outcome = payload.get("outcome") or payload.get("ketQua") or ""
-    from app.modules.sales.payments import resolve_reconciliation
-
-    try:
-        pay = await resolve_reconciliation(
-            session, int(payment_id), str(outcome), actor_id=user.user_id
-        )
-    except Exception as e:
-        from app.core.errors import BusinessRuleError, NotFoundError
-
-        if isinstance(e, NotFoundError):
-            raise HTTPException(status_code=404, detail=str(e))
-        if isinstance(e, BusinessRuleError):
-            raise HTTPException(status_code=422, detail=str(e))
-        raise
+    payment = await payments.resolve_reconciliation(
+        session, int(payment_id), str(outcome), actor_id=user.user_id
+    )
     await session.commit()
-    return {"MaGiaoDich": pay.id, "TrangThai": pay.status}
-
-
-@router.get("/orders")
-async def search_orders(
-    code: str | None = None,
-    table_id: int | None = None,
-    business_date: str | None = None,
-    session: AsyncSession = Depends(get_session),
-    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER, Role.WAREHOUSE)),
-):
-    from sqlalchemy import select as _sel
-
-    from app.modules.sales.models import Order
-
-    q = _sel(Order)
-    if code:
-        q = q.where(Order.display_code == code)
-    if table_id is not None:
-        q = q.where(Order.table_id == table_id)
-    if business_date:
-        from datetime import date as _date
-
-        try:
-            bd = _date.fromisoformat(business_date)
-            q = q.where(Order.business_date == bd)
-        except Exception:
-            pass
-    r = await session.execute(q)
-    rows = list(r.scalars().all())
-    items = [
-        {
-            "MaOrder": o.id,
-            "MaOrderHienThi": o.display_code,
-            "MaBan": o.table_id,
-            "BusinessDate": o.business_date.isoformat(),
-            "TrangThai": o.status,
-        }
-        for o in rows
-    ]
-    return {"total": len(items), "items": items}
+    return {"MaGiaoDich": payment.id, "TrangThai": payment.status}
 
 
 @router.get("/orders/{order_id}/invoice")
@@ -497,15 +333,16 @@ async def get_invoice(
     session: AsyncSession = Depends(get_session),
     user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
 ):
-    from sqlalchemy import select as _sel
-
-    from app.modules.sales.models import Invoice
-
-    r = await session.execute(_sel(Invoice).where(Invoice.order_id == order_id))
-    inv = r.scalar_one_or_none()
-    if inv is None:
-        raise HTTPException(status_code=404, detail="Hoa don khong ton tai")
-    return {"SoHoaDon": str(inv.id), "TongTien": float(inv.total), "SoLanIn": inv.print_count}
+    invoice = (
+        await session.execute(select(Invoice).where(Invoice.order_id == order_id))
+    ).scalar_one_or_none()
+    if invoice is None:
+        raise HTTPException(status_code=404, detail="Hóa đơn không tồn tại.")
+    return {
+        "SoHoaDon": str(invoice.id),
+        "TongTien": float(invoice.total),
+        "SoLanIn": invoice.print_count,
+    }
 
 
 @router.post("/orders/{order_id}/invoice/reprint")
@@ -514,15 +351,10 @@ async def reprint_invoice_ep(
     session: AsyncSession = Depends(get_session),
     user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
 ):
-    from app.modules.sales.payments import reprint_invoice
-
-    try:
-        inv = await reprint_invoice(session, order_id)
-    except Exception as e:
-        from app.core.errors import NotFoundError
-
-        if isinstance(e, NotFoundError):
-            raise HTTPException(status_code=404, detail=str(e))
-        raise
+    invoice = await payments.reprint_invoice(session, order_id)
     await session.commit()
-    return {"SoHoaDon": str(inv.id), "TongTien": float(inv.total), "SoLanIn": inv.print_count}
+    return {
+        "SoHoaDon": str(invoice.id),
+        "TongTien": float(invoice.total),
+        "SoLanIn": invoice.print_count,
+    }

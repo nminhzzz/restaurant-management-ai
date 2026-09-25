@@ -330,10 +330,10 @@ async def table2(session):
 @pytest_asyncio.fixture
 async def scarce_dish(session, group):
     """Dish with tiny stock (1 unit) so ordering 99 fails."""
-    from app.modules.catalog.models import Dish, Ingredient, Recipe, RecipeItem, DishPriceVersion
+    from app.modules.catalog.models import Dish, DishPriceVersion, Ingredient, Recipe, RecipeItem
+    from app.modules.inventory.models import GoodsReceipt, GoodsReceiptLine, IngredientLot
     from app.shared import business_date as _bd
     from app.shared.enums import VersionStatus
-    from app.modules.inventory.models import GoodsReceipt, GoodsReceiptLine, IngredientLot
 
     dish = Dish(name="Món hiếm", group_id=group.id, is_deleted=False)
     session.add(dish)

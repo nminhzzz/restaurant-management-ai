@@ -1,6 +1,6 @@
 # Lộ trình triển khai — Hệ thống quản lý nhà hàng tích hợp AI
 
-Ngày: 2026-09-24 · Cập nhật: 2026-09-24
+Ngày: 2026-09-24 · Cập nhật: 2026-09-25
 
 ## Mục tiêu dự án
 
@@ -13,17 +13,20 @@ hỏi – SQL chấm được trên ba cấu hình A/B/C, và số liệu thực
 
 ## Hiện trạng
 
+Cập nhật 2026-09-25: **Phase 0 → 4 đã xong** trên `main` (`make gate` xanh). Bảng dưới phản ánh
+trạng thái hiện tại; Phase 5–7 còn lại.
+
 | Hạng mục | Trạng thái |
 | --- | --- |
 | Tài liệu (báo cáo, Class/Use Case/Sequence diagram) | Đã chốt, đã đồng bộ vào repo |
 | Hạ tầng (monorepo, toolchain, CI, Makefile, Docker) | Xong |
 | Primitive dùng chung (`core/`, `shared/`) | Xong, có test |
 | `guard.py` (kiểm duyệt SQL) | Xong, 20 test |
-| Lược đồ CSDL 29 bảng theo báo cáo + `DEM_ORDER` | **Chưa có** |
-| View `vw_ai_*` + tài khoản chỉ-đọc | **Chưa có** |
-| Sáu module nghiệp vụ | Chỉ có router rỗng |
-| Pipeline AI | Chỉ `normalize` xong; 5 bước còn lại là interface |
-| Seed dữ liệu, bộ đánh giá | Chưa có |
+| Lược đồ CSDL 29 bảng theo báo cáo + `DEM_ORDER` | **Xong** (Phase 0; migration `890db4fbb8b6` + `0f1501bac9b8`) |
+| View `vw_ai_*` + tài khoản chỉ-đọc | **Xong** (Phase 0; `db/views/`) |
+| Sáu module nghiệp vụ | Phase 1–4 xong (Cài đặt · Danh mục · Kho · Bán hàng); **Báo cáo còn router rỗng** |
+| Pipeline AI | `normalize` + `guard` xong; 4 bước prompt/sinh SQL/thực thi/diễn giải còn là interface |
+| Seed dữ liệu, bộ đánh giá | **Chưa có** — mới có khung `scripts/seed/README.md` và `data/eval/questions.example.jsonl` |
 
 ## Ràng buộc bất biến
 

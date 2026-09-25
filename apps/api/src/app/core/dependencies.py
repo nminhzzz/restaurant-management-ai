@@ -9,6 +9,7 @@ from typing import Annotated, Any
 
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jwt import InvalidTokenError
 
 from app.core.errors import ForbiddenError, UnauthenticatedError
 from app.core.security import decode_access_token
@@ -33,14 +34,14 @@ async def get_current_user(
     if scheme is None:
         raise UnauthenticatedError("Vui lòng đăng nhập để tiếp tục.")
 
-    claims = decode_access_token(scheme.credentials)
     try:
+        claims = decode_access_token(scheme.credentials)
         return Principal(
             user_id=int(str(claims["sub"])),
             username=str(claims.get("username", "")),
             role=Role(str(claims["role"])),
         )
-    except (KeyError, ValueError) as exc:
+    except (KeyError, ValueError, InvalidTokenError) as exc:
         raise UnauthenticatedError("Phiên đăng nhập không hợp lệ.") from exc
 
 

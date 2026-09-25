@@ -2,27 +2,25 @@
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import select
 
 from app.core.database import get_session
 from app.core.security import create_access_token, hash_password
 from app.main import app
-from app.modules.settings.models import User
-from app.modules.settings.service import seed_reference_data
-from tests.helpers import counter_for, today, order_count, ingredient_total, table_status, tomorrow
-
 from app.modules.catalog.models import (
+    DiningTable,
     Dish,
     DishGroup,
+    DishPriceVersion,
     Ingredient,
     Recipe,
     RecipeItem,
-    DishPriceVersion,
-    DiningTable,
 )
+from app.modules.inventory.models import GoodsReceipt, GoodsReceiptLine, IngredientLot
+from app.modules.settings.models import User
+from app.modules.settings.service import seed_reference_data
 from app.shared import business_date
 from app.shared.enums import VersionStatus
-from app.modules.inventory.models import GoodsReceipt, GoodsReceiptLine, IngredientLot
+from tests.helpers import ingredient_total, order_count
 
 
 async def _make_client(session):
@@ -172,7 +170,6 @@ async def test_takeaway_no_table(session):
 async def test_rejected_when_out_of_stock(session):
     d, ing, g = await _setup_dish_with_stock(session, stock_qty=1)
     # scarce dish with 1 stock, ordering 99 fails
-    from app.modules.catalog.models import Dish as _D
 
     # create scarce
     ing2 = Ingredient(name="NL hiếm", unit="kg", min_stock=1, stock_qty=1, is_deleted=False)
