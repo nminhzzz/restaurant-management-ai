@@ -194,17 +194,47 @@ async def recipe_items(session: AsyncSession, recipe_id: int) -> list[object]:
         return []
 
 
-async def ingredient_total(session: AsyncSession, ingredient_id: int) -> float:
+async def ingredient_total(session: AsyncSession, dish_or_id) -> float:
     from sqlalchemy import text
-
+    # If dish object or dish id passed, resolve to ingredient via recipe
+    dish_id = getattr(dish_or_id, "id", dish_or_id)
     try:
-        r = await session.execute(
-            text("SELECT SoLuongTon FROM NGUYEN_LIEU WHERE MaNguyenLieu=:id"), {"id": ingredient_id}
-        )
-        v = r.scalar_one_or_none()
-        return float(v or 0)
+        dish_id_int = int(dish_id)
     except Exception:
         return 0
+    # Try direct ingredient lookup first
+    try:
+        r0 = await session.execute(text("SELECT SoLuongTon FROM NGUYEN_LIEU WHERE MaNguyenLieu=:id"), {"id": dish_id_int})
+        v0 = r0.scalar_one_or_none()
+        if v0 is not None:
+            return float(v0)
+    except Exception:
+        pass
+    # Fallback: dish -> recipe -> first ingredient
+    try:
+        r1 = await session.execute(text("SELECT MaCongThuc FROM CONG_THUC WHERE MaMon=:id AND TrangThai='Hiệu lực' LIMIT 1"), {"id": dish_id_int})
+        row = r1.mappings().first()
+        if row:
+            rid = row["MaCongThuc"]
+            r2 = await session.execute(text("SELECT MaNguyenLieu FROM CHI_TIET_CONG_THUC WHERE MaCongThuc=:id LIMIT 1"), {"id": rid})
+            row2 = r2.mappings().first()
+            if row2:
+                iid = row2["MaNguyenLieu"]
+                r3 = await session.execute(text("SELECT SoLuongTon FROM NGUYEN_LIEU WHERE MaNguyenLieu=:id"), {"id": iid})
+                v = r3.scalar_one_or_none()
+                return float(v or 0)
+    except Exception:
+        pass
+    return 0
+
+
+async def table_status(session: AsyncSession, table_id: int) -> str | None:
+    from sqlalchemy import text
+    try:
+        r = await session.execute(text("SELECT TrangThai FROM BAN WHERE MaBan=:id"), {"id": table_id})
+        return r.scalar_one_or_none()
+    except Exception:
+        return None
 
 
 async def lot_total(session: AsyncSession, lot_id: int) -> float:
@@ -315,7 +345,7 @@ async def counter_for(session: AsyncSession, business_date_val: date) -> int:
 
     try:
         r = await session.execute(
-            text("SELECT SoLuong FROM DEM_ORDER WHERE BusinessDate=:d"),
+            text("SELECT SoDaCap FROM DEM_ORDER WHERE BusinessDate=:d"),
             {"d": business_date_val.isoformat()},
         )
         v = r.scalar_one_or_none()

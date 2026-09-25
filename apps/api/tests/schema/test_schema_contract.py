@@ -36,6 +36,7 @@ EXPECTED_TABLES = {
     "GIA_BINH_QUAN_THANG",
     "PHIEN_CHAT_AI",
     "TRUY_VAN_AI",
+    "DEM_ORDER",
 }
 
 EXPECTED_INDEXES = {
@@ -51,7 +52,7 @@ EXPECTED_INDEXES = {
 }
 
 
-def test_the_schema_has_exactly_the_29_tables_of_the_report() -> None:
+def test_the_schema_has_the_report_tables_plus_the_counter() -> None:
     assert set(Base.metadata.tables) == EXPECTED_TABLES
 
 

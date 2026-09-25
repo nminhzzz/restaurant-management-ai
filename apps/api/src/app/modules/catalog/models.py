@@ -62,6 +62,9 @@ class DiningTable(Base):
     __tablename__ = "BAN"
     id: Mapped[int] = mapped_column("MaBan", BigInteger, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column("TenBan", String(50), nullable=False)
+    status: Mapped[str] = mapped_column(
+        "TrangThai", String(20), nullable=False, default="Tr\u1ed1ng"
+    )
     is_deleted: Mapped[bool] = mapped_column("DaXoa", default=False, nullable=False)
     active_name: Mapped[str | None] = mapped_column(
         "TenBan_Active",

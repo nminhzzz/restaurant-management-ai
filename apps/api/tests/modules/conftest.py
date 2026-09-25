@@ -302,3 +302,57 @@ async def dish_with_recipe(session, dish, fresh_ingredient):
 @pytest_asyncio.fixture
 async def flour(session, fresh_ingredient):
     return fresh_ingredient
+# --- Phase 4 fixtures ---
+@pytest_asyncio.fixture
+async def table(session):
+    from app.modules.catalog.models import DiningTable
+    t = DiningTable(name="Bàn A", is_deleted=False, status="Trống")
+    session.add(t)
+    await session.flush()
+    await session.commit()
+    return t
+
+
+@pytest_asyncio.fixture
+async def table2(session):
+    from app.modules.catalog.models import DiningTable
+    t = DiningTable(name="Bàn B", is_deleted=False, status="Trống")
+    session.add(t)
+    await session.flush()
+    await session.commit()
+    return t
+
+
+@pytest_asyncio.fixture
+async def scarce_dish(session, group):
+    """Dish with tiny stock (1 unit) so ordering 99 fails."""
+    from app.modules.catalog.models import Dish, Ingredient, Recipe, RecipeItem, DishPriceVersion
+    from app.shared import business_date as _bd
+    from app.shared.enums import VersionStatus
+    from app.modules.inventory.models import GoodsReceipt, GoodsReceiptLine, IngredientLot
+    dish = Dish(name="Món hiếm", group_id=group.id, is_deleted=False)
+    session.add(dish)
+    await session.flush()
+    ing = Ingredient(name="NL hiếm", unit="kg", min_stock=1, stock_qty=1, is_deleted=False)
+    session.add(ing)
+    await session.flush()
+    pv = DishPriceVersion(dish_id=dish.id, price=10000, business_date=_bd.business_date_of(_bd.now()), status=VersionStatus.HIEU_LUC.value, change_type="Tạo mới")
+    session.add(pv)
+    await session.flush()
+    r = Recipe(dish_id=dish.id, business_date=_bd.business_date_of(_bd.now()), status=VersionStatus.HIEU_LUC.value, change_type="Tạo mới")
+    session.add(r)
+    await session.flush()
+    session.add(RecipeItem(recipe_id=r.id, ingredient_id=ing.id, quantity=1))
+    # lot with 1 remaining
+    gr = GoodsReceipt(supplier_id=None, status="Nháp", receipt_date=_bd.now())
+    session.add(gr)
+    await session.flush()
+    gl = GoodsReceiptLine(receipt_id=gr.id, ingredient_id=ing.id, quantity=1, unit_price=5000)
+    session.add(gl)
+    await session.flush()
+    lot = IngredientLot(ingredient_id=ing.id, receipt_line_id=gl.id, quantity_remaining=1, status="Còn hạn", received_at=_bd.now())
+    session.add(lot)
+    await session.flush()
+    await session.commit()
+    return dish
+
