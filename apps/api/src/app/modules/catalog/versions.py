@@ -1,5 +1,6 @@
 """Version lookup helpers — contract for Phase 4 and Phase 3."""
 
+from collections.abc import Sequence
 from datetime import date
 from decimal import Decimal
 
@@ -30,6 +31,31 @@ async def active_price_version(
 async def active_price(session: AsyncSession, dish_id: int, bd: date) -> Decimal | None:
     v = await active_price_version(session, dish_id, bd)
     return Decimal(str(v.price)) if v else None
+
+
+async def active_prices(
+    session: AsyncSession, dish_ids: Sequence[int], bd: date
+) -> dict[int, Decimal]:
+    """`active_price_version` for many dishes in one query; dishes without a price are absent."""
+    if not dish_ids:
+        return {}
+    rows = await session.execute(
+        select(DishPriceVersion)
+        .where(
+            DishPriceVersion.dish_id.in_(list(dish_ids)),
+            DishPriceVersion.status == VersionStatus.HIEU_LUC.value,
+            DishPriceVersion.business_date <= bd,
+        )
+        .order_by(
+            DishPriceVersion.dish_id,
+            DishPriceVersion.business_date.desc(),
+            DishPriceVersion.id.desc(),
+        )
+    )
+    prices: dict[int, Decimal] = {}
+    for version in rows.scalars():
+        prices.setdefault(version.dish_id, Decimal(str(version.price)))
+    return prices
 
 
 async def active_recipe(session: AsyncSession, dish_id: int, bd: date) -> Recipe | None:
