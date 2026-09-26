@@ -80,6 +80,11 @@ def test_an_empty_expected_key_never_matches():
     assert sepay.api_key_matches("Apikey ", "") is False
 
 
+def test_a_non_ascii_header_does_not_raise():
+    """Review #8: hmac.compare_digest on str raises TypeError for non-ASCII input."""
+    assert sepay.api_key_matches("Apikey khóa", "secret-key") is False
+
+
 def test_selecting_sepay_without_credentials_fails_at_startup(monkeypatch):
     monkeypatch.setenv("PAYMENT_GATEWAY", "sepay")
     get_settings.cache_clear()

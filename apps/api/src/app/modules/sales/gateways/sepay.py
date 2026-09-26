@@ -42,7 +42,9 @@ def api_key_matches(header: str | None, expected: str) -> bool:
     if not expected or not header:
         return False
     scheme, _, key = header.partition(" ")
-    return scheme.lower() == "apikey" and hmac.compare_digest(key.strip(), expected)
+    return scheme.lower() == "apikey" and hmac.compare_digest(
+        key.strip().encode(), expected.encode()
+    )
 
 
 def parse_transfer(body: dict[str, Any]) -> Transfer:
