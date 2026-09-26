@@ -4,6 +4,7 @@ import {
   Banknote,
   CircleAlert,
   CircleCheck,
+  Copy,
   Printer,
   QrCode,
   Receipt,
@@ -11,6 +12,7 @@ import {
   TimerReset,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import {
   ErrorState,
@@ -57,6 +59,7 @@ type Payment = {
 
 type InvoiceDetail = {
   SoHoaDon: string;
+  MaOrderHienThi?: string | null;
   TenNhaHang?: string | null;
   DiaChi?: string | null;
   ThoiDiemXuat?: string | null;
@@ -124,8 +127,8 @@ export function PaymentPanel({
   const qr = qrOverride ?? latestQr;
   // An order that already has a live or reconciling QR payment opens straight
   // into the QR pane, so its transaction card is visible without a manual pick.
-  const activeMethod: "cash" | "qr" =
-    qr && qr.TrangThai !== "Đã hủy" ? "qr" : method;
+  const qrLocksCash = !!qr && qr.TrangThai !== "Đã hủy";
+  const activeMethod: "cash" | "qr" = qrLocksCash ? "qr" : method;
 
   useEffect(() => {
     if (!qr?.ThoiDiemHetHan || qr.TrangThai !== "Chờ xác nhận") return;
@@ -232,6 +235,16 @@ export function PaymentPanel({
       if (result.TrangThai === "Thành công") onPaid?.({ change: null });
       else setMessage("Chưa thấy giao dịch. Chờ thêm hoặc kiểm tra lại sau.");
     }, "Không kiểm tra được giao dịch.");
+  };
+
+  const copyTransferContent = async () => {
+    if (!qr?.payment_code) return;
+    try {
+      await navigator.clipboard.writeText(qr.payment_code);
+      toast.success("Đã sao chép nội dung chuyển khoản.");
+    } catch {
+      toast.error("Không sao chép được. Hãy đọc nội dung cho khách.");
+    }
   };
 
   const cancelQr = () => {
@@ -368,32 +381,43 @@ export function PaymentPanel({
               ["cash", "Tiền mặt", "Nhập tiền khách đưa, tính tiền thối", Banknote],
               ["qr", "QR chuyển khoản", "Khách quét mã, hệ thống tự xác nhận", QrCode],
             ] as const
-          ).map(([value, title, hint, Icon]) => (
-            <label
-              key={value}
-              className={cn(
-                "grid cursor-pointer gap-1 rounded-container border px-3.5 py-3 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary",
-                activeMethod === value
-                  ? "border-ink bg-surface-sunken ring-1 ring-ink"
-                  : "border-border-strong bg-surface",
-              )}
-            >
-              <input
-                type="radio"
-                name={`method-${orderId}`}
-                value={value}
-                checked={activeMethod === value}
-                onChange={() => setMethod(value)}
-                className="sr-only"
-              />
-              <span className="flex items-center gap-2 text-[15px] font-bold">
-                <Icon className="size-4" aria-hidden />
-                {title}
-              </span>
-              <span className="text-xs text-muted">{hint}</span>
-            </label>
-          ))}
+          ).map(([value, title, hint, Icon]) => {
+            const disabled = value === "cash" && qrLocksCash;
+            return (
+              <label
+                key={value}
+                aria-disabled={disabled}
+                className={cn(
+                  "grid cursor-pointer gap-1 rounded-container border px-3.5 py-3 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary",
+                  activeMethod === value
+                    ? "border-ink bg-surface-sunken ring-1 ring-ink"
+                    : "border-border-strong bg-surface",
+                  disabled && "cursor-not-allowed opacity-50",
+                )}
+              >
+                <input
+                  type="radio"
+                  name={`method-${orderId}`}
+                  value={value}
+                  checked={activeMethod === value}
+                  disabled={disabled}
+                  onChange={() => setMethod(value)}
+                  className="sr-only"
+                />
+                <span className="flex items-center gap-2 text-[15px] font-bold">
+                  <Icon className="size-4" aria-hidden />
+                  {title}
+                </span>
+                <span className="text-xs text-muted">{hint}</span>
+              </label>
+            );
+          })}
         </div>
+        {qrLocksCash && (
+          <p className="text-xs text-muted">
+            Đang có giao dịch QR. Hủy QR để chuyển sang tiền mặt.
+          </p>
+        )}
 
         {activeMethod === "cash" && (
           <div className="space-y-3">
@@ -476,8 +500,18 @@ export function PaymentPanel({
                   <dt className="text-muted">Chủ tài khoản</dt>
                   <dd className="font-semibold">{qr.account_name}</dd>
                   <dt className="text-muted">Nội dung</dt>
-                  <dd className="font-mono text-base font-bold">
+                  <dd className="flex items-center gap-2 font-mono text-base font-bold">
                     {qr.payment_code}
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="icon"
+                      className="h-11 w-11 shrink-0"
+                      aria-label="Sao chép nội dung chuyển khoản"
+                      onClick={copyTransferContent}
+                    >
+                      <Copy className="size-4" aria-hidden />
+                    </Button>
                   </dd>
                 </dl>
                 <p className="text-xs font-semibold text-warning-fg sm:col-span-2">

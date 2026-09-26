@@ -42,6 +42,14 @@ export function DoneStep({
       <dl className="grid w-full grid-cols-[auto_1fr] gap-x-4 gap-y-2 rounded-control bg-surface-sunken p-4 text-left">
         <dt className="text-muted">Số hoá đơn</dt>
         <dd className="text-right font-mono font-semibold">{data.SoHoaDon}</dd>
+        {data.MaOrderHienThi && (
+          <>
+            <dt className="text-muted">Order</dt>
+            <dd className="text-right font-mono font-semibold">
+              {data.MaOrderHienThi}
+            </dd>
+          </>
+        )}
         <dt className="text-muted">Phương thức</dt>
         <dd className="text-right font-semibold">
           {data.PhuongThucThanhToan ?? "—"}

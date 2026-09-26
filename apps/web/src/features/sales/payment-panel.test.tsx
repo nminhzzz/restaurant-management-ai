@@ -203,6 +203,92 @@ describe("PaymentPanel cash and SePay", () => {
     expect(screen.getByText("0123499999")).toBeInTheDocument();
   });
 
+  it("copies the transfer content to the clipboard", async () => {
+    stubByPath({
+      "/sales/orders/1/pay/qr": qr({
+        qr_image_url: "https://qr.sepay.vn/img?acc=1&bank=MBBank&amount=340000&des=TT1",
+        payment_code: "TT1",
+        bank_code: "MBBank",
+        bank_account: "0123499999",
+        account_name: "NHA HANG DEMO",
+      }),
+      "/sales/orders/1": priced,
+    });
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+    });
+    render(<PaymentPanel orderId={1} />);
+    await chooseQr();
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Sao chép nội dung chuyển khoản",
+      }),
+    );
+
+    await vi.waitFor(() => expect(writeText).toHaveBeenCalledWith("TT1"));
+  });
+
+  it("reports the payment once check-again succeeds", async () => {
+    const onPaid = vi.fn();
+    stubByPath({
+      "/sales/orders/1/pay/qr": qr(),
+      "/sales/payments/1/check": { MaGiaoDich: 1, TrangThai: "Thành công" },
+      "/sales/orders/1": priced,
+    });
+    render(<PaymentPanel orderId={1} onPaid={onPaid} />);
+    await chooseQr();
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Kiểm tra lại" }),
+    );
+
+    await vi.waitFor(() =>
+      expect(onPaid).toHaveBeenCalledWith({ change: null }),
+    );
+  });
+
+  it("shows a status message when check-again still finds nothing", async () => {
+    const onPaid = vi.fn();
+    stubByPath({
+      "/sales/orders/1/pay/qr": qr(),
+      "/sales/payments/1/check": { MaGiaoDich: 1, TrangThai: "Chờ xác nhận" },
+      "/sales/orders/1": priced,
+    });
+    render(<PaymentPanel orderId={1} onPaid={onPaid} />);
+    await chooseQr();
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Kiểm tra lại" }),
+    );
+
+    expect(
+      await screen.findByText(
+        "Chưa thấy giao dịch. Chờ thêm hoặc kiểm tra lại sau.",
+      ),
+    ).toBeInTheDocument();
+    expect(onPaid).not.toHaveBeenCalled();
+  });
+
+  it("locks the cash tab while a QR transaction is live", async () => {
+    stubByPath({
+      "/sales/orders/1/payments": { items: [qr()] },
+      "/sales/orders/1": priced,
+    });
+    render(<PaymentPanel orderId={1} />);
+
+    expect(
+      await screen.findByRole("radio", { name: /Tiền mặt/ }),
+    ).toBeDisabled();
+    expect(
+      screen.getByText(
+        "Đang có giao dịch QR. Hủy QR để chuyển sang tiền mặt.",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("reports the payment once polling sees it succeed", async () => {
     vi.useFakeTimers();
     try {
