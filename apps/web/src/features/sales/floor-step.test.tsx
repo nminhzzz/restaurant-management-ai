@@ -17,10 +17,24 @@ const board = {
       MaBan: 4,
       TenBan: "Bàn 04",
       TrangThai: "Đang phục vụ",
-      order: { MaOrder: 142, MaOrderHienThi: "ORD-142", MoLuc: "2026-09-26T14:32:00", SoMon: 4, TamTinh: 248000 },
+      order: {
+        MaOrder: 142,
+        MaOrderHienThi: "ORD-142",
+        MoLuc: "2026-09-26T14:32:00",
+        SoMon: 4,
+        TamTinh: 248000,
+      },
     },
   ],
-  takeaway: [{ MaOrder: 139, MaOrderHienThi: "ORD-139", MoLuc: null, SoMon: 2, TamTinh: 120000 }],
+  takeaway: [
+    {
+      MaOrder: 139,
+      MaOrderHienThi: "ORD-139",
+      MoLuc: null,
+      SoMon: 2,
+      TamTinh: 120000,
+    },
+  ],
 };
 
 function setup() {
@@ -55,7 +69,9 @@ describe("FloorStep", () => {
 
   it("starts and resumes takeaway orders", async () => {
     const h = setup();
-    fireEvent.click(await screen.findByRole("button", { name: "Đơn mới mang về" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Đơn mới mang về" }),
+    );
     expect(h.onNewOrder).toHaveBeenCalledWith(null);
     fireEvent.click(screen.getByRole("button", { name: /ORD-139/ }));
     expect(h.onPay).toHaveBeenCalledWith(139, null);
@@ -66,7 +82,9 @@ describe("FloorStep", () => {
     await screen.findByRole("button", { name: /Bàn 04/ });
     const filters = screen.getByRole("group", { name: "Lọc bàn" });
     fireEvent.click(within(filters).getByRole("button", { name: /Trống/ }));
-    expect(screen.queryByRole("button", { name: /Bàn 04/ })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Bàn 04/ }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Bàn 01/ })).toBeInTheDocument();
   });
 
@@ -79,7 +97,9 @@ describe("FloorStep", () => {
           : board,
       ),
     );
-    fireEvent.change(await screen.findByLabelText("Tra mã order"), { target: { value: "ORD-77" } });
+    fireEvent.change(await screen.findByLabelText("Tra mã order"), {
+      target: { value: "ORD-77" },
+    });
     fireEvent.submit(screen.getByRole("search"));
     await vi.waitFor(() => expect(h.onPay).toHaveBeenCalledWith(77, 3));
   });

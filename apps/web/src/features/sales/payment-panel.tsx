@@ -378,8 +378,18 @@ export function PaymentPanel({
         >
           {(
             [
-              ["cash", "Tiền mặt", "Nhập tiền khách đưa, tính tiền thối", Banknote],
-              ["qr", "QR chuyển khoản", "Khách quét mã, hệ thống tự xác nhận", QrCode],
+              [
+                "cash",
+                "Tiền mặt",
+                "Nhập tiền khách đưa, tính tiền thối",
+                Banknote,
+              ],
+              [
+                "qr",
+                "QR chuyển khoản",
+                "Khách quét mã, hệ thống tự xác nhận",
+                QrCode,
+              ],
             ] as const
           ).map(([value, title, hint, Icon]) => {
             const disabled = value === "cash" && qrLocksCash;
@@ -448,7 +458,9 @@ export function PaymentPanel({
                 data-testid="cash-change"
                 className="text-2xl font-bold tabular-nums"
               >
-                {digits(given) >= total ? formatVnd(digits(given) - total) : "—"}
+                {digits(given) >= total
+                  ? formatVnd(digits(given) - total)
+                  : "—"}
               </span>
             </div>
             <Button

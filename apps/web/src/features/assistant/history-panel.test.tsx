@@ -23,14 +23,37 @@ describe("HistoryPanel", () => {
   it("marks the active session and opens another one", async () => {
     (apiFetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       items: [
-        { id: 2, title: "Doanh thu?", turn_count: 3, created_at: "", last_at: new Date().toISOString() },
-        { id: 1, title: "Kho?", turn_count: 1, created_at: "", last_at: new Date().toISOString() },
+        {
+          id: 2,
+          title: "Doanh thu?",
+          turn_count: 3,
+          created_at: "",
+          last_at: new Date().toISOString(),
+        },
+        {
+          id: 1,
+          title: "Kho?",
+          turn_count: 1,
+          created_at: "",
+          last_at: new Date().toISOString(),
+        },
       ],
-      total: 2, page: 1, size: 50,
+      total: 2,
+      page: 1,
+      size: 50,
     });
     const onSelect = vi.fn();
-    render(<HistoryPanel activeId={2} refreshKey={0} onSelect={onSelect} onNew={vi.fn()} />);
-    expect(await screen.findByRole("button", { name: /Doanh thu\?/ })).toHaveAttribute("aria-current", "true");
+    render(
+      <HistoryPanel
+        activeId={2}
+        refreshKey={0}
+        onSelect={onSelect}
+        onNew={vi.fn()}
+      />,
+    );
+    expect(
+      await screen.findByRole("button", { name: /Doanh thu\?/ }),
+    ).toHaveAttribute("aria-current", "true");
     fireEvent.click(screen.getByRole("button", { name: /Kho\?/ }));
     expect(onSelect).toHaveBeenCalledWith(1);
   });

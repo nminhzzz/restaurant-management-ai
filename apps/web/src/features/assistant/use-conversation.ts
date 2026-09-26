@@ -14,7 +14,9 @@ export type Turn = {
   restored: TurnOut | null;
 };
 
-export function useConversation(options: { onSessionCreated?: (id: number) => void } = {}) {
+export function useConversation(
+  options: { onSessionCreated?: (id: number) => void } = {},
+) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [sessionId, setSessionId] = useState<number | null>(null);
   // Refs keep `ask` stable and let two quick questions see the same session id.
@@ -30,22 +32,40 @@ export function useConversation(options: { onSessionCreated?: (id: number) => vo
     const question = text.trim();
     if (!question) return;
     const id = `t${counter.current++}`;
-    setTurns((prev) => [...prev, { id, question, status: "pending", result: null, error: null, restored: null }]);
+    setTurns((prev) => [
+      ...prev,
+      {
+        id,
+        question,
+        status: "pending",
+        result: null,
+        error: null,
+        restored: null,
+      },
+    ]);
     try {
       const current = sessionRef.current;
       const result = await apiFetch<ChatResponse>("/assistant/chat", {
         method: "POST",
-        body: current === null ? { question } : { question, session_id: current },
+        body:
+          current === null ? { question } : { question, session_id: current },
       });
       if (current === null && result.session_id != null) {
         sessionRef.current = result.session_id;
         setSessionId(result.session_id);
         onCreated.current?.(result.session_id);
       }
-      setTurns((prev) => prev.map((t) => (t.id === id ? { ...t, status: "done", result } : t)));
+      setTurns((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, status: "done", result } : t)),
+      );
     } catch (cause) {
-      const error = cause instanceof ApiError ? cause.message : "Không kết nối được máy chủ API.";
-      setTurns((prev) => prev.map((t) => (t.id === id ? { ...t, status: "failed", error } : t)));
+      const error =
+        cause instanceof ApiError
+          ? cause.message
+          : "Không kết nối được máy chủ API.";
+      setTurns((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, status: "failed", error } : t)),
+      );
     }
   }, []);
 

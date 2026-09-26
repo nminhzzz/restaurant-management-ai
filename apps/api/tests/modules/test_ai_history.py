@@ -16,12 +16,18 @@ async def _session_with(
     session.add(chat)
     await session.flush()
     for i, question in enumerate(questions):
-        session.add(AssistantQuery(
-            session_id=chat.id, scope="vw_ai_thungan", question=question, sql_text=None,
-            status="Thành công",
-            summary=f"Trả lời {i}.\n- ý {i}\n\nPhạm vi dữ liệu: vw_ai_thungan — x.",
-            latency_ms=5, occurred_at=start + timedelta(minutes=i),
-        ))
+        session.add(
+            AssistantQuery(
+                session_id=chat.id,
+                scope="vw_ai_thungan",
+                question=question,
+                sql_text=None,
+                status="Thành công",
+                summary=f"Trả lời {i}.\n- ý {i}\n\nPhạm vi dữ liệu: vw_ai_thungan — x.",
+                latency_ms=5,
+                occurred_at=start + timedelta(minutes=i),
+            )
+        )
     await session.flush()
     return chat
 

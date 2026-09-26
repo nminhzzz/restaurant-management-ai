@@ -13,9 +13,14 @@ NOTE = "Phạm vi dữ liệu: vw_ai_thungan — đơn hàng, hóa đơn và tha
 
 
 def test_valid_json_is_parsed():
-    raw = json.dumps({"headline": "Doanh thu 7 ngày đạt 128.450.000 ₫.",
-                      "highlights": ["CN cao nhất 22.100.000 ₫.", "T2 thấp nhất 12.400.000 ₫."],
-                      "follow_ups": ["So với tuần trước?"]}, ensure_ascii=False)
+    raw = json.dumps(
+        {
+            "headline": "Doanh thu 7 ngày đạt 128.450.000 ₫.",
+            "highlights": ["CN cao nhất 22.100.000 ₫.", "T2 thấp nhất 12.400.000 ₫."],
+            "follow_ups": ["So với tuần trước?"],
+        },
+        ensure_ascii=False,
+    )
     answer = parse_model_answer(raw)
     assert answer.headline == "Doanh thu 7 ngày đạt 128.450.000 ₫."
     assert answer.highlights == ["CN cao nhất 22.100.000 ₫.", "T2 thấp nhất 12.400.000 ₫."]
@@ -33,8 +38,13 @@ def test_plain_text_falls_back_to_the_headline():
 
 
 def test_wrong_shapes_are_sanitised():
-    raw = json.dumps({"headline": "  Có   5 món. ", "highlights": "không phải danh sách",
-                      "follow_ups": ["A?", "a?", "", 3, "B?", "C?", "D?"]})
+    raw = json.dumps(
+        {
+            "headline": "  Có   5 món. ",
+            "highlights": "không phải danh sách",
+            "follow_ups": ["A?", "a?", "", 3, "B?", "C?", "D?"],
+        }
+    )
     answer = parse_model_answer(raw)
     assert answer.headline == "Có 5 món."
     assert answer.highlights == []
@@ -42,8 +52,13 @@ def test_wrong_shapes_are_sanitised():
 
 
 def test_lists_and_lengths_are_capped():
-    raw = json.dumps({"headline": "x" * 500, "highlights": [f"ý {i}" for i in range(9)],
-                      "follow_ups": ["y" * 400]})
+    raw = json.dumps(
+        {
+            "headline": "x" * 500,
+            "highlights": [f"ý {i}" for i in range(9)],
+            "follow_ups": ["y" * 400],
+        }
+    )
     answer = parse_model_answer(raw)
     assert len(answer.headline) == 300
     assert len(answer.highlights) == 4

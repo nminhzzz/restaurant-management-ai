@@ -31,12 +31,17 @@ export function SalesWorkspace() {
   const requested = (params.get("step") ?? "floor") as SalesStep;
   // A step that lacks what it needs falls back to the floor instead of rendering empty.
   const step: SalesStep =
-    STEPS.includes(requested) && (requested === "floor" || requested === "order" || orderId !== null)
+    STEPS.includes(requested) &&
+    (requested === "floor" || requested === "order" || orderId !== null)
       ? requested
       : "floor";
 
   const go = useCallback(
-    (next: SalesStep, table: number | null = tableId, order: number | null = orderId) => {
+    (
+      next: SalesStep,
+      table: number | null = tableId,
+      order: number | null = orderId,
+    ) => {
       const query = new URLSearchParams();
       if (next !== "floor") {
         query.set("step", next);
@@ -65,7 +70,11 @@ export function SalesWorkspace() {
         <PageHeader title="Bán hàng" />
         <SalesStepper
           current={step}
-          enabled={{ floor: true, order: step !== "floor" && step !== "done", pay: orderId !== null && step !== "done" }}
+          enabled={{
+            floor: true,
+            order: step !== "floor" && step !== "done",
+            pay: orderId !== null && step !== "done",
+          }}
           onGo={(next) => go(next)}
         />
       </div>
@@ -82,17 +91,27 @@ export function SalesWorkspace() {
           tableId={tableId}
           orderId={orderId}
           onBack={() => go("floor")}
-          onSent={(order, next) => (next === "pay" ? go("pay", tableId, order) : go("floor"))}
+          onSent={(order, next) =>
+            next === "pay" ? go("pay", tableId, order) : go("floor")
+          }
         />
       )}
       {step === "pay" && orderId !== null && (
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
           <OrderDetail key={`detail-${orderId}`} orderId={orderId} />
-          <PaymentPanel key={`payment-${orderId}`} orderId={orderId} onPaid={handlePaid} />
+          <PaymentPanel
+            key={`payment-${orderId}`}
+            orderId={orderId}
+            onPaid={handlePaid}
+          />
         </div>
       )}
       {step === "done" && orderId !== null && (
-        <DoneStep orderId={orderId} change={change} onFinish={() => go("floor")} />
+        <DoneStep
+          orderId={orderId}
+          change={change}
+          onFinish={() => go("floor")}
+        />
       )}
     </div>
   );

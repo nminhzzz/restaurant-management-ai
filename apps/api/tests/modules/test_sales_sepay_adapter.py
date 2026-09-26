@@ -63,8 +63,14 @@ def test_parse_refuses_a_body_without_id_or_amount():
 
 @pytest.mark.parametrize(
     ("header", "ok"),
-    [("Apikey secret-key", True), ("apikey secret-key", True), ("Apikey wrong", False),
-     ("Bearer secret-key", False), (None, False), ("", False)],
+    [
+        ("Apikey secret-key", True),
+        ("apikey secret-key", True),
+        ("Apikey wrong", False),
+        ("Bearer secret-key", False),
+        (None, False),
+        ("", False),
+    ],
 )
 def test_the_api_key_check(header, ok):
     assert sepay.api_key_matches(header, "secret-key") is ok
@@ -86,9 +92,22 @@ async def test_recent_transfers_reads_the_listing(monkeypatch):
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.headers["Authorization"] == "Bearer tok"
         assert request.url.params["account_number"] == "0123499999"
-        return httpx.Response(200, json={"status": 200, "transactions": [
-            {"id": "5", "amount_in": "340000.00", "amount_out": "0.00",
-             "transaction_content": "TT388", "reference_number": "FT1", "code": "TT388"}]})
+        return httpx.Response(
+            200,
+            json={
+                "status": 200,
+                "transactions": [
+                    {
+                        "id": "5",
+                        "amount_in": "340000.00",
+                        "amount_out": "0.00",
+                        "transaction_content": "TT388",
+                        "reference_number": "FT1",
+                        "code": "TT388",
+                    }
+                ],
+            },
+        )
 
     monkeypatch.setattr(sepay, "_transport", httpx.MockTransport(handler))
     rows = await sepay.recent_transfers(
@@ -96,5 +115,11 @@ async def test_recent_transfers_reads_the_listing(monkeypatch):
     )
 
     body = sepay.transfer_from_listing(rows[0])
-    assert body == {"id": "5", "transferType": "in", "transferAmount": "340000.00",
-                    "code": "TT388", "content": "TT388", "referenceCode": "FT1"}
+    assert body == {
+        "id": "5",
+        "transferType": "in",
+        "transferAmount": "340000.00",
+        "code": "TT388",
+        "content": "TT388",
+        "referenceCode": "FT1",
+    }

@@ -42,7 +42,9 @@ const openOrder = {
 };
 
 async function chooseQr() {
-  fireEvent.click(await screen.findByRole("radio", { name: /QR chuyển khoản/ }));
+  fireEvent.click(
+    await screen.findByRole("radio", { name: /QR chuyển khoản/ }),
+  );
   fireEvent.click(screen.getByRole("button", { name: "Tạo mã QR" }));
 }
 
@@ -156,23 +158,38 @@ describe("PaymentPanel cash and SePay", () => {
 
   const priced = {
     ...openOrder,
-    lines: [{ MaChiTietOrder: 1, MaMon: 5, SoLuong: 2, DonGia: 170000, TrangThai: "Chờ" }],
+    lines: [
+      {
+        MaChiTietOrder: 1,
+        MaMon: 5,
+        SoLuong: 2,
+        DonGia: 170000,
+        TrangThai: "Chờ",
+      },
+    ],
   };
 
   it("computes change and only confirms once enough cash is given", async () => {
     const onPaid = vi.fn();
-    stubByPath({ "/sales/orders/1/pay/cash": { MaHoaDon: 9 }, "/sales/orders/1": priced });
+    stubByPath({
+      "/sales/orders/1/pay/cash": { MaHoaDon: 9 },
+      "/sales/orders/1": priced,
+    });
     render(<PaymentPanel orderId={1} onPaid={onPaid} />);
 
     const given = await screen.findByLabelText("Tiền khách đưa");
     fireEvent.change(given, { target: { value: "300000" } });
-    expect(screen.getByRole("button", { name: /Xác nhận đã thu/ })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /Xác nhận đã thu/ }),
+    ).toBeDisabled();
 
     fireEvent.change(given, { target: { value: "500000" } });
     expect(screen.getByTestId("cash-change")).toHaveTextContent("160.000 ₫");
     fireEvent.click(screen.getByRole("button", { name: /Xác nhận đã thu/ }));
 
-    await vi.waitFor(() => expect(onPaid).toHaveBeenCalledWith({ change: 160000 }));
+    await vi.waitFor(() =>
+      expect(onPaid).toHaveBeenCalledWith({ change: 160000 }),
+    );
   });
 
   it("offers exact and rounded quick amounts", async () => {
@@ -184,7 +201,8 @@ describe("PaymentPanel cash and SePay", () => {
   it("shows the VietQR image, bank details and transfer code", async () => {
     stubByPath({
       "/sales/orders/1/pay/qr": qr({
-        qr_image_url: "https://qr.sepay.vn/img?acc=1&bank=MBBank&amount=340000&des=TT1",
+        qr_image_url:
+          "https://qr.sepay.vn/img?acc=1&bank=MBBank&amount=340000&des=TT1",
         payment_code: "TT1",
         bank_code: "MBBank",
         bank_account: "0123499999",
@@ -195,10 +213,9 @@ describe("PaymentPanel cash and SePay", () => {
     render(<PaymentPanel orderId={1} />);
     await chooseQr();
 
-    expect(await screen.findByRole("img", { name: /Mã VietQR/ })).toHaveAttribute(
-      "src",
-      expect.stringContaining("qr.sepay.vn"),
-    );
+    expect(
+      await screen.findByRole("img", { name: /Mã VietQR/ }),
+    ).toHaveAttribute("src", expect.stringContaining("qr.sepay.vn"));
     expect(screen.getByText("TT1")).toBeInTheDocument();
     expect(screen.getByText("0123499999")).toBeInTheDocument();
   });
@@ -206,7 +223,8 @@ describe("PaymentPanel cash and SePay", () => {
   it("copies the transfer content to the clipboard", async () => {
     stubByPath({
       "/sales/orders/1/pay/qr": qr({
-        qr_image_url: "https://qr.sepay.vn/img?acc=1&bank=MBBank&amount=340000&des=TT1",
+        qr_image_url:
+          "https://qr.sepay.vn/img?acc=1&bank=MBBank&amount=340000&des=TT1",
         payment_code: "TT1",
         bank_code: "MBBank",
         bank_account: "0123499999",
@@ -283,9 +301,7 @@ describe("PaymentPanel cash and SePay", () => {
       await screen.findByRole("radio", { name: /Tiền mặt/ }),
     ).toBeDisabled();
     expect(
-      screen.getByText(
-        "Đang có giao dịch QR. Hủy QR để chuyển sang tiền mặt.",
-      ),
+      screen.getByText("Đang có giao dịch QR. Hủy QR để chuyển sang tiền mặt."),
     ).toBeInTheDocument();
   });
 
@@ -297,7 +313,9 @@ describe("PaymentPanel cash and SePay", () => {
       let succeeded = false;
       fetchMock.mockImplementation((path: string) => {
         if (path.startsWith("/sales/orders/1/payments"))
-          return Promise.resolve({ items: [succeeded ? { ...live, TrangThai: "Thành công" } : live] });
+          return Promise.resolve({
+            items: [succeeded ? { ...live, TrangThai: "Thành công" } : live],
+          });
         if (path.startsWith("/sales/orders/1")) return Promise.resolve(priced);
         return Promise.resolve({});
       });

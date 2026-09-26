@@ -19,14 +19,32 @@ const base: ChatResponse = {
 
 describe("ResultTabs", () => {
   it("keeps a valid tab selected after the result changes shape", () => {
-    const withSql: ChatResponse = { ...base, detail: { sql: "SELECT 1", row_count: 1, view: "vw_ai_quanly", elapsed_ms: 10 } };
+    const withSql: ChatResponse = {
+      ...base,
+      detail: {
+        sql: "SELECT 1",
+        row_count: 1,
+        view: "vw_ai_quanly",
+        elapsed_ms: 10,
+      },
+    };
     const { rerender } = render(<ResultTabs result={withSql} />);
-    expect(screen.getByRole("tab", { name: /SQL/ })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: /SQL/ })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
 
-    const withTableOnly: ChatResponse = { ...base, data: [{ a: 1 }], detail: null };
+    const withTableOnly: ChatResponse = {
+      ...base,
+      data: [{ a: 1 }],
+      detail: null,
+    };
     rerender(<ResultTabs result={withTableOnly} />);
 
-    expect(screen.getByRole("tab", { name: /Bảng/ })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: /Bảng/ })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
     expect(screen.getByRole("table")).toBeInTheDocument();
   });
 });

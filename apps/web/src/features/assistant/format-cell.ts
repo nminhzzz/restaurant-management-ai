@@ -1,4 +1,9 @@
-import { formatDate, formatDateTime, formatNumber, formatVnd } from "@/lib/format";
+import {
+  formatDate,
+  formatDateTime,
+  formatNumber,
+  formatVnd,
+} from "@/lib/format";
 import type { ColumnKind, ColumnMeta } from "@/types/api";
 
 export function isNumericKind(kind: ColumnKind): boolean {
@@ -26,7 +31,12 @@ export function formatCell(value: unknown, kind: ColumnKind): string {
   }
 }
 
-export function columnsFor(rows: Record<string, unknown>[], columns?: ColumnMeta[]): ColumnMeta[] {
+export function columnsFor(
+  rows: Record<string, unknown>[],
+  columns?: ColumnMeta[],
+): ColumnMeta[] {
   if (columns && columns.length > 0) return columns;
-  return rows.length > 0 ? Object.keys(rows[0]).map((key) => ({ key, label: key, kind: "text" })) : [];
+  return rows.length > 0
+    ? Object.keys(rows[0]).map((key) => ({ key, label: key, kind: "text" }))
+    : [];
 }

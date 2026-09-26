@@ -18,7 +18,9 @@ describe("formatCell", () => {
   });
 
   it("falls back to raw keys when the API sent no column metadata", () => {
-    expect(columnsFor([{ A: 1 }])).toEqual([{ key: "A", label: "A", kind: "text" }]);
+    expect(columnsFor([{ A: 1 }])).toEqual([
+      { key: "A", label: "A", kind: "text" },
+    ]);
     expect(columnsFor([])).toEqual([]);
   });
 
@@ -30,8 +32,14 @@ describe("formatCell", () => {
 
 describe("suggestionsFor", () => {
   it("filters by role and by module", () => {
-    expect(suggestionsFor("WAREHOUSE").every((s) => s.module === "inventory")).toBe(true);
+    expect(
+      suggestionsFor("WAREHOUSE").every((s) => s.module === "inventory"),
+    ).toBe(true);
     expect(suggestionsFor("MANAGER", "inventory").length).toBeGreaterThan(0);
-    expect(suggestionsFor("MANAGER", "inventory").every((s) => s.module === "inventory")).toBe(true);
+    expect(
+      suggestionsFor("MANAGER", "inventory").every(
+        (s) => s.module === "inventory",
+      ),
+    ).toBe(true);
   });
 });

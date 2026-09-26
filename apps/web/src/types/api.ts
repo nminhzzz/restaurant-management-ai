@@ -15,7 +15,8 @@ export interface ChartSpec {
   y: string[];
 }
 
-export type ColumnKind = "text" | "money" | "number" | "date" | "datetime" | "percent";
+export type ColumnKind =
+  "text" | "money" | "number" | "date" | "datetime" | "percent";
 
 export interface ColumnMeta {
   key: string;

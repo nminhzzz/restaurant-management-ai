@@ -20,7 +20,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="vi" className="h-full antialiased">
       <body className="flex min-h-full flex-col bg-canvas font-sans text-sm text-ink">
         {children}
-        <Toaster position="bottom-right" richColors closeButton offset={{ bottom: 88, right: 20 }} />
+        <Toaster
+          position="bottom-right"
+          richColors
+          closeButton
+          offset={{ bottom: 88, right: 20 }}
+        />
       </body>
     </html>
   );

@@ -33,7 +33,8 @@ export function ChartView({
   }
 
   const meta = columnsFor(rows, columns);
-  const kindOf = (key: string) => meta.find((c) => c.key === key)?.kind ?? "text";
+  const kindOf = (key: string) =>
+    meta.find((c) => c.key === key)?.kind ?? "text";
   const series = values(rows, spec);
   const peak = Math.max(...series, 1);
   const plotH = HEIGHT - PAD.top - PAD.bottom;

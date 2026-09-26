@@ -15,7 +15,12 @@ import {
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
-import { EmptyState, ErrorState, LoadingState, StatusBadge } from "@/components/page-states";
+import {
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  StatusBadge,
+} from "@/components/page-states";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ApiError, apiFetch } from "@/lib/api-client";
@@ -53,7 +58,13 @@ function messageOf(error: unknown, fallback: string): string {
   return error instanceof ApiError ? error.message : fallback;
 }
 
-type SentLine = { MaChiTietOrder: number; MaMon: number; SoLuong: number; DonGia: number; TrangThai: string };
+type SentLine = {
+  MaChiTietOrder: number;
+  MaMon: number;
+  SoLuong: number;
+  DonGia: number;
+  TrangThai: string;
+};
 type OpenOrder = {
   MaOrder: number;
   MaOrderHienThi: string | null;
@@ -64,7 +75,10 @@ type OpenOrder = {
 
 function openedAt(iso?: string | null): string {
   if (!iso) return "";
-  return new Date(iso).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+  return new Date(iso).toLocaleTimeString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 async function loadMenu(orderId: number | null) {
@@ -72,7 +86,9 @@ async function loadMenu(orderId: number | null) {
     apiFetch<{ MaBan: number; TenBan: string }[]>("/catalog/tables"),
     apiFetch<{ items: Dish[] }>("/catalog/dishes?size=200"),
     apiFetch<Group[]>("/catalog/groups").catch(() => []),
-    orderId === null ? Promise.resolve(null) : apiFetch<OpenOrder>(`/sales/orders/${orderId}`),
+    orderId === null
+      ? Promise.resolve(null)
+      : apiFetch<OpenOrder>(`/sales/orders/${orderId}`),
   ]);
   const all = dishPage.items || [];
   return {
@@ -105,14 +121,19 @@ export function OrderStep({
   // Lines confirmed by the server during this visit but not yet reflected in
   // `menu.data.order` (no reload happens on a partial failure, so the total
   // would otherwise undercount them until the next full reload).
-  const [extraSent, setExtraSent] = useState<{ MaMon: number; SoLuong: number; DonGia: number }[]>([]);
+  const [extraSent, setExtraSent] = useState<
+    { MaMon: number; SoLuong: number; DonGia: number }[]
+  >([]);
 
   if (menu.status === "loading") return <LoadingState rows={6} />;
   if (menu.status === "error")
     return <ErrorState message={menu.message} onRetry={menu.reload} />;
 
   const { tables, dishes, groups, names, order } = menu.data;
-  const tableName = tableId === null ? "Mang về" : (tables.find((t) => t.MaBan === tableId)?.TenBan ?? `Bàn #${tableId}`);
+  const tableName =
+    tableId === null
+      ? "Mang về"
+      : (tables.find((t) => t.MaBan === tableId)?.TenBan ?? `Bàn #${tableId}`);
   const sent = (order?.lines ?? []).filter((l) => l.TrangThai !== "Đã hủy");
   // `extraSent` covers lines the server already confirmed but that a partial
   // failure kept out of `order.lines` (no reload happens on error).
@@ -132,7 +153,10 @@ export function OrderStep({
       TrangThai: "Chờ",
     })),
   ];
-  const sentTotal = sentDisplay.reduce((sum, l) => sum + l.DonGia * l.SoLuong, 0);
+  const sentTotal = sentDisplay.reduce(
+    (sum, l) => sum + l.DonGia * l.SoLuong,
+    0,
+  );
   const newTotal = cart.reduce((sum, l) => sum + l.DonGia * l.SoLuong, 0);
   const usedGroups = groups.filter((g) =>
     dishes.some((d) => d.MaNhomMon === g.MaNhomMon),
@@ -197,7 +221,11 @@ export function OrderStep({
           body: {
             MaBan: tableId,
             LoaiDon: tableId === null ? "Mang về" : "Tại chỗ",
-            lines: cart.map((l) => ({ MaMon: l.MaMon, SoLuong: l.SoLuong, GhiChu: l.GhiChu || null })),
+            lines: cart.map((l) => ({
+              MaMon: l.MaMon,
+              SoLuong: l.SoLuong,
+              GhiChu: l.GhiChu || null,
+            })),
           },
         });
         id = created.MaOrder;
@@ -211,16 +239,25 @@ export function OrderStep({
         for (const line of [...cart]) {
           await apiFetch(`/sales/orders/${id}/lines`, {
             method: "POST",
-            body: { MaMon: line.MaMon, SoLuong: line.SoLuong, GhiChu: line.GhiChu || null },
+            body: {
+              MaMon: line.MaMon,
+              SoLuong: line.SoLuong,
+              GhiChu: line.GhiChu || null,
+            },
           });
-          setExtraSent((prev) => [...prev, { MaMon: line.MaMon, SoLuong: line.SoLuong, DonGia: line.DonGia }]);
+          setExtraSent((prev) => [
+            ...prev,
+            { MaMon: line.MaMon, SoLuong: line.SoLuong, DonGia: line.DonGia },
+          ]);
           setCart((prev) => prev.filter((l) => l.MaMon !== line.MaMon));
         }
       }
       toast.success(`Đã gửi món của ${tableName} xuống bếp.`);
       onSent(id, next);
     } catch (e: unknown) {
-      setError(messageOf(e, "Không gửi được món. Kiểm tra kết nối rồi thử lại."));
+      setError(
+        messageOf(e, "Không gửi được món. Kiểm tra kết nối rồi thử lại."),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -316,7 +353,9 @@ export function OrderStep({
                     {d.TenMon}
                   </span>
                   {d.GiaHienTai != null ? (
-                    <span className="font-bold tabular-nums">{formatVnd(d.GiaHienTai)}</span>
+                    <span className="font-bold tabular-nums">
+                      {formatVnd(d.GiaHienTai)}
+                    </span>
                   ) : (
                     <span className="text-subtle">Chưa có giá</span>
                   )}
@@ -340,7 +379,9 @@ export function OrderStep({
         className="flex flex-col rounded-container border border-border bg-surface lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)]"
       >
         <div className="flex items-center justify-between gap-2 border-b border-border p-4">
-          <h2 className="text-base font-bold">{order ? `Order ${tableName}` : tableName}</h2>
+          <h2 className="text-base font-bold">
+            {order ? `Order ${tableName}` : tableName}
+          </h2>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
@@ -355,7 +396,9 @@ export function OrderStep({
           ) : (
             <>
               {cart.length > 0 && (
-                <p className="px-4 pt-3 pb-1 text-[11px] font-bold tracking-wider text-subtle uppercase">Món mới</p>
+                <p className="px-4 pt-3 pb-1 text-[11px] font-bold tracking-wider text-subtle uppercase">
+                  Món mới
+                </p>
               )}
               <ul className="divide-y divide-border">
                 {cart.map((l) => (
@@ -427,14 +470,23 @@ export function OrderStep({
               </ul>
               {sentDisplay.length > 0 && (
                 <div className="border-t border-border">
-                  <p className="px-4 pt-3 pb-1 text-[11px] font-bold tracking-wider text-subtle uppercase">Đã gửi bếp</p>
+                  <p className="px-4 pt-3 pb-1 text-[11px] font-bold tracking-wider text-subtle uppercase">
+                    Đã gửi bếp
+                  </p>
                   <ul className="divide-y divide-border bg-surface-sunken">
                     {sentDisplay.map((l) => (
-                      <li key={l.key} className="flex items-center justify-between gap-3 px-4 py-2.5">
-                        <span>{l.SoLuong}× {names.get(l.MaMon) ?? `Món #${l.MaMon}`}</span>
+                      <li
+                        key={l.key}
+                        className="flex items-center justify-between gap-3 px-4 py-2.5"
+                      >
+                        <span>
+                          {l.SoLuong}× {names.get(l.MaMon) ?? `Món #${l.MaMon}`}
+                        </span>
                         <span className="flex items-center gap-2">
                           <StatusBadge status={l.TrangThai} />
-                          <span className="font-semibold tabular-nums">{formatVnd(l.DonGia * l.SoLuong)}</span>
+                          <span className="font-semibold tabular-nums">
+                            {formatVnd(l.DonGia * l.SoLuong)}
+                          </span>
                         </span>
                       </li>
                     ))}
@@ -454,7 +506,10 @@ export function OrderStep({
           )}
           <div className="flex items-baseline justify-between">
             <span>Tổng cộng</span>
-            <span data-testid="cart-total" className="text-2xl font-bold tracking-tight tabular-nums">
+            <span
+              data-testid="cart-total"
+              className="text-2xl font-bold tracking-tight tabular-nums"
+            >
               {formatVnd(sentTotal + newTotal)}
             </span>
           </div>
@@ -465,11 +520,20 @@ export function OrderStep({
             </p>
           )}
           <div className="grid grid-cols-[1fr_1.4fr] gap-2">
-            <Button variant="secondary" size="pos" onClick={() => send("floor")} disabled={submitting}>
+            <Button
+              variant="secondary"
+              size="pos"
+              onClick={() => send("floor")}
+              disabled={submitting}
+            >
               <ChefHat />
               Gửi bếp
             </Button>
-            <Button size="pos" onClick={() => send("pay")} disabled={submitting}>
+            <Button
+              size="pos"
+              onClick={() => send("pay")}
+              disabled={submitting}
+            >
               Gửi bếp &amp; thanh toán
             </Button>
           </div>

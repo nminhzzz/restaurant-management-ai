@@ -29,8 +29,14 @@ def sepay_env(monkeypatch):
 
 
 def _body(payment_id: int, amount: int, sepay_id: int = 1, direction: str = "in") -> dict:
-    return {"id": sepay_id, "transferType": direction, "transferAmount": amount,
-            "code": None, "content": f"chuyen khoan TT{payment_id}", "referenceCode": "FT1"}
+    return {
+        "id": sepay_id,
+        "transferType": direction,
+        "transferAmount": amount,
+        "code": None,
+        "content": f"chuyen khoan TT{payment_id}",
+        "referenceCode": "FT1",
+    }
 
 
 AUTH = {"Authorization": "Apikey hook-key"}
@@ -73,8 +79,9 @@ async def test_a_matching_transfer_settles_the_order(session, sepay_env):
 @pytest.mark.anyio
 async def test_a_wrong_api_key_is_rejected(session, sepay_env):
     client, _, oid, r = await _qr(session)
-    resp = await client.post(HOOK, json=_body(r.json()["MaGiaoDich"], 50000),
-                             headers={"Authorization": "Apikey nope"})
+    resp = await client.post(
+        HOOK, json=_body(r.json()["MaGiaoDich"], 50000), headers={"Authorization": "Apikey nope"}
+    )
     assert resp.status_code == 401
     assert await order_status(session, oid) == "Đang mở"
 
@@ -140,9 +147,21 @@ async def test_check_confirms_through_the_transaction_listing(session, sepay_env
     pid = r.json()["MaGiaoDich"]
 
     def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"transactions": [
-            {"id": "99", "amount_in": "50000.00", "amount_out": "0",
-             "transaction_content": f"TT{pid}", "reference_number": "FT9", "code": f"TT{pid}"}]})
+        return httpx.Response(
+            200,
+            json={
+                "transactions": [
+                    {
+                        "id": "99",
+                        "amount_in": "50000.00",
+                        "amount_out": "0",
+                        "transaction_content": f"TT{pid}",
+                        "reference_number": "FT9",
+                        "code": f"TT{pid}",
+                    }
+                ]
+            },
+        )
 
     monkeypatch.setattr(sepay, "_transport", httpx.MockTransport(handler))
     resp = await client.post(f"/api/v1/sales/payments/{pid}/check", headers=h)
@@ -216,9 +235,21 @@ async def test_check_skips_a_malformed_sepay_listing_row(session, sepay_env, mon
     pid = r.json()["MaGiaoDich"]
 
     def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"transactions": [
-            {"id": "1", "amount_in": None, "amount_out": "0",
-             "transaction_content": f"TT{pid}", "reference_number": "FTx", "code": f"TT{pid}"}]})
+        return httpx.Response(
+            200,
+            json={
+                "transactions": [
+                    {
+                        "id": "1",
+                        "amount_in": None,
+                        "amount_out": "0",
+                        "transaction_content": f"TT{pid}",
+                        "reference_number": "FTx",
+                        "code": f"TT{pid}",
+                    }
+                ]
+            },
+        )
 
     monkeypatch.setattr(sepay, "_transport", httpx.MockTransport(handler))
     resp = await client.post(f"/api/v1/sales/payments/{pid}/check", headers=h)

@@ -22,12 +22,18 @@ export function SalesStepper({
 }) {
   const index = ORDER.indexOf(current);
   return (
-    <ol aria-label="Các bước bán hàng" className="flex overflow-hidden rounded-control border border-border-strong bg-surface">
+    <ol
+      aria-label="Các bước bán hàng"
+      className="flex overflow-hidden rounded-control border border-border-strong bg-surface"
+    >
       {STEPS.map((step, i) => {
         const isCurrent = i === Math.min(index, 2);
         const done = i < index;
         return (
-          <li key={step.key} className="not-first:border-l not-first:border-border">
+          <li
+            key={step.key}
+            className="not-first:border-l not-first:border-border"
+          >
             <button
               type="button"
               aria-current={isCurrent ? "step" : undefined}
