@@ -283,8 +283,8 @@ async def seed_catalog(session: AsyncSession, config: SeedConfig) -> CatalogIds:
     users = []
     for username, role in (
         ("seed_manager", Role.MANAGER),
-        ("seed_cashier", Role.CASHIER),
-        ("seed_warehouse", Role.WAREHOUSE),
+        ("seed_cashier", Role.CASHIER), # Thu Ngân
+        ("seed_warehouse", Role.WAREHOUSE), # Thủ kho
     ):
         user = await settings_service.create_user(
             session, None, username, "matkhau123", username, None, role
