@@ -103,7 +103,7 @@
         <mxCell id="id7" parent="1" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=0;resizeParentMax=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#F5F8FC;strokeColor=#2C3E50;dashed=0;fontSize=12;" value="MON_AN" vertex="1">
           <mxGeometry height="266" width="240" x="40" y="40" as="geometry" />
         </mxCell>
-        <mxCell id="id8" parent="id7" style="text;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;whiteSpace=wrap;html=1;fontSize=11;" value="- MaMon : int&lt;br&gt;- TenMon : String&lt;br&gt;- MaNhomMon : int&lt;br&gt;- HinhAnh : String&lt;br&gt;- GiaHienTai : double&lt;br&gt;- TrangThai : String&lt;br&gt;- AnThuCong : boolean&lt;br&gt;- HetNLThuCong : boolean&lt;br&gt;- HetNLTuDong : boolean&lt;br&gt;- DaXoa : boolean" vertex="1">
+        <mxCell id="id8" parent="id7" style="text;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;whiteSpace=wrap;html=1;fontSize=11;" value="- MaMon : int&lt;br&gt;- TenMon : String&lt;br&gt;- MaNhomMon : int&lt;br&gt;- HinhAnh : String&lt;br&gt;- GiaHienTai : double&lt;br&gt;- TrangThai : String&lt;br&gt;- HetNguyenLieu : boolean&lt;div&gt;-&amp;nbsp;ChuaCoCongThuc : boolean&lt;br&gt;- DaXoa : boolean&lt;/div&gt;" vertex="1">
           <mxGeometry height="168" width="240" y="26" as="geometry" />
         </mxCell>
         <mxCell id="id9" parent="id7" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;html=1;" value="" vertex="1">

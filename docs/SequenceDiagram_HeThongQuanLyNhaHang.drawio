@@ -463,19 +463,34 @@
           <mxGeometry height="30" width="10" x="770" y="480" as="geometry" />
         </mxCell>
         <mxCell id="M1" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="1: nhập mã giao dịch ngân hàng (MaGiaoDichNganHang) và đính kèm ảnh chứng từ">
-          <mxGeometry height="50" relative="1" width="50" as="geometry"><mxPoint x="120" y="110" as="sourcePoint" /><mxPoint x="310" y="110" as="targetPoint" /></mxGeometry>
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="120" y="110" as="sourcePoint" />
+            <mxPoint x="310" y="110" as="targetPoint" />
+          </mxGeometry>
         </mxCell>
         <mxCell id="M2" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="2: ghiNhanDoiSoat(MaGiaoDichTT, MaGiaoDichNganHang, anhChungTu)">
-          <mxGeometry height="50" relative="1" width="50" as="geometry"><mxPoint x="320" y="150" as="sourcePoint" /><mxPoint x="540" y="150" as="targetPoint" /></mxGeometry>
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="320" y="150" as="sourcePoint" />
+            <mxPoint x="540" y="150" as="targetPoint" />
+          </mxGeometry>
         </mxCell>
         <mxCell id="M3" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="3: cập nhật MaGiaoDichNganHang, AnhChungTu, trạng thái Chờ đối soát">
-          <mxGeometry height="50" relative="1" width="50" as="geometry"><mxPoint x="550" y="190" as="sourcePoint" /><mxPoint x="770" y="190" as="targetPoint" /></mxGeometry>
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="550" y="190" as="sourcePoint" />
+            <mxPoint x="770" y="190" as="targetPoint" />
+          </mxGeometry>
         </mxCell>
         <mxCell id="M4" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="4: yêu cầu Quản lý xác nhận kết quả đối soát">
-          <mxGeometry height="50" relative="1" width="50" as="geometry"><mxPoint x="550" y="230" as="sourcePoint" /><mxPoint x="1230" y="230" as="targetPoint" /></mxGeometry>
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="550" y="230" as="sourcePoint" />
+            <mxPoint x="1230" y="230" as="targetPoint" />
+          </mxGeometry>
         </mxCell>
         <mxCell id="M5" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="5: xacNhanDoiSoat(ketQua)">
-          <mxGeometry height="50" relative="1" width="50" as="geometry"><mxPoint x="1230" y="270" as="sourcePoint" /><mxPoint x="550" y="270" as="targetPoint" /></mxGeometry>
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="1230" y="270" as="sourcePoint" />
+            <mxPoint x="550" y="270" as="targetPoint" />
+          </mxGeometry>
         </mxCell>
         <mxCell id="ALT1" parent="B1" style="shape=umlFrame;whiteSpace=wrap;html=1;width=70;height=30;" value="alt" vertex="1">
           <mxGeometry height="230" width="1090" x="230" y="310" as="geometry" />
@@ -484,30 +499,41 @@
           <mxGeometry height="24" width="300" x="245" y="343" as="geometry" />
         </mxCell>
         <mxCell id="M6" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="6: cập nhật trạng thái Thành công">
-          <mxGeometry height="50" relative="1" width="50" as="geometry"><mxPoint x="550" y="370" as="sourcePoint" /><mxPoint x="770" y="370" as="targetPoint" /></mxGeometry>
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="550" y="370" as="sourcePoint" />
+            <mxPoint x="770" y="370" as="targetPoint" />
+          </mxGeometry>
         </mxCell>
         <mxCell id="M7" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="7: phatHanhHoaDon(MaOrder, MaGiaoDichTT)">
-          <mxGeometry height="50" relative="1" width="50" as="geometry"><mxPoint x="550" y="400" as="sourcePoint" /><mxPoint x="1000" y="400" as="targetPoint" /></mxGeometry>
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="550" y="400" as="sourcePoint" />
+            <mxPoint x="1000" y="400" as="targetPoint" />
+          </mxGeometry>
         </mxCell>
         <mxCell id="DIV1" edge="1" parent="B1" style="endArrow=none;dashed=1;html=1;rounded=0;" value="">
-          <mxGeometry height="50" relative="1" width="50" as="geometry"><mxPoint x="230" y="440" as="sourcePoint" /><mxPoint x="1320" y="440" as="targetPoint" /></mxGeometry>
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="230" y="440" as="sourcePoint" />
+            <mxPoint x="1320" y="440" as="targetPoint" />
+          </mxGeometry>
         </mxCell>
         <mxCell id="LBL2" parent="B1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=2;" value="[ketQua = Không có giao dịch]" vertex="1">
           <mxGeometry height="24" width="320" x="245" y="440" as="geometry" />
         </mxCell>
         <mxCell id="M8" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="8: cập nhật trạng thái Tranh chấp">
-          <mxGeometry height="50" relative="1" width="50" as="geometry"><mxPoint x="550" y="480" as="sourcePoint" /><mxPoint x="770" y="480" as="targetPoint" /></mxGeometry>
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="550" y="480" as="sourcePoint" />
+            <mxPoint x="770" y="480" as="targetPoint" />
+          </mxGeometry>
         </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
-
   <diagram name="SD-04. Nhập kho và tạo lô nguyên liệu" id="NOY7QmDlaDSlqvRGMUyX">
-    <mxGraphModel dx="1585" dy="963" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1580" pageHeight="990" math="0" shadow="0">
+    <mxGraphModel dx="1471" dy="894" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1580" pageHeight="990" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="MxKLeN92Ty-2" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;participant=umlActor;" value="Nhân viên kho" vertex="1">
+        <mxCell id="MxKLeN92Ty-2" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;participant=umlActor;" value="Bếp" vertex="1">
           <mxGeometry height="860" width="150" x="40" y="50" as="geometry" />
         </mxCell>
         <mxCell id="MxKLeN92Ty-3" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;" value=":Màn hình nhập kho" vertex="1">
