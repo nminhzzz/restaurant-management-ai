@@ -18,11 +18,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.errors import BusinessRuleError
-from app.modules.ai import charts
+from app.modules.ai import charts, labels
 from app.modules.ai.errors import ClarificationNeeded, QuotaExceeded
 from app.modules.ai.models import AssistantQuery, ChatSession
 from app.modules.ai.pipeline import executor, generator, interpreter, normalize
-from app.modules.ai.schemas import ChatResponse, QueryDetail
+from app.modules.ai.schemas import ChatResponse, ColumnMeta, QueryDetail
 from app.modules.ai.scope import ROLE_VIEWS
 from app.shared.roles import Role
 
@@ -98,7 +98,8 @@ async def answer(
             )
             columns = list(rows[0].keys()) if rows else []
             spec = charts.choose_chart(columns, rows)
-            answer_text = await interpreter.interpret(session, normalized, sql_text, rows, role)
+            columns_meta = labels.describe_columns(columns, rows)
+            interpretation = await interpreter.interpret(session, normalized, sql_text, rows, role)
     except ClarificationNeeded as exc:
         await _record(
             session,
@@ -111,7 +112,9 @@ async def answer(
             elapsed_ms=_elapsed_ms(started),
         )
         await session.commit()
-        return ChatResponse(answer=exc.message, session_id=chat_session.id)
+        return ChatResponse(
+            answer=exc.message, headline=exc.message, kind="clarify", session_id=chat_session.id
+        )
     except QuotaExceeded as exc:
         await _record(
             session,
@@ -124,7 +127,9 @@ async def answer(
             elapsed_ms=_elapsed_ms(started),
         )
         await session.commit()
-        return ChatResponse(answer=exc.message, session_id=chat_session.id)
+        return ChatResponse(
+            answer=exc.message, headline=exc.message, kind="refused", session_id=chat_session.id
+        )
     except BusinessRuleError:
         await _record(
             session,
@@ -137,7 +142,12 @@ async def answer(
             elapsed_ms=_elapsed_ms(started),
         )
         await session.commit()
-        return ChatResponse(answer=REFUSED_ANSWER, session_id=chat_session.id)
+        return ChatResponse(
+            answer=REFUSED_ANSWER,
+            headline=REFUSED_ANSWER,
+            kind="refused",
+            session_id=chat_session.id,
+        )
     except TimeoutError:
         await _record(
             session,
@@ -150,7 +160,12 @@ async def answer(
             elapsed_ms=_elapsed_ms(started),
         )
         await session.commit()
-        return ChatResponse(answer=TIMEOUT_ANSWER, session_id=chat_session.id)
+        return ChatResponse(
+            answer=TIMEOUT_ANSWER,
+            headline=TIMEOUT_ANSWER,
+            kind="error",
+            session_id=chat_session.id,
+        )
     except Exception:
         await _record(
             session,
@@ -172,13 +187,19 @@ async def answer(
         question=question,
         sql_text=sql_text,
         status="Thành công",
-        summary=answer_text,
+        summary=interpretation.text,
         role=role,
         elapsed_ms=elapsed_ms,
     )
     await session.commit()
     return ChatResponse(
-        answer=answer_text,
+        answer=interpretation.text,
+        headline=interpretation.answer.headline,
+        highlights=interpretation.answer.highlights,
+        follow_ups=interpretation.answer.follow_ups,
+        scope_note=interpretation.scope_note,
+        columns=[ColumnMeta(**meta) for meta in columns_meta],
+        kind="answer",
         data=rows,
         chart=asdict(spec) if spec is not None else None,
         detail=QueryDetail(

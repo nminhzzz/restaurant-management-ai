@@ -1,6 +1,6 @@
 """Request and response contracts of the AI Assistant endpoints."""
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -19,8 +19,24 @@ class QueryDetail(BaseModel):
     elapsed_ms: int
 
 
+ColumnKind = Literal["text", "money", "number", "date", "datetime", "percent"]
+AnswerKind = Literal["answer", "clarify", "refused", "error"]
+
+
+class ColumnMeta(BaseModel):
+    key: str
+    label: str
+    kind: ColumnKind
+
+
 class ChatResponse(BaseModel):
     answer: str
+    headline: str = ""
+    highlights: list[str] = Field(default_factory=list)
+    follow_ups: list[str] = Field(default_factory=list)
+    scope_note: str | None = None
+    columns: list[ColumnMeta] = Field(default_factory=list)
+    kind: AnswerKind = "answer"
     data: list[dict[str, Any]] = Field(default_factory=list)
     chart: dict[str, Any] | None = None
     detail: QueryDetail | None = None

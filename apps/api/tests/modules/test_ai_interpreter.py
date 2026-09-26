@@ -60,14 +60,23 @@ def test_two_columns_that_are_not_a_series_get_no_chart():
 @pytest.mark.anyio
 async def test_the_answer_is_vietnamese_and_carries_the_scope_note(session, fake_llm):
     """FR-AI-07 and business rule 16."""
-    fake_llm.reply("Hôm qua có 42 đơn hàng.")
+    fake_llm.reply('{"headline": "Hôm qua có 42 đơn hàng.", "highlights": [], "follow_ups": []}')
 
-    answer = await interpret(
+    result = await interpret(
         session, "hôm qua bao nhiêu đơn?", "SELECT 1", [{"SoDon": 42}], Role.CASHIER
     )
 
-    assert "42" in answer
-    assert "vw_ai_thungan" in answer
+    assert result.answer.headline == "Hôm qua có 42 đơn hàng."
+    assert "vw_ai_thungan" in result.scope_note
+    assert result.text.endswith(result.scope_note)
+
+
+@pytest.mark.anyio
+async def test_the_scope_note_survives_a_model_that_ignores_the_format(session, fake_llm):
+    fake_llm.reply("Có 42 đơn. Phạm vi: tất cả dữ liệu.")
+    result = await interpret(session, "q", "SELECT 1", [{"SoDon": 42}], Role.CASHIER)
+    assert result.answer.headline == "Có 42 đơn. Phạm vi: tất cả dữ liệu."
+    assert result.text.endswith(scope_note(Role.CASHIER))
 
 
 @pytest.mark.anyio
@@ -79,7 +88,6 @@ async def test_the_scope_note_differs_per_role(session):
 @pytest.mark.anyio
 async def test_an_empty_result_is_explained_not_left_blank(session, fake_llm):
     """FR-AI-09."""
-    answer = await interpret(session, "hôm qua bao nhiêu đơn?", "SELECT 1", [], Role.CASHIER)
-
-    assert answer != ""
-    assert "không có" in answer.lower()
+    result = await interpret(session, "hôm qua bao nhiêu đơn?", "SELECT 1", [], Role.CASHIER)
+    assert "không có" in result.answer.headline.lower()
+    assert fake_llm.calls == 0
