@@ -90,6 +90,9 @@ async function loadDetail(orderId: number) {
 }
 
 const ROUNDING = [50_000, 100_000, 500_000];
+// A QR moving to any of these while polling means the reconciliation UI (which
+// keys off the order status) needs a fresh order, not just a fresh QR object.
+const NON_SUCCESS_STATUSES = ["Chờ đối soát", "Hết hạn", "Đã hủy"];
 
 /** Exact amount first, then the next round notes a customer is likely to hand over. */
 export function quickAmounts(total: number): number[] {
@@ -125,10 +128,6 @@ export function PaymentPanel({
 
   const latestQr = detail.status === "ready" ? detail.data.latestQr : null;
   const qr = qrOverride ?? latestQr;
-  // An order that already has a live or reconciling QR payment opens straight
-  // into the QR pane, so its transaction card is visible without a manual pick.
-  const qrLocksCash = !!qr && qr.TrangThai !== "Đã hủy";
-  const activeMethod: "cash" | "qr" = qrLocksCash ? "qr" : method;
 
   useEffect(() => {
     if (!qr?.ThoiDiemHetHan || qr.TrangThai !== "Chờ xác nhận") return;
@@ -159,14 +158,25 @@ export function PaymentPanel({
         );
         const current = list.items.find((p) => p.MaGiaoDich === qr.MaGiaoDich);
         if (!current) return;
-        if (current.TrangThai === "Thành công") onPaid?.({ change: null });
+        if (current.TrangThai === "Thành công") {
+          onPaid?.({ change: null });
+        } else if (
+          current.TrangThai !== qr.TrangThai &&
+          NON_SUCCESS_STATUSES.includes(current.TrangThai)
+        ) {
+          // The reconciliation UI and buttons key off the order status, so a
+          // status-only QR update isn't enough — reload the order too.
+          await detail.reload();
+        }
         if (current.TrangThai !== qr.TrangThai) setQr({ ...qr, ...current });
       } catch {
         // A dropped poll is retried on the next tick.
       }
     }, 3000);
     return () => clearInterval(id);
-  }, [qr, orderId, onPaid]);
+    // `detail` is a fresh object every render; only its stable `reload` matters here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qr, orderId, onPaid, detail.reload]);
 
   if (detail.status === "loading") return <LoadingState rows={3} />;
   if (detail.status === "error")
@@ -182,6 +192,11 @@ export function PaymentPanel({
   const reconciling = order.TrangThai === "Chờ đối soát";
   const settled = order.TrangThai === "Đã thanh toán";
   const locked = order.TrangThai !== "Đang mở";
+  // Only a QR that's still actionable (live, or already moved to reconciliation)
+  // should keep the cashier out of the cash tab — an expired/cancelled QR can't
+  // be cancelled through the API, so locking cash on it would strand the order.
+  const qrLocksCash = live || reconciling;
+  const activeMethod: "cash" | "qr" = qrLocksCash ? "qr" : method;
 
   async function run(action: () => Promise<void>, fallback: string) {
     setError(null);

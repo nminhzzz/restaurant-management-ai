@@ -305,6 +305,57 @@ describe("PaymentPanel cash and SePay", () => {
     ).toBeInTheDocument();
   });
 
+  it("unlocks the cash tab once the QR has expired (review #3)", async () => {
+    stubByPath({
+      "/sales/orders/1/payments": { items: [qr({ TrangThai: "Hết hạn" })] },
+      "/sales/orders/1": priced,
+    });
+    render(<PaymentPanel orderId={1} />);
+
+    expect(
+      await screen.findByRole("radio", { name: /Tiền mặt/ }),
+    ).not.toBeDisabled();
+  });
+
+  it("reloads the order once polling reports a non-success status change (review #4)", async () => {
+    vi.useFakeTimers();
+    try {
+      saveSession({ token: "t", role: "MANAGER", username: "quanly" });
+      const live = qr();
+      let reconciling = false;
+      let orderCalls = 0;
+      fetchMock.mockImplementation((path: string) => {
+        if (path.startsWith("/sales/orders/1/payments"))
+          return Promise.resolve({
+            items: [
+              reconciling ? { ...live, TrangThai: "Chờ đối soát" } : live,
+            ],
+          });
+        if (path.startsWith("/sales/orders/1")) {
+          orderCalls += 1;
+          return Promise.resolve(
+            reconciling ? { ...priced, TrangThai: "Chờ đối soát" } : priced,
+          );
+        }
+        return Promise.resolve({});
+      });
+      render(<PaymentPanel orderId={1} />);
+      await act(async () => {});
+      const callsBeforePoll = orderCalls;
+      reconciling = true;
+      await act(async () => {
+        vi.advanceTimersByTime(3000);
+      });
+
+      expect(orderCalls).toBeGreaterThan(callsBeforePoll);
+      expect(
+        screen.getByLabelText("Mã tham chiếu ngân hàng"),
+      ).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("reports the payment once polling sees it succeed", async () => {
     vi.useFakeTimers();
     try {
