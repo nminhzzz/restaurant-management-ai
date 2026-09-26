@@ -18,10 +18,10 @@ const TONES: Record<string, StatusTone> = {
   "Chờ in": "primary",
   "Chờ xác nhận": "primary",
   "Đang phục vụ": "primary",
-  "Đã đặt": "primary",
   Ẩn: "neutral",
   "Đã khóa": "neutral",
   "Đã phục vụ": "neutral",
+  "Đã đặt": "neutral",
   Nháp: "muted",
 };
 

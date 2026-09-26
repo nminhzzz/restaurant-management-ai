@@ -68,8 +68,8 @@ Quy tắc:
 | Món `Hoạt động` · bàn `Trống` · Order `Đã thanh toán` · Lô `Còn hạn` · Giá `Hiệu lực` | `success` |
 | Tồn kho sắp chạm mức tối thiểu · Order `Chờ đối soát` · Giá vốn `Tạm tính` | `warning` |
 | Món `Hết nguyên liệu` · Order/dòng `Đã hủy` · Lô `Hết hạn` | `danger` |
-| Order `Đang mở` · dòng `Chờ` · phiếu `Chờ in` · bàn `Đang phục vụ` · bàn `Đã đặt` | `primary` (nền đặc) |
-| Món `Ẩn` · tài khoản `Đã khóa` · dòng `Đã phục vụ` | `neutral` |
+| Order `Đang mở` · dòng `Chờ` · phiếu `Chờ in` · bàn `Đang phục vụ` | `primary` (nền đặc) |
+| Món `Ẩn` · tài khoản `Đã khóa` · dòng `Đã phục vụ` · bàn `Đã đặt` | `neutral` |
 | Món `Nháp` | `muted` (viền nét đứt) |
 
 ## 3. Chữ
