@@ -120,8 +120,8 @@ Hướng thiết kế là **vuông vức nhưng không thô**: góc vát nhẹ, 
 - Thang 4px của Tailwind. Khoảng dùng nhiều: `gap-2` (8) trong nhóm nút, `gap-4` (16) giữa field,
   `gap-6` (24) giữa khối trong trang.
 - **Khung ứng dụng:** sidebar tối (`bg-sidebar`) `w-60` cố định từ `lg`, drawer dưới `lg`. Mục nav đang chọn
-  nền trắng chữ đen. Nội dung `p-4 lg:p-6`, rộng tối đa
-  `max-w-7xl` (màn POS dùng toàn bộ chiều ngang).
+  nền trắng chữ đen. Nội dung `p-4 lg:p-6`, dùng toàn bộ chiều ngang còn lại (không giới hạn `max-w`), để
+  bảng, sơ đồ bàn và POS tận dụng màn hình rộng.
 - **Mẫu trang chuẩn** (mọi màn hình quản trị):
   1. `PageHeader`: tiêu đề `text-2xl` đậm + mô tả một dòng bên trái, hành động chính bên phải.
   2. Thanh công cụ: tìm kiếm, bộ lọc, tab trạng thái.
