@@ -14,17 +14,28 @@ import asyncio
 import time
 from dataclasses import asdict
 
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
-from app.core.errors import BusinessRuleError
+from app.core.errors import BusinessRuleError, NotFoundError
 from app.modules.ai import charts, labels
 from app.modules.ai.errors import ClarificationNeeded, QuotaExceeded
 from app.modules.ai.models import AssistantQuery, ChatSession
 from app.modules.ai.pipeline import executor, generator, interpreter, normalize
-from app.modules.ai.schemas import ChatResponse, ColumnMeta, QueryDetail
+from app.modules.ai.pipeline.answer_format import split_answer
+from app.modules.ai.schemas import (
+    ChatResponse,
+    ColumnMeta,
+    QueryDetail,
+    SessionDetail,
+    SessionSummary,
+    TurnOut,
+)
 from app.modules.ai.scope import ROLE_VIEWS
 from app.shared.roles import Role
+
+TITLE_LIMIT = 120
 
 REFUSED_ANSWER = (
     "Không thể tạo truy vấn an toàn cho câu hỏi này trong phạm vi của bạn. "
@@ -210,3 +221,89 @@ async def answer(
         ),
         session_id=chat_session.id,
     )
+
+
+def _title(question: str) -> str:
+    text = " ".join(question.split())
+    return text if len(text) <= TITLE_LIMIT else text[: TITLE_LIMIT - 1] + "…"
+
+
+async def list_sessions(
+    session: AsyncSession, user_id: int, page: int, size: int
+) -> tuple[list[SessionSummary], int]:
+    """The caller's sessions that hold at least one turn, most recent activity first."""
+    stats = (
+        select(
+            AssistantQuery.session_id.label("sid"),
+            func.count(AssistantQuery.id).label("turns"),
+            func.min(AssistantQuery.id).label("first_id"),
+            func.max(AssistantQuery.occurred_at).label("last_at"),
+        )
+        .group_by(AssistantQuery.session_id)
+        .subquery()
+    )
+    base = (
+        select(ChatSession, stats.c.turns, stats.c.first_id, stats.c.last_at)
+        .join(stats, stats.c.sid == ChatSession.id)
+        .where(ChatSession.user_id == user_id)
+    )
+    total = (await session.execute(select(func.count()).select_from(base.subquery()))).scalar_one()
+    rows = (
+        await session.execute(
+            base.order_by(stats.c.last_at.desc(), ChatSession.id.desc())
+            .offset((page - 1) * size)
+            .limit(size)
+        )
+    ).all()
+    first_ids = [row.first_id for row in rows]
+    questions: dict[int, str] = {}
+    if first_ids:
+        question_rows = await session.execute(
+            select(AssistantQuery.id, AssistantQuery.question).where(
+                AssistantQuery.id.in_(first_ids)
+            )
+        )
+        questions = {row.id: row.question for row in question_rows}
+    items = [
+        SessionSummary(
+            id=row.ChatSession.id,
+            title=_title(questions.get(row.first_id, "")),
+            turn_count=row.turns,
+            created_at=row.ChatSession.created_at,
+            last_at=row.last_at,
+        )
+        for row in rows
+    ]
+    return items, total
+
+
+async def session_detail(session: AsyncSession, user_id: int, session_id: int) -> SessionDetail:
+    chat = await session.get(ChatSession, session_id)
+    # Someone else's session answers exactly like a missing one.
+    if chat is None or chat.user_id != user_id:
+        raise NotFoundError("Không tìm thấy cuộc trò chuyện.")
+    turns = (
+        (
+            await session.execute(
+                select(AssistantQuery)
+                .where(AssistantQuery.session_id == chat.id)
+                .order_by(AssistantQuery.occurred_at, AssistantQuery.id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    out = []
+    for turn in turns:
+        headline, highlights = split_answer(turn.summary or "")
+        out.append(
+            TurnOut(
+                id=turn.id,
+                question=turn.question,
+                headline=headline,
+                highlights=highlights,
+                status=turn.status,
+                occurred_at=turn.occurred_at,
+            )
+        )
+    return SessionDetail(id=chat.id, title=_title(turns[0].question) if turns else "", turns=out)
