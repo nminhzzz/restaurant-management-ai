@@ -108,15 +108,19 @@ def _guess(column: str, rows: list[dict[str, Any]]) -> Kind:
     name = column.lower()
     values = [row.get(column) for row in rows if row.get(column) is not None]
     numeric = bool(values) and all(_is_number(v) for v in values)
-    if any(h in name for h in _PERCENT) and numeric:
-        return "percent"
+    # A numeric column is never a date/datetime — only its non-numeric values can
+    # hint at one. "thoigian" (a duration) contains "gia" but isn't money.
+    if numeric:
+        if any(h in name for h in _PERCENT):
+            return "percent"
+        if "thoigian" not in name and any(h in name for h in _MONEY):
+            return "money"
+        return "number"
     if any(h in name for h in _DATETIME):
         return "datetime"
     if any(h in name for h in _DATE):
         return "date"
-    if numeric and any(h in name for h in _MONEY):
-        return "money"
-    return "number" if numeric else "text"
+    return "text"
 
 
 def describe_columns(columns: list[str], rows: list[dict[str, Any]]) -> list[dict[str, str]]:

@@ -41,3 +41,12 @@ def test_unknown_numeric_values_are_numbers_and_labels_split_camel_case():
         "kind": "number",
     }
     assert _one("GhiChuKhac", [{"GhiChuKhac": "x"}])["kind"] == "text"
+
+
+def test_a_numeric_column_never_becomes_a_date_and_time_hints_win_over_money():
+    """Review #7: only non-numeric values may become date/datetime; a name that
+    contains a time-duration hint (thoigian) must not be guessed as money even
+    though it also contains the money hint 'gia'."""
+    assert _one("DoanhThuTheoNgay", [{"DoanhThuTheoNgay": 5000}])["kind"] == "money"
+    assert _one("ThoiGianPhucVu", [{"ThoiGianPhucVu": 12}])["kind"] == "number"
+    assert _one("NgayCuoi", [{"NgayCuoi": "2026-09-01"}])["kind"] == "date"
