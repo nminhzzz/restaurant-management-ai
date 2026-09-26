@@ -41,6 +41,11 @@ const openOrder = {
   lines: [],
 };
 
+async function chooseQr() {
+  fireEvent.click(await screen.findByRole("radio", { name: /QR chuyển khoản/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Tạo mã QR" }));
+}
+
 describe("PaymentPanel", () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -54,7 +59,7 @@ describe("PaymentPanel", () => {
     });
     render(<PaymentPanel orderId={1} />);
 
-    fireEvent.click(await screen.findByText("Thanh toán QR"));
+    await chooseQr();
 
     await screen.findByText("Chờ xác nhận");
     expect(screen.getByText("Tạo mã QR mới")).toBeDisabled();
@@ -72,8 +77,13 @@ describe("PaymentPanel", () => {
       // The pay buttons appear only once the order has loaded.
       await act(async () => {});
 
+      // Plain (non-`findBy`) queries here: Testing Library's `findBy*`/`waitFor`
+      // drain a microtask via a real `setTimeout(0)` that never fires under
+      // Vitest's fake timers (RTL only special-cases Jest's), so it would hang.
+      // The radio and button are already rendered by this point (order loaded above).
       await act(async () => {
-        fireEvent.click(screen.getByText("Thanh toán QR"));
+        fireEvent.click(screen.getByRole("radio", { name: /QR chuyển khoản/ }));
+        fireEvent.click(screen.getByRole("button", { name: "Tạo mã QR" }));
       });
       expect(screen.getByText("10:00")).toBeInTheDocument();
 
@@ -135,5 +145,85 @@ describe("PaymentPanel", () => {
     expect(
       screen.getByRole("button", { name: "Không có giao dịch" }),
     ).toBeInTheDocument();
+  });
+});
+
+describe("PaymentPanel cash and SePay", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    clearSession();
+  });
+
+  const priced = {
+    ...openOrder,
+    lines: [{ MaChiTietOrder: 1, MaMon: 5, SoLuong: 2, DonGia: 170000, TrangThai: "Chờ" }],
+  };
+
+  it("computes change and only confirms once enough cash is given", async () => {
+    const onPaid = vi.fn();
+    stubByPath({ "/sales/orders/1/pay/cash": { MaHoaDon: 9 }, "/sales/orders/1": priced });
+    render(<PaymentPanel orderId={1} onPaid={onPaid} />);
+
+    const given = await screen.findByLabelText("Tiền khách đưa");
+    fireEvent.change(given, { target: { value: "300000" } });
+    expect(screen.getByRole("button", { name: /Xác nhận đã thu/ })).toBeDisabled();
+
+    fireEvent.change(given, { target: { value: "500000" } });
+    expect(screen.getByTestId("cash-change")).toHaveTextContent("160.000 ₫");
+    fireEvent.click(screen.getByRole("button", { name: /Xác nhận đã thu/ }));
+
+    await vi.waitFor(() => expect(onPaid).toHaveBeenCalledWith({ change: 160000 }));
+  });
+
+  it("offers exact and rounded quick amounts", async () => {
+    const { quickAmounts } = await import("./payment-panel");
+    expect(quickAmounts(340000)).toEqual([340000, 350000, 400000, 500000]);
+    expect(quickAmounts(500000)).toEqual([500000]);
+  });
+
+  it("shows the VietQR image, bank details and transfer code", async () => {
+    stubByPath({
+      "/sales/orders/1/pay/qr": qr({
+        qr_image_url: "https://qr.sepay.vn/img?acc=1&bank=MBBank&amount=340000&des=TT1",
+        payment_code: "TT1",
+        bank_code: "MBBank",
+        bank_account: "0123499999",
+        account_name: "NHA HANG DEMO",
+      }),
+      "/sales/orders/1": priced,
+    });
+    render(<PaymentPanel orderId={1} />);
+    await chooseQr();
+
+    expect(await screen.findByRole("img", { name: /Mã VietQR/ })).toHaveAttribute(
+      "src",
+      expect.stringContaining("qr.sepay.vn"),
+    );
+    expect(screen.getByText("TT1")).toBeInTheDocument();
+    expect(screen.getByText("0123499999")).toBeInTheDocument();
+  });
+
+  it("reports the payment once polling sees it succeed", async () => {
+    vi.useFakeTimers();
+    try {
+      const onPaid = vi.fn();
+      const live = qr();
+      let succeeded = false;
+      fetchMock.mockImplementation((path: string) => {
+        if (path.startsWith("/sales/orders/1/payments"))
+          return Promise.resolve({ items: [succeeded ? { ...live, TrangThai: "Thành công" } : live] });
+        if (path.startsWith("/sales/orders/1")) return Promise.resolve(priced);
+        return Promise.resolve({});
+      });
+      render(<PaymentPanel orderId={1} onPaid={onPaid} />);
+      await act(async () => {});
+      succeeded = true;
+      await act(async () => {
+        vi.advanceTimersByTime(3000);
+      });
+      expect(onPaid).toHaveBeenCalledWith({ change: null });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
