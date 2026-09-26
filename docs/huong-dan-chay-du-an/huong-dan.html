@@ -1,0 +1,578 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Hướng dẫn chạy dự án — Hệ thống quản lý nhà hàng tích hợp AI</title>
+<style>
+  /* Fonts come from the web app's own @fontsource packages so the PDF builds offline. */
+  @font-face { font-family: "BVP"; font-weight: 400; src: url("../../apps/web/node_modules/@fontsource/be-vietnam-pro/files/be-vietnam-pro-vietnamese-400-normal.woff2") format("woff2"); unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB; }
+  @font-face { font-family: "BVP"; font-weight: 400; src: url("../../apps/web/node_modules/@fontsource/be-vietnam-pro/files/be-vietnam-pro-latin-400-normal.woff2") format("woff2"); }
+  @font-face { font-family: "BVP"; font-weight: 600; src: url("../../apps/web/node_modules/@fontsource/be-vietnam-pro/files/be-vietnam-pro-vietnamese-600-normal.woff2") format("woff2"); unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB; }
+  @font-face { font-family: "BVP"; font-weight: 600; src: url("../../apps/web/node_modules/@fontsource/be-vietnam-pro/files/be-vietnam-pro-latin-600-normal.woff2") format("woff2"); }
+  @font-face { font-family: "BVP"; font-weight: 700; src: url("../../apps/web/node_modules/@fontsource/be-vietnam-pro/files/be-vietnam-pro-vietnamese-700-normal.woff2") format("woff2"); unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB; }
+  @font-face { font-family: "BVP"; font-weight: 700; src: url("../../apps/web/node_modules/@fontsource/be-vietnam-pro/files/be-vietnam-pro-latin-700-normal.woff2") format("woff2"); }
+  @font-face { font-family: "JBM"; font-weight: 400; src: url("../../apps/web/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-vietnamese-400-normal.woff2") format("woff2"); unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB; }
+  @font-face { font-family: "JBM"; font-weight: 400; src: url("../../apps/web/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2") format("woff2"); }
+
+  :root {
+    --ink: #15171b; --muted: #4a4f57; --subtle: #5f6570; --line: #dcdee2; --edge: #878b93;
+    --sunken: #f5f6f7; --canvas: #edeef0;
+    --success: #15803d; --success-soft: #e1f0e5; --success-fg: #14532d;
+    --warning: #d97706; --warning-soft: #faebd2; --warning-fg: #843a0c;
+    --danger: #c62828; --danger-soft: #f9e1df; --danger-fg: #8c1b16;
+  }
+  @page { size: A4; margin: 18mm 17mm 20mm; @bottom-center { content: counter(page); font-family: "BVP", sans-serif; font-size: 9pt; color: #5f6570; } }
+  @page :first { @bottom-center { content: none; } }
+  * { box-sizing: border-box; }
+  html { font-family: "BVP", system-ui, sans-serif; font-size: 10.5pt; line-height: 1.55; color: var(--ink); }
+  body { margin: 0; }
+  h1, h2, h3, h4 { line-height: 1.25; margin: 0; }
+  h2 { font-size: 17pt; font-weight: 700; letter-spacing: -0.01em; padding-bottom: 5pt; border-bottom: 1.5pt solid var(--ink); margin: 0 0 10pt; break-after: avoid; }
+  h3 { font-size: 12.5pt; font-weight: 700; margin: 14pt 0 6pt; break-after: avoid; }
+  h4 { font-size: 10.5pt; font-weight: 700; margin: 10pt 0 4pt; break-after: avoid; }
+  p { margin: 0 0 7pt; }
+  ul, ol { margin: 0 0 8pt; padding-left: 16pt; }
+  li { margin: 2pt 0; }
+  a { color: var(--ink); }
+  code, pre, kbd { font-family: "JBM", ui-monospace, monospace; font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }
+  code { font-size: 9pt; background: var(--sunken); border: 0.5pt solid var(--line); border-radius: 2pt; padding: 0 3pt; }
+  pre { font-size: 8.8pt; line-height: 1.5; background: var(--sunken); border: 0.75pt solid var(--line); border-left: 3pt solid var(--ink); border-radius: 3pt; padding: 7pt 9pt; margin: 4pt 0 9pt; white-space: pre-wrap; word-break: break-word; break-inside: avoid; }
+  pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+  kbd { font-size: 8.5pt; border: 0.75pt solid var(--edge); border-radius: 2pt; padding: 0 3pt; background: #fff; }
+  .comment { color: var(--subtle); }
+  table { width: 100%; border-collapse: collapse; margin: 4pt 0 10pt; font-size: 9.3pt; break-inside: auto; }
+  th { text-align: left; font-size: 8pt; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); background: var(--sunken); border-bottom: 1pt solid var(--edge); padding: 5pt 6pt; }
+  td { border-bottom: 0.5pt solid var(--line); padding: 5pt 6pt; vertical-align: top; }
+  tr { break-inside: avoid; }
+  td code { white-space: nowrap; }
+  table.vars { table-layout: fixed; }
+  table.vars td code { white-space: normal; overflow-wrap: anywhere; }
+  /* Sections flow into each other; only the cover gets its own page, so overflow never leaves half-empty pages. */
+  .section { margin-top: 20pt; }
+  .cover + .section { break-before: page; margin-top: 0; }
+  .note, .warn, .danger, .ok { border-radius: 3pt; padding: 7pt 10pt; margin: 6pt 0 10pt; break-inside: avoid; }
+  .note { background: var(--sunken); box-shadow: inset 3pt 0 0 var(--ink); }
+  .warn { background: var(--warning-soft); color: var(--warning-fg); box-shadow: inset 3pt 0 0 var(--warning); }
+  .danger { background: var(--danger-soft); color: var(--danger-fg); box-shadow: inset 3pt 0 0 var(--danger); }
+  .ok { background: var(--success-soft); color: var(--success-fg); box-shadow: inset 3pt 0 0 var(--success); }
+  .note b:first-child, .warn b:first-child, .danger b:first-child, .ok b:first-child { display: block; margin-bottom: 2pt; }
+  .step { display: grid; grid-template-columns: 20pt 1fr; gap: 0 8pt; margin: 8pt 0; break-inside: avoid; }
+  .step .n { width: 18pt; height: 18pt; border-radius: 3pt; background: var(--ink); color: #fff; font-weight: 700; font-size: 9pt; display: grid; place-items: center; margin-top: 1pt; }
+  .step > div > p:last-child, .step > div > pre:last-child { margin-bottom: 0; }
+  .muted { color: var(--muted); }
+  .small { font-size: 9pt; }
+
+  /* Cover */
+  .cover { height: 250mm; display: flex; flex-direction: column; justify-content: space-between; }
+  .cover .brand { display: flex; align-items: center; gap: 10pt; font-weight: 700; font-size: 11pt; }
+  .cover .mark { width: 26pt; height: 26pt; border-radius: 4pt; background: var(--ink); color: #fff; display: grid; place-items: center; font-size: 13pt; }
+  .cover h1 { font-size: 30pt; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; margin: 0 0 10pt; }
+  .cover .lead { font-size: 12.5pt; color: var(--muted); max-width: 130mm; }
+  .cover .meta { display: grid; grid-template-columns: auto 1fr; gap: 4pt 14pt; font-size: 10pt; border-top: 1.5pt solid var(--ink); padding-top: 10pt; }
+  .cover .meta dt { color: var(--subtle); }
+  .cover .meta dd { margin: 0; font-weight: 600; }
+  .toc { columns: 2; column-gap: 18pt; font-size: 10pt; padding-left: 0; list-style: none; counter-reset: toc; }
+  .toc li { break-inside: avoid; counter-increment: toc; display: grid; grid-template-columns: 18pt 1fr; margin: 0 0 4pt; }
+  .toc li::before { content: counter(toc, decimal-leading-zero); font-weight: 700; color: var(--subtle); font-size: 9pt; }
+  .arch { font-family: "JBM", monospace; font-size: 8.8pt; line-height: 1.45; }
+  .kv { display: grid; grid-template-columns: 34mm 1fr; gap: 3pt 10pt; margin: 4pt 0 10pt; }
+  .kv dt { font-weight: 600; }
+  .kv dd { margin: 0; }
+</style>
+</head>
+<body>
+
+<!-- ============ COVER ============ -->
+<section class="cover">
+  <div class="brand"><span class="mark">✕</span>Quản lý nhà hàng</div>
+  <div>
+    <p class="muted small" style="text-transform:uppercase;letter-spacing:.08em;font-weight:700">Tài liệu vận hành · Đồ án tốt nghiệp</p>
+    <h1>Hướng dẫn cài đặt và chạy dự án từ con số 0</h1>
+    <p class="lead">Hệ thống quản lý nhà hàng tích hợp trợ lý AI (Text-to-SQL tiếng Việt). Tài liệu đi qua từng bước: chuẩn bị máy, cài công cụ, dựng CSDL, sinh dữ liệu mẫu, chạy backend và frontend, bật trợ lý AI, thanh toán QR qua SePay, chạy kiểm thử và xử lý sự cố.</p>
+  </div>
+  <div>
+    <h3 style="margin-top:0">Nội dung</h3>
+    <ol class="toc">
+      <li>Tổng quan hệ thống</li>
+      <li>Chuẩn bị máy và cài công cụ</li>
+      <li>Lấy mã nguồn</li>
+      <li>Cài thư viện (dependencies)</li>
+      <li>Cấu hình biến môi trường</li>
+      <li>Khởi động MySQL bằng Docker</li>
+      <li>Tạo lược đồ CSDL (migration)</li>
+      <li>View và tài khoản chỉ-đọc cho AI</li>
+      <li>Sinh dữ liệu mẫu 12 tháng</li>
+      <li>Chạy backend (API)</li>
+      <li>Chạy frontend (web)</li>
+      <li>Dùng thử các chức năng</li>
+      <li>Cấu hình trợ lý AI (LLM)</li>
+      <li>Thanh toán QR qua SePay</li>
+      <li>Kiểm thử và đánh giá</li>
+      <li>Bảng lệnh thường dùng</li>
+      <li>Xử lý sự cố</li>
+    </ol>
+  </div>
+  <dl class="meta">
+    <dt>Kho mã nguồn</dt><dd>github.com/nminhzzz/restaurant-management-ai</dd>
+    <dt>Nhánh</dt><dd>main</dd>
+    <dt>Cập nhật</dt><dd>26/09/2026</dd>
+    <dt>Hệ điều hành</dt><dd>macOS (chính) · Linux · Windows qua WSL2</dd>
+  </dl>
+</section>
+
+<!-- ============ 1 ============ -->
+<section class="section">
+  <h2>1. Tổng quan hệ thống</h2>
+  <p>Hệ thống gồm hai khối. <b>Khối nghiệp vụ</b> quản lý nhà hàng với 5 module: Danh mục, Bán hàng, Kho, Báo cáo, Cài đặt. <b>Khối trợ lý AI</b> cho phép hỏi dữ liệu kinh doanh bằng tiếng Việt; câu hỏi được chuyển thành SQL, kiểm duyệt rồi mới chạy.</p>
+
+  <h3>1.1 Kiến trúc</h3>
+<pre class="arch">Trình duyệt ──▶ Next.js (web, cổng 3000) ──HTTP──▶ FastAPI (api, cổng 8000) ──SQL──▶ MySQL 8.4 (Docker, cổng 3306)
+                                                         │
+                                                         ├──▶ LLM: DeepSeek / OpenAI / Ollama (trợ lý AI)
+                                                         └──▶ SePay (thanh toán VietQR, tuỳ chọn)</pre>
+
+  <h3>1.2 Thành phần trong kho mã</h3>
+  <table>
+    <tr><th style="width:32%">Thư mục</th><th>Nội dung</th></tr>
+    <tr><td><code>apps/api</code></td><td>Backend Python 3.12 + FastAPI + SQLAlchemy 2 (async) + Alembic. Mỗi module nghiệp vụ nằm trong <code>src/app/modules/</code>.</td></tr>
+    <tr><td><code>apps/web</code></td><td>Frontend Next.js 16 (App Router) + React 19 + TypeScript + Tailwind 4.</td></tr>
+    <tr><td><code>db/views</code></td><td>Ba view phân quyền cho trợ lý AI (<code>vw_ai_quanly</code>, <code>vw_ai_thungan</code>, <code>vw_ai_kho</code>) và mẫu cấp quyền.</td></tr>
+    <tr><td><code>scripts/seed</code></td><td>Sinh dữ liệu mô phỏng 12 tháng (khoảng 20.000 order).</td></tr>
+    <tr><td><code>scripts/apply_grants.sh</code></td><td>Tạo view và 3 tài khoản CSDL chỉ-đọc cho trợ lý AI.</td></tr>
+    <tr><td><code>data/eval</code></td><td>Bộ 95 câu hỏi tiếng Việt – SQL chuẩn và harness đánh giá A/B/C.</td></tr>
+    <tr><td><code>docs</code></td><td>Báo cáo đồ án, sơ đồ UML, design system, spec và plan.</td></tr>
+    <tr><td><code>Makefile</code></td><td>Tập lệnh tắt: <code>make setup</code>, <code>make api</code>, <code>make gate</code>… Gõ <code>make help</code> để xem hết.</td></tr>
+  </table>
+
+  <h3>1.3 Thứ tự tổng quát</h3>
+  <p>Làm đúng thứ tự dưới đây; mỗi bước phụ thuộc bước trước:</p>
+  <ol>
+    <li>Cài công cụ (mục 2) → lấy mã (mục 3) → cài thư viện (mục 4).</li>
+    <li>Tạo file <code>.env</code> (mục 5) → bật MySQL (mục 6) → tạo bảng (mục 7).</li>
+    <li>Tạo view + tài khoản chỉ-đọc cho AI (mục 8) → sinh dữ liệu mẫu (mục 9).</li>
+    <li>Chạy API (mục 10) và web (mục 11) ở hai cửa sổ Terminal riêng → mở trình duyệt.</li>
+  </ol>
+  <div class="note"><b>Thời gian dự kiến</b>Lần đầu khoảng 30–45 phút (chủ yếu là tải Docker image, thư viện và sinh dữ liệu mẫu). Những lần sau chỉ cần 2 lệnh <code>make api</code> và <code>make web</code>.</div>
+</section>
+
+<!-- ============ 2 ============ -->
+<section class="section">
+  <h2>2. Chuẩn bị máy và cài công cụ</h2>
+  <h3>2.1 Cấu hình tối thiểu</h3>
+  <ul>
+    <li>RAM 8 GB (khuyến nghị 16 GB nếu chạy Ollama cục bộ), trống ≥ 10 GB ổ đĩa.</li>
+    <li>Kết nối Internet cho lần cài đầu (tải thư viện, Docker image) và khi dùng LLM thương mại.</li>
+  </ul>
+
+  <h3>2.2 Danh sách công cụ</h3>
+  <table>
+    <tr><th>Công cụ</th><th>Phiên bản</th><th>Dùng để</th></tr>
+    <tr><td>Git</td><td>bất kỳ</td><td>Tải mã nguồn</td></tr>
+    <tr><td>Python</td><td>3.12 trở lên</td><td>Chạy backend</td></tr>
+    <tr><td>uv</td><td>mới nhất</td><td>Quản lý Python và thư viện backend</td></tr>
+    <tr><td>Node.js</td><td>20 trở lên</td><td>Chạy frontend</td></tr>
+    <tr><td>pnpm</td><td>9.15.0 (khoá trong <code>package.json</code>)</td><td>Cài thư viện frontend</td></tr>
+    <tr><td>Docker Desktop hoặc OrbStack</td><td>mới nhất</td><td>Chạy MySQL 8.4</td></tr>
+    <tr><td>make</td><td>có sẵn trên macOS/Linux</td><td>Chạy các lệnh tắt trong <code>Makefile</code></td></tr>
+  </table>
+
+  <h3>2.3 Cài trên macOS</h3>
+  <div class="step"><span class="n">1</span><div>
+    <p>Cài <b>Homebrew</b> (trình quản lý gói) nếu máy chưa có. Mở ứng dụng <b>Terminal</b> và dán:</p>
+<pre>/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"</pre>
+    <p>Cài xong, làm theo 2 dòng "Next steps" mà Homebrew in ra (thêm <code>brew</code> vào PATH), rồi đóng và mở lại Terminal.</p>
+  </div></div>
+  <div class="step"><span class="n">2</span><div>
+    <p>Cài Git, uv, Node.js:</p>
+<pre>brew install git uv node</pre>
+  </div></div>
+  <div class="step"><span class="n">3</span><div>
+    <p>Bật pnpm đúng phiên bản bằng Corepack (đi kèm Node.js):</p>
+<pre>corepack enable
+corepack prepare pnpm@9.15.0 --activate</pre>
+  </div></div>
+  <div class="step"><span class="n">4</span><div>
+    <p>Cài Python 3.12 qua uv (không đụng tới Python của hệ điều hành):</p>
+<pre>uv python install 3.12</pre>
+  </div></div>
+  <div class="step"><span class="n">5</span><div>
+    <p>Cài <b>Docker Desktop</b> (docker.com/products/docker-desktop) hoặc <b>OrbStack</b> (orbstack.dev — nhẹ hơn trên Mac). Mở ứng dụng lên một lần và chờ biểu tượng báo "running".</p>
+  </div></div>
+  <div class="step"><span class="n">6</span><div>
+    <p>Kiểm tra lại toàn bộ. Mỗi lệnh phải in ra số phiên bản, không báo "command not found":</p>
+<pre>git --version
+uv --version
+uv run --python 3.12 python --version   <span class="comment"># Python 3.12.x</span>
+node --version                          <span class="comment"># v20 trở lên</span>
+pnpm --version                          <span class="comment"># 9.15.0</span>
+docker --version
+docker compose version
+make --version</pre>
+  </div></div>
+
+  <h3>2.4 Cài trên Windows (qua WSL2)</h3>
+  <p><code>Makefile</code> và script <code>apply_grants.sh</code> dùng bash, nên trên Windows nên chạy trong <b>WSL2 (Ubuntu)</b>:</p>
+  <ol>
+    <li>Mở PowerShell quyền Administrator: <code>wsl --install -d Ubuntu</code>, khởi động lại máy, tạo tài khoản Ubuntu.</li>
+    <li>Cài Docker Desktop cho Windows, vào <b>Settings → Resources → WSL integration</b>, bật cho Ubuntu.</li>
+    <li>Trong cửa sổ Ubuntu: <code>sudo apt update &amp;&amp; sudo apt install -y git make curl</code>, cài uv bằng <code>curl -LsSf https://astral.sh/uv/install.sh | sh</code>, cài Node 20 bằng <code>nvm</code> hoặc gói NodeSource, rồi làm tiếp bước 3–6 ở mục 2.3.</li>
+    <li>Để mã nguồn trong ổ Linux (ví dụ <code>~/projects</code>), không đặt trong <code>/mnt/c</code> — chạy sẽ chậm hơn nhiều.</li>
+  </ol>
+  <div class="note"><b>Không dùng WSL?</b>Vẫn chạy được bằng cách gõ tay các lệnh mà Makefile gọi (xem mục 16), và dùng <code>scripts/apply_grants.ps1</code> thay cho <code>apply_grants.sh</code>.</div>
+</section>
+
+<!-- ============ 3 + 4 ============ -->
+<section class="section">
+  <h2>3. Lấy mã nguồn</h2>
+<pre>mkdir -p ~/projects &amp;&amp; cd ~/projects
+git clone https://github.com/nminhzzz/restaurant-management-ai.git
+cd restaurant-management-ai
+git checkout main
+git pull</pre>
+  <p>Từ đây trở đi, <b>mọi lệnh đều chạy ở thư mục gốc</b> <code>restaurant-management-ai</code>, trừ khi tài liệu ghi rõ <code>cd</code> vào thư mục khác.</p>
+
+  <h2 style="margin-top:22pt">4. Cài thư viện (dependencies)</h2>
+<pre>make setup</pre>
+  <p>Lệnh này làm hai việc:</p>
+  <ul>
+    <li><code>cd apps/api &amp;&amp; uv sync</code>: tạo môi trường ảo Python tại <code>apps/api/.venv</code> và cài FastAPI, SQLAlchemy, Alembic, pytest…</li>
+    <li><code>cd apps/web &amp;&amp; pnpm install</code>: cài Next.js, React, Tailwind… vào <code>apps/web/node_modules</code>.</li>
+  </ul>
+  <div class="ok"><b>Thành công khi</b>Lệnh kết thúc không có dòng <code>error</code>; thấy thư mục <code>apps/api/.venv</code> và <code>apps/web/node_modules</code>.</div>
+  <div class="warn"><b>Nếu pnpm báo sai phiên bản</b>Chạy lại <code>corepack prepare pnpm@9.15.0 --activate</code>. Nếu uv báo thiếu Python 3.12, chạy <code>uv python install 3.12</code>.</div>
+  <p class="small muted">Tuỳ chọn cho người đóng góp mã: cài hook kiểm tra định dạng trước mỗi commit bằng <code>pipx install pre-commit &amp;&amp; pre-commit install</code>.</p>
+</section>
+
+<!-- ============ 5 ============ -->
+<section class="section">
+  <h2>5. Cấu hình biến môi trường</h2>
+  <p>Tạo file <code>.env</code> ở thư mục gốc từ file mẫu <code>.env.example</code>:</p>
+<pre>make env</pre>
+  <p>Lệnh chỉ tạo <code>.env</code> nếu chưa có, nên chạy lại nhiều lần cũng không sao. Mở <code>.env</code> bằng trình soạn thảo bất kỳ (VS Code: <code>code .env</code>). Với máy phát triển, <b>giữ nguyên giá trị mặc định là chạy được</b>; chỉ cần điền thêm phần AI (mục 8, 13) và SePay (mục 14) khi dùng tới.</p>
+  <div class="danger"><b>Không bao giờ commit file .env</b>File này chứa mật khẩu và khoá API. Nó đã nằm trong <code>.gitignore</code>; chỉ <code>.env.example</code> (không có giá trị bí mật) mới được đưa lên Git.</div>
+
+  <h3>5.1 Biến của backend (API)</h3>
+  <table class="vars">
+    <tr><th style="width:31%">Biến</th><th style="width:27%">Mặc định</th><th>Ý nghĩa</th></tr>
+    <tr><td><code>ENVIRONMENT</code></td><td><code>local</code></td><td>Khác <code>local</code> thì bắt buộc đặt <code>JWT_SECRET</code> và <code>PAYMENT_WEBHOOK_SECRET</code>.</td></tr>
+    <tr><td><code>DATABASE_URL</code></td><td class="small"><code>mysql+asyncmy://restaurant:restaurant@localhost:3306/restaurant?charset=utf8mb4</code></td><td>Chuỗi kết nối MySQL cho nghiệp vụ. Khớp sẵn với Docker ở mục 6.</td></tr>
+    <tr><td><code>JWT_SECRET</code></td><td>chuỗi dev</td><td>Khoá ký token đăng nhập. Máy thật: đặt chuỗi ngẫu nhiên ≥ 32 ký tự (<code>openssl rand -hex 32</code>).</td></tr>
+    <tr><td><code>ACCESS_TOKEN_TTL_MINUTES</code></td><td><code>480</code></td><td>Thời gian sống của phiên đăng nhập (phút).</td></tr>
+    <tr><td><code>CORS_ORIGINS</code></td><td><code>["http://localhost:3000"]</code></td><td>Địa chỉ web được phép gọi API. Đổi cổng web thì phải sửa ở đây (dạng JSON).</td></tr>
+    <tr><td><code>AI_PROVIDER</code></td><td><code>deepseek</code></td><td><code>deepseek</code> · <code>openai</code> · <code>ollama</code> (mục 13).</td></tr>
+    <tr><td><code>AI_API_KEY</code></td><td>(trống)</td><td>Khoá API của nhà cung cấp LLM.</td></tr>
+    <tr><td><code>LLM_MODEL</code></td><td><code>deepseek-flash</code></td><td>Tên mô hình.</td></tr>
+    <tr><td><code>LLM_BASE_URL</code></td><td>(trống)</td><td>Để trống thì dùng địa chỉ mặc định của nhà cung cấp.</td></tr>
+    <tr><td><code>AI_OLLAMA_BASE_URL</code></td><td><code>http://localhost:11434</code></td><td>Địa chỉ Ollama khi <code>AI_PROVIDER=ollama</code>.</td></tr>
+    <tr><td><code>AI_READONLY_URL_MANAGER</code> · <code>_CASHIER</code> · <code>_WAREHOUSE</code></td><td>(trống)</td><td>Chuỗi kết nối của 3 tài khoản chỉ-đọc cho trợ lý AI (mục 8). Thiếu thì trợ lý không chạy được truy vấn.</td></tr>
+    <tr><td><code>AI_MAX_ROWS</code> · <code>AI_SQL_TIMEOUT_SECONDS</code> · <code>AI_MAX_SQL_ATTEMPTS</code></td><td><code>500</code> · <code>3</code> · <code>2</code></td><td>Giới hạn an toàn theo NFR-06. Không cần đổi.</td></tr>
+    <tr><td><code>PAYMENT_GATEWAY</code></td><td><code>simulator</code></td><td><code>simulator</code> (giả lập) hoặc <code>sepay</code> (mục 14).</td></tr>
+    <tr><td><code>PAYMENT_WEBHOOK_SECRET</code></td><td>(trống)</td><td>Khoá HMAC của bộ giả lập QR.</td></tr>
+    <tr><td><code>SEPAY_*</code></td><td>(trống), prefix <code>TT</code></td><td>Cấu hình SePay (mục 14).</td></tr>
+  </table>
+
+  <h3>5.2 Biến của MySQL (Docker)</h3>
+  <p><code>MYSQL_ROOT_PASSWORD</code> (mặc định <code>restaurant-root</code>), <code>MYSQL_DATABASE</code> (<code>restaurant</code>), <code>MYSQL_USER</code> / <code>MYSQL_PASSWORD</code> (<code>restaurant</code>), <code>MYSQL_PORT</code> (<code>3306</code>). Nếu đổi user/mật khẩu ở đây, nhớ đổi <code>DATABASE_URL</code> cho khớp.</p>
+
+  <h3>5.3 Biến của frontend (web)</h3>
+  <p>Web mặc định gọi API ở <code>http://localhost:8000/api/v1</code>. Chỉ khi API chạy ở địa chỉ khác mới cần tạo <code>apps/web/.env.local</code>:</p>
+<pre>NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+NEXT_PUBLIC_API_PREFIX=/api/v1</pre>
+</section>
+
+<!-- ============ 6 + 7 ============ -->
+<section class="section">
+  <h2>6. Khởi động MySQL bằng Docker</h2>
+  <div class="step"><span class="n">1</span><div>
+    <p>Mở Docker Desktop / OrbStack và đợi nó chạy. Sau đó:</p>
+<pre>make db-up</pre>
+    <p>Lần đầu Docker tải image <code>mysql:8.4</code> (vài trăm MB). Container tên <code>restaurant-db</code>, dữ liệu nằm trong volume <code>db-data</code> nên tắt/bật lại không mất.</p>
+  </div></div>
+  <div class="step"><span class="n">2</span><div>
+    <p>Chờ MySQL sẵn sàng (khoảng 20–40 giây lần đầu). Kiểm tra:</p>
+<pre>docker compose ps</pre>
+    <p>Cột <b>STATUS</b> phải là <code>Up … (healthy)</code>. Nếu còn <code>(health: starting)</code> thì đợi thêm rồi chạy lại.</p>
+  </div></div>
+  <div class="step"><span class="n">3</span><div>
+    <p>(Tuỳ chọn) vào thử MySQL bằng dòng lệnh:</p>
+<pre>docker compose exec db mysql -urestaurant -prestaurant restaurant -e "SELECT VERSION();"</pre>
+  </div></div>
+  <p class="small muted">Tắt MySQL: <code>make db-down</code> (dữ liệu vẫn giữ). Múi giờ container đặt sẵn <code>Asia/Ho_Chi_Minh</code>, bảng mã <code>utf8mb4</code> để lưu tiếng Việt có dấu.</p>
+
+  <h2 style="margin-top:22pt">7. Tạo lược đồ CSDL (migration)</h2>
+<pre>make migrate</pre>
+  <p>Alembic chạy toàn bộ migration trong <code>apps/api/migrations/versions</code>, tạo 29 bảng nghiệp vụ theo báo cáo (<code>MON_AN</code>, <code>ORDER</code>, <code>HOA_DON</code>, <code>NGUYEN_LIEU</code>…) cộng bảng đếm <code>DEM_ORDER</code>.</p>
+  <div class="ok"><b>Thành công khi</b>Dòng cuối có dạng <code>Running upgrade … -&gt; …</code> và không có <code>Traceback</code>. Kiểm tra: <code>docker compose exec db mysql -urestaurant -prestaurant restaurant -e "SHOW TABLES;"</code>.</div>
+  <div class="warn"><b>Nếu báo "Can't connect to MySQL server"</b>MySQL chưa healthy (quay lại mục 6, bước 2) hoặc cổng 3306 đang bị một MySQL khác trên máy chiếm (xem mục 17).</div>
+</section>
+
+<!-- ============ 8 ============ -->
+<section class="section">
+  <h2>8. View và tài khoản chỉ-đọc cho trợ lý AI</h2>
+  <p>Trợ lý AI <b>không</b> đọc thẳng bảng nghiệp vụ. Mỗi vai trò chỉ thấy một view, và truy vấn bằng một tài khoản MySQL riêng chỉ có quyền <code>SELECT</code> trên đúng view đó (NFR-06):</p>
+  <table>
+    <tr><th>Vai trò</th><th>View</th><th>Tài khoản MySQL</th></tr>
+    <tr><td>Quản lý</td><td><code>vw_ai_quanly</code></td><td><code>ai_manager</code></td></tr>
+    <tr><td>Thu ngân</td><td><code>vw_ai_thungan</code></td><td><code>ai_cashier</code></td></tr>
+    <tr><td>Thủ kho</td><td><code>vw_ai_kho</code></td><td><code>ai_warehouse</code></td></tr>
+  </table>
+  <div class="step"><span class="n">1</span><div>
+    <p>Chọn 3 mật khẩu riêng (chỉ dùng chữ và số cho dễ đặt vào URL), đặt vào biến tạm của Terminal:</p>
+<pre>export AI_READONLY_PASSWORD_MANAGER='DoiMatKhauQuanLy1'
+export AI_READONLY_PASSWORD_CASHIER='DoiMatKhauThuNgan1'
+export AI_READONLY_PASSWORD_WAREHOUSE='DoiMatKhauKho1'</pre>
+  </div></div>
+  <div class="step"><span class="n">2</span><div>
+    <p>Chạy script. Script đọc 3 file view trong <code>db/views/</code>, tạo view trong CSDL, rồi tạo/đổi mật khẩu và cấp quyền cho 3 tài khoản:</p>
+<pre>./scripts/apply_grants.sh</pre>
+    <p class="small muted">Windows PowerShell: đặt <code>$env:AI_READONLY_PASSWORD_MANAGER="…"</code> (tương tự cho 2 biến kia) rồi <code>powershell -ExecutionPolicy Bypass -File scripts/apply_grants.ps1</code>. Nếu đổi <code>MYSQL_ROOT_PASSWORD</code>, export thêm biến đó trước khi chạy.</p>
+  </div></div>
+  <div class="step"><span class="n">3</span><div>
+    <p>Điền 3 chuỗi kết nối vào <code>.env</code>, đúng mật khẩu vừa đặt:</p>
+<pre>AI_READONLY_URL_MANAGER=mysql+asyncmy://ai_manager:DoiMatKhauQuanLy1@localhost:3306/restaurant?charset=utf8mb4
+AI_READONLY_URL_CASHIER=mysql+asyncmy://ai_cashier:DoiMatKhauThuNgan1@localhost:3306/restaurant?charset=utf8mb4
+AI_READONLY_URL_WAREHOUSE=mysql+asyncmy://ai_warehouse:DoiMatKhauKho1@localhost:3306/restaurant?charset=utf8mb4</pre>
+  </div></div>
+  <div class="note"><b>Mật khẩu có ký tự đặc biệt?</b>Các ký tự <code>@ : / ? # %</code> phải mã hoá URL trong chuỗi kết nối (ví dụ <code>@</code> thành <code>%40</code>). Dùng chữ và số là cách đơn giản nhất.</div>
+  <div class="warn"><b>Chạy lại sau mỗi lần tạo lại CSDL</b>View và tài khoản nằm trong CSDL. Nếu xoá volume và chạy lại migration (mục 9.4), phải chạy lại <code>apply_grants.sh</code>.</div>
+</section>
+
+<!-- ============ 9 ============ -->
+<section class="section">
+  <h2>9. Sinh dữ liệu mẫu 12 tháng</h2>
+  <p>CSDL mới tạo chưa có tài khoản nào để đăng nhập. Script seed tạo toàn bộ dữ liệu để dùng thử và làm báo cáo: vai trò, cấu hình, khoảng 70 món, nguyên liệu, công thức, 24 bàn, 3 tài khoản mẫu và khoảng 20.000 order trong 12 tháng (có phiếu nhập, xuất kho, thanh toán, trừ kho FIFO, Business Date 06:00–06:00).</p>
+  <h3>9.1 Chạy seed</h3>
+<pre>make seed</pre>
+  <p>Mất vài phút tuỳ máy. Kết thúc sẽ in dạng:</p>
+<pre>[seed] danh mục: 71 món · … nguyên liệu · 24 bàn
+[seed] vận hành: … order · … phiếu nhập · … phiếu xuất
+[seed] xong lúc 2026-…</pre>
+
+  <h3>9.2 Tuỳ chỉnh lượng dữ liệu</h3>
+  <p>Muốn chạy nhanh để thử (ít order hơn):</p>
+<pre>cd apps/api
+uv run python ../../scripts/seed/generate.py --orders 3000 --months 3 --seed 42
+cd ../..</pre>
+  <p class="small muted"><code>--orders</code>: số order (mặc định 20.000) · <code>--months</code>: số tháng lùi về trước (12) · <code>--seed</code>: hạt giống ngẫu nhiên, cùng số thì ra cùng dữ liệu (42).</p>
+
+  <h3>9.3 Tài khoản mẫu</h3>
+  <table>
+    <tr><th>Tên đăng nhập</th><th>Mật khẩu</th><th>Vai trò</th><th>Thấy các module</th></tr>
+    <tr><td><code>seed_manager</code></td><td><code>matkhau123</code></td><td>Quản lý</td><td>Tất cả 6 module</td></tr>
+    <tr><td><code>seed_cashier</code></td><td><code>matkhau123</code></td><td>Thu ngân</td><td>Bán hàng, Trợ lý AI…</td></tr>
+    <tr><td><code>seed_warehouse</code></td><td><code>matkhau123</code></td><td>Thủ kho</td><td>Kho, Trợ lý AI…</td></tr>
+  </table>
+  <div class="warn"><b>Chỉ dùng cho máy phát triển</b>Đây là mật khẩu mẫu công khai. Khi triển khai thật, đăng nhập bằng <code>seed_manager</code>, vào <b>Cài đặt → Tài khoản</b> tạo tài khoản mới, rồi khoá các tài khoản mẫu.</div>
+
+  <h3>9.4 Làm lại CSDL từ đầu</h3>
+  <p>Seed chỉ chạy trên CSDL sạch; chạy lần hai sẽ báo <i>"CSDL đã có dữ liệu danh mục"</i>. Để làm lại:</p>
+  <div class="danger"><b>Xoá toàn bộ dữ liệu</b>Các lệnh dưới đây xoá vĩnh viễn mọi dữ liệu trong MySQL cục bộ. Chỉ làm trên máy phát triển.</div>
+<pre>docker compose down -v        <span class="comment"># tắt MySQL và xoá volume dữ liệu</span>
+make db-up                    <span class="comment"># đợi healthy (docker compose ps)</span>
+make migrate
+./scripts/apply_grants.sh     <span class="comment"># nhớ export lại 3 mật khẩu ở mục 8</span>
+make seed</pre>
+</section>
+
+<!-- ============ 10 + 11 ============ -->
+<section class="section">
+  <h2>10. Chạy backend (API)</h2>
+  <p>Mở <b>một cửa sổ Terminal riêng</b> cho API (để nó chạy suốt):</p>
+<pre>make api</pre>
+  <p>Tương đương <code>cd apps/api &amp;&amp; uv run uvicorn app.main:app --reload --app-dir src --port 8000</code>. Chế độ <code>--reload</code> tự khởi động lại khi sửa mã.</p>
+  <div class="ok"><b>Thành công khi</b>Terminal in <code>Application startup complete</code> và <code>Uvicorn running on http://127.0.0.1:8000</code>. Mở <b>http://localhost:8000/docs</b> để xem toàn bộ API (Swagger) và gọi thử từng endpoint.</div>
+  <p class="small muted">Dừng API: bấm <kbd>Ctrl</kbd> + <kbd>C</kbd> trong cửa sổ đó. Sửa <code>.env</code> xong phải dừng rồi chạy lại để API đọc giá trị mới.</p>
+
+  <h2 style="margin-top:22pt">11. Chạy frontend (web)</h2>
+  <p>Mở <b>cửa sổ Terminal thứ hai</b>:</p>
+<pre>make web</pre>
+  <p>Tương đương <code>cd apps/web &amp;&amp; pnpm dev</code>. Đợi dòng <code>Ready</code> rồi mở <b>http://localhost:3000</b>.</p>
+  <div class="step"><span class="n">1</span><div><p>Trang đăng nhập hiện ra. Nhập <code>seed_manager</code> / <code>matkhau123</code>, bấm <b>Đăng nhập</b>.</p></div></div>
+  <div class="step"><span class="n">2</span><div><p>Sidebar tối bên trái liệt kê các module theo vai trò. Góc dưới sidebar là tên người dùng, nút đổi mật khẩu và đăng xuất.</p></div></div>
+  <div class="note"><b>Muốn chạy web ở cổng khác?</b><code>cd apps/web &amp;&amp; pnpm exec next dev -p 3100</code>, đồng thời sửa <code>CORS_ORIGINS=["http://localhost:3100"]</code> trong <code>.env</code> và khởi động lại API — nếu không, trình duyệt sẽ báo lỗi CORS và mọi trang đều "Không tải được dữ liệu".</div>
+  <h3>11.1 Chạy bản build production (tuỳ chọn)</h3>
+<pre>cd apps/web
+pnpm build
+pnpm start          <span class="comment"># mặc định cổng 3000</span></pre>
+</section>
+
+<!-- ============ 12 ============ -->
+<section class="section">
+  <h2>12. Dùng thử các chức năng</h2>
+  <h3>12.1 Bán hàng — 3 bước (đăng nhập <code>seed_cashier</code>)</h3>
+  <ol>
+    <li><b>Chọn bàn.</b> Lưới bàn hiện trạng thái: <i>Trống</i> (xanh), <i>Có khách</i> (đen, kèm tạm tính, số món, giờ mở), <i>Đã đặt</i> (xám). Lọc theo trạng thái ở thanh phía trên; ô "Tra mã order" để tìm order cũ.</li>
+    <li>Bấm <b>bàn trống</b> → sang bước <b>Gọi món</b> với order mới. Bấm <b>bàn có khách</b> → khung bên phải hiện tóm tắt với nút <b>Gọi thêm</b> và <b>Thanh toán</b>. Đơn mang về: nút <b>Đơn mới</b> ở khung "Mang về".</li>
+    <li><b>Gọi món.</b> Mỗi ô món hiện giá; bấm để thêm, dùng <kbd>+</kbd>/<kbd>−</kbd> để đổi số lượng, thêm ghi chú cho bếp. Món chưa có giá hiện "Chưa có giá" và không thêm được. Giỏ hàng chia "Món mới" và "Đã gửi bếp", tổng tiền cập nhật ngay.</li>
+    <li>Bấm <b>Gửi bếp</b> (quay về sơ đồ bàn) hoặc <b>Gửi bếp &amp; thanh toán</b> (sang bước 3).</li>
+    <li><b>Thanh toán.</b> Chọn <b>Tiền mặt</b>: nhập tiền khách đưa hoặc bấm nút nhanh ("Vừa đủ", 50.000, 100.000…), màn hình tính tiền thối, bấm <b>Xác nhận đã thu</b>. Hoặc chọn <b>QR chuyển khoản</b> (mục 14).</li>
+    <li>Màn <b>Hoàn tất</b> hiện số hoá đơn, mã order, phương thức, tổng tiền, tiền thối, nút <b>In hoá đơn</b> và <b>Về sơ đồ bàn</b>. Bàn tự chuyển về <i>Trống</i>.</li>
+  </ol>
+  <p class="small muted">Vị trí đang làm được lưu trên thanh địa chỉ (<code>/sales?step=pay&amp;order=…</code>), nên tải lại trang không mất chỗ.</p>
+
+  <h3>12.2 Các module khác (đăng nhập <code>seed_manager</code>)</h3>
+  <table>
+    <tr><th style="width:22%">Module</th><th>Thử gì</th></tr>
+    <tr><td>Danh mục</td><td>Món, nhóm món, nguyên liệu, nhà cung cấp, bàn; đặt giá có hiệu lực theo ngày, sửa công thức món.</td></tr>
+    <tr><td>Kho</td><td>Tồn kho và cảnh báo dưới mức tối thiểu, phiếu nhập, phiếu xuất, kiểm kê.</td></tr>
+    <tr><td>Báo cáo</td><td>Doanh thu theo ngày/tuần/tháng/năm, món bán chạy, khung giờ, lợi nhuận, so sánh kỳ, order hủy.</td></tr>
+    <tr><td>Cài đặt</td><td>Tài khoản và vai trò, cấu hình nhà hàng, nhật ký hệ thống, sao lưu.</td></tr>
+  </table>
+
+  <h3>12.3 Trợ lý AI</h3>
+  <ul>
+    <li><b>Màn đầy đủ</b> (mục "Trợ lý AI"): cột lịch sử trò chuyện bên trái, màn chào với 4 câu hỏi gợi ý theo vai trò. Câu trả lời gồm câu kết luận, các ý chính, tab <b>Biểu đồ / Bảng / SQL</b>, ghi chú phạm vi dữ liệu, nút <b>Sao chép</b>, <b>Hỏi lại</b> và các câu <b>Hỏi tiếp</b>.</li>
+    <li><b>Ô chat nổi</b> ở góc dưới phải mọi màn (trừ Bán hàng và màn Trợ lý). Mở/đóng bằng <kbd>Ctrl</kbd> + <kbd>K</kbd> (Mac: <kbd>⌘</kbd> + <kbd>K</kbd>), <kbd>Esc</kbd> để thu nhỏ; nút "Mở toàn màn hình" chuyển sang màn đầy đủ đúng phiên đang hỏi.</li>
+    <li>Trợ lý <b>chỉ đọc</b> dữ liệu và chỉ trong phạm vi vai trò. Cần cấu hình LLM (mục 13) và tài khoản chỉ-đọc (mục 8) mới trả lời được.</li>
+  </ul>
+</section>
+
+<!-- ============ 13 ============ -->
+<section class="section">
+  <h2>13. Cấu hình trợ lý AI (LLM)</h2>
+  <p>Chọn <b>một</b> trong ba cách, sửa <code>.env</code>, rồi khởi động lại API.</p>
+
+  <h3>13.1 DeepSeek (mặc định, rẻ, nhanh)</h3>
+  <ol>
+    <li>Tạo tài khoản tại platform.deepseek.com, nạp tiền tối thiểu, vào <b>API Keys</b> → tạo khoá.</li>
+    <li>Trong <code>.env</code>:</li>
+  </ol>
+<pre>AI_PROVIDER=deepseek
+AI_API_KEY=sk-...khoá-của-bạn...
+LLM_MODEL=deepseek-flash      <span class="comment"># mặc định của dự án</span></pre>
+  <p class="small muted">Để trống <code>LLM_BASE_URL</code> (dùng <code>https://api.deepseek.com</code>). <code>LLM_REASONING_EFFORT=low</code> giữ mỗi câu hỏi trong ngân sách 8 giây (NFR-02).</p>
+
+  <h3>13.2 OpenAI</h3>
+<pre>AI_PROVIDER=openai
+AI_API_KEY=sk-...
+LLM_MODEL=gpt-4o-mini           <span class="comment"># ví dụ; chọn mô hình còn hỗ trợ trong tài khoản của bạn</span></pre>
+
+  <h3>13.3 Ollama (chạy mô hình ngay trên máy, không cần khoá)</h3>
+  <ol>
+    <li>Cài Ollama (ollama.com) và mở ứng dụng.</li>
+    <li>Tải một mô hình giỏi SQL, ví dụ: <code>ollama pull qwen2.5-coder:7b</code> (khoảng 4–5 GB).</li>
+    <li>Trong <code>.env</code>:</li>
+  </ol>
+<pre>AI_PROVIDER=ollama
+LLM_MODEL=qwen2.5-coder:7b
+AI_OLLAMA_BASE_URL=http://localhost:11434</pre>
+  <div class="note"><b>Kiểm tra nhanh</b>Đăng nhập <code>seed_manager</code> → Trợ lý AI → bấm gợi ý "Doanh thu 7 ngày gần nhất theo từng ngày?". Có bảng và biểu đồ là đã thông. Nếu báo lỗi, xem API log trong cửa sổ <code>make api</code> và mục 17.</div>
+  <p class="small muted">Các giới hạn an toàn luôn bật: mọi câu SQL do mô hình sinh ra phải qua bộ kiểm duyệt <code>validate_sql</code> (chỉ <code>SELECT</code> trên đúng view), tối đa 500 dòng, 3 giây mỗi truy vấn, 2 lần sinh SQL mỗi câu hỏi, hạn mức <code>AI_DAILY_QUESTION_QUOTA</code> câu/ngày.</p>
+</section>
+
+<!-- ============ 14 ============ -->
+<section class="section">
+  <h2>14. Thanh toán QR qua SePay</h2>
+  <p>Có hai chế độ, chọn bằng <code>PAYMENT_GATEWAY</code>:</p>
+  <ul>
+    <li><b><code>simulator</code></b> (mặc định): cổng giả lập dùng cho kiểm thử tự động. Trên màn thanh toán vẫn tạo được giao dịch QR có đếm ngược 10 phút; khi demo, dùng <b>Tiền mặt</b> hoặc luồng "Khách báo đã chuyển khoản → Chờ đối soát → Quản lý xác nhận".</li>
+    <li><b><code>sepay</code></b>: mã VietQR chuyển khoản thật qua SePay ở <b>Test mode</b> (không mất tiền), hệ thống tự xác nhận khi SePay gọi webhook.</li>
+  </ul>
+
+  <h3>14.1 Chuẩn bị SePay Test mode</h3>
+  <div class="step"><span class="n">1</span><div><p>Đăng ký tài khoản tại <b>my.sepay.vn</b>, bật <b>Test mode</b> (chế độ thử nghiệm) trên thanh bên, tạo một <b>tài khoản ngân hàng Test mode</b>. Ghi lại số tài khoản, mã ngân hàng và tên chủ tài khoản.</p></div></div>
+  <div class="step"><span class="n">2</span><div><p>Trong mục <b>Cấu trúc mã thanh toán</b>, khai báo tiền tố <code>TT</code> (phải trùng <code>SEPAY_PAYMENT_PREFIX</code>). Mỗi giao dịch có nội dung dạng <code>TT388</code>.</p></div></div>
+  <div class="step"><span class="n">3</span><div>
+    <p>Mở đường hầm HTTPS để SePay gọi được máy của bạn. Cài cloudflared (<code>brew install cloudflared</code>) rồi chạy trong cửa sổ Terminal thứ ba:</p>
+<pre>cloudflared tunnel --url http://localhost:8000</pre>
+    <p>Cloudflared in ra một địa chỉ dạng <code>https://ten-ngau-nhien.trycloudflare.com</code>.</p>
+  </div></div>
+  <div class="step"><span class="n">4</span><div><p>Trong SePay, thêm <b>webhook</b>: URL <code>https://ten-ngau-nhien.trycloudflare.com/api/v1/sales/webhooks/sepay</code>, kiểu xác thực <b>API Key</b>, đặt một chuỗi khoá ngẫu nhiên (ví dụ <code>openssl rand -hex 24</code>). (Tuỳ chọn) tạo <b>API Token</b> để dùng nút "Kiểm tra lại".</p></div></div>
+
+  <h3>14.2 Cấu hình <code>.env</code></h3>
+<pre>PAYMENT_GATEWAY=sepay
+SEPAY_BANK_ACCOUNT=0123499999          <span class="comment"># số tài khoản Test mode</span>
+SEPAY_BANK_CODE=MBBank                 <span class="comment"># mã ngân hàng theo SePay</span>
+SEPAY_ACCOUNT_NAME=NHA HANG DEMO
+SEPAY_WEBHOOK_API_KEY=chuoi-khoa-o-buoc-4
+SEPAY_API_TOKEN=token-tuy-chon
+SEPAY_PAYMENT_PREFIX=TT</pre>
+  <p>Khởi động lại API. Thiếu số tài khoản, mã ngân hàng hoặc API key thì API sẽ báo lỗi ngay khi khởi động — đây là cố ý để không chạy với cấu hình thiếu.</p>
+
+  <h3>14.3 Demo một giao dịch</h3>
+  <ol>
+    <li>Bán hàng → chọn bàn có khách → <b>Thanh toán</b> → <b>QR chuyển khoản</b> → <b>Tạo mã QR</b>. Màn hình hiện mã VietQR, số tiền, ngân hàng, số tài khoản, nội dung chuyển khoản (có nút sao chép) và đếm ngược 10 phút.</li>
+    <li>Trong trang SePay, dùng <b>Giả lập giao dịch</b> với <b>đúng số tiền</b> và <b>đúng nội dung</b> (ví dụ <code>TT388</code>).</li>
+    <li>Trong vòng vài giây màn thu ngân tự chuyển sang <b>Hoàn tất</b>. Không có tunnel thì bấm <b>Kiểm tra lại</b> (cần <code>SEPAY_API_TOKEN</code>).</li>
+  </ol>
+  <table>
+    <tr><th>Tình huống</th><th>Hệ thống xử lý</th></tr>
+    <tr><td>Chuyển đúng số tiền, còn hạn</td><td>Giao dịch "Thành công", tạo hoá đơn, trả bàn.</td></tr>
+    <tr><td>SePay gửi lại cùng một giao dịch</td><td>Bỏ qua, không tạo hoá đơn thứ hai.</td></tr>
+    <tr><td>Sai số tiền hoặc chuyển sau khi QR hết hạn</td><td>Chuyển "Chờ đối soát"; quản lý xác nhận thủ công.</td></tr>
+    <tr><td>Tiền vào order đã trả bằng tiền mặt</td><td>Ghi nhật ký cho người kiểm tra; không đổi order.</td></tr>
+    <tr><td>Sai API key</td><td>Từ chối (401) và ghi nhật ký.</td></tr>
+  </table>
+  <div class="danger"><b>Bảo mật</b>Không đưa <code>SEPAY_WEBHOOK_API_KEY</code>, <code>SEPAY_API_TOKEN</code> vào Git hay ảnh chụp màn hình. Khi <code>PAYMENT_GATEWAY=sepay</code>, webhook giả lập tự tắt để không ai giả mạo xác nhận thanh toán qua tunnel.</div>
+</section>
+
+<!-- ============ 15 + 16 ============ -->
+<section class="section">
+  <h2>15. Kiểm thử và đánh giá</h2>
+  <h3>15.1 Cổng kiểm tra đầy đủ (chạy trước khi commit)</h3>
+<pre>make gate</pre>
+  <p>Chạy lần lượt: kiểm tra định dạng (ruff format, prettier) → lint (ruff, ESLint) → kiểu (mypy, tsc) → test (pytest, vitest) → build web. Mọi bước phải xanh. Bộ test dùng CSDL SQLite trong bộ nhớ và LLM giả, <b>không cần</b> MySQL, khoá API hay mạng.</p>
+<pre>make fmt            <span class="comment"># tự sửa định dạng</span>
+make test-api       <span class="comment"># chỉ backend:  cd apps/api &amp;&amp; uv run pytest</span>
+make test-web       <span class="comment"># chỉ frontend: cd apps/web &amp;&amp; pnpm test</span>
+cd apps/api &amp;&amp; uv run pytest tests/modules/test_sales_payments.py -q   <span class="comment"># một file</span></pre>
+  <h3>15.2 Kiểm thử trên MySQL thật (tuỳ chọn)</h3>
+<pre>make gate-full      <span class="comment"># gate + test integration nếu máy đủ RAM/đĩa và MySQL đang chạy</span></pre>
+  <h3>15.3 Đánh giá trợ lý AI (thực nghiệm A/B/C)</h3>
+  <p>Cần MySQL có dữ liệu seed, tài khoản chỉ-đọc và LLM đã cấu hình:</p>
+<pre>cd apps/api
+uv run python ../../data/eval/harness.py --configs A,B,C --out ../../docs/eval-results.json</pre>
+  <p class="small muted">Chạy 95 câu hỏi trong <code>data/eval/questions.jsonl</code>, ghi kết quả vào <code>docs/eval-results.json</code>. Lần chạy tốn phí LLM thật.</p>
+
+  <h2 style="margin-top:22pt">16. Bảng lệnh thường dùng</h2>
+  <table class="vars">
+    <tr><th style="width:24%">Lệnh make</th><th style="width:52%">Lệnh gốc tương đương</th><th>Việc</th></tr>
+    <tr><td><code>make help</code></td><td>—</td><td>Liệt kê mọi lệnh</td></tr>
+    <tr><td><code>make setup</code></td><td><code>uv sync</code> (api) · <code>pnpm install</code> (web)</td><td>Cài thư viện</td></tr>
+    <tr><td><code>make env</code></td><td><code>cp .env.example .env</code></td><td>Tạo .env nếu chưa có</td></tr>
+    <tr><td><code>make db-up</code> / <code>db-down</code></td><td><code>docker compose up -d db</code> / <code>down</code></td><td>Bật / tắt MySQL</td></tr>
+    <tr><td><code>make migrate</code></td><td><code>uv run alembic upgrade head</code></td><td>Tạo / nâng cấp bảng</td></tr>
+    <tr><td><code>make seed</code></td><td><code>uv run python ../../scripts/seed/generate.py</code></td><td>Sinh dữ liệu mẫu</td></tr>
+    <tr><td><code>make api</code></td><td><code>uv run uvicorn app.main:app --reload --app-dir src --port 8000</code></td><td>Chạy backend</td></tr>
+    <tr><td><code>make web</code></td><td><code>pnpm dev</code></td><td>Chạy frontend</td></tr>
+    <tr><td><code>make gate</code></td><td>fmt-check · lint · typecheck · test · build</td><td>Kiểm tra toàn bộ</td></tr>
+    <tr><td><code>make build</code></td><td><code>pnpm build</code></td><td>Build web production</td></tr>
+    <tr><td><code>make clean</code></td><td>xoá <code>.next</code>, cache pytest/mypy/ruff</td><td>Dọn cache build</td></tr>
+  </table>
+  <h3>16.1 Hằng ngày chỉ cần</h3>
+<pre>make db-up          <span class="comment"># nếu MySQL chưa chạy</span>
+make api            <span class="comment"># cửa sổ 1</span>
+make web            <span class="comment"># cửa sổ 2 → http://localhost:3000</span></pre>
+</section>
+
+<!-- ============ 17 ============ -->
+<section class="section">
+  <h2>17. Xử lý sự cố</h2>
+  <table>
+    <tr><th style="width:34%">Hiện tượng</th><th>Nguyên nhân và cách xử lý</th></tr>
+    <tr><td><code>Cannot connect to the Docker daemon</code></td><td>Docker Desktop / OrbStack chưa mở. Mở ứng dụng, đợi "running", chạy lại <code>make db-up</code>.</td></tr>
+    <tr><td><code>port is already allocated</code> (3306)</td><td>Máy đã có MySQL khác chạy. Tắt nó (<code>brew services stop mysql</code>) hoặc đặt <code>MYSQL_PORT=3307</code> trong .env và sửa cổng trong <code>DATABASE_URL</code>, <code>AI_READONLY_URL_*</code>.</td></tr>
+    <tr><td><code>Address already in use</code> (8000 hoặc 3000)</td><td>Tìm tiến trình: <code>lsof -iTCP:8000 -sTCP:LISTEN</code>, rồi <code>kill &lt;PID&gt;</code>. Hoặc chạy ở cổng khác (nhớ sửa <code>CORS_ORIGINS</code>).</td></tr>
+    <tr><td><code>make migrate</code>: <code>Can't connect to MySQL</code></td><td>MySQL chưa healthy — <code>docker compose ps</code>, đợi thêm. Kiểm tra user/mật khẩu trong <code>DATABASE_URL</code> khớp <code>MYSQL_USER</code>/<code>MYSQL_PASSWORD</code>.</td></tr>
+    <tr><td>Seed báo "CSDL đã có dữ liệu danh mục"</td><td>Seed chỉ chạy trên CSDL sạch. Làm lại theo mục 9.4.</td></tr>
+    <tr><td>Đăng nhập báo sai tài khoản</td><td>Chưa chạy seed (mục 9), hoặc gõ sai mật khẩu <code>matkhau123</code>.</td></tr>
+    <tr><td>Trang web hiện "Không tải được dữ liệu"</td><td>API chưa chạy (xem cửa sổ <code>make api</code>), hoặc lỗi CORS do web không chạy ở cổng 3000 — mở DevTools (<kbd>F12</kbd>) → Console; sửa <code>CORS_ORIGINS</code> rồi khởi động lại API.</td></tr>
+    <tr><td>Trợ lý AI báo lỗi hoặc "Không thể tạo truy vấn an toàn"</td><td>Thiếu <code>AI_API_KEY</code>/sai <code>LLM_MODEL</code>; thiếu <code>AI_READONLY_URL_*</code> hoặc chưa chạy <code>apply_grants.sh</code>; Ollama chưa mở. Xem log ở cửa sổ API. Câu hỏi ngoài phạm vi vai trò bị từ chối là đúng thiết kế.</td></tr>
+    <tr><td>Trợ lý trả lời chậm rồi "phản hồi quá lâu"</td><td>Ngân sách mỗi câu là 8 giây. Dùng mô hình nhanh hơn, hoặc với Ollama chọn mô hình nhỏ hơn.</td></tr>
+    <tr><td>QR SePay không tự xác nhận</td><td>Tunnel đã tắt/đổi địa chỉ (cập nhật lại URL webhook trong SePay); sai API key; nội dung chuyển khoản sai tiền tố; số tiền khác tổng order (sẽ vào "Chờ đối soát"). Dùng nút "Kiểm tra lại" nếu có <code>SEPAY_API_TOKEN</code>.</td></tr>
+    <tr><td>API không khởi động sau khi bật SePay</td><td>Thiếu <code>SEPAY_BANK_ACCOUNT</code>, <code>SEPAY_BANK_CODE</code> hoặc <code>SEPAY_WEBHOOK_API_KEY</code>; đọc dòng lỗi đầu tiên trong log.</td></tr>
+    <tr><td><code>pnpm: command not found</code> / sai phiên bản</td><td><code>corepack enable &amp;&amp; corepack prepare pnpm@9.15.0 --activate</code>.</td></tr>
+    <tr><td>uv không tìm thấy Python 3.12</td><td><code>uv python install 3.12</code> rồi <code>make setup</code>.</td></tr>
+    <tr><td><code>make gate</code> đỏ ở bước format</td><td>Chạy <code>make fmt</code> rồi chạy lại gate.</td></tr>
+    <tr><td>Web cũ vẫn hiện giao diện cũ sau khi <code>git pull</code></td><td>Dừng <code>make web</code>, chạy <code>make setup</code> (thư viện mới), <code>make migrate</code> (bảng mới), rồi chạy lại API và web. Nếu vẫn lỗi: <code>make clean</code>.</td></tr>
+  </table>
+
+  <h3>17.1 Khi cần báo lỗi cho nhóm</h3>
+  <p>Gửi kèm: lệnh vừa chạy, 20 dòng cuối trong Terminal, đầu ra của <code>git log --oneline -1</code> và <code>docker compose ps</code>. <b>Xoá mọi khoá API, mật khẩu</b> khỏi nội dung trước khi gửi.</p>
+
+  <div class="ok" style="margin-top:14pt"><b>Tóm tắt lần chạy đầu tiên</b>
+  <code>make setup</code> → <code>make env</code> → <code>make db-up</code> → <code>make migrate</code> → <code>./scripts/apply_grants.sh</code> (sau khi export 3 mật khẩu, rồi điền <code>AI_READONLY_URL_*</code> vào .env) → <code>make seed</code> → <code>make api</code> (cửa sổ 1) → <code>make web</code> (cửa sổ 2) → mở http://localhost:3000, đăng nhập <code>seed_manager</code> / <code>matkhau123</code>.</div>
+</section>
+
+</body>
+</html>
