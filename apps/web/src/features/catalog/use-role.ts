@@ -9,7 +9,7 @@ import {
   subscribeSession,
 } from "@/lib/session";
 
-/** Mirrors the session-reading pattern in features/assistant/chat-panel.tsx. */
+/** Mirrors the session-reading pattern in features/assistant/assistant-screen.tsx. */
 export function useRole(): string | null {
   const stored = useSyncExternalStore(
     subscribeSession,
