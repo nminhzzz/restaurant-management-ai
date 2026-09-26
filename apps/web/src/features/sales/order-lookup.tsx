@@ -106,7 +106,7 @@ export function OrderLookup({
 
   return (
     <section className="space-y-3 rounded-container border border-border bg-surface p-4">
-      <h2 className="text-base font-semibold">Tra cứu order</h2>
+      <h2 className="text-base font-bold">Tra cứu order</h2>
       <form onSubmit={search} className="space-y-2">
         <div className="relative">
           <Search

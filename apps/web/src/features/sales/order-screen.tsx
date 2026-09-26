@@ -85,10 +85,10 @@ function Chip({
   return (
     <label
       className={cn(
-        "inline-flex h-11 min-w-16 cursor-pointer items-center justify-center rounded-full border px-4 font-medium transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary has-[:focus-visible]:ring-offset-2",
+        "inline-flex h-11 min-w-16 cursor-pointer items-center justify-center rounded-control border px-4 font-semibold transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary has-[:focus-visible]:ring-offset-2",
         checked
           ? "border-primary bg-primary text-white"
-          : "border-border bg-surface hover:border-border-strong",
+          : "border-border-strong bg-surface hover:border-ink",
       )}
     >
       <input
@@ -329,13 +329,13 @@ export function OrderScreen({
                   type="button"
                   onClick={() => addDish(d)}
                   className={cn(
-                    "relative flex min-h-24 flex-col justify-between gap-2 rounded-container border bg-surface p-3 text-left transition-[border-color,transform] active:scale-[0.98]",
+                    "relative flex min-h-24 flex-col justify-between gap-2 rounded-container border bg-surface p-3 text-left transition-[border-color,box-shadow,transform] active:translate-y-px",
                     inCart
                       ? "border-primary ring-1 ring-primary"
-                      : "border-border hover:border-border-strong",
+                      : "border-border hover:border-ink hover:shadow-lift",
                   )}
                 >
-                  <span className="line-clamp-2 pr-7 text-[15px] leading-5 font-medium">
+                  <span className="line-clamp-2 pr-7 text-[15px] leading-5 font-semibold">
                     {d.TenMon}
                   </span>
                   {typeof d.GiaHienTai === "number" && (
@@ -346,7 +346,7 @@ export function OrderScreen({
                   {inCart && (
                     <span
                       aria-hidden
-                      className="absolute top-2.5 right-2.5 grid h-6 min-w-6 place-items-center rounded-full bg-primary px-1.5 text-xs font-semibold text-white tabular-nums"
+                      className="absolute top-2.5 right-2.5 grid h-6 min-w-6 place-items-center rounded-badge bg-primary px-1.5 text-xs font-bold text-white tabular-nums"
                     >
                       {inCart.SoLuong}
                     </span>
@@ -363,7 +363,7 @@ export function OrderScreen({
         className="flex flex-col rounded-container border border-border bg-surface lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)]"
       >
         <div className="flex items-center justify-between gap-2 border-b border-border p-4">
-          <h2 className="text-base font-semibold">
+          <h2 className="text-base font-bold">
             {orderType === "Mang về"
               ? "Mang về"
               : (tableName ?? "Chưa chọn bàn")}
@@ -459,7 +459,7 @@ export function OrderScreen({
           </div>
           <div className="flex items-baseline justify-between">
             <span>Tổng cộng</span>
-            <span className="text-2xl font-semibold tabular-nums">
+            <span className="text-2xl font-bold tracking-tight tabular-nums">
               {formatVnd(total)}
             </span>
           </div>

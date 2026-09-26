@@ -142,7 +142,7 @@ export function MarginReport() {
 
       <section className="space-y-3 rounded-container border border-border bg-surface p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-[15px] font-semibold">Cơ cấu giá vốn</h2>
+          <h2 className="text-[15px] font-bold">Cơ cấu giá vốn</h2>
           {costs.TamTinh ? <Badge tone="warning">Tạm tính</Badge> : null}
         </div>
         {costs.TamTinh ? (
@@ -170,9 +170,7 @@ export function MarginReport() {
       </section>
 
       <section className="space-y-3 rounded-container border border-border bg-surface p-4">
-        <h2 className="text-[15px] font-semibold">
-          Giá vốn theo món (tham khảo)
-        </h2>
+        <h2 className="text-[15px] font-bold">Giá vốn theo món (tham khảo)</h2>
         <p className="text-xs text-subtle">
           Chỉ tính chi phí nguyên liệu cho từng món, không trừ hao hụt và không
           phải là lợi nhuận từng món.

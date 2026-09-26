@@ -46,7 +46,7 @@ export function DishRanking() {
     <div
       role="group"
       aria-label="Xếp hạng theo"
-      className="inline-flex gap-0.5 rounded-control bg-surface-sunken p-[3px]"
+      className="inline-flex gap-0.5 rounded-control border border-border-strong bg-surface p-[3px]"
     >
       {ORDER_BY_OPTIONS.map((option) => (
         <button
@@ -55,9 +55,9 @@ export function DishRanking() {
           aria-pressed={orderBy === option.value}
           onClick={() => setOrderBy(option.value)}
           className={cn(
-            "h-8 rounded-md px-3 font-medium transition-colors",
+            "h-8 rounded-badge px-3 font-semibold transition-colors",
             orderBy === option.value
-              ? "bg-surface text-ink shadow-sm shadow-ink/10"
+              ? "bg-primary text-white"
               : "text-muted hover:text-ink",
           )}
         >
@@ -130,7 +130,7 @@ export function DishRanking() {
       {toolbar}
       <div className="grid gap-3 xl:grid-cols-2">
         <section className="space-y-3 rounded-container border border-border bg-surface p-4">
-          <h2 className="text-[15px] font-semibold">
+          <h2 className="text-[15px] font-bold">
             Bán chạy nhất theo {metricLabel}
           </h2>
           <Bars
@@ -141,7 +141,7 @@ export function DishRanking() {
           />
         </section>
         <section className="space-y-3 rounded-container border border-border bg-surface p-4">
-          <h2 className="text-[15px] font-semibold">
+          <h2 className="text-[15px] font-bold">
             Bán chậm nhất theo {metricLabel}
           </h2>
           <Bars
@@ -154,7 +154,7 @@ export function DishRanking() {
         </section>
       </div>
       <section className="space-y-3">
-        <h2 className="text-[15px] font-semibold">Chi tiết xếp hạng</h2>
+        <h2 className="text-[15px] font-bold">Chi tiết xếp hạng</h2>
         <ReportTable
           headers={["Món", "Số lượng", "Doanh thu"]}
           rows={items.map((dish) => [

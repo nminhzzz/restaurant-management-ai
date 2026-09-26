@@ -20,7 +20,7 @@ export function DialogContent({
       <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-ink/40" />
       <DialogPrimitive.Content
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 w-[min(42rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-overlay border border-border bg-surface p-5 shadow-lg shadow-ink/10",
+          "fixed top-1/2 left-1/2 z-50 w-[min(42rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-overlay border border-border bg-surface p-5 shadow-float",
           className,
         )}
         {...props}
@@ -49,7 +49,7 @@ export function DialogTitle({
 }: ComponentProps<typeof DialogPrimitive.Title>) {
   return (
     <DialogPrimitive.Title
-      className={cn("text-base font-semibold text-ink", className)}
+      className={cn("text-lg font-bold tracking-tight text-ink", className)}
       {...props}
     />
   );

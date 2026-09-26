@@ -26,7 +26,7 @@ export function TopDishes({ granularity }: { granularity: string }) {
   return (
     <section className="space-y-3 rounded-container border border-border bg-surface p-4">
       <div className="flex items-baseline justify-between">
-        <h2 className="text-[15px] font-semibold">Món bán chạy</h2>
+        <h2 className="text-[15px] font-bold">Món bán chạy</h2>
         <span className="text-xs text-subtle">Số phần</span>
       </div>
       {ranking.status === "loading" ? (
@@ -56,7 +56,7 @@ export function TopDishes({ granularity }: { granularity: string }) {
               </span>
               <span
                 aria-hidden
-                className="col-start-2 col-end-4 h-1.5 rounded-full bg-chart-1/85"
+                className="col-start-2 col-end-4 h-1.5 rounded-xs bg-chart-1"
                 style={{
                   width: `${(dish.SoLuong / Math.max(ranking.data[0].SoLuong, 1)) * 100}%`,
                 }}

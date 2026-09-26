@@ -11,7 +11,15 @@ export function Table({ className, ...props }: ComponentProps<"table">) {
 }
 
 export function TableHeader({ className, ...props }: ComponentProps<"thead">) {
-  return <thead className={cn("bg-surface-sunken", className)} {...props} />;
+  return (
+    <thead
+      className={cn(
+        "border-b border-border-strong bg-surface-sunken",
+        className,
+      )}
+      {...props}
+    />
+  );
 }
 
 export function TableBody({ className, ...props }: ComponentProps<"tbody">) {
@@ -21,7 +29,7 @@ export function TableBody({ className, ...props }: ComponentProps<"tbody">) {
 }
 
 export function TableRow({ className, ...props }: ComponentProps<"tr">) {
-  return <tr className={cn("hover:bg-canvas", className)} {...props} />;
+  return <tr className={cn("hover:bg-surface-sunken", className)} {...props} />;
 }
 
 export function TableHead({ className, ...props }: ComponentProps<"th">) {
@@ -29,7 +37,7 @@ export function TableHead({ className, ...props }: ComponentProps<"th">) {
     <th
       scope="col"
       className={cn(
-        "px-3 py-2 text-left text-xs font-medium tracking-wide text-subtle uppercase",
+        "px-3 py-2.5 text-left text-[11px] leading-4 font-bold tracking-wider whitespace-nowrap text-muted uppercase",
         className,
       )}
       {...props}
@@ -38,7 +46,7 @@ export function TableHead({ className, ...props }: ComponentProps<"th">) {
 }
 
 export function TableCell({ className, ...props }: ComponentProps<"td">) {
-  return <td className={cn("px-3 py-2 text-ink", className)} {...props} />;
+  return <td className={cn("px-3 py-2.5 text-ink", className)} {...props} />;
 }
 
 export function TableCaption({

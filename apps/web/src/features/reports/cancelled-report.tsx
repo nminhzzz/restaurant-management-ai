@@ -98,7 +98,7 @@ export function CancelledReport() {
             const reasons = byReason(data.items);
             return (
               <section className="space-y-3 rounded-container border border-border bg-surface p-4">
-                <h2 className="text-[15px] font-semibold">Lý do hủy</h2>
+                <h2 className="text-[15px] font-bold">Lý do hủy</h2>
                 <Bars
                   items={reasons.map((r) => ({
                     key: r.reason,
@@ -127,7 +127,7 @@ export function CancelledReport() {
             );
           })()}
           <section className="space-y-3">
-            <h2 className="text-[15px] font-semibold">Danh sách order hủy</h2>
+            <h2 className="text-[15px] font-bold">Danh sách order hủy</h2>
             <ReportTable
               headers={["Order", "Giá trị", "Lý do"]}
               rows={data.items.map((item) => [

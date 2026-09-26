@@ -7,7 +7,7 @@ export function Skeleton({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
       className={cn(
-        "rounded-control motion-safe:animate-pulse bg-surface-sunken",
+        "rounded-badge motion-safe:animate-pulse bg-surface-sunken",
         className,
       )}
       {...props}

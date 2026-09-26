@@ -18,7 +18,7 @@ import { useAction } from "@/lib/use-action";
 import { cn } from "@/lib/utils";
 
 const SELECT_CLASS =
-  "flex h-9 w-56 rounded-control border border-border bg-surface px-3 py-1 text-sm text-ink focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50";
+  "flex h-9 w-56 rounded-control border border-border-strong bg-surface px-3 py-1 text-sm text-ink hover:border-ink focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50";
 
 type Line = { id: number; MaNguyenLieu: string; SoLuong: string };
 

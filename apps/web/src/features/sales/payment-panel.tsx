@@ -287,7 +287,7 @@ export function PaymentPanel({ orderId }: { orderId: number }) {
       <div className="space-y-4 border-t border-border p-4">
         <div className="flex items-baseline justify-between">
           <span className="text-muted">Tổng tiền</span>
-          <span className="text-2xl font-semibold tabular-nums">
+          <span className="text-2xl font-bold tracking-tight tabular-nums">
             {formatVnd(total)}
           </span>
         </div>

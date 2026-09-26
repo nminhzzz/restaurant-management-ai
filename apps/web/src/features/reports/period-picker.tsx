@@ -33,7 +33,7 @@ export function GranularityPicker({
     <div
       role="group"
       aria-label="Kỳ báo cáo"
-      className="inline-flex gap-0.5 rounded-control bg-surface-sunken p-[3px]"
+      className="inline-flex gap-0.5 rounded-control border border-border-strong bg-surface p-[3px]"
     >
       {GRANULARITIES.map((option) => (
         <button
@@ -42,9 +42,9 @@ export function GranularityPicker({
           aria-pressed={value === option.value}
           onClick={() => onChange(option.value)}
           className={cn(
-            "h-8 rounded-md px-3 font-medium transition-colors",
+            "h-8 rounded-badge px-3 font-semibold transition-colors",
             value === option.value
-              ? "bg-surface text-ink shadow-sm shadow-ink/10"
+              ? "bg-primary text-white"
               : "text-muted hover:text-ink",
           )}
         >
@@ -71,7 +71,7 @@ export function MonthPicker({
         type="month"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-9 rounded-control border border-border bg-surface px-3 text-sm text-ink focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
+        className="h-9 rounded-control border border-border-strong bg-surface px-3 text-sm text-ink hover:border-ink focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary focus-visible:outline-none"
       />
     </label>
   );

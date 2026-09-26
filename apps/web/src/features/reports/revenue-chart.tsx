@@ -68,7 +68,7 @@ export function RevenueChart() {
     <div
       role="group"
       aria-label="Nhóm theo"
-      className="inline-flex gap-0.5 rounded-control bg-surface-sunken p-[3px]"
+      className="inline-flex gap-0.5 rounded-control border border-border-strong bg-surface p-[3px]"
     >
       {GROUP_BY_OPTIONS.map((option) => (
         <button
@@ -77,9 +77,9 @@ export function RevenueChart() {
           aria-pressed={groupBy === option.value}
           onClick={() => setGroupBy(option.value)}
           className={cn(
-            "h-8 rounded-md px-3 font-medium transition-colors",
+            "h-8 rounded-badge px-3 font-semibold transition-colors",
             groupBy === option.value
-              ? "bg-surface text-ink shadow-sm shadow-ink/10"
+              ? "bg-primary text-white"
               : "text-muted hover:text-ink",
           )}
         >
@@ -164,7 +164,7 @@ export function RevenueChart() {
         <div className="grid gap-3 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
           <section className="space-y-3 rounded-container border border-border bg-surface p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-[15px] font-semibold">Doanh thu theo</h2>
+              <h2 className="text-[15px] font-bold">Doanh thu theo</h2>
               {groupPicker}
             </div>
             <Bars
@@ -178,7 +178,7 @@ export function RevenueChart() {
           </section>
           <TopDishes granularity={granularity} />
           <section className="space-y-3 xl:col-span-2">
-            <h2 className="text-[15px] font-semibold">Chi tiết</h2>
+            <h2 className="text-[15px] font-bold">Chi tiết</h2>
             <ReportTable
               headers={["Mốc", "Số đơn", "Doanh thu"]}
               rows={data.items.map((item) => [

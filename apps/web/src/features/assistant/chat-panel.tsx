@@ -207,7 +207,7 @@ export function ChatPanel() {
 
         {turns.map((turn) => (
           <div key={turn.id} className="space-y-3">
-            <p className="ml-auto w-fit max-w-[80%] rounded-2xl rounded-br-sm bg-ink px-3.5 py-2.5 text-white">
+            <p className="ml-auto w-fit max-w-[80%] rounded-container bg-ink px-3.5 py-2.5 text-white">
               {turn.question}
             </p>
             {turn.error !== null ? (
@@ -235,7 +235,7 @@ export function ChatPanel() {
 
         {pending !== null && (
           <div className="space-y-3">
-            <p className="ml-auto w-fit max-w-[80%] rounded-2xl rounded-br-sm bg-ink px-3.5 py-2.5 text-white">
+            <p className="ml-auto w-fit max-w-[80%] rounded-container bg-ink px-3.5 py-2.5 text-white">
               {pending}
             </p>
             <div
@@ -252,7 +252,7 @@ export function ChatPanel() {
 
         <form
           onSubmit={handleSubmit}
-          className="space-y-2 rounded-container border border-border bg-surface p-3 focus-within:border-primary focus-within:ring-3 focus-within:ring-primary-subtle"
+          className="space-y-2 rounded-container border border-border bg-surface p-3 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary"
         >
           <label htmlFor="question" className="sr-only">
             Câu hỏi bằng tiếng Việt

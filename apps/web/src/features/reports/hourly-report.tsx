@@ -100,7 +100,7 @@ export function HourlyReport() {
       {toolbar}
       <div className="grid gap-3 xl:grid-cols-2">
         <section className="space-y-3 rounded-container border border-border bg-surface p-4">
-          <h2 className="text-[15px] font-semibold">Số đơn theo khung giờ</h2>
+          <h2 className="text-[15px] font-bold">Số đơn theo khung giờ</h2>
           <Bars
             items={hourItems}
             ariaLabel="Biểu đồ số đơn theo khung giờ trong ngày, từ 6 giờ tới 5 giờ hôm sau"
@@ -111,9 +111,7 @@ export function HourlyReport() {
           />
         </section>
         <section className="space-y-3 rounded-container border border-border bg-surface p-4">
-          <h2 className="text-[15px] font-semibold">
-            Số đơn theo ngày trong tuần
-          </h2>
+          <h2 className="text-[15px] font-bold">Số đơn theo ngày trong tuần</h2>
           <Bars
             items={weekdayItems}
             ariaLabel="Biểu đồ số đơn theo ngày trong tuần"
@@ -125,7 +123,7 @@ export function HourlyReport() {
         </section>
       </div>
       <section className="space-y-3">
-        <h2 className="text-[15px] font-semibold">Chi tiết theo khung giờ</h2>
+        <h2 className="text-[15px] font-bold">Chi tiết theo khung giờ</h2>
         <ReportTable
           headers={["Khung giờ", "Số đơn", "Doanh thu"]}
           rows={hours.map((item) => [
