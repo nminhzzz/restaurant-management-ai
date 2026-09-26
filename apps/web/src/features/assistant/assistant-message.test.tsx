@@ -66,6 +66,14 @@ describe("AssistantMessage", () => {
     expect(onAsk).toHaveBeenCalledWith("So với tuần trước?");
   });
 
+  it("disables the follow-up chips and re-ask actions while busy (review #5)", () => {
+    render(<AssistantMessage turn={turn()} onAsk={vi.fn()} busy />);
+    expect(
+      screen.getByRole("button", { name: "So với tuần trước?" }),
+    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Hỏi lại/ })).toBeDisabled();
+  });
+
   it("shows a clarification without a result block", () => {
     render(
       <AssistantMessage

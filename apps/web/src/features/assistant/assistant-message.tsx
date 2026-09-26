@@ -60,10 +60,12 @@ function Points({
 export function AssistantMessage({
   turn,
   compact = false,
+  busy = false,
   onAsk,
 }: {
   turn: Turn;
   compact?: boolean;
+  busy?: boolean;
   onAsk: (text: string) => void;
 }) {
   const result = turn.result;
@@ -110,6 +112,7 @@ export function AssistantMessage({
         <Button
           variant="secondary"
           size="sm"
+          disabled={busy}
           onClick={() => onAsk(turn.question)}
         >
           Thử lại
@@ -128,6 +131,7 @@ export function AssistantMessage({
           <Button
             variant="ghost"
             size="sm"
+            disabled={busy}
             onClick={() => onAsk(turn.question)}
           >
             <RefreshCw />
@@ -147,6 +151,7 @@ export function AssistantMessage({
         <Button
           variant="secondary"
           size="sm"
+          disabled={busy}
           onClick={() => onAsk(turn.question)}
         >
           Thử lại
@@ -189,6 +194,7 @@ export function AssistantMessage({
           <Button
             variant="ghost"
             size="sm"
+            disabled={busy}
             onClick={() => onAsk(turn.question)}
           >
             <RotateCcw />
@@ -205,8 +211,9 @@ export function AssistantMessage({
                 <button
                   key={q}
                   type="button"
+                  disabled={busy}
                   onClick={() => onAsk(q)}
-                  className="inline-flex items-center gap-2 rounded-control border border-border bg-surface px-2.5 py-1.5 text-left font-medium hover:border-ink"
+                  className="inline-flex items-center gap-2 rounded-control border border-border bg-surface px-2.5 py-1.5 text-left font-medium hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <ArrowRight className="size-3.5 text-subtle" aria-hidden />
                   {q}

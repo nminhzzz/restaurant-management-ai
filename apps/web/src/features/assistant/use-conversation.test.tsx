@@ -55,6 +55,24 @@ describe("useConversation", () => {
     });
   });
 
+  it("ignores a second ask while a turn is still pending (review #5)", async () => {
+    let resolveFirst!: (value: typeof reply) => void;
+    fetchMock.mockImplementationOnce(
+      () => new Promise((resolve) => (resolveFirst = resolve)),
+    );
+    const { result } = renderHook(() => useConversation());
+
+    act(() => {
+      void result.current.ask("Câu 1");
+    });
+    act(() => {
+      void result.current.ask("Câu 2");
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => resolveFirst(reply));
+  });
+
   it("loads a stored session and continues it", async () => {
     fetchMock.mockResolvedValue(reply);
     const { result } = renderHook(() => useConversation());

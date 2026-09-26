@@ -158,6 +158,7 @@ export function AssistantWidget() {
                 key={turn.id}
                 turn={turn}
                 compact
+                busy={pending}
                 onAsk={(q) => void ask(q)}
               />
             ))}
