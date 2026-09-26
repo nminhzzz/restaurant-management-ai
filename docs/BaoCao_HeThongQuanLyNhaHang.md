@@ -1790,7 +1790,7 @@ Trách nhiệm và thẩm quyền của từng vai trò được xác định th
 | Vai trò | Trách nhiệm chính | Thẩm quyền quyết định | Không được thực hiện |
 | --- | --- | --- | --- |
 | Chủ nhà hàng/Quản lý | Chịu trách nhiệm vận hành và quản trị toàn hệ thống; kiểm soát doanh thu, giá vốn và tính đúng đắn của dữ liệu danh mục. | Hủy toàn bộ order chưa thanh toán (bắt buộc nhập lý do, FR-SALE-24); lên lịch hoặc hủy thay đổi giá/công thức, sửa trực tiếp khi cần khắc phục gấp (FR-CAT-08–10, 20–23); gắn cờ tranh chấp thanh toán (FR-REP-02); tạo/khóa tài khoản, gán vai trò, đặt lại mật khẩu (FR-SET-01–02); cấu hình hệ thống, xuất bản sao dữ liệu, xem audit log (FR-SET-04–09). | Không có ngoại lệ theo vai trò: các thao tác kế thừa từ Thu ngân và Nhân viên kho vẫn phải ghi audit log đúng người thực hiện (FR-SET-08). |
-| Thu ngân/Nhân viên order | Ghi order đúng và đủ, cập nhật trạng thái món, thu tiền và phát hành hóa đơn chính xác cho từng order. | Lập và thêm/sửa món trong order đang mở, đổi bàn (FR-SALE-01–13); hủy món ở trạng thái Chờ làm (FR-SALE-11); chọn phương thức thanh toán tiền mặt hoặc QR (FR-SALE-14); chuyển order sang "Đã thanh toán - chờ đối soát" khi QR quá hạn (FR-SALE-17); chủ động hủy giao dịch QR đang chờ xác nhận (FR-SALE-29); in lại hóa đơn nguyên trạng (FR-SALE-23). | Hủy toàn bộ order (FR-SALE-24); sửa/hủy order hoặc hóa đơn sau tất toán (FR-SALE-20); xem giá vốn, lợi nhuận và báo cáo; thao tác kho; thay đổi danh mục, giá, công thức; quản lý tài khoản. |
+| Thu ngân/Nhân viên order | Ghi order đúng và đủ, cập nhật trạng thái món, thu tiền và phát hành hóa đơn chính xác cho từng order. | Lập và thêm/sửa món trong order đang mở, đổi bàn (FR-SALE-01–13); hủy món ở trạng thái Chờ làm (FR-SALE-11); chọn phương thức thanh toán tiền mặt hoặc QR (FR-SALE-14); chuyển giao dịch từ "Hết hạn" sang "chờ đối soát" khi khách báo đã thanh toán sau khi QR quá hạn (FR-SALE-17); chủ động hủy giao dịch QR đang chờ xác nhận (FR-SALE-29); in lại hóa đơn nguyên trạng (FR-SALE-23). | Hủy toàn bộ order (FR-SALE-24); sửa/hủy order hoặc hóa đơn sau tất toán (FR-SALE-20); xem giá vốn, lợi nhuận và báo cáo; thao tác kho; thay đổi danh mục, giá, công thức; quản lý tài khoản. |
 | Nhân viên kho | Ghi nhận nhập, xuất, kiểm kê đúng thực tế để tồn kho trong hệ thống khớp tồn kho thật; kiểm kê là van an toàn duy nhất điều chỉnh sai lệch (FR-INV-09). | Ghi nhận phiếu nhập kho, sửa/hủy phiếu nhập khi chưa có xuất kho liên quan (FR-INV-01–02); xuất kho thủ công cho hao hụt, hủy hàng, không được làm âm tồn (FR-INV-05–06); xác nhận kết quả kiểm kê để cập nhật tồn hiện tại (FR-INV-08); quản lý nguyên liệu và nhà cung cấp (FR-CAT-12, 15). | Xem doanh thu, giá vốn, lợi nhuận; thao tác order, thanh toán, hóa đơn; thay đổi danh mục món, giá, công thức; quản lý tài khoản và cấu hình hệ thống. |
 
 
@@ -1951,7 +1951,7 @@ Phụ lục 1 - Quy tắc nghiệp vụ chung (Business Rules tổng hợp):
 
 5. Sau khi thanh toán thành công, order/hóa đơn bị khóa hoàn toàn, chỉ cho phép in lại nguyên trạng; bàn tự động về Trống.
 
-6. Không tích hợp thanh toán thẻ ngân hàng; QR ở trạng thái 'Chờ xác nhận thanh toán' cho đến khi webhook SePay xác nhận hoặc hết 10 phút thì chuyển 'Chờ đối soát'.
+6. Không tích hợp thanh toán thẻ ngân hàng; QR ở trạng thái 'Chờ xác nhận thanh toán' cho đến khi webhook SePay xác nhận; hết 10 phút thì chuyển 'Hết hạn', và nếu khách báo đã chuyển khoản thì Thu ngân chuyển giao dịch sang 'Chờ đối soát'.
 
 7. Không áp dụng khuyến mãi/giảm giá, không in tạm tính; hóa đơn không tách dòng thuế VAT.
 
