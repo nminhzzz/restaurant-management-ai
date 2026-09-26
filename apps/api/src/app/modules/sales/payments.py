@@ -1,13 +1,9 @@
 """Sales payments — cash, QR, webhook, reconciliation and invoices (FR-SALE-14…19, 23, 29).
 
-The QR gateway is not chosen yet (master roadmap Q1), so signature handling is a
-self-contained HMAC adapter: `_gateway_sign` produces the signature and `_verify_signature`
-checks it with a constant-time comparison. Swapping in a real gateway only replaces these
-two functions; the business flow below is unchanged.
+Gateway specifics live in app.modules.sales.gateways; this module owns the business
+flow shared by every gateway.
 """
 
-import hashlib
-import hmac
 import logging
 from datetime import date, datetime, timedelta
 from decimal import Decimal
@@ -15,9 +11,10 @@ from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import get_settings
 from app.core.errors import BusinessRuleError, NotFoundError, UnauthenticatedError
+from app.modules.sales.gateways import simulator
 from app.modules.sales.models import Invoice, Order, OrderLine, PaymentTransaction
+from app.modules.sales.orders import LINE_CANCELLED
 from app.shared import business_date
 from app.shared.audit import SystemAuditLog
 
@@ -32,34 +29,24 @@ QR_RECONCILING = "Chờ đối soát"
 QR_DISPUTED = "Tranh chấp"
 
 
-def _require_webhook_secret() -> str:
-    """Signing key for the mock gateway (never a real one — see Q1)."""
-    secret = get_settings().payment_webhook_secret
-    return secret or "test-secret"
-
-
-def _gateway_sign(payload: str) -> str:
-    return hmac.new(
-        _require_webhook_secret().encode(), payload.encode(), hashlib.sha256
-    ).hexdigest()
-
-
-def _verify_signature(payload: str, signature: str) -> bool:
-    return hmac.compare_digest(_gateway_sign(payload), signature)
-
-
 def sign_payload(payload: str) -> str:
     """Signature the mock gateway would send for `payload`.
 
     Exposed so the seed and the harness drive the webhook the same way the gateway
     does, instead of re-implementing the signing rule.
     """
-    return _gateway_sign(payload)
+    return simulator.sign(payload)
 
 
-async def _order_total(session: AsyncSession, order: Order) -> Decimal:
+async def order_total(session: AsyncSession, order: Order) -> Decimal:
     lines = (
-        (await session.execute(select(OrderLine).where(OrderLine.order_id == order.id)))
+        (
+            await session.execute(
+                select(OrderLine).where(
+                    OrderLine.order_id == order.id, OrderLine.status != LINE_CANCELLED
+                )
+            )
+        )
         .scalars()
         .all()
     )
@@ -108,7 +95,7 @@ async def pay_cash(session: AsyncSession, order_id: int, *, actor_id: int | None
     if existing is not None:
         raise BusinessRuleError("Order đã có hóa đơn.")
 
-    total = await _order_total(session, order)
+    total = await order_total(session, order)
     bd = business_date.business_date_of(now)
     payment = PaymentTransaction(
         order_id=order.id,
@@ -151,7 +138,7 @@ async def start_qr(
     now = business_date.now()
     payment = PaymentTransaction(
         order_id=order.id,
-        amount=await _order_total(session, order),
+        amount=await order_total(session, order),
         method="QR",
         status=QR_PENDING,
         business_date=business_date.business_date_of(now),
@@ -161,6 +148,49 @@ async def start_qr(
     session.add(payment)
     await session.flush()
     return payment
+
+
+async def confirm_payment(
+    session: AsyncSession, payment: PaymentTransaction, *, bank_ref: str | None = None
+) -> dict:
+    """Settle a pending QR payment whose amount the caller has already checked."""
+    order = await session.get(Order, payment.order_id)
+    if order is None:
+        raise NotFoundError("Order không tồn tại.")
+    await session.execute(select(Order).where(Order.id == order.id).with_for_update())
+    total = await order_total(session, order)
+    payment.status = QR_SUCCESS
+    if bank_ref is not None:
+        payment.bank_ref = bank_ref
+    await session.flush()
+    invoice = await _issue_invoice(
+        session, order, business_date_value=payment.business_date, total=total
+    )
+    _settle(order, "Đã thanh toán", business_date.now())
+    await _free_table(session, order)
+    await session.flush()
+    return {"payment": payment, "invoice": invoice}
+
+
+async def to_reconciliation(
+    session: AsyncSession, payment: PaymentTransaction, *, bank_ref: str | None, action: str
+) -> None:
+    """Money arrived but cannot be matched automatically; a manager resolves it."""
+    payment.status = QR_RECONCILING
+    if bank_ref is not None:
+        payment.bank_ref = bank_ref
+    order = await session.get(Order, payment.order_id)
+    if order is not None:
+        _settle(order, QR_RECONCILING, business_date.now())
+    session.add(
+        SystemAuditLog(
+            user_id=None,
+            action=action,
+            target_entity="GIAO_DICH_THANH_TOAN",
+            target_id=str(payment.id),
+        )
+    )
+    await session.flush()
 
 
 async def handle_webhook(session: AsyncSession, payload: dict) -> dict:
@@ -180,7 +210,7 @@ async def handle_webhook(session: AsyncSession, payload: dict) -> dict:
     if payment is None:
         raise NotFoundError("Giao dịch không tồn tại.")
 
-    if not _verify_signature(f"{payment.id}:{amount}", str(signature)):
+    if not simulator.verify(f"{payment.id}:{amount}", str(signature)):
         logger.warning("Rejected payment webhook with a bad signature payment=%s", payment.id)
         session.add(
             SystemAuditLog(
@@ -202,20 +232,11 @@ async def handle_webhook(session: AsyncSession, payload: dict) -> dict:
     if order is None:
         raise NotFoundError("Order không tồn tại.")
     await session.execute(select(Order).where(Order.id == order.id).with_for_update())
-    total = await _order_total(session, order)
+    total = await order_total(session, order)
     if amount is not None and Decimal(str(amount)) != total:
         raise BusinessRuleError("Số tiền không khớp.")
 
-    now = business_date.now()
-    payment.status = QR_SUCCESS
-    await session.flush()
-    invoice = await _issue_invoice(
-        session, order, business_date_value=payment.business_date, total=total
-    )
-    _settle(order, "Đã thanh toán", now)
-    await _free_table(session, order)
-    await session.flush()
-    return {"payment": payment, "invoice": invoice}
+    return await confirm_payment(session, payment)
 
 
 async def cancel_qr(
@@ -333,7 +354,7 @@ async def resolve_reconciliation(
         raise NotFoundError("Order không tồn tại.")
     if outcome == "received":
         payment.status = QR_SUCCESS
-        total = await _order_total(session, order)
+        total = await order_total(session, order)
         await _issue_invoice(session, order, business_date_value=payment.business_date, total=total)
         _settle(order, "Đã thanh toán", now)
         await _free_table(session, order)

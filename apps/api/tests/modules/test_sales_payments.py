@@ -314,3 +314,31 @@ async def test_cancel_qr(session):
     assert await payment_status(session, oid) == "Đã hủy"
     r3 = await client.post(f"/api/v1/sales/orders/{oid}/pay/qr", headers=h)
     assert r3.status_code == 201
+
+
+@pytest.mark.anyio
+async def test_a_cancelled_line_is_not_charged(session):
+    d, t = await _setup(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    r = await client.post(
+        "/api/v1/sales/orders",
+        json={
+            "MaBan": t.id,
+            "lines": [{"MaMon": d.id, "SoLuong": 1}, {"MaMon": d.id, "SoLuong": 1}],
+        },
+        headers=h,
+    )
+    oid = r.json()["MaOrder"]
+    detail = (await client.get(f"/api/v1/sales/orders/{oid}", headers=h)).json()
+    line_id = detail["lines"][1]["MaChiTietOrder"]
+    cancel = await client.post(
+        f"/api/v1/sales/orders/{oid}/lines/{line_id}/cancel",
+        json={"reason": "Khách đổi món"},
+        headers=h,
+    )
+    assert cancel.status_code == 200, cancel.text
+
+    paid = await client.post(f"/api/v1/sales/orders/{oid}/pay/cash", headers=h)
+
+    assert paid.json()["invoice"]["TongTien"] == 50000
