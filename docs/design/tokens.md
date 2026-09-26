@@ -135,6 +135,10 @@ Có sẵn ở `src/components/ui/`, không tự viết lại bằng thẻ HTML t
 `Button`, `Input`, `Textarea`, `Label`, `Select`, `Dialog`, `DropdownMenu`, `Tabs`, `Badge`, `Table`, `Card`,
 `Skeleton`, toast (`sonner`).
 
+Bán hàng: `SalesStepper` (3 bước, mục hiện tại nền `surface-sunken`, số bước nền `primary`). Trợ lý:
+`AssistantMessage`, `Composer`, `ResultTabs`, `HistoryPanel` (mục đang mở chỉ đổi nền `primary-subtle`, không
+viền), `AssistantWidget` (góc dưới phải, ẩn ở `/sales` và `/assistant`; toast dời lên 88px).
+
 Mẫu cấp trang ở `src/components/page-states.tsx`: `PageHeader`, `EmptyState`, `LoadingState` (skeleton có
 chữ "Đang tải…" cho trình đọc màn hình), `ErrorState` (có nút Thử lại), `StatCard`, `StatusBadge` (tự chọn tone
 theo §2.3 qua `lib/status.ts`). Tải dữ liệu qua hook `lib/use-resource.ts`; định dạng tiền, số, ngày qua

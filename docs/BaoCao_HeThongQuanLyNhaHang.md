@@ -1834,7 +1834,7 @@ Hệ thống được xây dựng đầy đủ sáu module theo mục 1.4.1, m�
 | Module | Số yêu cầu chức năng | Đã đáp ứng | Ghi chú |
 | --- | --- | --- | --- |
 | Quản lý danh mục (FR-CAT) | 28 | 28 | Màn hình món ăn, nhóm món, nguyên liệu, nhà cung cấp, bàn; lên lịch giá/công thức theo Business Date; hiển thị theo Bảng 33 |
-| Quản lý bán hàng (FR-SALE) | 29 | 29 | Máy in nhiệt và cổng thanh toán QR thật nằm ngoài phạm vi (mục 1.4.3): phiếu bếp, hóa đơn in qua trình duyệt; cổng QR dùng bộ giả lập có xác thực chữ ký webhook |
+| Quản lý bán hàng (FR-SALE) | 29 | 29 | Máy in nhiệt nằm ngoài phạm vi (mục 1.4.3): phiếu bếp, hóa đơn in qua trình duyệt; thanh toán QR dùng VietQR chuyển khoản qua cổng SePay (môi trường Test mode) thông qua một adapter, xác nhận bằng webhook có API key và API tra cứu giao dịch; bộ giả lập có chữ ký HMAC được giữ cho kiểm thử tự động |
 | Quản lý kho (FR-INV) | 12 | 12 | Nhập kho theo lô, trừ kho FIFO, xuất thủ công, kiểm kê, chốt giá vốn bình quân tháng |
 | Báo cáo thống kê (FR-REP) | 10 | 10 | Doanh thu, xếp hạng món, khung giờ, biên lợi nhuận gộp, giá vốn, so sánh kỳ, order bị hủy; mỗi báo cáo có bảng và biểu đồ |
 | Cài đặt hệ thống (FR-SET) | 9 | 8 | FR-SET-07 (sao lưu tự động, phục hồi) là yêu cầu mở rộng, chưa triển khai; sao lưu thủ công FR-SET-06 đã có |
@@ -1913,9 +1913,9 @@ Bảng 39. Đối chiếu kết quả với mục tiêu đề tài
 
 Kết quả đạt được: hệ thống đáp ứng 96/97 yêu cầu chức năng, yêu cầu còn lại (sao lưu tự động, FR-SET-07) là phần mở rộng; các báo cáo xử lý dưới 0,05 giây trên dữ liệu 12 tháng; khối AI Assistant tách biệt dữ liệu theo vai trò bằng view và tài khoản chỉ-đọc riêng, từ chối đúng toàn bộ câu hỏi vượt quyền trong thực nghiệm. Trên bộ 95 câu hỏi, cấu hình tốt nhất (few-shot và chuẩn hóa tiếng Việt trên DeepSeek-V4.1-Flash) đạt độ chính xác thực thi 66,3% (75,8% khi chấm nới lỏng) với thời gian phản hồi trung bình 5,1 giây, vượt mục tiêu ở câu hỏi dễ nhưng chưa đạt mục tiêu ở câu hỏi khó.
 
-Hạn chế: độ chính xác với câu hỏi nhiều bước còn thấp, chủ yếu do mỗi vai trò chỉ có một view gộp nhiều loại bản ghi; một phần câu hỏi vẫn vượt ngưỡng 8 giây do phụ thuộc độ trễ của dịch vụ LLM bên ngoài; khảo sát SUS và nghiệm thu UAT với người dùng thực tế chưa thực hiện; máy in nhiệt và cổng thanh toán QR thật mới ở mức mô phỏng.
+Hạn chế: độ chính xác với câu hỏi nhiều bước còn thấp, chủ yếu do mỗi vai trò chỉ có một view gộp nhiều loại bản ghi; một phần câu hỏi vẫn vượt ngưỡng 8 giây do phụ thuộc độ trễ của dịch vụ LLM bên ngoài; khảo sát SUS và nghiệm thu UAT với người dùng thực tế chưa thực hiện; máy in nhiệt vẫn ở mức mô phỏng, còn thanh toán QR đã dùng cổng SePay thật nhưng ở môi trường Test mode.
 
-Hướng phát triển: tách view theo nhóm nghiệp vụ trong cùng phạm vi vai trò hoặc bổ sung lớp ngữ nghĩa (các chỉ số dựng sẵn như doanh thu theo bàn, biên lợi nhuận) để giảm độ khó cho mô hình; chọn ví dụ few-shot theo độ tương đồng với câu hỏi; tích hợp cổng thanh toán và máy in nhiệt thật; bổ sung tách/gộp hóa đơn, sao lưu tự động và phục hồi dữ liệu; mở rộng cho nhiều chi nhánh.
+Hướng phát triển: tách view theo nhóm nghiệp vụ trong cùng phạm vi vai trò hoặc bổ sung lớp ngữ nghĩa (các chỉ số dựng sẵn như doanh thu theo bàn, biên lợi nhuận) để giảm độ khó cho mô hình; chọn ví dụ few-shot theo độ tương đồng với câu hỏi; đưa cổng thanh toán SePay sang môi trường production và tích hợp máy in nhiệt thật; cho phép AI đề xuất thao tác ghi dữ liệu để người dùng xác nhận (AI đề xuất, người xác nhận) thay vì chỉ dừng ở tra cứu; bổ sung tách/gộp hóa đơn, sao lưu tự động và phục hồi dữ liệu; mở rộng cho nhiều chi nhánh.
 
 # TÀI LIỆU THAM KHẢO
 
@@ -1951,7 +1951,7 @@ Phụ lục 1 - Quy tắc nghiệp vụ chung (Business Rules tổng hợp):
 
 5. Sau khi thanh toán thành công, order/hóa đơn bị khóa hoàn toàn, chỉ cho phép in lại nguyên trạng; bàn tự động về Trống.
 
-6. Không tích hợp thanh toán thẻ ngân hàng và không hỗ trợ chuyển khoản thủ công (chỉ tiền mặt hoặc QR do hệ thống tạo); thanh toán QR ở 'Chờ xác nhận thanh toán' cho đến khi webhook xác nhận hoặc timeout chuyển 'chờ đối soát'.
+6. Không tích hợp thanh toán thẻ ngân hàng; QR ở trạng thái 'Chờ xác nhận thanh toán' cho đến khi webhook SePay xác nhận hoặc hết 10 phút thì chuyển 'Chờ đối soát'.
 
 7. Không áp dụng khuyến mãi/giảm giá, không in tạm tính; hóa đơn không tách dòng thuế VAT.
 
