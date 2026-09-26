@@ -1,5 +1,5 @@
-import { formatNumber } from "@/lib/format";
-import type { ChartSpec } from "@/types/api";
+import { columnsFor, formatCell } from "@/features/assistant/format-cell";
+import type { ChartSpec, ColumnMeta } from "@/types/api";
 
 const LABELS: Record<string, string> = {
   line: "Biểu đồ đường",
@@ -19,21 +19,21 @@ function values(rows: Record<string, unknown>[], spec: ChartSpec): number[] {
   });
 }
 
-function labelOf(row: Record<string, unknown>, spec: ChartSpec): string {
-  return String(row[spec.x] ?? "");
-}
-
 export function ChartView({
   spec,
   rows,
+  columns,
 }: {
   spec: ChartSpec | null;
   rows: Record<string, unknown>[];
+  columns?: ColumnMeta[];
 }) {
   if (spec === null || rows.length === 0) {
     return null;
   }
 
+  const meta = columnsFor(rows, columns);
+  const kindOf = (key: string) => meta.find((c) => c.key === key)?.kind ?? "text";
   const series = values(rows, spec);
   const peak = Math.max(...series, 1);
   const plotH = HEIGHT - PAD.top - PAD.bottom;
@@ -87,9 +87,9 @@ export function ChartView({
                 className="size-2.5 rounded-xs"
                 style={{ background: COLORS[index % COLORS.length] }}
               />
-              <span>{labelOf(row, spec)}</span>
+              <span>{formatCell(row[spec.x], kindOf(spec.x))}</span>
               <span className="text-muted tabular-nums">
-                {formatNumber(series[index])}
+                {formatCell(series[index], kindOf(spec.y[0]))}
               </span>
             </li>
           ))}
@@ -148,6 +148,17 @@ export function ChartView({
               .map((value, index) => `${xOf(index)},${y(value)}`)
               .join(" ")}
           />
+          {series.map((value, index) => (
+            <circle
+              key={index}
+              cx={xOf(index)}
+              cy={y(value)}
+              r={6}
+              fill="transparent"
+            >
+              <title>{`${formatCell(rows[index][spec.x], kindOf(spec.x))}: ${formatCell(value, kindOf(spec.y[0]))}`}</title>
+            </circle>
+          ))}
         </>
       )}
 
@@ -161,9 +172,11 @@ export function ChartView({
               y={y(value)}
               width={width}
               height={Math.max(y(0) - y(value), 1)}
-              rx={3}
+              rx={2}
               fill="var(--color-chart-1)"
-            />
+            >
+              <title>{`${formatCell(rows[index][spec.x], kindOf(spec.x))}: ${formatCell(value, kindOf(spec.y[0]))}`}</title>
+            </rect>
           );
         })}
 
@@ -183,7 +196,7 @@ export function ChartView({
                   : "middle"
             }
           >
-            {labelOf(row, spec)}
+            {formatCell(row[spec.x], kindOf(spec.x))}
           </text>
         ) : null,
       )}

@@ -27,6 +27,12 @@ const shares = [
 
 const chatResponseWithSql = {
   answer: "Doanh thu hôm qua là 1.000.000 đồng.",
+  headline: "Doanh thu hôm qua là 1.000.000 đồng.",
+  highlights: [],
+  follow_ups: [],
+  scope_note: null,
+  columns: [],
+  kind: "answer" as const,
   data: [{ DoanhThu: "1000000" }],
   chart: null,
   detail: {
@@ -41,6 +47,12 @@ const chatResponseWithSql = {
 const chatResponseWithScope = {
   answer:
     "Doanh thu hôm qua là 1.000.000 đồng.\n\nPhạm vi dữ liệu: vw_ai_thungan — đơn hàng, hóa đơn và thanh toán.",
+  headline: "Doanh thu hôm qua là 1.000.000 đồng.",
+  highlights: [],
+  follow_ups: [],
+  scope_note: "vw_ai_thungan — đơn hàng, hóa đơn và thanh toán.",
+  columns: [],
+  kind: "answer" as const,
   data: [{ DoanhThu: "1000000" }],
   chart: null,
   detail: null,
@@ -205,6 +217,12 @@ describe("ChatPanel", () => {
     }));
     stubFetch({
       answer: "Danh sách món.",
+      headline: "Danh sách món.",
+      highlights: [],
+      follow_ups: [],
+      scope_note: null,
+      columns: [],
+      kind: "answer" as const,
       data: manyRows,
       chart: null,
       detail: null,

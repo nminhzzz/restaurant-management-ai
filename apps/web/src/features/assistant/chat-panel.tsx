@@ -21,6 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ChartView } from "@/features/assistant/chart-view";
+import { suggestionsFor } from "@/features/assistant/suggestions";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import { roleLabel } from "@/lib/roles";
 import {
@@ -37,25 +38,6 @@ type Turn = {
   question: string;
   result: ChatResponse | null;
   error: string | null;
-};
-
-const SUGGESTIONS: Record<string, string[]> = {
-  MANAGER: [
-    "Món nào bán chạy nhất tuần này?",
-    "Doanh thu 7 ngày gần nhất theo từng ngày?",
-    "So sánh doanh thu tiền mặt và QR tháng này",
-    "Nguyên liệu nào đang dưới mức tối thiểu?",
-  ],
-  CASHIER: [
-    "Hôm nay đã có bao nhiêu hóa đơn?",
-    "Doanh thu ca hôm nay là bao nhiêu?",
-    "Có order nào đang chờ đối soát không?",
-  ],
-  WAREHOUSE: [
-    "Nguyên liệu nào đang dưới mức tối thiểu?",
-    "Tồn kho thịt bò hiện còn bao nhiêu?",
-    "Những lô nào sắp hết hạn trong tuần này?",
-  ],
 };
 
 function ResultTable({ rows }: { rows: Record<string, unknown>[] }) {
@@ -130,7 +112,7 @@ export function ChatPanel() {
     serverSessionSnapshot,
   );
   const session = useMemo(() => parseSession(stored), [stored]);
-  const suggestions = SUGGESTIONS[session?.role ?? ""] ?? SUGGESTIONS.MANAGER;
+  const suggestions = suggestionsFor(session?.role).map((s) => s.text);
 
   async function ask(text: string) {
     const asked = text.trim();
