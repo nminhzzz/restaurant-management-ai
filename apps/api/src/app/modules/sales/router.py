@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
 from app.core.dependencies import Principal, require_roles
-from app.modules.sales import orders, payments
+from app.modules.sales import floor, orders, payments
 from app.modules.sales.models import Invoice, KitchenTicket, Order, OrderLine
 from app.modules.sales.schemas import SubmitOrderIn
 from app.shared.roles import Role
@@ -45,6 +45,14 @@ def _order_payload(order: Order, lines: list[OrderLine]) -> dict:
         "ThoiDiemDong": order.updated_at.isoformat() if order.updated_at else None,
         "lines": [_line_payload(line) for line in lines],
     }
+
+
+@router.get("/floor")
+async def get_floor(
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
+):
+    return await floor.floor_board(session)
 
 
 @router.post("/orders", status_code=201)
