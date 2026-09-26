@@ -7,7 +7,7 @@ import { EmptyState, PageHeader } from "@/components/page-states";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OrderDetail } from "@/features/sales/order-detail";
 import { OrderLookup } from "@/features/sales/order-lookup";
-import { OrderScreen } from "@/features/sales/order-screen";
+import { OrderStep } from "@/features/sales/order-step";
 import { PaymentPanel } from "@/features/sales/payment-panel";
 
 export function SalesWorkspace() {
@@ -36,7 +36,12 @@ export function SalesWorkspace() {
           forceMount
           className="data-[state=inactive]:hidden"
         >
-          <OrderScreen onOrderCreated={setOrderId} onPayNow={payNow} />
+          <OrderStep
+            tableId={null}
+            orderId={null}
+            onBack={() => {}}
+            onSent={(id) => payNow(id)}
+          />
         </TabsContent>
         <TabsContent value="payment">
           <div className="grid items-start gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
