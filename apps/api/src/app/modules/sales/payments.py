@@ -7,12 +7,14 @@ flow shared by every gateway.
 import logging
 from datetime import date, datetime, timedelta
 from decimal import Decimal
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.core.errors import BusinessRuleError, NotFoundError, UnauthenticatedError
-from app.modules.sales.gateways import simulator
+from app.modules.sales.gateways import sepay, simulator
 from app.modules.sales.models import Invoice, Order, OrderLine, PaymentTransaction
 from app.modules.sales.orders import LINE_CANCELLED
 from app.shared import business_date
@@ -191,6 +193,120 @@ async def to_reconciliation(
         )
     )
     await session.flush()
+
+
+async def qr_fields(session: AsyncSession, payment: PaymentTransaction) -> dict[str, Any]:
+    settings = get_settings()
+    if settings.payment_gateway != "sepay" or payment.method != "QR":
+        return {}
+    code = sepay.payment_code(payment.id, settings.sepay_payment_prefix)
+    return {
+        "qr_image_url": sepay.qr_image_url(
+            account=settings.sepay_bank_account,
+            bank=settings.sepay_bank_code,
+            amount=Decimal(str(payment.amount)),
+            code=code,
+        ),
+        "payment_code": code,
+        "bank_code": settings.sepay_bank_code,
+        "bank_account": settings.sepay_bank_account,
+        "account_name": settings.sepay_account_name,
+    }
+
+
+async def handle_sepay_transfer(session: AsyncSession, body: dict[str, Any]) -> str:
+    settings = get_settings()
+    try:
+        transfer = sepay.parse_transfer(body)
+    except ValueError:
+        logger.warning("Ignored a SePay payload without id or amount")
+        return "ignored"
+    if transfer.direction != "in":
+        return "ignored"
+
+    bank_ref = f"sepay:{transfer.sepay_id}"
+    seen = (
+        await session.execute(
+            select(PaymentTransaction.id).where(PaymentTransaction.bank_ref == bank_ref)
+        )
+    ).first()
+    if seen is not None:
+        return "duplicate"
+
+    payment_id = sepay.payment_id_of(transfer, settings.sepay_payment_prefix)
+    payment = None
+    if payment_id is not None:
+        await expire_stale_qr(session)
+        payment = (
+            await session.execute(
+                select(PaymentTransaction)
+                .where(PaymentTransaction.id == payment_id)
+                .with_for_update()
+            )
+        ).scalar_one_or_none()
+    if payment is None:
+        session.add(
+            SystemAuditLog(
+                user_id=None,
+                action="WEBHOOK_UNMATCHED",
+                target_entity="GIAO_DICH_THANH_TOAN",
+                target_id=bank_ref,
+            )
+        )
+        await session.flush()
+        return "unmatched"
+    if payment.status == QR_SUCCESS:
+        return "duplicate"
+
+    order = await session.get(Order, payment.order_id)
+    if order is None or order.status != "Đang mở":
+        # Money for an order that is already settled or cancelled: record it for a human,
+        # never reopen or re-invoice the order.
+        payment.bank_ref = payment.bank_ref or bank_ref
+        session.add(
+            SystemAuditLog(
+                user_id=None,
+                action="WEBHOOK_UNMATCHED",
+                target_entity="GIAO_DICH_THANH_TOAN",
+                target_id=str(payment.id),
+            )
+        )
+        await session.flush()
+        return "unmatched"
+
+    total = await order_total(session, order)
+    if payment.status == QR_PENDING and transfer.amount == total:
+        await confirm_payment(session, payment, bank_ref=bank_ref)
+        return "confirmed"
+    await to_reconciliation(
+        session, payment, bank_ref=bank_ref, action="WEBHOOK_NEEDS_RECONCILIATION"
+    )
+    return "reconciling"
+
+
+async def check_payment(session: AsyncSession, payment_id: int) -> PaymentTransaction:
+    settings = get_settings()
+    payment = await session.get(PaymentTransaction, payment_id)
+    if payment is None:
+        raise NotFoundError("Giao dịch không tồn tại.")
+    if (
+        settings.payment_gateway == "sepay"
+        and settings.sepay_api_token
+        and payment.status == QR_PENDING
+    ):
+        rows = await sepay.recent_transfers(
+            api_url=settings.sepay_api_url,
+            token=settings.sepay_api_token,
+            account=settings.sepay_bank_account,
+        )
+        for row in rows:
+            body = sepay.transfer_from_listing(row)
+            transfer = sepay.parse_transfer(body)
+            if sepay.payment_id_of(transfer, settings.sepay_payment_prefix) == payment.id:
+                await handle_sepay_transfer(session, body)
+                break
+        await session.refresh(payment)
+    return payment
 
 
 async def handle_webhook(session: AsyncSession, payload: dict) -> dict:
