@@ -7,10 +7,11 @@ flow shared by every gateway.
 import logging
 from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
-from typing import Any
+from typing import Any, cast
 
 import httpx
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select, update
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -85,10 +86,16 @@ async def _issue_invoice(
 async def pay_cash(session: AsyncSession, order_id: int, *, actor_id: int | None = None) -> dict:
     await expire_stale_qr(session)
     now = business_date.now()
-    order = await session.get(Order, order_id)
+    order = (
+        await session.execute(
+            select(Order)
+            .where(Order.id == order_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+    ).scalar_one_or_none()
     if order is None:
         raise NotFoundError("Order không tồn tại.")
-    await session.execute(select(Order).where(Order.id == order_id).with_for_update())
     from app.modules.sales.orders import ensure_order_is_open
 
     ensure_order_is_open(order)
@@ -421,7 +428,14 @@ async def handle_webhook(session: AsyncSession, payload: dict) -> dict:
 async def cancel_qr(
     session: AsyncSession, payment_id: int, *, actor_id: int | None = None
 ) -> PaymentTransaction:
-    payment = await session.get(PaymentTransaction, payment_id)
+    payment = (
+        await session.execute(
+            select(PaymentTransaction)
+            .where(PaymentTransaction.id == payment_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+    ).scalar_one_or_none()
     if payment is None:
         raise NotFoundError("Giao dịch không tồn tại.")
     if payment.status != QR_PENDING:
@@ -440,27 +454,34 @@ async def cancel_qr(
 
 
 async def expire_stale_qr(session: AsyncSession) -> int:
+    """Expire stale pending QRs with one conditional write (FR-SALE-17).
+
+    A plain read-then-write-by-primary-key would clobber a status change (a
+    webhook confirmation, a cancellation) that lands between the read and the
+    write; this stays correct because the WHERE clause re-checks `status` at
+    write time instead of trusting a snapshot read earlier.
+    """
     now = business_date.now()
-    pending = (
-        (
-            await session.execute(
-                select(PaymentTransaction).where(
-                    PaymentTransaction.method == "QR",
-                    PaymentTransaction.status == QR_PENDING,
-                )
+    result = cast(
+        CursorResult,
+        await session.execute(
+            update(PaymentTransaction)
+            .where(
+                PaymentTransaction.method == "QR",
+                PaymentTransaction.status == QR_PENDING,
+                or_(
+                    PaymentTransaction.deadline < now,
+                    and_(
+                        PaymentTransaction.deadline.is_(None),
+                        PaymentTransaction.created_at < now - QR_LIFETIME,
+                    ),
+                ),
             )
-        )
-        .scalars()
-        .all()
+            .values(status=QR_EXPIRED)
+            .execution_options(synchronize_session="fetch")
+        ),
     )
-    expired = 0
-    for payment in pending:
-        deadline = payment.deadline
-        if deadline is None:
-            deadline = payment.created_at + QR_LIFETIME if payment.created_at else None
-        if deadline is not None and now > deadline:
-            payment.status = QR_EXPIRED
-            expired += 1
+    expired = result.rowcount or 0
     if expired:
         await session.flush()
     return expired
@@ -470,15 +491,32 @@ async def mark_for_reconciliation(
     session: AsyncSession, payment_id: int, *, actor_id: int | None = None
 ) -> PaymentTransaction:
     await expire_stale_qr(session)
-    payment = await session.get(PaymentTransaction, payment_id)
+    payment = (
+        await session.execute(
+            select(PaymentTransaction)
+            .where(PaymentTransaction.id == payment_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+    ).scalar_one_or_none()
     if payment is None:
         raise NotFoundError("Giao dịch không tồn tại.")
     if payment.status != QR_EXPIRED:
         raise BusinessRuleError("Chỉ đối soát QR đã hết hạn.")
+    order = (
+        await session.execute(
+            select(Order)
+            .where(Order.id == payment.order_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+    ).scalar_one_or_none()
+    if order is None:
+        raise NotFoundError("Order không tồn tại.")
+    if order.status != "Đang mở":
+        raise BusinessRuleError("Order đã đổi trạng thái trước khi đối soát.")
     payment.status = QR_RECONCILING
-    order = await session.get(Order, payment.order_id)
-    if order is not None:
-        _settle(order, QR_RECONCILING, business_date.now())
+    _settle(order, QR_RECONCILING, business_date.now())
     session.add(
         SystemAuditLog(
             user_id=actor_id,
