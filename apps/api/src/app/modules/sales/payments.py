@@ -6,9 +6,10 @@ flow shared by every gateway.
 
 import logging
 from datetime import date, datetime, timedelta
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
+import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -159,7 +160,16 @@ async def confirm_payment(
     order = await session.get(Order, payment.order_id)
     if order is None:
         raise NotFoundError("Order không tồn tại.")
-    await session.execute(select(Order).where(Order.id == order.id).with_for_update())
+    await session.execute(
+        select(Order)
+        .where(Order.id == order.id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    # Re-check under lock: another transaction may have settled/cancelled this
+    # payment or order between the caller's check and this call.
+    if payment.status != QR_PENDING or order.status != "Đang mở":
+        raise BusinessRuleError("Giao dịch hoặc order đã đổi trạng thái trước khi xác nhận.")
     total = await order_total(session, order)
     payment.status = QR_SUCCESS
     if bank_ref is not None:
@@ -214,6 +224,23 @@ async def qr_fields(session: AsyncSession, payment: PaymentTransaction) -> dict[
     }
 
 
+async def _record_unmatched(
+    session: AsyncSession, payment: PaymentTransaction, bank_ref: str
+) -> None:
+    """Money arrived for a payment we cannot auto-settle: log it for a human, never
+    reopen or re-invoice the order."""
+    payment.bank_ref = payment.bank_ref or bank_ref
+    session.add(
+        SystemAuditLog(
+            user_id=None,
+            action="WEBHOOK_UNMATCHED",
+            target_entity="GIAO_DICH_THANH_TOAN",
+            target_id=str(payment.id),
+        )
+    )
+    await session.flush()
+
+
 async def handle_sepay_transfer(session: AsyncSession, body: dict[str, Any]) -> str:
     settings = get_settings()
     try:
@@ -242,9 +269,11 @@ async def handle_sepay_transfer(session: AsyncSession, body: dict[str, Any]) -> 
                 select(PaymentTransaction)
                 .where(PaymentTransaction.id == payment_id)
                 .with_for_update()
+                .execution_options(populate_existing=True)
             )
         ).scalar_one_or_none()
     if payment is None:
+        logger.warning("Unmatched SePay transfer sepay_id=%s", transfer.sepay_id)
         session.add(
             SystemAuditLog(
                 user_id=None,
@@ -255,29 +284,55 @@ async def handle_sepay_transfer(session: AsyncSession, body: dict[str, Any]) -> 
         )
         await session.flush()
         return "unmatched"
+    if payment.method != "QR":
+        logger.warning(
+            "SePay transfer sepay_id=%s matched a non-QR payment=%s", transfer.sepay_id, payment.id
+        )
+        await _record_unmatched(session, payment, bank_ref)
+        return "unmatched"
     if payment.status == QR_SUCCESS:
-        return "duplicate"
+        # New money for a payment that is already settled: never double-invoice.
+        logger.warning(
+            "SePay transfer sepay_id=%s arrived for an already-settled payment=%s",
+            transfer.sepay_id,
+            payment.id,
+        )
+        await _record_unmatched(session, payment, bank_ref)
+        return "unmatched"
 
     order = await session.get(Order, payment.order_id)
+    if order is not None:
+        await session.execute(
+            select(Order)
+            .where(Order.id == order.id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
     if order is None or order.status != "Đang mở":
         # Money for an order that is already settled or cancelled: record it for a human,
         # never reopen or re-invoice the order.
-        payment.bank_ref = payment.bank_ref or bank_ref
-        session.add(
-            SystemAuditLog(
-                user_id=None,
-                action="WEBHOOK_UNMATCHED",
-                target_entity="GIAO_DICH_THANH_TOAN",
-                target_id=str(payment.id),
-            )
+        logger.warning(
+            "SePay transfer sepay_id=%s unmatched: order for payment=%s is not open",
+            transfer.sepay_id,
+            payment.id,
         )
-        await session.flush()
+        await _record_unmatched(session, payment, bank_ref)
         return "unmatched"
 
     total = await order_total(session, order)
     if payment.status == QR_PENDING and transfer.amount == total:
-        await confirm_payment(session, payment, bank_ref=bank_ref)
-        return "confirmed"
+        try:
+            await confirm_payment(session, payment, bank_ref=bank_ref)
+            return "confirmed"
+        except BusinessRuleError:
+            # Lost a race with another confirmation/cancellation: record it, don't 500.
+            logger.warning(
+                "SePay transfer sepay_id=%s raced payment=%s; recording for review",
+                transfer.sepay_id,
+                payment.id,
+            )
+            await _record_unmatched(session, payment, bank_ref)
+            return "unmatched"
     await to_reconciliation(
         session, payment, bank_ref=bank_ref, action="WEBHOOK_NEEDS_RECONCILIATION"
     )
@@ -294,14 +349,22 @@ async def check_payment(session: AsyncSession, payment_id: int) -> PaymentTransa
         and settings.sepay_api_token
         and payment.status == QR_PENDING
     ):
-        rows = await sepay.recent_transfers(
-            api_url=settings.sepay_api_url,
-            token=settings.sepay_api_token,
-            account=settings.sepay_bank_account,
-        )
+        try:
+            rows = await sepay.recent_transfers(
+                api_url=settings.sepay_api_url,
+                token=settings.sepay_api_token,
+                account=settings.sepay_bank_account,
+            )
+        except httpx.HTTPError:
+            logger.warning("SePay transaction listing call failed for payment=%s", payment.id)
+            rows = []
         for row in rows:
-            body = sepay.transfer_from_listing(row)
-            transfer = sepay.parse_transfer(body)
+            try:
+                body = sepay.transfer_from_listing(row)
+                transfer = sepay.parse_transfer(body)
+            except (ValueError, InvalidOperation):
+                logger.warning("Skipped a malformed SePay listing row for payment=%s", payment.id)
+                continue
             if sepay.payment_id_of(transfer, settings.sepay_payment_prefix) == payment.id:
                 await handle_sepay_transfer(session, body)
                 break
