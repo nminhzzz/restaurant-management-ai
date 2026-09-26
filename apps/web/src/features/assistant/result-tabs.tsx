@@ -54,7 +54,10 @@ export function ResultTabs({ result }: { result: ChatResponse }) {
   if (result.data.length > 0) tabs.push({ key: "table", label: "Bảng", Icon: Table2 });
   if (result.detail) tabs.push({ key: "sql", label: "SQL", Icon: CodeXml });
   const [active, setActive] = useState<Tab | null>(tabs[0]?.key ?? null);
-  if (tabs.length === 0 || active === null) return null;
+  // `active` can hold a tab key from a previous `result` that no longer applies
+  // (e.g. the SQL tab after a re-render with no `detail`); fall back to the first tab.
+  const current = tabs.some((t) => t.key === active) ? active : (tabs[0]?.key ?? null);
+  if (tabs.length === 0 || current === null) return null;
 
   return (
     <div className="overflow-hidden rounded-container border border-border bg-surface">
@@ -64,11 +67,11 @@ export function ResultTabs({ result }: { result: ChatResponse }) {
             key={key}
             type="button"
             role="tab"
-            aria-selected={active === key}
+            aria-selected={current === key}
             onClick={() => setActive(key)}
             className={cn(
               "inline-flex items-center gap-1.5 px-2.5 py-2.5 font-semibold text-muted shadow-[inset_0_-2px_0_0_transparent]",
-              active === key && "text-ink shadow-[inset_0_-2px_0_0_var(--color-ink)]",
+              current === key && "text-ink shadow-[inset_0_-2px_0_0_var(--color-ink)]",
             )}
           >
             <Icon className="size-4" aria-hidden />
@@ -81,10 +84,10 @@ export function ResultTabs({ result }: { result: ChatResponse }) {
           </span>
         )}
       </div>
-      <div role="tabpanel" className={cn(active !== "table" && "p-3.5")}>
-        {active === "chart" && <ChartView spec={result.chart} rows={result.data} columns={result.columns} />}
-        {active === "table" && <ResultTable result={result} />}
-        {active === "sql" && result.detail && (
+      <div role="tabpanel" className={cn(current !== "table" && "p-3.5")}>
+        {current === "chart" && <ChartView spec={result.chart} rows={result.data} columns={result.columns} />}
+        {current === "table" && <ResultTable result={result} />}
+        {current === "sql" && result.detail && (
           <div className="space-y-3">
             <pre className="overflow-x-auto font-mono text-xs leading-5 whitespace-pre-wrap">{result.detail.sql}</pre>
             <p className="flex items-center gap-2 rounded-control bg-success-subtle px-2.5 py-2 text-[13px] font-semibold text-success-fg">

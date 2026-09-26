@@ -80,14 +80,20 @@ export function AssistantMessage({ turn, compact = false, onAsk }: { turn: Turn;
         </div>
       </>
     );
-  } else if (result && result.kind !== "answer") {
-    const warn = result.kind === "clarify" || result.kind === "refused";
+  } else if (result && result.kind === "error") {
     body = (
-      <div className={cn("grid gap-1.5 rounded-container border border-border bg-surface px-3.5 py-3",
-        warn ? "shadow-[inset_3px_0_0_0_var(--color-warning)]" : "shadow-[inset_3px_0_0_0_var(--color-danger)]")}>
+      <div role="alert" className="flex flex-wrap items-center gap-3 rounded-container bg-danger-subtle px-3.5 py-3 text-danger-fg shadow-[inset_4px_0_0_0_var(--color-danger)]">
+        <CircleAlert className="size-4 shrink-0" aria-hidden />
+        <p className="flex-1 font-medium">{result.headline || result.answer}</p>
+        <Button variant="secondary" size="sm" onClick={() => onAsk(turn.question)}>Thử lại</Button>
+      </div>
+    );
+  } else if (result && result.kind !== "answer") {
+    body = (
+      <div className="grid gap-1.5 rounded-container border border-border bg-surface px-3.5 py-3 shadow-[inset_3px_0_0_0_var(--color-warning)]">
         <p className="flex items-center gap-2 font-bold">
-          {warn ? <CircleHelp className="size-4 text-warning" aria-hidden /> : <CircleAlert className="size-4 text-danger" aria-hidden />}
-          {result.kind === "clarify" ? "Cần làm rõ câu hỏi" : result.kind === "refused" ? "Không trả lời được câu này" : "Có lỗi khi trả lời"}
+          <CircleHelp className="size-4 text-warning" aria-hidden />
+          {result.kind === "clarify" ? "Cần làm rõ câu hỏi" : "Không trả lời được câu này"}
         </p>
         <p className="text-[15px] leading-[23px]">{result.headline || result.answer}</p>
       </div>

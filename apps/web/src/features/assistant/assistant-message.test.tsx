@@ -47,6 +47,14 @@ describe("AssistantMessage", () => {
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
   });
 
+  it("shows a backend error as an alert with a retry", () => {
+    const onAsk = vi.fn();
+    render(<AssistantMessage turn={turn({ result: { ...base, kind: "error", headline: "Trợ lý phản hồi quá lâu.", data: [], detail: null } })} onAsk={onAsk} />);
+    expect(screen.getByRole("alert")).toHaveTextContent("Trợ lý phản hồi quá lâu.");
+    fireEvent.click(screen.getByRole("button", { name: "Thử lại" }));
+    expect(onAsk).toHaveBeenCalledWith("Doanh thu?");
+  });
+
   it("offers a retry on failure and a re-run for a restored turn", () => {
     const onAsk = vi.fn();
     const { rerender } = render(<AssistantMessage turn={turn({ status: "failed", result: null, error: "Mất kết nối." })} onAsk={onAsk} />);
