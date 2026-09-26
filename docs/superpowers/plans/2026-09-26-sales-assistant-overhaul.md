@@ -14,7 +14,7 @@
 
 ## Global Constraints
 
-- Prerequisite: the graphite design-system changes already in the working tree are committed by the user before Task A1 (`git add apps/web docs/design && git commit -m "feat(web): switch to the graphite square design system"`).
+- Prerequisite: the graphite design-system changes already in the working tree are committed by the user before Task 1 (`git add apps/web docs/design && git commit -m "feat(web): switch to the graphite square design system"`).
 - Commit steps run only inside a subagent-owned worktree, or after the user says to commit on their branch (user CLAUDE.md §6).
 - No schema change, no migration (both specs §2).
 - Every AI-generated SQL still passes `app.modules.ai.guard.validate_sql`; "Chạy lại" goes through `POST /assistant/chat`, never re-runs stored SQL.
@@ -30,17 +30,17 @@
 
 ## Review Focus
 
-1. **An order with a cancelled line is paid** — the customer must be charged without the cancelled line. `_order_total` currently sums every line (`sales/payments.py:60`). Pinned in Task B2.
-2. **SePay sends the same transfer twice, sends it after the QR expired, or money arrives for an order already paid in cash** — no second invoice, no status regression of a paid order. Pinned in Task B4.
-3. **A dish without an active price is tapped on the POS** — it must not enter the cart at 0 ₫. Pinned in Task C2.
-4. **A user opens `/assistant?session=<id>` of another user** — API answers 404, the screen shows an error and falls back to a new chat. Pinned in Tasks D4 and E3.
-5. **The model returns JSON with wrong shapes** (string instead of list, more than 4 highlights, duplicate follow-ups, empty headline) — output is sanitised or falls back to plain text. Pinned in Task D1.
+1. **An order with a cancelled line is paid** — the customer must be charged without the cancelled line. `_order_total` currently sums every line (`sales/payments.py:60`). Pinned in Task 3.
+2. **SePay sends the same transfer twice, sends it after the QR expired, or money arrives for an order already paid in cash** — no second invoice, no status regression of a paid order. Pinned in Task 5.
+3. **A dish without an active price is tapped on the POS** — it must not enter the cart at 0 ₫. Pinned in Task 7.
+4. **A user opens `/assistant?session=<id>` of another user** — API answers 404, the screen shows an error and falls back to a new chat. Pinned in Tasks 13 and 16.
+5. **The model returns JSON with wrong shapes** (string instead of list, more than 4 highlights, duplicate follow-ups, empty headline) — output is sanitised or falls back to plain text. Pinned in Task 10.
 
 ---
 
 ## Phase A — Dish prices
 
-### Task A1: Return the active price for dishes and persist the price given on create
+### Task 1: Return the active price for dishes and persist the price given on create
 
 **Files:**
 - Modify: `apps/api/src/app/modules/catalog/versions.py` (add `active_prices`)
@@ -226,7 +226,7 @@ git commit -m "fix(catalog): return the active dish price and persist the price 
 
 ## Phase B — Sales API
 
-### Task B1: Floor board endpoint
+### Task 2: Floor board endpoint
 
 **Files:**
 - Create: `apps/api/src/app/modules/sales/floor.py`
@@ -451,7 +451,7 @@ git add apps/api/src/app/modules/sales apps/api/tests/modules/test_sales_floor.p
 git commit -m "feat(sales): add a floor board endpoint for the step-based POS"
 ```
 
-### Task B2: Gateway package, shared `confirm_payment`, and cancelled lines out of the total
+### Task 3: Gateway package, shared `confirm_payment`, and cancelled lines out of the total
 
 **Files:**
 - Create: `apps/api/src/app/modules/sales/gateways/__init__.py`, `apps/api/src/app/modules/sales/gateways/simulator.py`
@@ -616,7 +616,7 @@ git add apps/api/src/app/modules/sales apps/api/tests/modules/test_sales_payment
 git commit -m "fix(sales): stop charging cancelled lines and move gateway signing into an adapter"
 ```
 
-### Task B3: SePay configuration and pure adapter functions
+### Task 4: SePay configuration and pure adapter functions
 
 **Files:**
 - Modify: `apps/api/src/app/core/config.py`
@@ -893,7 +893,7 @@ git add apps/api/src/app/core/config.py apps/api/src/app/modules/sales/gateways/
 git commit -m "feat(sales): add the SePay VietQR adapter and its configuration"
 ```
 
-### Task B4: SePay webhook, QR details on the QR endpoints, and "check" endpoint
+### Task 5: SePay webhook, QR details on the QR endpoints, and "check" endpoint
 
 **Files:**
 - Modify: `apps/api/src/app/modules/sales/payments.py` (add `qr_fields`, `handle_sepay_transfer`, `check_payment`)
@@ -901,7 +901,7 @@ git commit -m "feat(sales): add the SePay VietQR adapter and its configuration"
 - Test: `apps/api/tests/modules/test_sales_sepay_webhook.py` (create)
 
 **Interfaces:**
-- Consumes: B2 `confirm_payment`, `to_reconciliation`, `order_total`; B3 `sepay.*`, settings fields.
+- Consumes: Task 3 `confirm_payment`, `to_reconciliation`, `order_total`; Task 4 `sepay.*`, settings fields.
 - Produces:
   - `async def qr_fields(session, payment: PaymentTransaction) -> dict[str, Any]` — `{}` for the simulator; otherwise `{"qr_image_url", "payment_code", "bank_code", "bank_account", "account_name"}`.
   - `async def handle_sepay_transfer(session, body: dict[str, Any]) -> str` → one of `"confirmed" | "duplicate" | "ignored" | "unmatched" | "reconciling"`.
@@ -1278,7 +1278,7 @@ export type FloorTable = {
 export type FloorBoard = { tables: FloorTable[]; takeaway: FloorOrder[] };
 ```
 
-### Task C1: Floor step
+### Task 6: Floor step
 
 **Files:**
 - Create: `apps/web/src/features/sales/types.ts` (content above), `apps/web/src/features/sales/floor-step.tsx`
@@ -1611,14 +1611,14 @@ git add apps/web/src/features/sales/types.ts apps/web/src/features/sales/floor-s
 git commit -m "feat(sales): add the floor step with table status and takeaway orders"
 ```
 
-### Task C2: Order step (menu with prices, new and add-more orders)
+### Task 7: Order step (menu with prices, new and add-more orders)
 
 **Files:**
 - Rename: `apps/web/src/features/sales/order-screen.tsx` → `order-step.tsx` (`git mv`), then edit
 - Test: `apps/web/src/features/sales/order-step.test.tsx` (create); remove the `describe("OrderScreen", …)` block and the `OrderScreen` import from `payment-panel.test.tsx`
 
 **Interfaces:**
-- Consumes: C1 nothing directly.
+- Consumes: Task 6 nothing directly.
 - Produces: `OrderStep({ tableId: number | null; orderId: number | null; onBack(): void; onSent(orderId: number, next: "floor" | "pay"): void })`.
 
 - [ ] **Step 1: Write the failing tests**
@@ -1920,7 +1920,7 @@ Remove imports that become unused (`CircleCheck`, `Badge`, `cn` if unused).
 - [ ] **Step 5: Run, lint, type-check**
 
 Run: `cd apps/web && pnpm vitest run src/features/sales && pnpm lint && pnpm typecheck`
-Expected: PASS (the workspace still imports `OrderScreen`; Task C4 replaces it — until then fix the import in `sales-workspace.tsx` to `import { OrderStep } from "@/features/sales/order-step";` and render `<OrderStep tableId={null} orderId={null} onBack={() => {}} onSent={(id) => payNow(id)} />` so typecheck passes).
+Expected: PASS (the workspace still imports `OrderScreen`; Task 9 replaces it — until then fix the import in `sales-workspace.tsx` to `import { OrderStep } from "@/features/sales/order-step";` and render `<OrderStep tableId={null} orderId={null} onBack={() => {}} onSent={(id) => payNow(id)} />` so typecheck passes).
 
 - [ ] **Step 6: Commit**
 
@@ -1929,7 +1929,7 @@ git add apps/web/src/features/sales
 git commit -m "feat(sales): show dish prices and add dishes to open orders in the order step"
 ```
 
-### Task C3: Pay step, cash change, SePay QR and done step
+### Task 8: Pay step, cash change, SePay QR and done step
 
 **Files:**
 - Modify: `apps/web/src/features/sales/payment-panel.tsx`
@@ -2278,7 +2278,7 @@ git add apps/web/src/features/sales
 git commit -m "feat(sales): add cash change, SePay VietQR and a done step to payment"
 ```
 
-### Task C4: Stepper workspace with URL state
+### Task 9: Stepper workspace with URL state
 
 **Files:**
 - Create: `apps/web/src/features/sales/sales-stepper.tsx`
@@ -2287,7 +2287,7 @@ git commit -m "feat(sales): add cash change, SePay VietQR and a done step to pay
 - Test: `apps/web/src/features/sales/sales-workspace.test.tsx` (create)
 
 **Interfaces:**
-- Consumes: `FloorStep` (C1), `OrderStep` (C2), `PaymentPanel`/`DoneStep` (C3), `OrderDetail` (existing, `orderId` prop).
+- Consumes: `FloorStep` (Task 6), `OrderStep` (Task 7), `PaymentPanel`/`DoneStep` (Task 8), `OrderDetail` (existing, `orderId` prop).
 - Produces: URL contract `/sales?step=order|pay|done&table=<MaBan>&order=<MaOrder>`.
 
 - [ ] **Step 1: Write the failing test**
@@ -2514,7 +2514,7 @@ export function SalesWorkspace() {
 }
 ```
 
-Remove `onPayNow`/`payNow` leftovers from Task C2.
+Remove `onPayNow`/`payNow` leftovers from Task 7.
 
 - [ ] **Step 5: Wrap the page in Suspense** (`app/(app)/sales/page.tsx`)
 
@@ -2551,7 +2551,7 @@ git commit -m "feat(sales): split the sales screen into floor, order and payment
 
 ## Phase D — Assistant API
 
-### Task D1: Structured answer parsing and composition
+### Task 10: Structured answer parsing and composition
 
 **Files:**
 - Create: `apps/api/src/app/modules/ai/pipeline/answer_format.py`
@@ -2745,7 +2745,7 @@ git add apps/api/src/app/modules/ai/pipeline/answer_format.py apps/api/tests/mod
 git commit -m "feat(ai): parse structured answers from the model with a plain-text fallback"
 ```
 
-### Task D2: Column labels and kinds
+### Task 11: Column labels and kinds
 
 **Files:**
 - Create: `apps/api/src/app/modules/ai/labels.py`
@@ -2940,14 +2940,14 @@ git add apps/api/src/app/modules/ai/labels.py apps/api/tests/modules/test_ai_lab
 git commit -m "feat(ai): label result columns in Vietnamese with a value kind"
 ```
 
-### Task D3: Structured `/assistant/chat` response
+### Task 12: Structured `/assistant/chat` response
 
 **Files:**
 - Modify: `apps/api/src/app/modules/ai/pipeline/interpreter.py`, `apps/api/src/app/modules/ai/schemas.py`, `apps/api/src/app/modules/ai/service.py`
 - Test: `apps/api/tests/modules/test_ai_interpreter.py` (update two tests), `apps/api/tests/modules/test_ai_service.py` (append)
 
 **Interfaces:**
-- Consumes: D1 `StructuredAnswer`, `parse_model_answer`, `compose_answer`; D2 `describe_columns`.
+- Consumes: Task 10 `StructuredAnswer`, `parse_model_answer`, `compose_answer`; Task 11 `describe_columns`.
 - Produces:
   - `@dataclass(frozen=True) class Interpretation: answer: StructuredAnswer; text: str; scope_note: str` and `async def interpret(...) -> Interpretation`
   - `ChatResponse` fields `headline: str`, `highlights: list[str]`, `follow_ups: list[str]`, `scope_note: str | None`, `columns: list[ColumnMeta]`, `kind: Literal["answer", "clarify", "refused", "error"]` (all defaulted), existing fields unchanged.
@@ -3136,14 +3136,14 @@ git add apps/api/src/app/modules/ai apps/api/tests/modules/test_ai_interpreter.p
 git commit -m "feat(ai): return structured answers, column labels and an answer kind"
 ```
 
-### Task D4: Chat history endpoints
+### Task 13: Chat history endpoints
 
 **Files:**
 - Modify: `apps/api/src/app/modules/ai/service.py` (add `list_sessions`, `session_detail`), `apps/api/src/app/modules/ai/schemas.py`, `apps/api/src/app/modules/ai/router.py`
 - Test: `apps/api/tests/modules/test_ai_history.py` (create)
 
 **Interfaces:**
-- Consumes: D1 `split_answer`.
+- Consumes: Task 10 `split_answer`.
 - Produces:
   - Schemas `SessionSummary{id, title, turn_count, created_at: datetime, last_at: datetime}`, `TurnOut{id, question, headline, highlights: list[str], status, occurred_at: datetime}`, `SessionDetail{id, title, turns: list[TurnOut]}`.
   - `GET /api/v1/assistant/sessions?page=1&size=30` → `Page[SessionSummary]` (`size` ≤ 100); `GET /api/v1/assistant/sessions/{id}` → `SessionDetail`; foreign or missing → 404 `NOT_FOUND`.
@@ -3395,7 +3395,7 @@ git commit -m "feat(ai): let each user list and reopen their own chat sessions"
 
 ## Phase E — Assistant web
 
-### Task E1: Types, cell formatting and labelled charts
+### Task 14: Types, cell formatting and labelled charts
 
 **Files:**
 - Modify: `apps/web/src/types/api.ts`, `apps/web/src/features/assistant/chart-view.tsx`
@@ -3404,7 +3404,7 @@ git commit -m "feat(ai): let each user list and reopen their own chat sessions"
 
 **Interfaces:**
 - Produces:
-  - types `ColumnKind`, `ColumnMeta`, `AnswerKind`, extended `ChatResponse`, `SessionSummary`, `TurnOut`, `SessionDetail` (mirror D3/D4 exactly)
+  - types `ColumnKind`, `ColumnMeta`, `AnswerKind`, extended `ChatResponse`, `SessionSummary`, `TurnOut`, `SessionDetail` (mirror Tasks 12 and 13 exactly)
   - `formatCell(value: unknown, kind: ColumnKind): string`, `isNumericKind(kind: ColumnKind): boolean`, `columnsFor(rows: Record<string, unknown>[], columns?: ColumnMeta[]): ColumnMeta[]`
   - `ChartView({ spec, rows, columns? })`
   - `type Suggestion = { topic: string; module: ModuleKey; text: string }`, `suggestionsFor(role: string | undefined, module?: ModuleKey): Suggestion[]`
@@ -3591,16 +3591,16 @@ git add apps/web/src/types/api.ts apps/web/src/features/assistant
 git commit -m "feat(assistant): add column-aware formatting, labelled charts and suggestions"
 ```
 
-(`chat-panel.test.tsx` may still reference the old `ChatResponse` shape; fix its fixtures by adding `headline`, `highlights: []`, `follow_ups: []`, `scope_note: null`, `columns: []`, `kind: "answer"` so typecheck passes until Task E3 deletes it.)
+(`chat-panel.test.tsx` may still reference the old `ChatResponse` shape; fix its fixtures by adding `headline`, `highlights: []`, `follow_ups: []`, `scope_note: null`, `columns: []`, `kind: "answer"` so typecheck passes until Task 16 deletes it.)
 
-### Task E2: Conversation hook, composer and message rendering
+### Task 15: Conversation hook, composer and message rendering
 
 **Files:**
 - Create: `apps/web/src/features/assistant/use-conversation.ts`, `composer.tsx`, `result-tabs.tsx`, `assistant-message.tsx`
 - Test: `apps/web/src/features/assistant/assistant-message.test.tsx`, `apps/web/src/features/assistant/use-conversation.test.tsx` (create)
 
 **Interfaces:**
-- Consumes: E1 types, `formatCell`, `columnsFor`, `isNumericKind`, `ChartView`.
+- Consumes: Task 14 types, `formatCell`, `columnsFor`, `isNumericKind`, `ChartView`.
 - Produces:
   - `type Turn = { id: string; question: string; status: "pending" | "done" | "failed"; result: ChatResponse | null; error: string | null; restored: TurnOut | null }`
   - `useConversation(options?: { onSessionCreated?: (id: number) => void }) → { turns: Turn[]; sessionId: number | null; pending: boolean; ask(text: string): Promise<void>; reset(): void; load(detail: SessionDetail): void }`
@@ -4169,7 +4169,7 @@ git add apps/web/src/features/assistant
 git commit -m "feat(assistant): render structured answers with result tabs and follow-ups"
 ```
 
-### Task E3: Assistant screen with history and welcome
+### Task 16: Assistant screen with history and welcome
 
 **Files:**
 - Create: `apps/web/src/features/assistant/history-panel.tsx`, `welcome.tsx`, `assistant-screen.tsx`
@@ -4178,7 +4178,7 @@ git commit -m "feat(assistant): render structured answers with result tabs and f
 - Test: `apps/web/src/features/assistant/assistant-screen.test.tsx`, `history-panel.test.tsx` (create)
 
 **Interfaces:**
-- Consumes: E2 hook/components; D4 endpoints.
+- Consumes: Task 15 hook/components; Task 13 endpoints.
 - Produces: `HistoryPanel({ activeId: number | null; refreshKey: number; onSelect(id: number): void; onNew(): void })`, `groupLabel(iso: string, now: Date): string`, `Welcome({ username: string | undefined; role: string | undefined; onAsk(text: string): void })`, `AssistantScreen()`.
 
 - [ ] **Step 1: Write the failing tests**
@@ -4595,7 +4595,7 @@ git add -A apps/web/src/features/assistant "apps/web/src/app/(app)/assistant/pag
 git commit -m "feat(assistant): add history, a welcome screen and a full-height chat layout"
 ```
 
-### Task E4: Floating assistant widget
+### Task 17: Floating assistant widget
 
 **Files:**
 - Create: `apps/web/src/features/assistant/assistant-widget.tsx`
@@ -4603,7 +4603,7 @@ git commit -m "feat(assistant): add history, a welcome screen and a full-height 
 - Test: `apps/web/src/features/assistant/assistant-widget.test.tsx` (create)
 
 **Interfaces:**
-- Consumes: E2 hook/components, E1 `suggestionsFor`, `MODULE_LIST` from `lib/modules`.
+- Consumes: Task 15 hook/components, Task 14 `suggestionsFor`, `MODULE_LIST` from `lib/modules`.
 - Produces: `AssistantWidget()` (no props; reads pathname and session).
 
 - [ ] **Step 1: Write the failing test**
@@ -4813,7 +4813,7 @@ git commit -m "feat(assistant): add a floating assistant widget outside the POS"
 
 ## Phase F — Docs and verification
 
-### Task F1: Report and design docs
+### Task 18: Report and design docs
 
 **Files:**
 - Modify: `docs/BaoCao_HeThongQuanLyNhaHang.md` (§1.4.3, FR-SALE summary row ~1837, limitation 6 ~1954, and every mention of "chữ ký webhook" for the QR gateway)
@@ -4834,7 +4834,7 @@ git add docs/BaoCao_HeThongQuanLyNhaHang.md docs/design/tokens.md
 git commit -m "docs: describe the SePay QR flow and the new sales and assistant components"
 ```
 
-### Task F2: Full gate and live checks
+### Task 19: Full gate and live checks
 
 - [ ] **Step 1: Run the gate** — `make gate` at the repo root. Expected: format, lint, typecheck, tests, build all green. Report any unfinished check separately.
 
