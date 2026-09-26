@@ -38,14 +38,16 @@ export function AssistantWidget() {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         setOpen((value) => !value);
-      } else if (event.key === "Escape") {
+      } else if (event.key === "Escape" && open && !event.defaultPrevented) {
+        // A Radix dialog on top of the widget (change password, catalog/inventory/settings
+        // dialogs) calls preventDefault on the Escape it handles first — don't also close us.
         setOpen(false);
       }
     }
     if (hidden || !allowed) return;
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [hidden, allowed]);
+  }, [hidden, allowed, open]);
 
   useEffect(() => {
     bottom.current?.scrollIntoView?.({ block: "end" });

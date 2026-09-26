@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 let pathname = "/inventory";
@@ -37,6 +37,22 @@ describe("AssistantWidget", () => {
     expect(screen.getByRole("dialog", { name: "Trợ lý AI" })).toBeInTheDocument();
     expect(screen.getByText(/Đang ở màn Kho/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /dưới mức tối thiểu/ })).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("leaves a dialog's own Escape alone and does not also minimise the panel", () => {
+    render(<AssistantWidget />);
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    expect(screen.getByRole("dialog", { name: "Trợ lý AI" })).toBeInTheDocument();
+
+    act(() => {
+      const event = new KeyboardEvent("keydown", { key: "Escape", cancelable: true });
+      event.preventDefault();
+      window.dispatchEvent(event);
+    });
+    expect(screen.getByRole("dialog", { name: "Trợ lý AI" })).toBeInTheDocument();
+
     fireEvent.keyDown(window, { key: "Escape" });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
