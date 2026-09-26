@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
+import { AssistantWidget } from "@/features/assistant/assistant-widget";
 import { ChangePasswordDialog } from "@/features/settings/change-password-dialog";
 import { MODULE_LIST, homePathFor } from "@/lib/modules";
 import { roleLabel } from "@/lib/roles";
@@ -174,6 +175,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         open={changePasswordOpen}
         onOpenChange={setChangePasswordOpen}
       />
+      <AssistantWidget />
     </div>
   );
 }
