@@ -387,6 +387,8 @@ async def webhook_payment(
     payload: dict,
     session: AsyncSession = Depends(get_session),
 ):
+    if get_settings().payment_gateway == "sepay":
+        raise NotFoundError("Không tìm thấy.")
     result = await payments.handle_webhook(session, payload)
     await session.commit()
     return {"ok": True, "MaGiaoDich": result["payment"].id}

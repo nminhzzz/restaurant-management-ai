@@ -179,6 +179,46 @@ async def test_the_sepay_hook_is_absent_under_the_simulator(session):
 
 
 @pytest.mark.anyio
+async def test_the_simulator_hook_is_absent_when_sepay_is_active(session, sepay_env):
+    """Review #2: the forgeable simulator webhook must not stay live once SePay is on."""
+    import hashlib
+    import hmac as hmac_mod
+
+    client, _, oid, r = await _qr(session)
+    pid = r.json()["MaGiaoDich"]
+    secret = get_settings().payment_webhook_secret or "test-secret"
+    sig = hmac_mod.new(secret.encode(), f"{pid}:50000".encode(), hashlib.sha256).hexdigest()
+
+    resp = await client.post(
+        "/api/v1/sales/webhooks/payment",
+        json={"payment_id": pid, "amount": 50000, "signature": sig},
+    )
+
+    assert resp.status_code == 404
+    assert await order_status(session, oid) == "Đang mở"
+
+
+@pytest.mark.anyio
+async def test_the_simulator_hook_refuses_a_signed_body_without_an_amount(session):
+    """Review #2: a missing amount must not let the simulator confirm a payment."""
+    import hashlib
+    import hmac as hmac_mod
+
+    client, _, oid, r = await _qr(session)
+    pid = r.json()["MaGiaoDich"]
+    secret = get_settings().payment_webhook_secret or "test-secret"
+    sig = hmac_mod.new(secret.encode(), f"{pid}:None".encode(), hashlib.sha256).hexdigest()
+
+    resp = await client.post(
+        "/api/v1/sales/webhooks/payment",
+        json={"payment_id": pid, "signature": sig},
+    )
+
+    assert resp.status_code == 422
+    assert await order_status(session, oid) == "Đang mở"
+
+
+@pytest.mark.anyio
 async def test_a_second_transfer_on_an_already_confirmed_qr_is_recorded_not_reapplied(
     session, sepay_env
 ):

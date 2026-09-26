@@ -409,6 +409,9 @@ async def handle_webhook(session: AsyncSession, payload: dict) -> dict:
         await session.flush()
         raise UnauthenticatedError("Chữ ký không hợp lệ.")
 
+    if amount is None:
+        raise BusinessRuleError("Thiếu số tiền.")
+
     if payment.status == QR_SUCCESS:
         return {"payment": payment}
     if payment.status != QR_PENDING:
@@ -419,7 +422,7 @@ async def handle_webhook(session: AsyncSession, payload: dict) -> dict:
         raise NotFoundError("Order không tồn tại.")
     await session.execute(select(Order).where(Order.id == order.id).with_for_update())
     total = await order_total(session, order)
-    if amount is not None and Decimal(str(amount)) != total:
+    if Decimal(str(amount)) != total:
         raise BusinessRuleError("Số tiền không khớp.")
 
     return await confirm_payment(session, payment)
