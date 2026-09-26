@@ -314,3 +314,86 @@ async def test_submit_draws_stock(session):
     assert r.status_code == 201
     after = await ingredient_total(session, d)
     assert after == before - 2
+
+
+async def _setup_unpriced_dish(session, group_id):
+    """A dish with stock and a recipe but no active price version (review #6)."""
+    d = Dish(name="Món chưa định giá", group_id=group_id, is_deleted=False)
+    session.add(d)
+    await session.flush()
+    ing = Ingredient(
+        name="NL chưa định giá", unit="kg", min_stock=1, stock_qty=10, is_deleted=False
+    )
+    session.add(ing)
+    await session.flush()
+    bd = business_date.business_date_of(business_date.now())
+    rc = Recipe(
+        dish_id=d.id, business_date=bd, status=VersionStatus.HIEU_LUC.value, change_type="Tạo mới"
+    )
+    session.add(rc)
+    await session.flush()
+    session.add(RecipeItem(recipe_id=rc.id, ingredient_id=ing.id, quantity=1))
+    gr = GoodsReceipt(supplier_id=None, status="Nháp", receipt_date=business_date.now())
+    session.add(gr)
+    await session.flush()
+    gl = GoodsReceiptLine(receipt_id=gr.id, ingredient_id=ing.id, quantity=10, unit_price=1000)
+    session.add(gl)
+    await session.flush()
+    lot = IngredientLot(
+        ingredient_id=ing.id,
+        receipt_line_id=gl.id,
+        quantity_remaining=10,
+        status="Còn hạn",
+        received_at=business_date.now(),
+    )
+    session.add(lot)
+    await session.flush()
+    await session.commit()
+    return d
+
+
+@pytest.mark.anyio
+async def test_rejected_when_no_active_price(session):
+    """Review #6: a dish without an active price must not be snapshotted at 0 dong."""
+    d, ing, g = await _setup_dish_with_stock(session)
+    unpriced = await _setup_unpriced_dish(session, g.id)
+    t = await _setup_table(session)
+    client = await _make_client(session)
+    headers = await _cashier_headers(session)
+
+    r = await client.post(
+        "/api/v1/sales/orders",
+        json={
+            "MaBan": t.id,
+            "lines": [{"MaMon": d.id, "SoLuong": 1}, {"MaMon": unpriced.id, "SoLuong": 1}],
+        },
+        headers=headers,
+    )
+
+    assert r.status_code == 201, r.text
+    assert [x["MaMon"] for x in r.json()["lines"]] == [d.id]
+    assert r.json()["rejected"] == [{"MaMon": unpriced.id, "reason": "Món chưa có giá"}]
+
+
+@pytest.mark.anyio
+async def test_add_line_rejects_a_dish_without_an_active_price(session):
+    """Review #6: adding an unpriced dish to an open order must fail, not snapshot 0 dong."""
+    d, ing, g = await _setup_dish_with_stock(session)
+    unpriced = await _setup_unpriced_dish(session, g.id)
+    t = await _setup_table(session)
+    client = await _make_client(session)
+    headers = await _cashier_headers(session)
+    r = await client.post(
+        "/api/v1/sales/orders",
+        json={"MaBan": t.id, "lines": [{"MaMon": d.id, "SoLuong": 1}]},
+        headers=headers,
+    )
+    oid = r.json()["MaOrder"]
+
+    add = await client.post(
+        f"/api/v1/sales/orders/{oid}/lines",
+        json={"MaMon": unpriced.id, "SoLuong": 1},
+        headers=headers,
+    )
+
+    assert add.status_code == 422

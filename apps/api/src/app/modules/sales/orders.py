@@ -107,8 +107,8 @@ def write_kitchen_ticket(
 
 async def _resolve_line_inputs(
     session: AsyncSession, dish_id: int, quantity: int, bd: date
-) -> tuple[OrderLine, bool]:
-    """Snapshot price/recipe for a dish; the flag reports whether stock can cover it."""
+) -> tuple[OrderLine, bool, str | None]:
+    """Snapshot price/recipe for a dish; the flag reports whether the line can be ordered."""
     price_version = await active_price_version(session, dish_id, bd)
     recipe = await active_recipe(session, dish_id, bd)
     line = OrderLine(
@@ -119,14 +119,16 @@ async def _resolve_line_inputs(
         recipe_id=recipe.id if recipe else None,
         status=LINE_WAITING,
     )
+    if price_version is None:
+        return line, False, "Món chưa có giá"
     if recipe is None:
-        return line, True
+        return line, True, None
     for item in await recipe_items(session, recipe.id):
         ingredient = await session.get(Ingredient, item.ingredient_id)
         needed = Decimal(str(item.quantity)) * quantity
         if ingredient is None or Decimal(str(ingredient.stock_qty)) < needed:
-            return line, False
-    return line, True
+            return line, False, "không đủ tồn kho"
+    return line, True, None
 
 
 async def _draw_line_stock(
@@ -288,9 +290,9 @@ async def submit_order(
             continue
         quantity = int(line_input.get("quantity") or line_input.get("SoLuong") or 1)
         note = line_input.get("note") or line_input.get("GhiChu")
-        line, in_stock = await _resolve_line_inputs(session, int(dish_id), quantity, bd)
-        if not in_stock:
-            rejected.append({"MaMon": int(dish_id), "reason": "không đủ tồn kho"})
+        line, ok, reason = await _resolve_line_inputs(session, int(dish_id), quantity, bd)
+        if not ok:
+            rejected.append({"MaMon": int(dish_id), "reason": reason})
             continue
         line.order_id = order.id
         line.note = note
@@ -323,9 +325,11 @@ async def add_line(
         raise NotFoundError("Order không tồn tại.")
     ensure_order_is_open(order)
 
-    line, in_stock = await _resolve_line_inputs(session, dish_id, quantity, order.business_date)
-    if not in_stock:
-        raise BusinessRuleError("Không đủ tồn kho.")
+    line, ok, reason = await _resolve_line_inputs(session, dish_id, quantity, order.business_date)
+    if not ok:
+        raise BusinessRuleError(
+            "Món chưa có giá." if reason == "Món chưa có giá" else "Không đủ tồn kho."
+        )
     line.order_id = order.id
     line.note = note
     session.add(line)
@@ -356,8 +360,10 @@ async def update_line(
 
     delta = quantity - int(line.quantity)
     if delta > 0:
-        _, in_stock = await _resolve_line_inputs(session, line.dish_id, delta, order.business_date)
-        if not in_stock:
+        _, ok, _reason = await _resolve_line_inputs(
+            session, line.dish_id, delta, order.business_date
+        )
+        if not ok:
             raise BusinessRuleError("Không đủ tồn kho.")
         await _draw_line_stock(session, line, delta, order.business_date, actor_id=actor_id)
         line.quantity = int(line.quantity) + delta
