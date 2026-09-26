@@ -152,7 +152,9 @@ async def create_dish(
     )
     session.add(d)
     await session.flush()
-    # price not stored in MON_AN in this phase; GiaHienTai is derived from active price version (placeholder)
+    if price is not None:
+        # The price lives in LICH_SU_GIA_MON, the same table orders snapshot from.
+        await apply_price_directly(session, actor_id, d.id, _Decimal(str(price)))
     session.add(
         SystemAuditLog(
             user_id=actor_id, action="CREATE_DISH", target_entity="MON_AN", target_id=str(d.id)

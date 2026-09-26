@@ -11,7 +11,7 @@ export function Label({
 }: ComponentProps<typeof LabelPrimitive.Root>) {
   return (
     <LabelPrimitive.Root
-      className={cn("block text-sm font-medium text-ink", className)}
+      className={cn("block text-[13px] font-semibold text-ink", className)}
       {...props}
     />
   );

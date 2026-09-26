@@ -106,7 +106,7 @@ export function ComparisonReport() {
         </div>
       </div>
       <section className="space-y-3 rounded-container border border-border bg-surface p-4">
-        <h2 className="text-[15px] font-semibold">Doanh thu hai kỳ</h2>
+        <h2 className="text-[15px] font-bold">Doanh thu hai kỳ</h2>
         <Bars
           items={chartItems}
           ariaLabel={`Biểu đồ so sánh doanh thu kỳ ${left} và kỳ ${right}`}
@@ -118,7 +118,7 @@ export function ComparisonReport() {
         />
       </section>
       <section className="space-y-3">
-        <h2 className="text-[15px] font-semibold">Chi tiết</h2>
+        <h2 className="text-[15px] font-bold">Chi tiết</h2>
         <ReportTable
           headers={["Kỳ", "Doanh thu", "Số đơn"]}
           rows={[

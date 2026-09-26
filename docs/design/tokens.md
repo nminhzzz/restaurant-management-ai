@@ -2,7 +2,7 @@
 
 > Nguồn duy nhất cho màu, chữ, khoảng cách, bo góc và component dùng chung của `apps/web`.
 > Đổi token thì sửa file này trước, rồi mới sửa `src/app/globals.css` và component. Không sửa rải rác.
-> Trang mẫu trực quan: artifact "Hệ thiết kế nhà hàng" (bản nguồn `docs/design/preview.html`).
+> Trang mẫu trực quan: `docs/design/preview.html` (mở thẳng bằng trình duyệt).
 
 ## 1. Định hướng
 
@@ -15,12 +15,15 @@
 
 ## 2. Màu
 
-### 2.1 Vì sao màu chính là xanh chàm, không phải cam
+### 2.1 Vì sao màu chính là đen than (Than chì)
 
-Bản cũ dùng `amber-600` làm màu chính và `amber-500` làm màu cảnh báo, gần như trùng nhau: nút "Thanh toán"
-và dòng "Sắp hết nguyên liệu" cùng một màu. Trong nhà hàng, **đỏ / cam / xanh lá đã có nghĩa nghiệp vụ**
-(hết hàng, sắp hết, đã thanh toán), nên màu thương hiệu phải nằm ngoài ba họ đó. Xanh chàm (`primary`)
-không đụng trạng thái nào và đủ tương phản cho chữ trắng (6.8:1).
+Trong nhà hàng, **đỏ / cam / xanh lá đã có nghĩa nghiệp vụ** (hết hàng, sắp hết, đã thanh toán), nên màu thương
+hiệu phải nằm ngoài ba họ đó. Bản đầu dùng xanh chàm với nền xanh–trắng và bo tròn, nhìn giống giao diện sinh tự
+động. Bản hiện tại chọn **Than chì**: màu chính là đen than, nền và viền là xám trung tính (không ngả vàng, không
+ngả xanh). Cả màn hình chỉ có đen, xám và ba màu trạng thái, nên dòng "sắp hết" hay "đã hủy" nổi lên ngay.
+Chữ trắng trên `primary` đạt 17.9:1.
+
+Hai phương án đã so sánh và loại: Mận chín (`#5C1D4E`) và Cà phê (`#4A2C1D`, cùng họ với cam cảnh báo).
 
 ### 2.2 Bảng token
 
@@ -28,31 +31,34 @@ Tên token trùng tên lớp Tailwind: `--color-primary` → `bg-primary`, `text
 
 | Token | Hex | Dùng cho |
 | --- | --- | --- |
-| `canvas` | `#F5F7FA` | Nền trang |
-| `surface` | `#FFFFFF` | Card, panel, sidebar, input |
-| `surface-sunken` | `#EEF1F5` | Header bảng, hover, skeleton, badge trung tính |
-| `border` | `#DDE3EA` | Viền mặc định, đường chia dòng |
-| `border-strong` | `#C5CDD8` | Viền khi hover, viền nét đứt của trạng thái Nháp |
-| `ink` | `#0F172A` | Chữ chính, tiêu đề |
-| `muted` | `#475569` | Mô tả, chữ phụ |
-| `subtle` | `#5B6B80` | Caption, label nhỏ, placeholder (≥ 4.5:1 trên `canvas`) |
-| `primary` / `primary-hover` | `#1F4FD1` / `#1A40AB` | Nút chính, link, focus ring, mục nav đang chọn |
-| `primary-subtle` / `primary-subtle-fg` | `#EAF0FD` / `#1A3E9E` | Nav active, tab active, badge "đang xử lý" |
-| `success` · `success-subtle` · `success-fg` | `#15803D` · `#E8F5EC` · `#166534` | Đã thanh toán, đang bán, còn hạn |
-| `warning` · `warning-subtle` · `warning-fg` | `#D97706` · `#FDF3E1` · `#92400E` | Sắp hết, chờ đối soát, tạm tính |
-| `danger` · `danger-hover` · `danger-subtle` · `danger-fg` | `#DC2626` · `#B91C1C` · `#FDECEC` · `#991B1B` | Hết nguyên liệu, đã hủy, lỗi, thao tác phá hủy |
+| `canvas` | `#EDEEF0` | Nền trang |
+| `surface` | `#FFFFFF` | Card, panel, input |
+| `surface-sunken` | `#F5F6F7` | Header bảng, hover dòng, skeleton, badge trung tính |
+| `border` | `#DCDEE2` | Viền card, đường chia dòng |
+| `border-strong` | `#878B93` | Viền control (input, select, nút phụ), đường kẻ dưới header bảng, viền nét đứt của Nháp (≥ 3:1 trên `surface`) |
+| `ink` | `#15171B` | Chữ chính, tiêu đề, viền control khi hover |
+| `muted` | `#4A4F57` | Mô tả, chữ phụ, header bảng |
+| `subtle` | `#5F6570` | Caption, nhãn KPI, placeholder (≥ 4.5:1 trên `canvas`) |
+| `primary` / `primary-hover` | `#15171B` / `#363A41` | Nút chính, focus ring, tab và trang đang chọn, badge "đang xử lý" |
+| `primary-subtle` / `primary-subtle-fg` | `#E6E8EB` / `#15171B` | Dòng đang chọn trong danh sách, khung gợi ý nhẹ |
+| `sidebar` · `sidebar-fg` · `sidebar-muted` | `#15171B` · `#C8CBD1` · `#8A8F98` | Nền sidebar tối, chữ mục nav, chữ phụ |
+| `sidebar-border` · `sidebar-hover` | `#272A30` · `#1F2227` | Đường chia và hover trong sidebar |
+| `success` · `success-subtle` · `success-fg` | `#15803D` · `#E1F0E5` · `#14532D` | Đã thanh toán, đang bán, còn hạn |
+| `warning` · `warning-subtle` · `warning-fg` | `#D97706` · `#FAEBD2` · `#843A0C` | Sắp hết, chờ đối soát, tạm tính |
+| `danger` · `danger-hover` · `danger-subtle` · `danger-fg` | `#C62828` · `#A51F1F` · `#F9E1DF` · `#8C1B16` | Hết nguyên liệu, đã hủy, lỗi, thao tác phá hủy |
 
-Biểu đồ dùng `chart-1` … `chart-6` (`#1F4FD1`, `#7A98E6`, `#B8C8F2`, `#0F172A`, `#5B6B80`, `#C5CDD8`):
-cột nổi bật nhất dùng `chart-1`, các cột còn lại `chart-2`; biểu đồ tròn đi lần lượt 1 → 6. Trong SVG
-tham chiếu bằng `var(--color-chart-1)`.
+Biểu đồ dùng thang xám `chart-1` … `chart-6` (`#15171B`, `#A9ADB4`, `#5F6570`, `#D2D5DA`, `#7C818A`, `#C0C4CA`),
+xếp sao cho hai lát cạnh nhau của biểu đồ tròn không cùng độ sáng. Cột nổi bật nhất dùng `chart-1`, các cột còn lại
+`chart-2`; biểu đồ tròn đi lần lượt 1 → 6. Trong SVG tham chiếu bằng `var(--color-chart-1)`.
 
 Quy tắc:
 
-1. **Một màu nhấn mỗi màn hình: `primary`.** Ba màu trạng thái không tính là màu nhấn, chỉ dùng khi dữ liệu
+1. **Không có màu thương hiệu mang sắc độ.** Ba màu trạng thái là màu duy nhất trên màn hình và chỉ dùng khi dữ liệu
    thật sự mang trạng thái đó.
 2. **`warning` không bao giờ là nền của nút có chữ trắng** (chỉ 3.2:1). Cảnh báo luôn ở dạng
    `warning-subtle` + `warning-fg`.
-3. Không còn token `info` riêng. Trạng thái "đang xử lý / đang chế biến" dùng `primary-subtle`.
+3. Không còn token `info` riêng. Trạng thái "đang xử lý / đang chế biến" dùng badge `primary` (nền đen, chữ trắng)
+   để không lẫn với badge `neutral` màu xám.
 4. Không dùng màu Tailwind gắn cứng (`amber-50`, `slate-700`…) trong component. Thiếu màu thì thêm token vào đây.
 
 ### 2.3 Ánh xạ trạng thái nghiệp vụ → badge
@@ -62,8 +68,8 @@ Quy tắc:
 | Món `Hoạt động` · bàn `Trống` · Order `Đã thanh toán` · Lô `Còn hạn` · Giá `Hiệu lực` | `success` |
 | Tồn kho sắp chạm mức tối thiểu · Order `Chờ đối soát` · Giá vốn `Tạm tính` | `warning` |
 | Món `Hết nguyên liệu` · Order/dòng `Đã hủy` · Lô `Hết hạn` | `danger` |
-| Order `Đang mở` · dòng `Chờ` · phiếu `Chờ in` · bàn `Đang phục vụ` · bàn `Đã đặt` | `primary` |
-| Món `Ẩn` · tài khoản `Đã khóa` · dòng `Đã phục vụ` | `neutral` |
+| Order `Đang mở` · dòng `Chờ` · phiếu `Chờ in` · bàn `Đang phục vụ` | `primary` (nền đặc) |
+| Món `Ẩn` · tài khoản `Đã khóa` · dòng `Đã phục vụ` · bàn `Đã đặt` | `neutral` |
 | Món `Nháp` | `muted` (viền nét đứt) |
 
 ## 3. Chữ
@@ -77,38 +83,47 @@ Quy tắc:
 
 | Bậc | Cỡ / dòng | Weight | Dùng cho |
 | --- | --- | --- | --- |
-| `text-xs` | 12 / 16 | 500 | Caption, header bảng, badge |
+| `text-[11px]` | 11 / 16 | 700, viết hoa, `tracking-wider` | Header bảng, nhãn KPI, nhãn nhóm |
+| `text-xs` | 12 / 16 | 600 | Caption, badge |
 | `text-sm` | 14 / 20 | 400 | Nội dung bảng, form, mô tả. **Cỡ mặc định của app** |
-| `text-base` | 16 / 24 | 500 | Tên món trên ô POS, tiêu đề card |
-| `text-xl` | 20 / 28 | 600 | Tiêu đề trang |
-| `text-2xl` | 24 / 32 | 600 | Số tổng tiền, số liệu trên thẻ KPI |
+| `text-base` | 16 / 24 | 700 | Tiêu đề card, tiêu đề khối |
+| `text-2xl` | 24 / 32 | 700, `tracking-tight` | Tiêu đề trang |
+| `text-[28px]` | 28 / 36 | 700, `tracking-tight` | Số liệu trên thẻ KPI, tổng tiền |
 
 - Mọi con số tiền, số lượng, thời gian: `tabular-nums`. Tiền định dạng `185.000 ₫` (`toLocaleString("vi-VN")`).
-- Header bảng không viết hoa toàn bộ. Chữ hoa chỉ dùng cho nhãn rất ngắn (≤ 2 từ).
+- Chữ hoa chỉ dùng cho nhãn ngắn: header bảng, nhãn KPI, nhãn nhóm. Badge, nút và tiêu đề viết thường.
+- Font nạp các bậc 400 / 500 / 600 / 700; không dùng 800.
 
 ## 4. Bo góc, viền, bóng
 
-Ba token, mỗi loại phần tử một bậc, không trộn:
+Hướng thiết kế là **vuông vức nhưng không thô**: góc vát nhẹ, viền rõ, bóng chỉ cho lớp nổi.
 
 | Token | Giá trị | Lớp | Phần tử |
 | --- | --- | --- | --- |
-| `radius-control` | 8px | `rounded-control` | Nút, input, select, tab, mục nav |
-| `radius-container` | 12px | `rounded-container` | Card, bảng, ô món POS, panel |
-| `radius-overlay` | 16px | `rounded-overlay` | Dialog, sheet, popover lớn |
-| (badge) | 9999px | `rounded-full` | Badge trạng thái, chip chọn bàn |
+| `radius-badge` | 3px | `rounded-badge` | Badge, ô đếm, mục bên trong nhóm tab/segmented, skeleton |
+| `radius-control` | 4px | `rounded-control` | Nút, input, select, nhóm tab, mục nav, chip chọn bàn |
+| `radius-container` | 6px | `rounded-container` | Card, bảng, ô món POS, panel, menu thả xuống |
+| `radius-overlay` | 8px | `rounded-overlay` | Dialog, sheet |
 
-- **Viền là mặc định, bóng là ngoại lệ.** Card và bảng chỉ có `border`. Bóng chỉ cho lớp nổi
-  (dropdown, dialog, toast): `shadow-md shadow-ink/10`.
+- Không dùng `rounded-full` và các bậc Tailwind mặc định (`rounded-md`, `rounded-2xl`…). Chấm màu trong chú thích
+  biểu đồ dùng `rounded-xs`.
+- **Viền là mặc định, bóng là ngoại lệ.** Card và bảng chỉ có `border`. Control dùng `border-border-strong`,
+  hover chuyển sang `border-ink`.
+- Bóng có hai token: `shadow-float` cho lớp nổi (dropdown, select, dialog) và `shadow-lift` cho ô món POS khi hover.
+- Vạch nhấn dạng `shadow-[inset_4px_0_0_0_…]` (trái) hoặc `inset_0_4px…` (trên) đánh dấu khối lỗi và thẻ đăng nhập;
+  không dùng như trang trí cho card thường.
+- Icon lucide dùng đầu nét vuông (`stroke-linecap: square`), khai báo một lần trong `globals.css`.
 - Không lồng card trong card. Nhóm nội dung bên trong card bằng `divide-y` hoặc khoảng trắng.
 
 ## 5. Khoảng cách & bố cục
 
 - Thang 4px của Tailwind. Khoảng dùng nhiều: `gap-2` (8) trong nhóm nút, `gap-4` (16) giữa field,
   `gap-6` (24) giữa khối trong trang.
-- **Khung ứng dụng:** sidebar `w-60` cố định từ `lg`, drawer dưới `lg`. Nội dung `p-4 lg:p-6`, rộng tối đa
-  `max-w-7xl` (màn POS dùng toàn bộ chiều ngang).
+- **Khung ứng dụng:** sidebar tối (`bg-sidebar`) `w-60` cố định từ `lg`, drawer dưới `lg`. Mục nav đang chọn
+  nền trắng chữ đen. Nội dung `p-4 lg:p-6`, dùng toàn bộ chiều ngang còn lại (không giới hạn `max-w`), để
+  bảng, sơ đồ bàn và POS tận dụng màn hình rộng.
 - **Mẫu trang chuẩn** (mọi màn hình quản trị):
-  1. `PageHeader`: tiêu đề `text-xl` + mô tả một dòng bên trái, hành động chính bên phải.
+  1. `PageHeader`: tiêu đề `text-2xl` đậm + mô tả một dòng bên trái, hành động chính bên phải.
   2. Thanh công cụ: tìm kiếm, bộ lọc, tab trạng thái.
   3. Nội dung: bảng / lưới / biểu đồ.
 - **Màn POS:** lưới món `grid-cols-2 sm:grid-cols-3 xl:grid-cols-4`, giỏ hàng cột phải `w-96` sticky từ `lg`,
@@ -120,6 +135,10 @@ Có sẵn ở `src/components/ui/`, không tự viết lại bằng thẻ HTML t
 `Button`, `Input`, `Textarea`, `Label`, `Select`, `Dialog`, `DropdownMenu`, `Tabs`, `Badge`, `Table`, `Card`,
 `Skeleton`, toast (`sonner`).
 
+Bán hàng: `SalesStepper` (3 bước, mục hiện tại nền `surface-sunken`, số bước nền `primary`). Trợ lý:
+`AssistantMessage`, `Composer`, `ResultTabs`, `HistoryPanel` (mục đang mở chỉ đổi nền `primary-subtle`, không
+viền), `AssistantWidget` (góc dưới phải, ẩn ở `/sales` và `/assistant`; toast dời lên 88px).
+
 Mẫu cấp trang ở `src/components/page-states.tsx`: `PageHeader`, `EmptyState`, `LoadingState` (skeleton có
 chữ "Đang tải…" cho trình đọc màn hình), `ErrorState` (có nút Thử lại), `StatCard`, `StatusBadge` (tự chọn tone
 theo §2.3 qua `lib/status.ts`). Tải dữ liệu qua hook `lib/use-resource.ts`; định dạng tiền, số, ngày qua
@@ -127,21 +146,27 @@ theo §2.3 qua `lib/status.ts`). Tải dữ liệu qua hook `lib/use-resource.ts
 
 - **Button:** `primary` (hành động chính, tối đa 1 nút mỗi vùng), `secondary` (Hủy, Quay lại, hành động phụ),
   `ghost` (icon, đóng), `danger` (xóa, hủy order, luôn qua bước xác nhận). Cỡ `default` h-9, `pos` h-11.
+  Chữ nút `font-semibold`; nút đang ở trang hiện tại của phân trang dùng `primary`.
+- **Tabs:** nhóm tab cấp trang là khung viền `border-strong`, mục đang chọn nền `primary` chữ trắng. Tab lọc bên
+  trong một khối dùng gạch chân 2px `border-primary`.
 - **Form:** label đặt **trên** control, lỗi đặt **dưới** control bằng `text-danger-fg`. Không dùng placeholder
   thay label.
 - **Icon:** `lucide-react`, `size-4` trong nút và nav, stroke mặc định. Nút chỉ có icon phải có `aria-label`.
 
 ## 7. Trạng thái tương tác
 
-- Hover: dòng bảng `bg-canvas`, card `border-border-strong`, nút `secondary` `bg-surface-sunken`.
-- Focus: `focus-visible:ring-2 ring-primary ring-offset-2` cho mọi phần tử bấm được.
-- Nhấn: ô món POS `active:scale-[0.98]`.
+- Hover: dòng bảng `bg-surface-sunken`, control `border-ink`, ô món POS `border-ink shadow-lift`, nút `secondary`
+  `bg-surface-sunken`.
+- Focus: `focus-visible:ring-2 ring-primary ring-offset-2` cho nút; input/select đổi viền sang `primary` kèm
+  `ring-1`. Trong sidebar tối dùng `ring-white`.
+- Nhấn: nút và ô món POS `active:translate-y-px`.
 - Disabled: `opacity-50 pointer-events-none`.
 - **Loading:** `Skeleton` có hình giống nội dung thật. Không dùng chữ "Đang tải…" trơn, không spinner toàn trang.
 - **Rỗng:** `EmptyState` gồm icon, một câu nói vì sao rỗng, một nút để lấp đầy (ví dụ "Tạo phiếu nhập").
 - **Lỗi:** lỗi của form nằm ngay dưới field. Lỗi của thao tác đi qua toast `danger`. Lỗi tải trang nằm trong
   vùng nội dung, có nút "Thử lại".
-- Toast `bottom-right`, 3 giây, chữ tiếng Việt nói rõ đã xảy ra gì ("Đã gửi order ORD-250926-042 xuống bếp").
+- Toast `bottom-right`, 3 giây, bo `radius-container`, màu lấy từ token trạng thái (ghi đè biến của sonner trong
+  `globals.css`), chữ tiếng Việt nói rõ đã xảy ra gì ("Đã gửi order ORD-250926-042 xuống bếp").
 
 ## 8. Nội dung hiển thị
 

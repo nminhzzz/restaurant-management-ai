@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 const selectClass =
-  "h-9 rounded-control border border-border bg-surface px-3 text-ink focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none";
+  "h-9 rounded-control border border-border-strong bg-surface px-3 text-ink hover:border-ink focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary focus-visible:outline-none";
 
 /** Row of filters above a table; shows "Xóa bộ lọc" only while a filter is active. */
 export function FilterBar({

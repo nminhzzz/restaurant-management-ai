@@ -1,14 +1,12 @@
-import { PageHeader } from "@/components/page-states";
-import { ChatPanel } from "@/features/assistant/chat-panel";
+import { Suspense } from "react";
+
+import { LoadingState } from "@/components/page-states";
+import { AssistantScreen } from "@/features/assistant/assistant-screen";
 
 export default function AssistantPage() {
   return (
-    <div className="space-y-5">
-      <PageHeader
-        title="Trợ lý AI"
-        description="Hỏi về doanh thu, order và tồn kho bằng tiếng Việt."
-      />
-      <ChatPanel />
-    </div>
+    <Suspense fallback={<LoadingState rows={4} />}>
+      <AssistantScreen />
+    </Suspense>
   );
 }

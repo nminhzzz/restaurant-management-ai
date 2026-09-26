@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
+import { AssistantWidget } from "@/features/assistant/assistant-widget";
 import { ChangePasswordDialog } from "@/features/settings/change-password-dialog";
 import { MODULE_LIST, homePathFor } from "@/lib/modules";
 import { roleLabel } from "@/lib/roles";
@@ -17,6 +18,9 @@ import {
   subscribeSession,
 } from "@/lib/session";
 import { cn } from "@/lib/utils";
+
+const sidebarIconButton =
+  "text-sidebar-muted hover:bg-sidebar-hover hover:text-white focus-visible:ring-white focus-visible:ring-offset-sidebar";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -50,9 +54,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     <nav className="flex h-full flex-col gap-5 px-3 py-4">
       <Link
         href={homePathFor(session?.role)}
-        className="flex items-center gap-2.5 px-2 text-[15px] font-semibold text-ink"
+        className="flex items-center gap-2.5 rounded-control px-2 text-[15px] font-bold tracking-tight text-white focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
       >
-        <span className="grid size-8 place-items-center rounded-control bg-primary text-white">
+        <span className="grid size-8 place-items-center rounded-control bg-white text-ink">
           <UtensilsCrossed className="size-4" aria-hidden />
         </span>
         Quản lý nhà hàng
@@ -69,10 +73,10 @@ export function AppShell({ children }: { children: ReactNode }) {
                 aria-current={active ? "page" : undefined}
                 onClick={() => setDrawerOpen(false)}
                 className={cn(
-                  "flex min-h-11 items-center gap-2.5 rounded-control px-2.5 font-medium transition-colors",
+                  "flex min-h-11 items-center gap-2.5 rounded-control px-2.5 font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none",
                   active
-                    ? "bg-primary-subtle text-primary-subtle-fg"
-                    : "text-muted hover:bg-surface-sunken hover:text-ink",
+                    ? "bg-white text-ink"
+                    : "text-sidebar-fg hover:bg-sidebar-hover hover:text-white",
                 )}
               >
                 <Icon className="size-[18px]" aria-hidden />
@@ -84,20 +88,25 @@ export function AppShell({ children }: { children: ReactNode }) {
       </ul>
 
       {session === null ? null : (
-        <div className="flex items-center gap-2.5 border-t border-border px-2 pt-3">
+        <div className="flex items-center gap-2.5 border-t border-sidebar-border px-2 pt-3">
           <span
-            className="grid size-8 shrink-0 place-items-center rounded-full bg-surface-sunken text-xs font-semibold text-muted uppercase"
+            className="grid size-8 shrink-0 place-items-center rounded-control bg-sidebar-hover text-xs font-bold text-sidebar-fg uppercase"
             aria-hidden
           >
             {session.username.slice(0, 2)}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="truncate font-medium">{session.username}</p>
-            <p className="text-xs text-subtle">{roleLabel(session.role)}</p>
+            <p className="truncate font-semibold text-white">
+              {session.username}
+            </p>
+            <p className="text-xs text-sidebar-muted">
+              {roleLabel(session.role)}
+            </p>
           </div>
           <Button
             variant="ghost"
             size="icon"
+            className={sidebarIconButton}
             aria-label="Đổi mật khẩu"
             onClick={() => setChangePasswordOpen(true)}
           >
@@ -106,6 +115,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Button
             variant="ghost"
             size="icon"
+            className={sidebarIconButton}
             aria-label="Đăng xuất"
             onClick={logout}
           >
@@ -118,7 +128,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen">
-      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 border-r border-border bg-surface lg:block">
+      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 border-r border-sidebar-border bg-sidebar text-sidebar-fg lg:block">
         {navigation}
       </aside>
 
@@ -129,10 +139,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             className="absolute inset-0 bg-ink/40"
             onClick={() => setDrawerOpen(false)}
           />
-          <aside className="relative h-full w-64 border-r border-border bg-surface">
+          <aside className="relative h-full w-64 border-r border-sidebar-border bg-sidebar text-sidebar-fg">
             <button
               aria-label="Đóng menu"
-              className="absolute top-4 right-3 rounded-control p-1 text-subtle hover:bg-surface-sunken"
+              className="absolute top-4 right-3 rounded-control p-1 text-sidebar-muted hover:bg-sidebar-hover hover:text-white"
               onClick={() => setDrawerOpen(false)}
             >
               <X className="size-4" />
@@ -152,12 +162,12 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             <Menu />
           </Button>
-          <span className="font-semibold">
+          <span className="font-bold tracking-tight">
             {current?.title ?? "Quản lý nhà hàng"}
           </span>
         </header>
         <main className="flex-1 p-4 lg:p-6">
-          <div className="mx-auto w-full max-w-7xl">{children}</div>
+          <div className="w-full">{children}</div>
         </main>
       </div>
 
@@ -165,6 +175,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         open={changePasswordOpen}
         onOpenChange={setChangePasswordOpen}
       />
+      <AssistantWidget />
     </div>
   );
 }

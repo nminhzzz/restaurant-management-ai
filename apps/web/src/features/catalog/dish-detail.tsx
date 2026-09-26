@@ -155,7 +155,7 @@ export function DishDetail({
         ) : (
           <>
             <section className="space-y-3 border-b border-border pb-5">
-              <h3 className="font-semibold">Giá bán</h3>
+              <h3 className="font-bold">Giá bán</h3>
               <p className="text-muted">
                 Giá hiện tại:{" "}
                 <span className="font-medium text-ink">
@@ -205,7 +205,7 @@ export function DishDetail({
             </section>
 
             <section className="space-y-3 pt-5">
-              <h3 className="font-semibold">Công thức</h3>
+              <h3 className="font-bold">Công thức</h3>
               {ingredientsRes.status === "loading" ? (
                 <LoadingState rows={2} />
               ) : ingredientsRes.status === "error" ? (

@@ -71,7 +71,7 @@ export function DishPicker({
               type="button"
               onClick={() => onPick(d)}
               className={cn(
-                "flex min-h-24 flex-col justify-between gap-2 rounded-container border border-border bg-surface p-3 text-left transition-colors hover:border-border-strong active:scale-[0.98]",
+                "flex min-h-24 flex-col justify-between gap-2 rounded-container border border-border bg-surface p-3 text-left transition-[border-color,box-shadow,transform] hover:border-ink hover:shadow-lift active:translate-y-px",
               )}
             >
               <span className="line-clamp-2 text-[15px] leading-5 font-medium">

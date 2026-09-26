@@ -19,7 +19,9 @@ export function PageHeader({
   return (
     <header className="flex flex-wrap items-end justify-between gap-3">
       <div className="space-y-1">
-        <h1 className="text-xl font-semibold text-balance">{title}</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-balance">
+          {title}
+        </h1>
         {description ? <p className="text-muted">{description}</p> : null}
       </div>
       {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
@@ -47,10 +49,10 @@ export function EmptyState({
         className,
       )}
     >
-      <span className="grid size-11 place-items-center rounded-full bg-surface-sunken text-muted">
+      <span className="grid size-11 place-items-center rounded-control bg-surface-sunken text-muted ring-1 ring-border ring-inset">
         <Icon className="size-5" aria-hidden />
       </span>
-      <p className="text-base font-semibold">{title}</p>
+      <p className="text-base font-bold">{title}</p>
       {description ? (
         <p className="max-w-[40ch] text-muted">{description}</p>
       ) : null}
@@ -85,7 +87,7 @@ export function ErrorState({
   return (
     <div
       role="alert"
-      className="flex flex-wrap items-center gap-3 rounded-container border border-danger/30 bg-danger-subtle px-4 py-3 text-danger-fg"
+      className="flex flex-wrap items-center gap-3 rounded-container bg-danger-subtle px-4 py-3 text-danger-fg shadow-[inset_4px_0_0_0_var(--color-danger)]"
     >
       <CircleAlert className="size-4 shrink-0" aria-hidden />
       <p className="flex-1">{message}</p>
@@ -111,12 +113,14 @@ export function StatCard({
 }) {
   return (
     <div className="grid gap-1.5 rounded-container border border-border bg-surface p-4">
-      <div className="flex items-center justify-between gap-2 text-muted">
+      <div className="flex items-center justify-between gap-2 text-[11px] leading-4 font-bold tracking-wider text-subtle uppercase">
         <span>{label}</span>
         {badge}
       </div>
-      <p className="text-2xl font-semibold tabular-nums">{value}</p>
-      {hint ? <p className="text-xs text-subtle">{hint}</p> : null}
+      <p className="text-[28px] leading-9 font-bold tracking-tight tabular-nums">
+        {value}
+      </p>
+      {hint ? <p className="text-xs text-muted">{hint}</p> : null}
     </div>
   );
 }

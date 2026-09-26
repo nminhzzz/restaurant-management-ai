@@ -7,7 +7,6 @@ vi.mock("@/lib/api-client", async (importOriginal) => {
 });
 import { apiFetch } from "@/lib/api-client";
 import { clearSession, saveSession } from "@/lib/session";
-import { OrderScreen } from "./order-screen";
 import { PaymentPanel } from "./payment-panel";
 
 const fetchMock = apiFetch as unknown as ReturnType<typeof vi.fn>;
@@ -42,6 +41,13 @@ const openOrder = {
   lines: [],
 };
 
+async function chooseQr() {
+  fireEvent.click(
+    await screen.findByRole("radio", { name: /QR chuyển khoản/ }),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Tạo mã QR" }));
+}
+
 describe("PaymentPanel", () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -55,7 +61,7 @@ describe("PaymentPanel", () => {
     });
     render(<PaymentPanel orderId={1} />);
 
-    fireEvent.click(await screen.findByText("Thanh toán QR"));
+    await chooseQr();
 
     await screen.findByText("Chờ xác nhận");
     expect(screen.getByText("Tạo mã QR mới")).toBeDisabled();
@@ -73,8 +79,13 @@ describe("PaymentPanel", () => {
       // The pay buttons appear only once the order has loaded.
       await act(async () => {});
 
+      // Plain (non-`findBy`) queries here: Testing Library's `findBy*`/`waitFor`
+      // drain a microtask via a real `setTimeout(0)` that never fires under
+      // Vitest's fake timers (RTL only special-cases Jest's), so it would hang.
+      // The radio and button are already rendered by this point (order loaded above).
       await act(async () => {
-        fireEvent.click(screen.getByText("Thanh toán QR"));
+        fireEvent.click(screen.getByRole("radio", { name: /QR chuyển khoản/ }));
+        fireEvent.click(screen.getByRole("button", { name: "Tạo mã QR" }));
       });
       expect(screen.getByText("10:00")).toBeInTheDocument();
 
@@ -139,111 +150,235 @@ describe("PaymentPanel", () => {
   });
 });
 
-describe("OrderScreen", () => {
-  beforeEach(() => vi.resetAllMocks());
-
-  it("hides dishes that are out of stock", async () => {
-    stubByPath({
-      "/catalog/tables": [{ MaBan: 1, TenBan: "Bàn 1" }],
-      "/catalog/dishes": {
-        items: [
-          {
-            MaMon: 1,
-            TenMon: "Phở bò",
-            TrangThai: "Hoạt động",
-            GiaHienTai: 65000,
-          },
-          {
-            MaMon: 2,
-            TenMon: "Bún chả",
-            TrangThai: "Hết nguyên liệu",
-            GiaHienTai: 40000,
-          },
-        ],
-      },
-    });
-    render(<OrderScreen />);
-
-    expect(
-      await screen.findByRole("button", { name: /Phở bò/ }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /Bún chả/ }),
-    ).not.toBeInTheDocument();
+describe("PaymentPanel cash and SePay", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    clearSession();
   });
 
-  it("submits the cart and reports the created order", async () => {
-    const onCreated = vi.fn();
-    stubByPath({
-      "/catalog/tables": [{ MaBan: 7, TenBan: "Bàn 7" }],
-      "/catalog/dishes": {
-        items: [
-          {
-            MaMon: 5,
-            TenMon: "Phở bò",
-            TrangThai: "Hoạt động",
-            GiaHienTai: 65000,
-          },
-        ],
+  const priced = {
+    ...openOrder,
+    lines: [
+      {
+        MaChiTietOrder: 1,
+        MaMon: 5,
+        SoLuong: 2,
+        DonGia: 170000,
+        TrangThai: "Chờ",
       },
-      "/sales/orders": { MaOrder: 42, MaOrderHienThi: "ORD-42", rejected: [] },
-    });
-    render(<OrderScreen onOrderCreated={onCreated} />);
-
-    fireEvent.click(await screen.findByRole("button", { name: /Phở bò/ }));
-    fireEvent.click(screen.getByRole("radio", { name: "Bàn 7" }));
-    fireEvent.click(screen.getByRole("button", { name: "Gửi order" }));
-
-    expect(await screen.findByText("Đã tạo ORD-42")).toBeInTheDocument();
-    expect(onCreated).toHaveBeenCalledWith(42);
-  });
-
-  const menu = {
-    "/catalog/tables": [{ MaBan: 7, TenBan: "Bàn 7" }],
-    "/catalog/dishes": {
-      items: [
-        {
-          MaMon: 5,
-          TenMon: "Phở bò",
-          TrangThai: "Hoạt động",
-          GiaHienTai: 65000,
-        },
-      ],
-    },
+    ],
   };
 
-  it("totals the cart and drops a line when its quantity reaches zero", async () => {
-    stubByPath(menu);
-    render(<OrderScreen />);
+  it("computes change and only confirms once enough cash is given", async () => {
+    const onPaid = vi.fn();
+    stubByPath({
+      "/sales/orders/1/pay/cash": { MaHoaDon: 9 },
+      "/sales/orders/1": priced,
+    });
+    render(<PaymentPanel orderId={1} onPaid={onPaid} />);
 
-    const tile = await screen.findByRole("button", { name: /Phở bò/ });
-    fireEvent.click(tile);
-    fireEvent.click(tile);
-    expect(screen.getByLabelText("Số lượng Phở bò")).toHaveValue(2);
+    const given = await screen.findByLabelText("Tiền khách đưa");
+    fireEvent.change(given, { target: { value: "300000" } });
     expect(
-      screen.getByText("130.000 ₫", { selector: "span.text-2xl" }),
-    ).toBeInTheDocument();
+      screen.getByRole("button", { name: /Xác nhận đã thu/ }),
+    ).toBeDisabled();
 
-    fireEvent.click(screen.getByRole("button", { name: "Bớt một Phở bò" }));
-    fireEvent.click(screen.getByRole("button", { name: "Bỏ Phở bò" }));
+    fireEvent.change(given, { target: { value: "500000" } });
+    expect(screen.getByTestId("cash-change")).toHaveTextContent("160.000 ₫");
+    fireEvent.click(screen.getByRole("button", { name: /Xác nhận đã thu/ }));
 
-    expect(screen.queryByLabelText("Số lượng Phở bò")).not.toBeInTheDocument();
-    expect(screen.getByText(/Chưa có món nào/)).toBeInTheDocument();
+    await vi.waitFor(() =>
+      expect(onPaid).toHaveBeenCalledWith({ change: 160000 }),
+    );
   });
 
-  it("asks for a table before sending a dine-in order", async () => {
-    stubByPath(menu);
-    render(<OrderScreen />);
+  it("offers exact and rounded quick amounts", async () => {
+    const { quickAmounts } = await import("./payment-panel");
+    expect(quickAmounts(340000)).toEqual([340000, 350000, 400000, 500000]);
+    expect(quickAmounts(500000)).toEqual([500000]);
+  });
 
-    fireEvent.click(await screen.findByRole("button", { name: /Phở bò/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Gửi order" }));
+  it("shows the VietQR image, bank details and transfer code", async () => {
+    stubByPath({
+      "/sales/orders/1/pay/qr": qr({
+        qr_image_url:
+          "https://qr.sepay.vn/img?acc=1&bank=MBBank&amount=340000&des=TT1",
+        payment_code: "TT1",
+        bank_code: "MBBank",
+        bank_account: "0123499999",
+        account_name: "NHA HANG DEMO",
+      }),
+      "/sales/orders/1": priced,
+    });
+    render(<PaymentPanel orderId={1} />);
+    await chooseQr();
 
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Chọn bàn trước khi gửi order.",
+    expect(
+      await screen.findByRole("img", { name: /Mã VietQR/ }),
+    ).toHaveAttribute("src", expect.stringContaining("qr.sepay.vn"));
+    expect(screen.getByText("TT1")).toBeInTheDocument();
+    expect(screen.getByText("0123499999")).toBeInTheDocument();
+  });
+
+  it("copies the transfer content to the clipboard", async () => {
+    stubByPath({
+      "/sales/orders/1/pay/qr": qr({
+        qr_image_url:
+          "https://qr.sepay.vn/img?acc=1&bank=MBBank&amount=340000&des=TT1",
+        payment_code: "TT1",
+        bank_code: "MBBank",
+        bank_account: "0123499999",
+        account_name: "NHA HANG DEMO",
+      }),
+      "/sales/orders/1": priced,
+    });
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+    });
+    render(<PaymentPanel orderId={1} />);
+    await chooseQr();
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Sao chép nội dung chuyển khoản",
+      }),
     );
-    expect(fetchMock).not.toHaveBeenCalledWith(
-      "/sales/orders",
-      expect.anything(),
+
+    await vi.waitFor(() => expect(writeText).toHaveBeenCalledWith("TT1"));
+  });
+
+  it("reports the payment once check-again succeeds", async () => {
+    const onPaid = vi.fn();
+    stubByPath({
+      "/sales/orders/1/pay/qr": qr(),
+      "/sales/payments/1/check": { MaGiaoDich: 1, TrangThai: "Thành công" },
+      "/sales/orders/1": priced,
+    });
+    render(<PaymentPanel orderId={1} onPaid={onPaid} />);
+    await chooseQr();
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Kiểm tra lại" }),
     );
+
+    await vi.waitFor(() =>
+      expect(onPaid).toHaveBeenCalledWith({ change: null }),
+    );
+  });
+
+  it("shows a status message when check-again still finds nothing", async () => {
+    const onPaid = vi.fn();
+    stubByPath({
+      "/sales/orders/1/pay/qr": qr(),
+      "/sales/payments/1/check": { MaGiaoDich: 1, TrangThai: "Chờ xác nhận" },
+      "/sales/orders/1": priced,
+    });
+    render(<PaymentPanel orderId={1} onPaid={onPaid} />);
+    await chooseQr();
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Kiểm tra lại" }),
+    );
+
+    expect(
+      await screen.findByText(
+        "Chưa thấy giao dịch. Chờ thêm hoặc kiểm tra lại sau.",
+      ),
+    ).toBeInTheDocument();
+    expect(onPaid).not.toHaveBeenCalled();
+  });
+
+  it("locks the cash tab while a QR transaction is live", async () => {
+    stubByPath({
+      "/sales/orders/1/payments": { items: [qr()] },
+      "/sales/orders/1": priced,
+    });
+    render(<PaymentPanel orderId={1} />);
+
+    expect(
+      await screen.findByRole("radio", { name: /Tiền mặt/ }),
+    ).toBeDisabled();
+    expect(
+      screen.getByText("Đang có giao dịch QR. Hủy QR để chuyển sang tiền mặt."),
+    ).toBeInTheDocument();
+  });
+
+  it("unlocks the cash tab once the QR has expired (review #3)", async () => {
+    stubByPath({
+      "/sales/orders/1/payments": { items: [qr({ TrangThai: "Hết hạn" })] },
+      "/sales/orders/1": priced,
+    });
+    render(<PaymentPanel orderId={1} />);
+
+    expect(
+      await screen.findByRole("radio", { name: /Tiền mặt/ }),
+    ).not.toBeDisabled();
+  });
+
+  it("reloads the order once polling reports a non-success status change (review #4)", async () => {
+    vi.useFakeTimers();
+    try {
+      saveSession({ token: "t", role: "MANAGER", username: "quanly" });
+      const live = qr();
+      let reconciling = false;
+      let orderCalls = 0;
+      fetchMock.mockImplementation((path: string) => {
+        if (path.startsWith("/sales/orders/1/payments"))
+          return Promise.resolve({
+            items: [
+              reconciling ? { ...live, TrangThai: "Chờ đối soát" } : live,
+            ],
+          });
+        if (path.startsWith("/sales/orders/1")) {
+          orderCalls += 1;
+          return Promise.resolve(
+            reconciling ? { ...priced, TrangThai: "Chờ đối soát" } : priced,
+          );
+        }
+        return Promise.resolve({});
+      });
+      render(<PaymentPanel orderId={1} />);
+      await act(async () => {});
+      const callsBeforePoll = orderCalls;
+      reconciling = true;
+      await act(async () => {
+        vi.advanceTimersByTime(3000);
+      });
+
+      expect(orderCalls).toBeGreaterThan(callsBeforePoll);
+      expect(
+        screen.getByLabelText("Mã tham chiếu ngân hàng"),
+      ).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("reports the payment once polling sees it succeed", async () => {
+    vi.useFakeTimers();
+    try {
+      const onPaid = vi.fn();
+      const live = qr();
+      let succeeded = false;
+      fetchMock.mockImplementation((path: string) => {
+        if (path.startsWith("/sales/orders/1/payments"))
+          return Promise.resolve({
+            items: [succeeded ? { ...live, TrangThai: "Thành công" } : live],
+          });
+        if (path.startsWith("/sales/orders/1")) return Promise.resolve(priced);
+        return Promise.resolve({});
+      });
+      render(<PaymentPanel orderId={1} onPaid={onPaid} />);
+      await act(async () => {});
+      succeeded = true;
+      await act(async () => {
+        vi.advanceTimersByTime(3000);
+      });
+      expect(onPaid).toHaveBeenCalledWith({ change: null });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

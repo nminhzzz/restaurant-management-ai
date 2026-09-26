@@ -28,7 +28,7 @@ export function FormField({
       {error ? (
         <p
           id={`${id}-message`}
-          className="flex items-center gap-1 text-xs text-danger-fg"
+          className="flex items-center gap-1 text-xs font-semibold text-danger-fg"
         >
           <CircleAlert className="size-3.5 shrink-0" aria-hidden />
           {error}

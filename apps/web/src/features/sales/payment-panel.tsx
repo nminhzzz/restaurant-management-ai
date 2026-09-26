@@ -4,12 +4,15 @@ import {
   Banknote,
   CircleAlert,
   CircleCheck,
+  Copy,
   Printer,
   QrCode,
   Receipt,
+  RefreshCw,
   TimerReset,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import {
   ErrorState,
@@ -22,6 +25,7 @@ import { Label } from "@/components/ui/label";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import { formatVnd } from "@/lib/format";
 import { loadSession } from "@/lib/session";
+import { cn } from "@/lib/utils";
 import { useResource } from "@/lib/use-resource";
 
 type OrderLine = {
@@ -46,10 +50,16 @@ type Payment = {
   ThoiDiemTaoQR?: string | null;
   ThoiDiemHetHan?: string | null;
   MaThamChieuNganHang?: string | null;
+  qr_image_url?: string;
+  payment_code?: string;
+  bank_code?: string;
+  bank_account?: string;
+  account_name?: string;
 };
 
 type InvoiceDetail = {
   SoHoaDon: string;
+  MaOrderHienThi?: string | null;
   TenNhaHang?: string | null;
   DiaChi?: string | null;
   ThoiDiemXuat?: string | null;
@@ -79,7 +89,29 @@ async function loadDetail(orderId: number) {
   return { order, names, latestQr };
 }
 
-export function PaymentPanel({ orderId }: { orderId: number }) {
+const ROUNDING = [50_000, 100_000, 500_000];
+// A QR moving to any of these while polling means the reconciliation UI (which
+// keys off the order status) needs a fresh order, not just a fresh QR object.
+const NON_SUCCESS_STATUSES = ["Chờ đối soát", "Hết hạn", "Đã hủy"];
+
+/** Exact amount first, then the next round notes a customer is likely to hand over. */
+export function quickAmounts(total: number): number[] {
+  const values = new Set<number>([total]);
+  for (const step of ROUNDING) values.add(Math.ceil(total / step) * step);
+  return [...values].filter((v) => v >= total).sort((a, b) => a - b);
+}
+
+function digits(value: string): number {
+  return Number(value.replace(/\D/g, "")) || 0;
+}
+
+export function PaymentPanel({
+  orderId,
+  onPaid,
+}: {
+  orderId: number;
+  onPaid?: (summary: { change: number | null }) => void;
+}) {
   const fetcher = useCallback(() => loadDetail(orderId), [orderId]);
   const detail = useResource(fetcher);
 
@@ -90,6 +122,8 @@ export function PaymentPanel({ orderId }: { orderId: number }) {
   const [reason, setReason] = useState("");
   const [bankRef, setBankRef] = useState("");
   const [invoice, setInvoice] = useState<InvoiceDetail | null>(null);
+  const [method, setMethod] = useState<"cash" | "qr">("cash");
+  const [given, setGiven] = useState("");
   const isManager = loadSession()?.role === "MANAGER";
 
   const latestQr = detail.status === "ready" ? detail.data.latestQr : null;
@@ -115,18 +149,54 @@ export function PaymentPanel({ orderId }: { orderId: number }) {
     return () => clearInterval(id);
   }, [qr]);
 
+  useEffect(() => {
+    if (!qr || qr.TrangThai !== "Chờ xác nhận") return;
+    const id = setInterval(async () => {
+      try {
+        const list = await apiFetch<{ items: Payment[] }>(
+          `/sales/orders/${orderId}/payments`,
+        );
+        const current = list.items.find((p) => p.MaGiaoDich === qr.MaGiaoDich);
+        if (!current) return;
+        if (current.TrangThai === "Thành công") {
+          onPaid?.({ change: null });
+        } else if (
+          current.TrangThai !== qr.TrangThai &&
+          NON_SUCCESS_STATUSES.includes(current.TrangThai)
+        ) {
+          // The reconciliation UI and buttons key off the order status, so a
+          // status-only QR update isn't enough — reload the order too.
+          await detail.reload();
+        }
+        if (current.TrangThai !== qr.TrangThai) setQr({ ...qr, ...current });
+      } catch {
+        // A dropped poll is retried on the next tick.
+      }
+    }, 3000);
+    return () => clearInterval(id);
+    // `detail` is a fresh object every render; only its stable `reload` matters here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qr, orderId, onPaid, detail.reload]);
+
   if (detail.status === "loading") return <LoadingState rows={3} />;
   if (detail.status === "error")
     return <ErrorState message={detail.message} onRetry={detail.reload} />;
 
   const { order, names } = detail.data;
   const lines = order.lines ?? [];
-  const total = lines.reduce((sum, l) => sum + l.DonGia * l.SoLuong, 0);
+  const total = lines
+    .filter((l) => l.TrangThai !== "Đã hủy")
+    .reduce((sum, l) => sum + l.DonGia * l.SoLuong, 0);
   const expired = remaining === "Hết hạn" || qr?.TrangThai === "Hết hạn";
   const live = qr?.TrangThai === "Chờ xác nhận" && !expired;
   const reconciling = order.TrangThai === "Chờ đối soát";
   const settled = order.TrangThai === "Đã thanh toán";
   const locked = order.TrangThai !== "Đang mở";
+  // Only a QR that's still actionable (live, or already moved to reconciliation)
+  // should keep the cashier out of the cash tab — an expired/cancelled QR can't
+  // be cancelled through the API, so locking cash on it would strand the order.
+  const qrLocksCash = live || reconciling;
+  const activeMethod: "cash" | "qr" = qrLocksCash ? "qr" : method;
 
   async function run(action: () => Promise<void>, fallback: string) {
     setError(null);
@@ -155,6 +225,7 @@ export function PaymentPanel({ orderId }: { orderId: number }) {
       setMessage("Đã thu tiền mặt.");
       await detail.reload();
       await loadInvoice();
+      onPaid?.({ change: digits(given) - total });
     }, "Thanh toán tiền mặt thất bại.");
 
   const createQr = () =>
@@ -167,6 +238,29 @@ export function PaymentPanel({ orderId }: { orderId: number }) {
       );
       setInvoice(null);
     }, "Không tạo được mã QR.");
+
+  const checkQr = () => {
+    if (!qr) return;
+    return run(async () => {
+      const result = await apiFetch<{ TrangThai: string }>(
+        `/sales/payments/${qr.MaGiaoDich}/check`,
+        { method: "POST", body: {} },
+      );
+      setQr({ ...qr, TrangThai: result.TrangThai });
+      if (result.TrangThai === "Thành công") onPaid?.({ change: null });
+      else setMessage("Chưa thấy giao dịch. Chờ thêm hoặc kiểm tra lại sau.");
+    }, "Không kiểm tra được giao dịch.");
+  };
+
+  const copyTransferContent = async () => {
+    if (!qr?.payment_code) return;
+    try {
+      await navigator.clipboard.writeText(qr.payment_code);
+      toast.success("Đã sao chép nội dung chuyển khoản.");
+    } catch {
+      toast.error("Không sao chép được. Hãy đọc nội dung cho khách.");
+    }
+  };
 
   const cancelQr = () => {
     if (!qr) return;
@@ -287,28 +381,128 @@ export function PaymentPanel({ orderId }: { orderId: number }) {
       <div className="space-y-4 border-t border-border p-4">
         <div className="flex items-baseline justify-between">
           <span className="text-muted">Tổng tiền</span>
-          <span className="text-2xl font-semibold tabular-nums">
+          <span className="text-2xl font-bold tracking-tight tabular-nums">
             {formatVnd(total)}
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <Button size="pos" onClick={payCash} disabled={locked}>
-            <Banknote />
-            Thanh toán tiền mặt
-          </Button>
+        <div
+          role="radiogroup"
+          aria-label="Phương thức thanh toán"
+          className="grid grid-cols-2 gap-2"
+        >
+          {(
+            [
+              [
+                "cash",
+                "Tiền mặt",
+                "Nhập tiền khách đưa, tính tiền thối",
+                Banknote,
+              ],
+              [
+                "qr",
+                "QR chuyển khoản",
+                "Khách quét mã, hệ thống tự xác nhận",
+                QrCode,
+              ],
+            ] as const
+          ).map(([value, title, hint, Icon]) => {
+            const disabled = value === "cash" && qrLocksCash;
+            return (
+              <label
+                key={value}
+                aria-disabled={disabled}
+                className={cn(
+                  "grid cursor-pointer gap-1 rounded-container border px-3.5 py-3 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary",
+                  activeMethod === value
+                    ? "border-ink bg-surface-sunken ring-1 ring-ink"
+                    : "border-border-strong bg-surface",
+                  disabled && "cursor-not-allowed opacity-50",
+                )}
+              >
+                <input
+                  type="radio"
+                  name={`method-${orderId}`}
+                  value={value}
+                  checked={activeMethod === value}
+                  disabled={disabled}
+                  onChange={() => setMethod(value)}
+                  className="sr-only"
+                />
+                <span className="flex items-center gap-2 text-[15px] font-bold">
+                  <Icon className="size-4" aria-hidden />
+                  {title}
+                </span>
+                <span className="text-xs text-muted">{hint}</span>
+              </label>
+            );
+          })}
+        </div>
+        {qrLocksCash && (
+          <p className="text-xs text-muted">
+            Đang có giao dịch QR. Hủy QR để chuyển sang tiền mặt.
+          </p>
+        )}
+
+        {activeMethod === "cash" && (
+          <div className="space-y-3">
+            <Label htmlFor={`given-${orderId}`}>Tiền khách đưa</Label>
+            <Input
+              id={`given-${orderId}`}
+              inputMode="numeric"
+              className="h-12 text-xl font-bold tabular-nums"
+              value={given}
+              onChange={(e) => setGiven(e.target.value)}
+              placeholder={formatVnd(total)}
+            />
+            <div className="flex flex-wrap gap-1.5">
+              {quickAmounts(total).map((amount) => (
+                <Button
+                  key={amount}
+                  variant="secondary"
+                  className="h-11"
+                  onClick={() => setGiven(String(amount))}
+                >
+                  {amount === total ? "Vừa đủ" : formatVnd(amount)}
+                </Button>
+              ))}
+            </div>
+            <div className="flex items-baseline justify-between rounded-control bg-surface-sunken px-3.5 py-3">
+              <span>Tiền thối</span>
+              <span
+                data-testid="cash-change"
+                className="text-2xl font-bold tabular-nums"
+              >
+                {digits(given) >= total
+                  ? formatVnd(digits(given) - total)
+                  : "—"}
+              </span>
+            </div>
+            <Button
+              size="pos"
+              className="w-full"
+              onClick={payCash}
+              disabled={locked || digits(given) < total}
+            >
+              <CircleCheck />
+              Xác nhận đã thu {formatVnd(total)}
+            </Button>
+          </div>
+        )}
+
+        {activeMethod === "qr" && !live && (
           <Button
             size="pos"
-            variant="secondary"
+            className="w-full"
             onClick={createQr}
-            disabled={!!live || locked || reconciling}
+            disabled={locked || reconciling}
           >
             <QrCode />
-            Thanh toán QR
+            Tạo mã QR
           </Button>
-        </div>
+        )}
 
-        {qr && qr.TrangThai !== "Đã hủy" && (
+        {activeMethod === "qr" && qr && qr.TrangThai !== "Đã hủy" && (
           <div className="space-y-3 rounded-control border border-border bg-canvas p-4">
             <div className="flex items-center justify-between gap-2">
               <span className="flex items-center gap-2 font-medium">
@@ -317,6 +511,41 @@ export function PaymentPanel({ orderId }: { orderId: number }) {
               </span>
               <StatusBadge status={qr.TrangThai} />
             </div>
+            {qr.qr_image_url && live && (
+              <div className="grid gap-4 sm:grid-cols-[192px_minmax(0,1fr)] sm:items-center">
+                {/* eslint-disable-next-line @next/next/no-img-element -- external SePay host, no remote host config */}
+                <img
+                  src={qr.qr_image_url}
+                  alt={`Mã VietQR thanh toán ${formatVnd(total)}`}
+                  className="size-48 rounded-control border border-border bg-white p-2"
+                />
+                <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
+                  <dt className="text-muted">Ngân hàng</dt>
+                  <dd className="font-semibold">{qr.bank_code}</dd>
+                  <dt className="text-muted">Số tài khoản</dt>
+                  <dd className="font-mono font-semibold">{qr.bank_account}</dd>
+                  <dt className="text-muted">Chủ tài khoản</dt>
+                  <dd className="font-semibold">{qr.account_name}</dd>
+                  <dt className="text-muted">Nội dung</dt>
+                  <dd className="flex items-center gap-2 font-mono text-base font-bold">
+                    {qr.payment_code}
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="icon"
+                      className="h-11 w-11 shrink-0"
+                      aria-label="Sao chép nội dung chuyển khoản"
+                      onClick={copyTransferContent}
+                    >
+                      <Copy className="size-4" aria-hidden />
+                    </Button>
+                  </dd>
+                </dl>
+                <p className="text-xs font-semibold text-warning-fg sm:col-span-2">
+                  Môi trường thử nghiệm SePay
+                </p>
+              </div>
+            )}
             {remaining && (
               <div className="flex items-baseline gap-2">
                 <span className="text-muted">Còn hiệu lực</span>
@@ -339,6 +568,15 @@ export function PaymentPanel({ orderId }: { orderId: number }) {
                 disabled={!live}
               >
                 Hủy QR
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={checkQr}
+                disabled={!live}
+              >
+                <RefreshCw />
+                Kiểm tra lại
               </Button>
               <Button
                 variant="secondary"
@@ -452,7 +690,7 @@ export function PaymentPanel({ orderId }: { orderId: number }) {
   );
 }
 
-function InvoicePreview({
+export function InvoicePreview({
   invoice,
   onReprint,
 }: {

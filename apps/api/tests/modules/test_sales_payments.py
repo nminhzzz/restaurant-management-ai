@@ -314,3 +314,140 @@ async def test_cancel_qr(session):
     assert await payment_status(session, oid) == "Đã hủy"
     r3 = await client.post(f"/api/v1/sales/orders/{oid}/pay/qr", headers=h)
     assert r3.status_code == 201
+
+
+@pytest.mark.anyio
+async def test_a_cancelled_line_is_not_charged(session):
+    d, t = await _setup(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    r = await client.post(
+        "/api/v1/sales/orders",
+        json={
+            "MaBan": t.id,
+            "lines": [{"MaMon": d.id, "SoLuong": 1}, {"MaMon": d.id, "SoLuong": 1}],
+        },
+        headers=h,
+    )
+    oid = r.json()["MaOrder"]
+    detail = (await client.get(f"/api/v1/sales/orders/{oid}", headers=h)).json()
+    line_id = detail["lines"][1]["MaChiTietOrder"]
+    cancel = await client.post(
+        f"/api/v1/sales/orders/{oid}/lines/{line_id}/cancel",
+        json={"reason": "Khách đổi món"},
+        headers=h,
+    )
+    assert cancel.status_code == 200, cancel.text
+
+    paid = await client.post(f"/api/v1/sales/orders/{oid}/pay/cash", headers=h)
+
+    assert paid.json()["invoice"]["TongTien"] == 50000
+
+
+@pytest.mark.anyio
+async def test_expire_does_not_clobber_a_confirmation_landing_mid_expire(session, monkeypatch):
+    """Lost-update guard (review #1): a confirmation that lands mid-expire must win.
+
+    A confirming write is injected right before the row-touching statement
+    `expire_stale_qr` itself issues (via a connection event), so this proves the
+    fix's WHERE-conditioned write re-checks status at write time — regardless of
+    whether the implementation reads-then-writes per row (the old code) or issues
+    one conditional statement (the fix).
+    """
+    from sqlalchemy import event
+
+    from app.modules.sales.payments import expire_stale_qr
+
+    d, t = await _setup(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    oid = await _submit(session, client, h, d, t)
+    r = await client.post(f"/api/v1/sales/orders/{oid}/pay/qr", headers=h)
+    pid = r.json()["MaGiaoDich"]
+    created = datetime.fromisoformat(r.json()["ThoiDiemTaoQR"])
+
+    sync_engine = session.get_bind()
+    fired = {"done": False}
+
+    def confirm_just_before_the_write(conn, cursor, statement, parameters, context, executemany):
+        upper = statement.upper()
+        if fired["done"] or "UPDATE" not in upper or "GIAO_DICH_THANH_TOAN" not in upper:
+            return
+        fired["done"] = True
+        conn.exec_driver_sql(
+            "UPDATE GIAO_DICH_THANH_TOAN SET TrangThai='Thành công' WHERE MaGiaoDich=?",
+            (pid,),
+        )
+
+    event.listen(sync_engine, "before_cursor_execute", confirm_just_before_the_write)
+    try:
+        monkeypatch.setattr(business_date, "now", lambda: created + timedelta(minutes=11))
+        await expire_stale_qr(session)
+        await session.commit()
+    finally:
+        event.remove(sync_engine, "before_cursor_execute", confirm_just_before_the_write)
+
+    assert fired["done"], "the injected confirmation never ran — test setup is broken"
+    assert await payment_status(session, oid) == "Thành công"
+
+
+@pytest.mark.anyio
+async def test_mark_for_reconciliation_refuses_when_order_already_settled(session):
+    """Lost-update guard (review #1): a settled order can't be pushed back to reconciliation."""
+    from sqlalchemy import text as sql_text
+
+    from app.core.errors import BusinessRuleError
+    from app.modules.sales.payments import mark_for_reconciliation
+
+    d, t = await _setup(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    oid = await _submit(session, client, h, d, t)
+    r = await client.post(f"/api/v1/sales/orders/{oid}/pay/qr", headers=h)
+    pid = r.json()["MaGiaoDich"]
+
+    await session.execute(
+        sql_text("UPDATE GIAO_DICH_THANH_TOAN SET TrangThai='Hết hạn' WHERE MaGiaoDich=:id"),
+        {"id": pid},
+    )
+    await session.execute(
+        sql_text("UPDATE `ORDER` SET TrangThai='Đã thanh toán' WHERE MaOrder=:id"), {"id": oid}
+    )
+    await session.commit()
+
+    with pytest.raises(BusinessRuleError):
+        await mark_for_reconciliation(session, pid)
+    await session.commit()
+
+    assert await order_status(session, oid) == "Đã thanh toán"
+
+
+@pytest.mark.anyio
+async def test_cancel_qr_refuses_a_payment_confirmed_behind_its_back(session):
+    """Lost-update guard (review #1): can't cancel a QR that was just confirmed."""
+    from sqlalchemy import text as sql_text
+
+    from app.core.errors import BusinessRuleError
+    from app.modules.sales.models import PaymentTransaction
+    from app.modules.sales.payments import cancel_qr
+
+    d, t = await _setup(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    oid = await _submit(session, client, h, d, t)
+    r = await client.post(f"/api/v1/sales/orders/{oid}/pay/qr", headers=h)
+    pid = r.json()["MaGiaoDich"]
+
+    stale_ref = await session.get(PaymentTransaction, pid)
+    await session.execute(
+        sql_text("UPDATE GIAO_DICH_THANH_TOAN SET TrangThai='Thành công' WHERE MaGiaoDich=:id"),
+        {"id": pid},
+    )
+    await session.commit()
+    assert stale_ref.status == "Chờ xác nhận"
+
+    with pytest.raises(BusinessRuleError):
+        await cancel_qr(session, pid)
+    await session.commit()
+
+    assert await payment_status(session, oid) == "Thành công"

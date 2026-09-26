@@ -143,7 +143,7 @@ function DishFormDialog({
           <FormField id="dish-group" label="Nhóm món">
             <select
               id="dish-group"
-              className="flex h-9 w-full rounded-control border border-border bg-surface px-3 py-1 text-sm text-ink focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
+              className="flex h-9 w-full rounded-control border border-border-strong bg-surface px-3 py-1 text-sm text-ink hover:border-ink focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary focus-visible:outline-none"
               value={values.MaNhomMon}
               onChange={(e) =>
                 setValues((v) => ({ ...v, MaNhomMon: e.target.value }))

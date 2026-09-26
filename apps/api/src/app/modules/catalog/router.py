@@ -35,10 +35,20 @@ from app.modules.catalog.schemas import (
     TableOut,
     VisibilityUpdate,
 )
+from app.modules.catalog.versions import active_price, active_prices
+from app.shared import business_date
 from app.shared.pagination import Page
 from app.shared.roles import Role
 
 router = APIRouter(prefix="/catalog", tags=["Module 1 — Catalogue"])
+
+
+def _today():
+    return business_date.business_date_of(business_date.now())
+
+
+def _money(value) -> float | None:
+    return float(value) if value is not None else None
 
 
 # Groups
@@ -108,6 +118,7 @@ async def list_dishes(
     # paginate in memory (small dataset for Task 1)
     start = (page - 1) * size
     sliced = items[start : start + size]
+    prices = await active_prices(session, [d.id for d in sliced], _today())
     out: list[DishOut] = []
     for d in sliced:
         status = await svc.display_status_for(session, d)
@@ -117,7 +128,7 @@ async def list_dishes(
                 TenMon=d.name,
                 MaNhomMon=d.group_id,
                 HinhAnh=d.image_url,
-                GiaHienTai=None,
+                GiaHienTai=_money(prices.get(d.id)),
                 TrangThai=status,
                 AnThuCong=d.hide_manual,
                 DaXoa=d.is_deleted,
@@ -180,7 +191,7 @@ async def update_dish(
         TenMon=d.name,
         MaNhomMon=d.group_id,
         HinhAnh=d.image_url,
-        GiaHienTai=None,
+        GiaHienTai=_money(await active_price(session, d.id, _today())),
         TrangThai=status,
         AnThuCong=d.hide_manual,
         DaXoa=d.is_deleted,
@@ -504,7 +515,7 @@ async def update_visibility(
         TenMon=d.name,
         MaNhomMon=d.group_id,
         HinhAnh=d.image_url,
-        GiaHienTai=None,
+        GiaHienTai=_money(await active_price(session, d.id, _today())),
         TrangThai=status,
         AnThuCong=d.hide_manual,
         DaXoa=d.is_deleted,

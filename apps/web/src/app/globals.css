@@ -1,42 +1,49 @@
 @import "tailwindcss";
 
 /*
- * Tokens mirror docs/design/tokens.md — change that file first. The brand hue is cool
- * on purpose: amber, red and green are reserved for stock and payment states, so a warm
- * primary would read as a warning.
+ * Tokens mirror docs/design/tokens.md — change that file first. The palette is graphite
+ * on purpose: red, amber and green are reserved for stock and payment states, so the brand
+ * carries no hue and state colours are the only colour on screen.
  */
 @theme {
-  --color-canvas: #f5f7fa;
+  --color-canvas: #edeef0;
   --color-surface: #ffffff;
-  --color-surface-sunken: #eef1f5;
-  --color-border: #dde3ea;
-  --color-border-strong: #c5cdd8;
-  --color-ink: #0f172a;
-  --color-muted: #475569;
-  --color-subtle: #5b6b80;
+  --color-surface-sunken: #f5f6f7;
+  --color-border: #dcdee2;
+  --color-border-strong: #878b93;
+  --color-ink: #15171b;
+  --color-muted: #4a4f57;
+  --color-subtle: #5f6570;
 
-  --color-primary: #1f4fd1;
-  --color-primary-hover: #1a40ab;
-  --color-primary-subtle: #eaf0fd;
-  --color-primary-subtle-fg: #1a3e9e;
+  --color-primary: #15171b;
+  --color-primary-hover: #363a41;
+  --color-primary-subtle: #e6e8eb;
+  --color-primary-subtle-fg: #15171b;
+
+  --color-sidebar: #15171b;
+  --color-sidebar-fg: #c8cbd1;
+  --color-sidebar-muted: #8a8f98;
+  --color-sidebar-border: #272a30;
+  --color-sidebar-hover: #1f2227;
 
   --color-success: #15803d;
-  --color-success-subtle: #e8f5ec;
-  --color-success-fg: #166534;
+  --color-success-subtle: #e1f0e5;
+  --color-success-fg: #14532d;
   --color-warning: #d97706;
-  --color-warning-subtle: #fdf3e1;
-  --color-warning-fg: #92400e;
-  --color-danger: #dc2626;
-  --color-danger-hover: #b91c1c;
-  --color-danger-subtle: #fdecec;
-  --color-danger-fg: #991b1b;
+  --color-warning-subtle: #faebd2;
+  --color-warning-fg: #843a0c;
+  --color-danger: #c62828;
+  --color-danger-hover: #a51f1f;
+  --color-danger-subtle: #f9e1df;
+  --color-danger-fg: #8c1b16;
 
-  --color-chart-1: #1f4fd1;
-  --color-chart-2: #7a98e6;
-  --color-chart-3: #b8c8f2;
-  --color-chart-4: #0f172a;
-  --color-chart-5: #5b6b80;
-  --color-chart-6: #c5cdd8;
+  /* Greys ordered so neighbouring doughnut slices never share a lightness. */
+  --color-chart-1: #15171b;
+  --color-chart-2: #a9adb4;
+  --color-chart-3: #5f6570;
+  --color-chart-4: #d2d5da;
+  --color-chart-5: #7c818a;
+  --color-chart-6: #c0c4ca;
 
   /* Self-hosted through @fontsource so `next build` needs no network. */
   --font-sans:
@@ -44,7 +51,38 @@
     sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  --radius-control: 0.5rem;
-  --radius-container: 0.75rem;
-  --radius-overlay: 1rem;
+  --radius-badge: 3px;
+  --radius-control: 4px;
+  --radius-container: 6px;
+  --radius-overlay: 8px;
+
+  --shadow-float:
+    0 1px 2px rgb(21 23 27 / 0.06), 0 12px 32px -10px rgb(21 23 27 / 0.22);
+  --shadow-lift: 0 6px 16px -8px rgb(21 23 27 / 0.28);
+}
+
+@layer base {
+  /* Square stroke ends keep lucide icons in step with the squared-off controls. */
+  svg.lucide {
+    stroke-linecap: square;
+    stroke-linejoin: miter;
+  }
+}
+
+/* Sonner injects its own stylesheet at runtime; the extra `html` outranks it. */
+html [data-sonner-toaster][data-sonner-theme="light"] {
+  --border-radius: var(--radius-container);
+  --normal-bg: var(--color-ink);
+  --normal-border: var(--color-ink);
+  --normal-text: #ffffff;
+  --success-bg: var(--color-success-subtle);
+  --success-border: var(--color-success);
+  --success-text: var(--color-success-fg);
+  --warning-bg: var(--color-warning-subtle);
+  --warning-border: var(--color-warning);
+  --warning-text: var(--color-warning-fg);
+  --error-bg: var(--color-danger-subtle);
+  --error-border: var(--color-danger);
+  --error-text: var(--color-danger-fg);
+  font-family: var(--font-sans);
 }

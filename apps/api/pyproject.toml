@@ -71,6 +71,7 @@ select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
 "tests/modules/test_settings_audit_log.py" = ["E501"]
 "tests/modules/test_catalog_*.py" = ["E501", "F841"]
 "tests/modules/test_sales_*.py" = ["RUF059"]
+"tests/modules/test_ai_labels.py" = ["E501"]
 
 [tool.mypy]
 python_version = "3.12"

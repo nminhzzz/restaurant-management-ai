@@ -8,15 +8,19 @@ Service functions raise `AppError` subclasses (`NotFoundError`, `BusinessRuleErr
 import contextlib
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.core.database import get_session
 from app.core.dependencies import Principal, require_roles
-from app.modules.sales import orders, payments
+from app.core.errors import NotFoundError, UnauthenticatedError
+from app.modules.sales import floor, orders, payments
+from app.modules.sales.gateways import sepay
 from app.modules.sales.models import Invoice, KitchenTicket, Order, OrderLine
 from app.modules.sales.schemas import SubmitOrderIn
+from app.shared.audit import SystemAuditLog
 from app.shared.roles import Role
 
 router = APIRouter(prefix="/sales", tags=["Module 2 — Sales"])
@@ -45,6 +49,14 @@ def _order_payload(order: Order, lines: list[OrderLine]) -> dict:
         "ThoiDiemDong": order.updated_at.isoformat() if order.updated_at else None,
         "lines": [_line_payload(line) for line in lines],
     }
+
+
+@router.get("/floor")
+async def get_floor(
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
+):
+    return await floor.floor_board(session)
 
 
 @router.post("/orders", status_code=201)
@@ -321,20 +333,21 @@ async def list_payments(
         .scalars()
         .all()
     )
-    return {
-        "items": [
-            {
-                "MaGiaoDich": p.id,
-                "PhuongThuc": p.method,
-                "TrangThai": p.status,
-                "SoTien": float(p.amount),
-                "ThoiDiemTaoQR": p.created_at.isoformat() if p.created_at else None,
-                "ThoiDiemHetHan": p.deadline.isoformat() if p.deadline else None,
-                "MaThamChieuNganHang": p.bank_ref,
-            }
-            for p in rows
-        ]
-    }
+    items = []
+    for p in rows:
+        item = {
+            "MaGiaoDich": p.id,
+            "PhuongThuc": p.method,
+            "TrangThai": p.status,
+            "SoTien": float(p.amount),
+            "ThoiDiemTaoQR": p.created_at.isoformat() if p.created_at else None,
+            "ThoiDiemHetHan": p.deadline.isoformat() if p.deadline else None,
+            "MaThamChieuNganHang": p.bank_ref,
+        }
+        if p.status == payments.QR_PENDING:
+            item.update(await payments.qr_fields(session, p))
+        items.append(item)
+    return {"items": items}
 
 
 @router.post("/orders/{order_id}/pay/cash")
@@ -365,6 +378,7 @@ async def start_order_qr(
         "TrangThai": payment.status,
         "ThoiDiemTaoQR": payment.created_at.isoformat() if payment.created_at else None,
         "ThoiDiemHetHan": payment.deadline.isoformat() if payment.deadline else None,
+        **(await payments.qr_fields(session, payment)),
     }
 
 
@@ -373,9 +387,46 @@ async def webhook_payment(
     payload: dict,
     session: AsyncSession = Depends(get_session),
 ):
+    if get_settings().payment_gateway == "sepay":
+        raise NotFoundError("Không tìm thấy.")
     result = await payments.handle_webhook(session, payload)
     await session.commit()
     return {"ok": True, "MaGiaoDich": result["payment"].id}
+
+
+@router.post("/webhooks/sepay")
+async def webhook_sepay(request: Request, session: AsyncSession = Depends(get_session)):
+    settings = get_settings()
+    if settings.payment_gateway != "sepay":
+        raise NotFoundError("Không tìm thấy.")
+    if not sepay.api_key_matches(
+        request.headers.get("Authorization"), settings.sepay_webhook_api_key
+    ):
+        session.add(
+            SystemAuditLog(
+                user_id=None,
+                action="WEBHOOK_REJECTED",
+                target_entity="GIAO_DICH_THANH_TOAN",
+                target_id="sepay",
+            )
+        )
+        await session.commit()
+        raise UnauthenticatedError("API key không hợp lệ.")
+    body = await request.json()
+    await payments.handle_sepay_transfer(session, body if isinstance(body, dict) else {})
+    await session.commit()
+    return {"success": True}
+
+
+@router.post("/payments/{payment_id}/check")
+async def check_payment(
+    payment_id: int,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
+):
+    payment = await payments.check_payment(session, payment_id)
+    await session.commit()
+    return {"MaGiaoDich": payment.id, "TrangThai": payment.status}
 
 
 @router.post("/payments/{payment_id}/cancel")

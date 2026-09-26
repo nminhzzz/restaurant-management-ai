@@ -66,7 +66,7 @@ export function DataPagination({
             Số dòng
             <select
               aria-label="Số dòng mỗi trang"
-              className="h-9 rounded-control border border-border bg-surface px-2 text-ink focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
+              className="h-9 rounded-control border border-border-strong bg-surface px-2 text-ink hover:border-ink focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary focus-visible:outline-none"
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
             >
@@ -96,14 +96,11 @@ export function DataPagination({
             ) : (
               <Button
                 key={p}
-                variant={p === current ? "secondary" : "ghost"}
+                variant={p === current ? "primary" : "ghost"}
                 size="icon"
                 aria-label={`Trang ${p}`}
                 aria-current={p === current ? "page" : undefined}
-                className={cn(
-                  "tabular-nums",
-                  p === current && "border-primary text-primary-subtle-fg",
-                )}
+                className="tabular-nums"
                 onClick={() => onPageChange(p)}
               >
                 {p}

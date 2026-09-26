@@ -198,3 +198,37 @@ async def test_each_role_talks_to_its_own_view(
     await _chat(api_client, cashier_token, "hỏi")
 
     assert (await latest_query(session))["PhamViDuLieu"] == "vw_ai_thungan"
+
+
+@pytest.mark.anyio
+async def test_a_successful_turn_returns_the_structured_fields(
+    api_client, cashier_token, seed_views, fake_llm, ai_engine, session
+):
+    fake_llm.reply_sequence(
+        [
+            "SELECT COUNT(*) AS SoDon FROM vw_ai_thungan",
+            '{"headline": "Có 2 đơn.", "highlights": ["Cả hai đã thanh toán."], '
+            '"follow_ups": ["Doanh thu hôm nay?"]}',
+        ]
+    )
+
+    body = (await _chat(api_client, cashier_token, "hôm nay có bao nhiêu đơn?")).json()
+
+    assert body["kind"] == "answer"
+    assert body["headline"] == "Có 2 đơn."
+    assert body["highlights"] == ["Cả hai đã thanh toán."]
+    assert body["follow_ups"] == ["Doanh thu hôm nay?"]
+    assert "vw_ai_thungan" in body["scope_note"]
+    assert body["columns"] == [{"key": "SoDon", "label": "Số đơn", "kind": "number"}]
+    assert body["answer"].startswith("Có 2 đơn.\n- Cả hai đã thanh toán.")
+
+
+@pytest.mark.anyio
+async def test_a_refused_turn_says_so_in_kind(
+    api_client, cashier_token, seed_views, fake_llm, ai_engine, session
+):
+    fake_llm.reply("DELETE FROM vw_ai_thungan")
+    body = (await _chat(api_client, cashier_token, "xoá hết đơn")).json()
+    assert body["kind"] == "refused"
+    assert body["headline"] == body["answer"]
+    assert body["scope_note"] is None
