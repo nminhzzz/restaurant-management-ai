@@ -175,7 +175,7 @@ export function FloorStep({
         <section aria-label="Mang về" className="rounded-container border border-border bg-surface">
           <header className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
             <h2 className="text-base font-bold">Mang về</h2>
-            <Button size="sm" onClick={() => onNewOrder(null)} aria-label="Đơn mang về mới">
+            <Button size="pos" onClick={() => onNewOrder(null)} aria-label="Đơn mới mang về">
               <ShoppingBag />
               Đơn mới
             </Button>

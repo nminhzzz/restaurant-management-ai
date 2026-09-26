@@ -55,7 +55,7 @@ describe("FloorStep", () => {
 
   it("starts and resumes takeaway orders", async () => {
     const h = setup();
-    fireEvent.click(await screen.findByRole("button", { name: "Đơn mang về mới" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Đơn mới mang về" }));
     expect(h.onNewOrder).toHaveBeenCalledWith(null);
     fireEvent.click(screen.getByRole("button", { name: /ORD-139/ }));
     expect(h.onPay).toHaveBeenCalledWith(139, null);
