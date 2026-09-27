@@ -1,6 +1,6 @@
 <mxfile host="Electron" agent="claude" pages="5">
   <diagram name="Cai dat he thong" id="Cai_dat_he_thong">
-    <mxGraphModel dx="1030" dy="626" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0">
+    <mxGraphModel dx="858" dy="522" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -314,7 +314,7 @@
         <mxCell id="id21" parent="1" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=0;resizeParentMax=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#F5F8FC;strokeColor=#2C3E50;dashed=0;fontSize=12;" value="HOA_DON" vertex="1">
           <mxGeometry height="234" width="240" x="40" y="366" as="geometry" />
         </mxCell>
-        <mxCell id="id22" parent="id21" style="text;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;whiteSpace=wrap;html=1;fontSize=11;" value="- MaHoaDon : Long&lt;br&gt;- MaOrder : Long&lt;br&gt;- MaGiaoDichThanhToan : Long&lt;br&gt;- SoHoaDon : String&lt;br&gt;- ThoiDiemXuat : LocalDateTime&lt;br&gt;- TongTien : double&lt;br&gt;- PhuongThucThanhToan : String&lt;br&gt;- NguoiLap : int&lt;br&gt;-&amp;nbsp;BusinessDate : LocalDate&lt;br&gt;- SoLanIn : int" vertex="1">
+        <mxCell id="id22" parent="id21" style="text;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;whiteSpace=wrap;html=1;fontSize=11;" value="- MaHoaDon : Long&lt;br&gt;- MaOrder : Long&lt;br&gt;- MaGiaoDichThanhToan : Long&lt;br&gt;- SoHoaDon : String&lt;br&gt;- ThoiDiemXuat : LocalDateTime&lt;br&gt;- TongTien : double&lt;br&gt;- PhuongThucThanhToan : String&lt;br&gt;- NguoiLap : int&lt;br&gt;- SoLanIn : int" vertex="1">
           <mxGeometry height="152" width="240" y="26" as="geometry" />
         </mxCell>
         <mxCell id="id23" parent="id21" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;html=1;" value="" vertex="1">
@@ -326,7 +326,7 @@
         <mxCell id="id25" parent="1" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=0;resizeParentMax=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#F5F8FC;strokeColor=#2C3E50;dashed=0;fontSize=12;" value="GIAO_DICH_THANH_TOAN" vertex="1">
           <mxGeometry height="282" width="240" x="40" y="640" as="geometry" />
         </mxCell>
-        <mxCell id="id26" parent="id25" style="text;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;whiteSpace=wrap;html=1;fontSize=11;" value="- MaGiaoDichTT : Long&lt;br&gt;- MaOrder : Long&lt;br&gt;- PhuongThuc : String&lt;br&gt;- SoTien : double&lt;br&gt;- TrangThai : String&lt;br&gt;- MaQR : String&lt;br&gt;- ThoiDiemTaoQR : LocalDateTime&lt;br&gt;- ThoiDiemHetHan : LocalDateTime&lt;br&gt;- MaGiaoDichCong : String&lt;br&gt;- NoiDungWebhook : String&lt;br&gt;- MaGiaoDichNganHang : String&lt;br&gt;- AnhChungTu : String&lt;div&gt;- BusinessDate : LocalDate&lt;/div&gt;" vertex="1">
+        <mxCell id="id26" parent="id25" style="text;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;whiteSpace=wrap;html=1;fontSize=11;" value="- MaGiaoDichTT : Long&lt;br&gt;- MaOrder : Long&lt;br&gt;- PhuongThuc : String&lt;br&gt;- SoTien : double&lt;br&gt;- TrangThai : String&lt;br&gt;- MaQR : String&lt;br&gt;- ThoiDiemTaoQR : LocalDateTime&lt;br&gt;- ThoiDiemHetHan : LocalDateTime&lt;br&gt;- MaGiaoDichCong : String&lt;br&gt;- NoiDungWebhook : String&lt;br&gt;- MaGiaoDichNganHang : String&lt;br&gt;- AnhChungTu : String" vertex="1">
           <mxGeometry height="200" width="240" y="26" as="geometry" />
         </mxCell>
         <mxCell id="id27" parent="id25" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;html=1;" value="" vertex="1">
@@ -529,7 +529,7 @@
     </mxGraphModel>
   </diagram>
   <diagram name="Quan ly kho" id="Quan_ly_kho">
-    <mxGraphModel dx="1471" dy="894" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0">
+    <mxGraphModel dx="2060" dy="1252" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -638,7 +638,7 @@
         <mxCell id="id37" parent="1" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=0;resizeParentMax=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#F5F8FC;strokeColor=#2C3E50;dashed=0;fontSize=12;" value="GIAO_DICH_KHO" vertex="1">
           <mxGeometry height="280" width="240" x="1120" y="640" as="geometry" />
         </mxCell>
-        <mxCell id="id38" parent="id37" style="text;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;whiteSpace=wrap;html=1;fontSize=11;" value="- MaGiaoDichKho : Long&lt;br&gt;- MaNguyenLieu : int&lt;br&gt;- LoaiGiaoDich : String&lt;br&gt;- SoLuongThayDoi : double&lt;br&gt;- TonSauGiaoDich : double&lt;br&gt;- MaChiTietNhap : Long&lt;br&gt;- MaChiTietOrder : Long&lt;br&gt;- MaChiTietXuat : Long&lt;br&gt;- MaChiTietKiemKe : Long&lt;br&gt;- MaLoNguyenLieu : Long&lt;br&gt;- ThoiDiem : LocalDateTime&lt;br&gt;- NguoiThucHien : int&lt;div&gt;- BusinessDate : LocalDate&lt;/div&gt;" vertex="1">
+        <mxCell id="id38" parent="id37" style="text;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;whiteSpace=wrap;html=1;fontSize=11;" value="- MaGiaoDichKho : Long&lt;br&gt;- MaNguyenLieu : int&lt;br&gt;- LoaiGiaoDich : String&lt;br&gt;- SoLuongThayDoi : double&lt;br&gt;- TonSauGiaoDich : double&lt;br&gt;- MaChiTietNhap : Long&lt;br&gt;- MaChiTietOrder : Long&lt;br&gt;- MaChiTietXuat : Long&lt;br&gt;- MaChiTietKiemKe : Long&lt;br&gt;- MaLoNguyenLieu : Long&lt;br&gt;- ThoiDiem : LocalDateTime&lt;br&gt;- NguoiThucHien : int" vertex="1">
           <mxGeometry height="200" width="240" y="26" as="geometry" />
         </mxCell>
         <mxCell id="id39" parent="id37" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;html=1;" value="" vertex="1">
