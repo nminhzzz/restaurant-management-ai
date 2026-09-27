@@ -238,3 +238,5 @@ test-results/
 # --- Local artefacts ---
 *.log
 .DS_Store
+*.bkp
+.$*.drawio.bkp
