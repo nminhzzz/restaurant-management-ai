@@ -90,7 +90,7 @@ async def active_recipe(session: AsyncSession, dish_id: int, business_date=None)
 
     try:
         r = await session.execute(
-            text("SELECT * FROM CONG_THUC WHERE MaMon=:id AND TrangThai='Hiệu lực' LIMIT 1"),
+            text("SELECT * FROM CONG_THUC WHERE MaMon=:id AND TrangThai='Đang áp dụng' LIMIT 1"),
             {"id": dish_id},
         )
         return r.mappings().first()
@@ -103,7 +103,9 @@ async def active_price(session: AsyncSession, dish_id: int, business_date=None) 
 
     try:
         r = await session.execute(
-            text("SELECT * FROM LICH_SU_GIA_MON WHERE MaMon=:id AND TrangThai='Hiệu lực' LIMIT 1"),
+            text(
+                "SELECT * FROM LICH_SU_GIA_MON WHERE MaMon=:id AND TrangThai='Đang áp dụng' LIMIT 1"
+            ),
             {"id": dish_id},
         )
         return r.mappings().first()
@@ -122,9 +124,7 @@ async def display_status(session, dish_or_id) -> str:
         return "DRAFT"
     try:
         r = await session.execute(
-            text(
-                "SELECT DaXoa, AnThuCong, HetNLThuCong, HetNLTuDong, MaMon FROM MON_AN WHERE MaMon=:id"
-            ),
+            text("SELECT DaXoa, ChuaCoCongThuc, HetNguyenLieu FROM MON_AN WHERE MaMon=:id"),
             {"id": dish_id},
         )
         row = r.mappings().first()
@@ -132,16 +132,9 @@ async def display_status(session, dish_or_id) -> str:
             return "DRAFT"
         if row["DaXoa"]:
             return "Đã xóa"
-        if row["AnThuCong"]:
-            return "Ẩn thủ công"
-        # Nháp if no active recipe
-        r2 = await session.execute(
-            text("SELECT 1 FROM CONG_THUC WHERE MaMon=:id AND TrangThai='Hiệu lực' LIMIT 1"),
-            {"id": dish_id},
-        )
-        if r2.scalar_one_or_none() is None:
+        if row["ChuaCoCongThuc"]:
             return "Nháp"
-        if row["HetNLThuCong"] or row["HetNLTuDong"]:
+        if row["HetNguyenLieu"]:
             return "Hết nguyên liệu"
         return "Hoạt động"
     except Exception:
@@ -154,11 +147,13 @@ async def pending_price_versions(session: AsyncSession, dish_id: int | None = No
     try:
         if dish_id is not None:
             r = await session.execute(
-                text("SELECT * FROM LICH_SU_GIA_MON WHERE MaMon=:id AND TrangThai='Nháp'"),
+                text("SELECT * FROM LICH_SU_GIA_MON WHERE MaMon=:id AND TrangThai='Chờ áp dụng'"),
                 {"id": dish_id},
             )
         else:
-            r = await session.execute(text("SELECT * FROM LICH_SU_GIA_MON WHERE TrangThai='Nháp'"))
+            r = await session.execute(
+                text("SELECT * FROM LICH_SU_GIA_MON WHERE TrangThai='Chờ áp dụng'")
+            )
         return list(r.mappings().all())
     except Exception:
         return []
@@ -172,11 +167,11 @@ async def pending_recipe_versions(
     try:
         if dish_id is not None:
             r = await session.execute(
-                text("SELECT * FROM CONG_THUC WHERE MaMon=:id AND TrangThai='Nháp'"),
+                text("SELECT * FROM CONG_THUC WHERE MaMon=:id AND TrangThai='Chờ áp dụng'"),
                 {"id": dish_id},
             )
         else:
-            r = await session.execute(text("SELECT * FROM CONG_THUC WHERE TrangThai='Nháp'"))
+            r = await session.execute(text("SELECT * FROM CONG_THUC WHERE TrangThai='Chờ áp dụng'"))
         return list(r.mappings().all())
     except Exception:
         return []
@@ -217,7 +212,7 @@ async def ingredient_total(session: AsyncSession, dish_or_id) -> float:
     try:
         r1 = await session.execute(
             text(
-                "SELECT MaCongThuc FROM CONG_THUC WHERE MaMon=:id AND TrangThai='Hiệu lực' LIMIT 1"
+                "SELECT MaCongThuc FROM CONG_THUC WHERE MaMon=:id AND TrangThai='Đang áp dụng' LIMIT 1"
             ),
             {"id": dish_id_int},
         )

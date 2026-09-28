@@ -79,7 +79,7 @@ async def test_the_comparison_table_has_one_row_per_configuration(fake_llm, ques
 async def test_the_harness_writes_a_result_file(fake_llm, questions, tmp_path):
     await run_harness(Config.A, questions, out=tmp_path / "results.json")
 
-    assert json.loads((tmp_path / "results.json").read_text())["config"] == "A"
+    assert json.loads((tmp_path / "results.json").read_text(encoding="utf-8"))["config"] == "A"
 
 
 @pytest.mark.anyio

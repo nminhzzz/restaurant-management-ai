@@ -31,7 +31,7 @@ UNION ALL
 SELECT
     'DONG_MON', ct.MaOrder, o.BusinessDate, NULL, o.TrangThai, NULL,
     NULL, NULL, NULL, NULL, NULL, NULL,
-    m.TenMon, ng.TenNhom, ct.SoLuong, ct.DonGia, ct.SoLuong * ct.DonGia
+    m.TenMon, ng.TenNhomMon, ct.SoLuong, ct.DonGia, ct.ThanhTien
 FROM CHI_TIET_ORDER ct
 JOIN `ORDER` o ON o.MaOrder = ct.MaOrder
 JOIN MON_AN m ON m.MaMon = ct.MaMon
@@ -45,6 +45,6 @@ FROM HOA_DON h
 UNION ALL
 SELECT
     'THANH_TOAN', t.MaOrder, t.BusinessDate, NULL, NULL, NULL,
-    NULL, NULL, NULL, t.MaGiaoDich, t.PhuongThuc, t.SoTien,
+    NULL, NULL, NULL, t.MaGiaoDichTT, t.PhuongThuc, t.SoTien,
     NULL, NULL, NULL, NULL, NULL
 FROM GIAO_DICH_THANH_TOAN t;

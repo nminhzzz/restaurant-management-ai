@@ -54,7 +54,7 @@ UNION ALL
 SELECT
     'DONG_MON', ct.MaOrder, o.BusinessDate, NULL, o.TrangThai, NULL, NULL,
     NULL, NULL, NULL, NULL, NULL, NULL,
-    m.TenMon, ng.TenNhom, ct.SoLuong, ct.DonGia, ct.SoLuong * ct.DonGia,
+    m.TenMon, ng.TenNhomMon, ct.SoLuong, ct.DonGia, ct.ThanhTien,
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
     NULL, NULL, NULL, NULL
 FROM CHI_TIET_ORDER ct
@@ -72,7 +72,7 @@ FROM HOA_DON h
 UNION ALL
 SELECT
     'THANH_TOAN', t.MaOrder, t.BusinessDate, NULL, NULL, NULL, NULL,
-    NULL, NULL, NULL, t.MaGiaoDich, t.PhuongThuc, t.SoTien,
+    NULL, NULL, NULL, t.MaGiaoDichTT, t.PhuongThuc, t.SoTien,
     NULL, NULL, NULL, NULL, NULL,
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
     NULL, NULL, NULL, NULL
@@ -95,7 +95,7 @@ SELECT
     NULL, NULL, NULL, NULL, NULL, NULL,
     NULL, NULL, NULL, NULL, NULL,
     gv.MaNguyenLieu, n.TenNguyenLieu, n.DonViTinh, NULL, NULL,
-    gv.Thang, gv.GiaBinhQuan, gv.TongSoLuongNhap,
+    gv.Thang, gv.DonGiaBinhQuan, gv.TongSoLuongNhap,
     NULL, NULL, NULL, NULL, NULL, NULL, NULL
 FROM GIA_BINH_QUAN_THANG gv
 JOIN NGUYEN_LIEU n ON n.MaNguyenLieu = gv.MaNguyenLieu
@@ -106,7 +106,7 @@ SELECT
     NULL, NULL, NULL, NULL, NULL,
     g.MaNguyenLieu, n.TenNguyenLieu, n.DonViTinh, NULL, NULL,
     NULL, NULL, NULL,
-    g.MaGiaoDichKho, g.SoLuong, g.LoaiGiaoDich, NULL, NULL, NULL, NULL
+    g.MaGiaoDichKho, g.SoLuongThayDoi, g.LoaiGiaoDich, NULL, NULL, NULL, NULL
 FROM GIAO_DICH_KHO g
 JOIN NGUYEN_LIEU n ON n.MaNguyenLieu = g.MaNguyenLieu
 UNION ALL
@@ -117,8 +117,8 @@ SELECT
     ct.MaNguyenLieu, n.TenNguyenLieu, n.DonViTinh, NULL, NULL,
     NULL, NULL, NULL,
     NULL, NULL, NULL,
-    pn.MaPhieuNhap, ncc.TenNhaCungCap, ct.DonGia, ct.SoLuong
+    pn.MaPhieuNhap, ncc.TenNCC, ct.DonGia, ct.SoLuong
 FROM CHI_TIET_PHIEU_NHAP ct
 JOIN PHIEU_NHAP_KHO pn ON pn.MaPhieuNhap = ct.MaPhieuNhap
 JOIN NGUYEN_LIEU n ON n.MaNguyenLieu = ct.MaNguyenLieu
-LEFT JOIN NHA_CUNG_CAP ncc ON ncc.MaNhaCungCap = pn.MaNhaCungCap;
+LEFT JOIN NHA_CUNG_CAP ncc ON ncc.MaNCC = pn.MaNCC;

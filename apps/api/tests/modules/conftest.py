@@ -89,9 +89,8 @@ async def dish(session, group):
     d = Dish(
         name="Phở bò",
         group_id=group.id,
-        hide_manual=False,
-        out_of_stock_manual=False,
-        out_of_stock_auto=False,
+        missing_recipe=True,
+        out_of_stock=False,
         is_deleted=False,
     )
     session.add(d)
@@ -105,9 +104,8 @@ async def draft_dish(session, group):
     d = Dish(
         name="Món nháp",
         group_id=group.id,
-        hide_manual=False,
-        out_of_stock_manual=False,
-        out_of_stock_auto=False,
+        missing_recipe=True,
+        out_of_stock=False,
         is_deleted=False,
     )
     session.add(d)
@@ -123,9 +121,8 @@ async def three_dishes(session, group):
         d = Dish(
             name=name,
             group_id=group.id,
-            hide_manual=False,
-            out_of_stock_manual=False,
-            out_of_stock_auto=False,
+            missing_recipe=True,
+            out_of_stock=False,
             is_deleted=False,
         )
         session.add(d)
@@ -144,9 +141,8 @@ async def group_with_dish(session):
     d = Dish(
         name="Món trong nhóm",
         group_id=g.id,
-        hide_manual=False,
-        out_of_stock_manual=False,
-        out_of_stock_auto=False,
+        missing_recipe=True,
+        out_of_stock=False,
         is_deleted=False,
     )
     session.add(d)
@@ -163,7 +159,11 @@ async def dish_with_pending_price(session, dish):
     from tests.helpers import tomorrow
 
     v = DishPriceVersion(
-        dish_id=dish.id, price=50000, business_date=tomorrow(), status="Nháp", change_type="Tạo mới"
+        dish_id=dish.id,
+        price=50000,
+        business_date=tomorrow(),
+        status="Chờ áp dụng",
+        change_type="Tạo mới",
     )
     session.add(v)
     await session.flush()
@@ -242,6 +242,7 @@ async def ingredient_in_recipe(session, dish, fresh_ingredient):
     session.add(r)
     await session.flush()
     session.add(RecipeItem(recipe_id=r.id, ingredient_id=fresh_ingredient.id, quantity=0.2))
+    dish.missing_recipe = False
     fresh_ingredient.unit_locked = True
     await session.flush()
     await session.commit()
@@ -303,6 +304,7 @@ async def dish_with_recipe(session, dish, fresh_ingredient):
     session.add(r)
     await session.flush()
     session.add(RecipeItem(recipe_id=r.id, ingredient_id=fresh_ingredient.id, quantity=0.2))
+    dish.missing_recipe = False
     fresh_ingredient.unit_locked = True
     await session.flush()
     await session.commit()
@@ -520,7 +522,7 @@ async def _r_ingredient(session, name, avg_cost, *, month=202609):
 async def _r_recipe(session, dish, ingredient, quantity, bd):
     from app.modules.catalog.models import Recipe, RecipeItem
 
-    recipe = Recipe(dish_id=dish.id, business_date=bd, status="Hiệu lực", change_type="Tạo mới")
+    recipe = Recipe(dish_id=dish.id, business_date=bd, status="Đang áp dụng", change_type="Tạo mới")
     session.add(recipe)
     await session.flush()
     session.add(

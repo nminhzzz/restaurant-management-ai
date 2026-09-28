@@ -17,8 +17,15 @@ class ChatSession(Base):
         nullable=False,
     )
     created_at: Mapped[datetime] = mapped_column(
-        "NgayTao", DateTime, server_default=func.now(), nullable=False
+        "ThoiDiemBatDau", DateTime, server_default=func.now(), nullable=False
     )
+    role_id: Mapped[str | None] = mapped_column(
+        "MaVaiTro",
+        String(20),
+        ForeignKey("VAI_TRO.MaVaiTro", ondelete="RESTRICT", onupdate="RESTRICT"),
+        nullable=True,
+    )
+    ended_at: Mapped[datetime | None] = mapped_column("ThoiDiemKetThuc", DateTime, nullable=True)
 
 
 class AssistantQuery(Base):

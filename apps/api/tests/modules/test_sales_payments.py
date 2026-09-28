@@ -375,7 +375,7 @@ async def test_expire_does_not_clobber_a_confirmation_landing_mid_expire(session
             return
         fired["done"] = True
         conn.exec_driver_sql(
-            "UPDATE GIAO_DICH_THANH_TOAN SET TrangThai='Thành công' WHERE MaGiaoDich=?",
+            "UPDATE GIAO_DICH_THANH_TOAN SET TrangThai='Thành công' WHERE MaGiaoDichTT=?",
             (pid,),
         )
 
@@ -407,7 +407,7 @@ async def test_mark_for_reconciliation_refuses_when_order_already_settled(sessio
     pid = r.json()["MaGiaoDich"]
 
     await session.execute(
-        sql_text("UPDATE GIAO_DICH_THANH_TOAN SET TrangThai='Hết hạn' WHERE MaGiaoDich=:id"),
+        sql_text("UPDATE GIAO_DICH_THANH_TOAN SET TrangThai='Hết hạn' WHERE MaGiaoDichTT=:id"),
         {"id": pid},
     )
     await session.execute(
@@ -440,7 +440,7 @@ async def test_cancel_qr_refuses_a_payment_confirmed_behind_its_back(session):
 
     stale_ref = await session.get(PaymentTransaction, pid)
     await session.execute(
-        sql_text("UPDATE GIAO_DICH_THANH_TOAN SET TrangThai='Thành công' WHERE MaGiaoDich=:id"),
+        sql_text("UPDATE GIAO_DICH_THANH_TOAN SET TrangThai='Thành công' WHERE MaGiaoDichTT=:id"),
         {"id": pid},
     )
     await session.commit()

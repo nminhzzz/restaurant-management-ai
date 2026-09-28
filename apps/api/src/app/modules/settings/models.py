@@ -2,7 +2,7 @@
 
 from datetime import datetime, time
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Time, func
+from sqlalchemy import DECIMAL, DateTime, ForeignKey, Index, String, Time, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.shared.base import Base, BigInteger
@@ -49,8 +49,8 @@ class SystemConfig(Base):
     )
     address: Mapped[str | None] = mapped_column("DiaChi", String(255), nullable=True)
     invoice_template: Mapped[str | None] = mapped_column("MauHoaDon", String(50), nullable=True)
-    default_stock_threshold: Mapped[int] = mapped_column(
-        "NguongTonMacDinh", Integer, nullable=False, default=10
+    default_stock_threshold: Mapped[float] = mapped_column(
+        "NguongTonMacDinh", DECIMAL(18, 4), nullable=False, default=10
     )
     business_day_start: Mapped[time] = mapped_column(
         "GioBatDauBusinessDate", Time, nullable=False, default=time(hour=6)

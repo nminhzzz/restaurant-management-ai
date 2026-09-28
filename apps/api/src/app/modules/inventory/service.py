@@ -1,6 +1,6 @@
 """Inventory service — receipts, issues, stocktakes."""
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 
 from sqlalchemy import func, select
@@ -85,6 +85,9 @@ async def create_receipt(
             ingredient_id=ingredient_id,
             quantity=qty_std,
             unit_price=unit_price,
+            original_purchase_unit=ln.get("purchase_unit"),
+            conversion_factor=factor,
+            total=qty_std * unit_price,
         )
         session.add(gl)
         await session.flush()
@@ -96,6 +99,11 @@ async def create_receipt(
             status="Còn hạn",
             received_at=receipt.receipt_date,
             is_adjustment=False,
+            received_quantity=qty_std,
+            unit_price=unit_price,
+            expiry_date=(receipt.receipt_date.date() + timedelta(days=ing.shelf_days))
+            if ing.shelf_days
+            else None,
         )
         session.add(lot)
         await session.flush()
@@ -307,7 +315,9 @@ async def list_receipts(
 async def create_issue(
     session: AsyncSession, actor_id: int, reason: str, lines: list[dict]
 ) -> StockIssue:
-    issue = StockIssue(reason=reason, status="Nháp")
+    issue = StockIssue(
+        reason=reason, status="Nháp", issue_date=business_date.now(), created_by=actor_id
+    )
     session.add(issue)
     await session.flush()
     for ln in lines:
@@ -372,7 +382,7 @@ async def list_issues(
 
 # Stocktakes
 async def create_stocktake(session: AsyncSession, actor_id: int) -> Stocktake:
-    st = Stocktake(status="Nháp", stocktake_date=business_date.now())
+    st = Stocktake(status="Nháp", stocktake_date=business_date.now(), performed_by=actor_id)
     session.add(st)
     await session.flush()
     return st
@@ -677,7 +687,7 @@ async def recompute_automatic_out_of_stock(session, ingredient_ids: list[int]) -
         )
         dish = await session.get(Dish, r.dish_id)
         if dish and not dish.is_deleted:
-            dish.out_of_stock_auto = not ok
+            dish.out_of_stock = not ok
             if not ok:
                 hidden.append(dish.id)
     await session.flush()
