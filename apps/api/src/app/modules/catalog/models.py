@@ -12,6 +12,7 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    func,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -21,9 +22,10 @@ from app.shared.base import Base, BigInteger
 class DishGroup(Base):
     __tablename__ = "NHOM_MON"
     id: Mapped[int] = mapped_column("MaNhomMon", BigInteger, primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column("TenNhom", String(100), nullable=False)
+    name: Mapped[str] = mapped_column("TenNhomMon", String(100), nullable=False)
     display_order: Mapped[int] = mapped_column("ThuTuHienThi", Integer, nullable=False, default=0)
     is_deleted: Mapped[bool] = mapped_column("DaXoa", default=False, nullable=False)
+    deleted_at: Mapped[datetime | None] = mapped_column("NgayXoa", DateTime, nullable=True)
 
 
 class Ingredient(Base):
@@ -51,11 +53,12 @@ class Ingredient(Base):
 
 class Supplier(Base):
     __tablename__ = "NHA_CUNG_CAP"
-    id: Mapped[int] = mapped_column(
-        "MaNhaCungCap", BigInteger, primary_key=True, autoincrement=True
-    )
-    name: Mapped[str] = mapped_column("TenNhaCungCap", String(100), nullable=False)
-    phone: Mapped[str | None] = mapped_column("SoDienThoai", String(20), nullable=True)
+    id: Mapped[int] = mapped_column("MaNCC", BigInteger, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column("TenNCC", String(100), nullable=False)
+    phone: Mapped[str | None] = mapped_column("DienThoai", String(20), nullable=True)
+    contact_name: Mapped[str | None] = mapped_column("NguoiLienHe", String(100), nullable=True)
+    email: Mapped[str | None] = mapped_column("Email", String(255), nullable=True)
+    address: Mapped[str | None] = mapped_column("DiaChi", String(255), nullable=True)
     is_deleted: Mapped[bool] = mapped_column("DaXoa", default=False, nullable=False)
 
 
@@ -66,6 +69,8 @@ class DiningTable(Base):
     status: Mapped[str] = mapped_column(
         "TrangThai", String(20), nullable=False, default="Tr\u1ed1ng"
     )
+    area: Mapped[str | None] = mapped_column("KhuVuc", String(100), nullable=True)
+    capacity: Mapped[int | None] = mapped_column("SoChoNgoi", Integer, nullable=True)
     is_deleted: Mapped[bool] = mapped_column("DaXoa", default=False, nullable=False)
     active_name: Mapped[str | None] = mapped_column(
         "TenBan_Active",
@@ -87,16 +92,15 @@ class Dish(Base):
         nullable=True,
     )
     image_url: Mapped[str | None] = mapped_column("HinhAnh", String(500), nullable=True)
-    hide_manual: Mapped[bool] = mapped_column("AnThuCong", default=False, nullable=False)
-    out_of_stock_manual: Mapped[bool] = mapped_column("HetNLThuCong", default=False, nullable=False)
-    out_of_stock_auto: Mapped[bool] = mapped_column("HetNLTuDong", default=False, nullable=False)
+    missing_recipe: Mapped[bool] = mapped_column("ChuaCoCongThuc", default=True, nullable=False)
+    out_of_stock: Mapped[bool] = mapped_column("HetNguyenLieu", default=False, nullable=False)
     status: Mapped[str | None] = mapped_column(
         "TrangThai",
         String(20),
         Computed(
             (
-                "CASE WHEN AnThuCong=1 THEN 'An' WHEN HetNLThuCong=1 OR "
-                "HetNLTuDong=1 THEN 'Hết nguyên liệu' ELSE 'Hoạt động' END"
+                "CASE WHEN ChuaCoCongThuc=1 THEN 'Nháp' WHEN HetNguyenLieu=1 "
+                "THEN 'Hết nguyên liệu' ELSE 'Hoạt động' END"
             ),
             persisted=True,
         ),
@@ -107,14 +111,19 @@ class Dish(Base):
 
 class DishPriceVersion(Base):
     __tablename__ = "LICH_SU_GIA_MON"
-    id: Mapped[int] = mapped_column("MaLichSuGia", BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        "MaPhienBanGia", BigInteger, primary_key=True, autoincrement=True
+    )
     dish_id: Mapped[int] = mapped_column(
         "MaMon",
         BigInteger,
         ForeignKey("MON_AN.MaMon", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=False,
     )
-    price: Mapped[Decimal] = mapped_column("Gia", DECIMAL(18, 4), nullable=False)
+    price: Mapped[Decimal] = mapped_column("GiaBan", DECIMAL(18, 4), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        "ThoiDiemTao", DateTime, server_default=func.now(), nullable=False
+    )
     business_date: Mapped[date] = mapped_column("BusinessDateApDung", Date, nullable=False)
     effective_from: Mapped[datetime | None] = mapped_column(
         "ThoiDiemHieuLuc", DateTime, nullable=True
@@ -125,7 +134,9 @@ class DishPriceVersion(Base):
     change_type: Mapped[str] = mapped_column(
         "LoaiThayDoi", String(20), nullable=False, default="Tạo mới"
     )
-    status: Mapped[str] = mapped_column("TrangThai", String(20), nullable=False, default="Nháp")
+    status: Mapped[str] = mapped_column(
+        "TrangThai", String(20), nullable=False, default="Chờ áp dụng"
+    )
     created_by: Mapped[int | None] = mapped_column(
         "NguoiTao",
         BigInteger,
@@ -153,12 +164,18 @@ class Recipe(Base):
     change_type: Mapped[str] = mapped_column(
         "LoaiThayDoi", String(20), nullable=False, default="Tạo mới"
     )
-    status: Mapped[str] = mapped_column("TrangThai", String(20), nullable=False, default="Nháp")
+    status: Mapped[str] = mapped_column(
+        "TrangThai", String(20), nullable=False, default="Chờ áp dụng"
+    )
     created_by: Mapped[int | None] = mapped_column(
         "NguoiTao",
         BigInteger,
         ForeignKey("NGUOI_DUNG.MaNguoiDung", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=True,
+    )
+    version_number: Mapped[int] = mapped_column("SoPhienBan", Integer, nullable=False, default=1)
+    created_at: Mapped[datetime] = mapped_column(
+        "ThoiDiemTao", DateTime, server_default=func.now(), nullable=False
     )
 
 
@@ -176,4 +193,4 @@ class RecipeItem(Base):
         ForeignKey("NGUYEN_LIEU.MaNguyenLieu", ondelete="RESTRICT", onupdate="RESTRICT"),
         primary_key=True,
     )
-    quantity: Mapped[Decimal] = mapped_column("SoLuong", DECIMAL(18, 4), nullable=False)
+    quantity: Mapped[Decimal] = mapped_column("DinhLuong", DECIMAL(18, 4), nullable=False)

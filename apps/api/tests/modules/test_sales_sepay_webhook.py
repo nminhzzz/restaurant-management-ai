@@ -241,7 +241,7 @@ async def test_a_transfer_pointing_at_a_cash_payment_id_is_recorded_not_applied(
     oid = await _submit(session, client, h, d, t)
     await client.post(f"/api/v1/sales/orders/{oid}/pay/cash", headers=h)
     row = await session.execute(
-        text("SELECT MaGiaoDich FROM GIAO_DICH_THANH_TOAN WHERE MaOrder=:id"), {"id": oid}
+        text("SELECT MaGiaoDichTT FROM GIAO_DICH_THANH_TOAN WHERE MaOrder=:id"), {"id": oid}
     )
     cash_pid = row.scalar_one()
 

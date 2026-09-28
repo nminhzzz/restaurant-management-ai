@@ -102,12 +102,7 @@ async def test_only_one_change_waits_per_dish_and_the_newest_wins(session, dish)
     app.dependency_overrides.clear()
     pending = await pending_price_versions(session, dish.id)
     assert len(pending) == 1
-    # price stored as float
-    assert (
-        float(pending[0]["Gia"]) == 60000 or float(pending[0].price) == 60000
-        if hasattr(pending[0], "price")
-        else True
-    )
+    assert Decimal(str(pending[0]["GiaBan"])) == Decimal("60000")
 
 
 @pytest.mark.asyncio
@@ -156,7 +151,7 @@ async def test_listing_prices_shows_the_pending_change_after_reload(session, dis
     body = resp.json()
     assert len(body) == 1
     assert body[0]["MaLichSuGia"] == created.json()["MaLichSuGia"]
-    assert body[0]["TrangThai"] == "Nháp"
+    assert body[0]["TrangThai"] == "Chờ áp dụng"
     assert body[0]["BusinessDateApDung"] == tomorrow().isoformat()
 
 
@@ -172,7 +167,7 @@ async def test_listing_prices_includes_current_and_history(session, dish):
     body = resp.json()
     assert len(body) == 2
     statuses = {row["TrangThai"] for row in body}
-    assert statuses == {"Hiệu lực", "Hết hiệu lực"}
+    assert statuses == {"Đang áp dụng", "Hết hiệu lực"}
 
 
 @pytest.mark.asyncio

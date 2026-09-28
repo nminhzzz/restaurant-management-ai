@@ -1,16 +1,6 @@
 "use client";
 
-import {
-  Eye,
-  EyeOff,
-  ImageOff,
-  Package,
-  PackageX,
-  Pencil,
-  Plus,
-  Trash2,
-  UtensilsCrossed,
-} from "lucide-react";
+import { ImageOff, Pencil, Plus, Trash2, UtensilsCrossed } from "lucide-react";
 import { useState } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -232,7 +222,6 @@ export function DishList() {
   const create = useAction();
   const edit = useAction();
   const del = useAction();
-  const toggle = useAction();
 
   const dishes = catalog.status === "ready" ? catalog.data.dishes : null;
   const groups = catalog.status === "ready" ? catalog.data.groups : [];
@@ -301,16 +290,6 @@ export function DishList() {
       setDeleteDish(null);
       catalog.reload();
     }, "Đã xóa món.");
-  }
-
-  function toggleVisibility(dish: Dish, field: "AnThuCong" | "HetNLThuCong") {
-    void toggle.run(async () => {
-      await apiFetch(`/catalog/dishes/${dish.MaMon}/visibility`, {
-        method: "PATCH",
-        body: { [field]: !dish[field] },
-      });
-      catalog.reload();
-    });
   }
 
   const addButton = canWrite ? (
@@ -398,26 +377,6 @@ export function DishList() {
                           onClick={() => setEditDish(d)}
                         >
                           <Pencil />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label={d.AnThuCong ? "Bỏ ẩn món" : "Ẩn món"}
-                          onClick={() => toggleVisibility(d, "AnThuCong")}
-                        >
-                          {d.AnThuCong ? <EyeOff /> : <Eye />}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label={
-                            d.HetNLThuCong
-                              ? "Bỏ đánh dấu hết nguyên liệu"
-                              : "Đánh dấu hết nguyên liệu"
-                          }
-                          onClick={() => toggleVisibility(d, "HetNLThuCong")}
-                        >
-                          {d.HetNLThuCong ? <Package /> : <PackageX />}
                         </Button>
                         <Button
                           variant="ghost"

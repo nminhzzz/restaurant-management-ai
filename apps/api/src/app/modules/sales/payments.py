@@ -60,6 +60,7 @@ async def order_total(session: AsyncSession, order: Order) -> Decimal:
 def _settle(order: Order, status: str, now: datetime) -> None:
     order.status = status
     order.updated_at = now
+    order.closed_at = now
 
 
 async def _free_table(session: AsyncSession, order: Order) -> None:
@@ -73,10 +74,20 @@ async def _free_table(session: AsyncSession, order: Order) -> None:
 
 
 async def _issue_invoice(
-    session: AsyncSession, order: Order, *, business_date_value: date, total: Decimal
+    session: AsyncSession,
+    order: Order,
+    *,
+    business_date_value: date,
+    total: Decimal,
+    payment: PaymentTransaction | None = None,
 ) -> Invoice:
     invoice = Invoice(
-        order_id=order.id, business_date=business_date_value, total=total, print_count=1
+        order_id=order.id,
+        business_date=business_date_value,
+        total=total,
+        print_count=1,
+        payment_transaction_id=payment.id if payment else None,
+        payment_method=payment.method if payment else None,
     )
     session.add(invoice)
     await session.flush()
@@ -106,6 +117,7 @@ async def pay_cash(session: AsyncSession, order_id: int, *, actor_id: int | None
         raise BusinessRuleError("Order đã có hóa đơn.")
 
     total = await order_total(session, order)
+    order.total = total
     bd = business_date.business_date_of(now)
     payment = PaymentTransaction(
         order_id=order.id,
@@ -116,7 +128,9 @@ async def pay_cash(session: AsyncSession, order_id: int, *, actor_id: int | None
     )
     session.add(payment)
     await session.flush()
-    invoice = await _issue_invoice(session, order, business_date_value=bd, total=total)
+    invoice = await _issue_invoice(
+        session, order, business_date_value=bd, total=total, payment=payment
+    )
     _settle(order, "Đã thanh toán", now)
     await _free_table(session, order)
     await session.flush()
@@ -178,12 +192,13 @@ async def confirm_payment(
     if payment.status != QR_PENDING or order.status != "Đang mở":
         raise BusinessRuleError("Giao dịch hoặc order đã đổi trạng thái trước khi xác nhận.")
     total = await order_total(session, order)
+    order.total = total
     payment.status = QR_SUCCESS
     if bank_ref is not None:
         payment.bank_ref = bank_ref
     await session.flush()
     invoice = await _issue_invoice(
-        session, order, business_date_value=payment.business_date, total=total
+        session, order, business_date_value=payment.business_date, total=total, payment=payment
     )
     _settle(order, "Đã thanh toán", business_date.now())
     await _free_table(session, order)
@@ -575,7 +590,10 @@ async def resolve_reconciliation(
     if outcome == "received":
         payment.status = QR_SUCCESS
         total = await order_total(session, order)
-        await _issue_invoice(session, order, business_date_value=payment.business_date, total=total)
+        order.total = total
+        await _issue_invoice(
+            session, order, business_date_value=payment.business_date, total=total, payment=payment
+        )
         _settle(order, "Đã thanh toán", now)
         await _free_table(session, order)
     else:

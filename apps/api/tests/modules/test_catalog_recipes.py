@@ -91,12 +91,15 @@ async def recipe_items(session, recipe_id):
 
 
 @pytest.mark.asyncio
-async def test_the_first_recipe_activates_the_dish(session, draft_dish, flour):
+@pytest.mark.parametrize("save_recipe", [assign_recipe, apply_recipe_now])
+async def test_the_first_recipe_activates_the_dish(session, draft_dish, flour, save_recipe):
     h = await _headers(session)
     async with await _make_client(session) as c:
-        await assign_recipe(c, h, draft_dish.id, items=[(flour.id, "0.2")])
+        response = await save_recipe(c, h, draft_dish.id, items=[(flour.id, "0.2")])
     app.dependency_overrides.clear()
     dish = await get_dish(session, draft_dish.id)
+    assert response.status_code == 201
+    assert dish.missing_recipe is False
     # dish status derived: should not be Nháp
     from tests.helpers import display_status
 
@@ -164,7 +167,7 @@ async def test_applying_a_recipe_now_creates_a_new_active_version(session, dish_
     new_id = new_recipe["MaCongThuc"]
     assert new_id != old_id
     items = await recipe_items(session, int(new_id))
-    assert float(items[0]["SoLuong"]) == 0.5
+    assert float(items[0]["DinhLuong"]) == 0.5
 
 
 @pytest.mark.asyncio
@@ -205,10 +208,10 @@ async def test_listing_recipes_shows_the_pending_change_and_current_lines(
     body = resp.json()
     assert len(body) == 2
     by_status = {row["TrangThai"]: row for row in body}
-    assert "Nháp" in by_status
-    assert "Hiệu lực" in by_status
-    assert by_status["Nháp"]["MaCongThuc"] == scheduled.json()["MaCongThuc"]
-    pending_line = by_status["Nháp"]["items"][0]
+    assert "Chờ áp dụng" in by_status
+    assert "Đang áp dụng" in by_status
+    assert by_status["Chờ áp dụng"]["MaCongThuc"] == scheduled.json()["MaCongThuc"]
+    pending_line = by_status["Chờ áp dụng"]["items"][0]
     assert pending_line["MaNguyenLieu"] == flour.id
     assert pending_line["TenNguyenLieu"] == flour.name
     assert pending_line["DonViTinh"] == flour.unit

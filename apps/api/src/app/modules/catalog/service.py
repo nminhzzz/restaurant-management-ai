@@ -25,13 +25,9 @@ async def _has_active_recipe(session: AsyncSession, dish_id: int) -> bool:
 async def display_status_for(session: AsyncSession, dish: Dish) -> str:
     if dish.is_deleted:
         return "Đã xóa"
-    if dish.hide_manual:
-        return "Ẩn thủ công"
-    # Nháp if no active recipe
-    if not await _has_active_recipe(session, dish.id):
+    if dish.missing_recipe:
         return "Nháp"
-    # otherwise derive from flags (GENERATED column would give same)
-    if dish.out_of_stock_manual or dish.out_of_stock_auto:
+    if dish.out_of_stock:
         return "Hết nguyên liệu"
     return "Hoạt động"
 
@@ -145,9 +141,8 @@ async def create_dish(
         name=name,
         group_id=group_id,
         image_url=image,
-        hide_manual=False,
-        out_of_stock_manual=False,
-        out_of_stock_auto=False,
+        missing_recipe=True,
+        out_of_stock=False,
         is_deleted=False,
     )
     session.add(d)
@@ -222,7 +217,8 @@ async def delete_dish(session: AsyncSession, actor_id: int, dish_id: int) -> Dis
         (
             await session.execute(
                 select(DishPriceVersion).where(
-                    DishPriceVersion.dish_id == dish_id, DishPriceVersion.status == "Nháp"
+                    DishPriceVersion.dish_id == dish_id,
+                    DishPriceVersion.status == VersionStatus.NHAP.value,
                 )
             )
         )
@@ -233,7 +229,9 @@ async def delete_dish(session: AsyncSession, actor_id: int, dish_id: int) -> Dis
     for row2 in (
         (
             await session.execute(
-                select(Recipe).where(Recipe.dish_id == dish_id, Recipe.status == "Nháp")
+                select(Recipe).where(
+                    Recipe.dish_id == dish_id, Recipe.status == VersionStatus.NHAP.value
+                )
             )
         )
         .scalars()
@@ -254,7 +252,7 @@ async def delete_dish(session: AsyncSession, actor_id: int, dish_id: int) -> Dis
 async def pending_price_versions(session: AsyncSession, dish_id: int) -> list[DishPriceVersion]:
     r = await session.execute(
         select(DishPriceVersion).where(
-            DishPriceVersion.dish_id == dish_id, DishPriceVersion.status == "Nháp"
+            DishPriceVersion.dish_id == dish_id, DishPriceVersion.status == VersionStatus.NHAP.value
         )
     )
     return list(r.scalars().all())
@@ -292,7 +290,8 @@ async def schedule_price_change(
         (
             await session.execute(
                 select(DishPriceVersion).where(
-                    DishPriceVersion.dish_id == dish_id, DishPriceVersion.status == "Nháp"
+                    DishPriceVersion.dish_id == dish_id,
+                    DishPriceVersion.status == VersionStatus.NHAP.value,
                 )
             )
         )
@@ -305,7 +304,7 @@ async def schedule_price_change(
         dish_id=dish_id,
         price=float(price),
         business_date=bd,
-        status="Nháp",
+        status=VersionStatus.NHAP.value,
         change_type="Tạo mới",
         created_by=actor_id,
     )
@@ -325,7 +324,7 @@ async def schedule_price_change(
 
 async def cancel_pending_price_change(session, actor_id: int, version_id: int):
     v = await session.get(DishPriceVersion, version_id)
-    if v is None or v.status != "Nháp":
+    if v is None or v.status != VersionStatus.NHAP.value:
         raise NotFoundError("Không tìm thấy phiên bản chờ áp dụng.")
     await session.delete(v)
     await session.flush()
@@ -351,11 +350,12 @@ async def apply_price_directly(session, actor_id: int, dish_id: int, price: _Dec
     # close current active
     cur = await session.execute(
         select(DishPriceVersion).where(
-            DishPriceVersion.dish_id == dish_id, DishPriceVersion.status == "Hiệu lực"
+            DishPriceVersion.dish_id == dish_id,
+            DishPriceVersion.status == VersionStatus.HIEU_LUC.value,
         )
     )
     for row in cur.scalars().all():
-        row.status = "Hết hiệu lực"
+        row.status = VersionStatus.HET_HIEU_LUC.value
         row.effective_to = _bd.now()
     await session.flush()
     bd = _bd.business_date_of(_bd.now())
@@ -363,7 +363,7 @@ async def apply_price_directly(session, actor_id: int, dish_id: int, price: _Dec
         dish_id=dish_id,
         price=float(price),
         business_date=bd,
-        status="Hiệu lực",
+        status=VersionStatus.HIEU_LUC.value,
         change_type="Cập nhật",
         created_by=actor_id,
         effective_from=_bd.now(),
@@ -412,7 +412,9 @@ async def schedule_recipe_change(
     for row in (
         (
             await session.execute(
-                select(Recipe).where(Recipe.dish_id == dish_id, Recipe.status == "Nháp")
+                select(Recipe).where(
+                    Recipe.dish_id == dish_id, Recipe.status == VersionStatus.NHAP.value
+                )
             )
         )
         .scalars()
@@ -426,10 +428,15 @@ async def schedule_recipe_change(
         await session.delete(row)
     await session.flush()
     r = Recipe(
-        dish_id=dish_id, business_date=bd, status="Nháp", change_type="Tạo mới", created_by=actor_id
+        dish_id=dish_id,
+        business_date=bd,
+        status=VersionStatus.NHAP.value,
+        change_type="Tạo mới",
+        created_by=actor_id,
     )
     session.add(r)
     await session.flush()
+    d.missing_recipe = False
     for ing_id, qty in items:
         session.add(_RI(recipe_id=r.id, ingredient_id=ing_id, quantity=float(qty)))
         # lock unit
@@ -468,13 +475,14 @@ async def assign_recipe(session, actor_id: int, dish_id: int, items: list[tuple[
     r = Recipe(
         dish_id=dish_id,
         business_date=bd,
-        status="Hiệu lực",
+        status=VersionStatus.HIEU_LUC.value,
         change_type="Tạo mới",
         created_by=actor_id,
         effective_from=_bd.now(),
     )
     session.add(r)
     await session.flush()
+    d.missing_recipe = False
     for ing_id, qty in items:
         session.add(_RI(recipe_id=r.id, ingredient_id=ing_id, quantity=float(qty)))
         ing = await session.get(_Ing, ing_id)
@@ -508,22 +516,25 @@ async def apply_recipe_directly(
             raise BusinessRuleError(f"Nguyên liệu {ing_id} không tồn tại.")
     # close current active (Nháp pending changes are untouched — FR-CAT-24)
     cur = await session.execute(
-        select(Recipe).where(Recipe.dish_id == dish_id, Recipe.status == "Hiệu lực")
+        select(Recipe).where(
+            Recipe.dish_id == dish_id, Recipe.status == VersionStatus.HIEU_LUC.value
+        )
     )
     for row in cur.scalars().all():
-        row.status = "Hết hiệu lực"
+        row.status = VersionStatus.HET_HIEU_LUC.value
         row.effective_to = _bd.now()
     await session.flush()
     bd = _bd.business_date_of(_bd.now())
     r = Recipe(
         dish_id=dish_id,
         business_date=bd,
-        status="Hiệu lực",
+        status=VersionStatus.HIEU_LUC.value,
         change_type="Cập nhật",
         created_by=actor_id,
         effective_from=_bd.now(),
     )
     session.add(r)
+    d.missing_recipe = False
     await session.flush()
     for ing_id, qty in items:
         session.add(_RI(recipe_id=r.id, ingredient_id=ing_id, quantity=float(qty)))
@@ -547,7 +558,7 @@ async def cancel_pending_recipe_change(session, actor_id: int, recipe_id: int):
     from app.modules.catalog.models import RecipeItem as _RI
 
     r = await session.get(Recipe, recipe_id)
-    if r is None or r.status != "Nháp":
+    if r is None or r.status != VersionStatus.NHAP.value:
         raise NotFoundError("Không tìm thấy phiên bản chờ áp dụng.")
     for ri in (
         (await session.execute(select(_RI).where(_RI.recipe_id == recipe_id))).scalars().all()
@@ -855,29 +866,11 @@ async def list_tables(session):
     return list(r.scalars().all())
 
 
-async def set_manual_hidden(session, actor_id: int, dish_id: int, value: bool):
-    d = await session.get(Dish, dish_id)
-    if d is None or d.is_deleted:
-        raise NotFoundError("Không tìm thấy món ăn.")
-    d.hide_manual = value
-    await session.flush()
-    session.add(
-        SystemAuditLog(
-            user_id=actor_id,
-            action="SET_MANUAL_HIDDEN",
-            target_entity="MON_AN",
-            target_id=str(dish_id),
-        )
-    )
-    await session.flush()
-    return d
-
-
 async def set_manual_out_of_stock(session, actor_id: int, dish_id: int, value: bool):
     d = await session.get(Dish, dish_id)
     if d is None or d.is_deleted:
         raise NotFoundError("Không tìm thấy món ăn.")
-    d.out_of_stock_manual = value
+    d.out_of_stock = value
     await session.flush()
     session.add(
         SystemAuditLog(

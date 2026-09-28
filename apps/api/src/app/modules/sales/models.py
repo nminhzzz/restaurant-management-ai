@@ -56,6 +56,10 @@ class Order(Base):
         "NgayTao", DateTime, server_default=func.now(), nullable=False
     )
     updated_at: Mapped[datetime | None] = mapped_column("NgayCapNhat", DateTime, nullable=True)
+    total: Mapped[Decimal] = mapped_column(
+        "TongTien", DECIMAL(18, 4), nullable=False, default=Decimal("0")
+    )
+    closed_at: Mapped[datetime | None] = mapped_column("ThoiDiemDong", DateTime, nullable=True)
     __table_args__ = (
         CheckConstraint(
             "(LoaiDon = 'T\u1ea1i ch\u1ed7' AND MaBan IS NOT NULL) "
@@ -82,8 +86,8 @@ class OrderLine(Base):
         nullable=False,
     )
     price_version_id: Mapped[int | None] = mapped_column(
-        "MaLichSuGia",
-        ForeignKey("LICH_SU_GIA_MON.MaLichSuGia", ondelete="RESTRICT", onupdate="RESTRICT"),
+        "MaPhienBanGia",
+        ForeignKey("LICH_SU_GIA_MON.MaPhienBanGia", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=True,
     )
     recipe_id: Mapped[int | None] = mapped_column(
@@ -96,13 +100,19 @@ class OrderLine(Base):
     unit_price: Mapped[Decimal] = mapped_column(
         "DonGia", DECIMAL(18, 4), nullable=False, default=Decimal("0")
     )
+    total: Mapped[Decimal | None] = mapped_column("ThanhTien", DECIMAL(18, 4), nullable=True)
+    added_at: Mapped[datetime] = mapped_column(
+        "ThoiDiemThem", DateTime, server_default=func.now(), nullable=False
+    )
     status: Mapped[str] = mapped_column("TrangThai", String(20), nullable=False, default="Ch\u1edd")
     __table_args__ = (Index("ix_CHI_TIET_ORDER_MaMon_MaOrder", "MaMon", "MaOrder"),)
 
 
 class TableMoveLog(Base):
     __tablename__ = "LICH_SU_DOI_BAN"
-    id: Mapped[int] = mapped_column("MaLichSu", BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        "MaLichSuDoiBan", BigInteger, primary_key=True, autoincrement=True
+    )
     order_id: Mapped[int] = mapped_column(
         "MaOrder",
         ForeignKey("ORDER.MaOrder", ondelete="CASCADE", onupdate="RESTRICT"),
@@ -119,13 +129,21 @@ class TableMoveLog(Base):
         nullable=True,
     )
     created_at: Mapped[datetime] = mapped_column(
-        "NgayTao", DateTime, server_default=func.now(), nullable=False
+        "ThoiDiem", DateTime, server_default=func.now(), nullable=False
+    )
+    performed_by: Mapped[int | None] = mapped_column(
+        "NguoiThucHien",
+        BigInteger,
+        ForeignKey("NGUOI_DUNG.MaNguoiDung", ondelete="RESTRICT", onupdate="RESTRICT"),
+        nullable=True,
     )
 
 
 class PaymentTransaction(Base):
     __tablename__ = "GIAO_DICH_THANH_TOAN"
-    id: Mapped[int] = mapped_column("MaGiaoDich", BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        "MaGiaoDichTT", BigInteger, primary_key=True, autoincrement=True
+    )
     order_id: Mapped[int] = mapped_column(
         "MaOrder",
         ForeignKey("ORDER.MaOrder", ondelete="RESTRICT", onupdate="RESTRICT"),
@@ -142,9 +160,17 @@ class PaymentTransaction(Base):
     created_at: Mapped[datetime] = mapped_column(
         "NgayTao", DateTime, server_default=func.now(), nullable=False
     )
-    deadline: Mapped[datetime | None] = mapped_column("HanQr", DateTime, nullable=True)
-    bank_ref: Mapped[str | None] = mapped_column("MaThamChieuNganHang", String(100), nullable=True)
-    evidence: Mapped[str | None] = mapped_column("ChungTuDoiSoat", String(500), nullable=True)
+    qr_code: Mapped[str | None] = mapped_column("MaQR", String(500), nullable=True)
+    qr_created_at: Mapped[datetime | None] = mapped_column("ThoiDiemTaoQR", DateTime, nullable=True)
+    deadline: Mapped[datetime | None] = mapped_column("ThoiDiemHetHan", DateTime, nullable=True)
+    gateway_transaction_id: Mapped[str | None] = mapped_column(
+        "MaGiaoDichCong", String(100), nullable=True
+    )
+    webhook_content: Mapped[str | None] = mapped_column(
+        "NoiDungWebhook", String(2000), nullable=True
+    )
+    bank_ref: Mapped[str | None] = mapped_column("MaGiaoDichNganHang", String(100), nullable=True)
+    evidence: Mapped[str | None] = mapped_column("AnhChungTu", String(500), nullable=True)
     __table_args__ = (Index("ix_GIAO_DICH_THANH_TOAN_MaOrder_TrangThai", "MaOrder", "TrangThai"),)
 
 
@@ -165,6 +191,22 @@ class Invoice(Base):
         "TongTien", DECIMAL(18, 4), nullable=False, default=Decimal("0")
     )
     print_count: Mapped[int] = mapped_column("SoLanIn", Integer, nullable=False, default=1)
+    payment_transaction_id: Mapped[int | None] = mapped_column(
+        "MaGiaoDichThanhToan",
+        BigInteger,
+        ForeignKey("GIAO_DICH_THANH_TOAN.MaGiaoDichTT", ondelete="RESTRICT", onupdate="RESTRICT"),
+        nullable=True,
+    )
+    invoice_number: Mapped[str | None] = mapped_column("SoHoaDon", String(50), nullable=True)
+    payment_method: Mapped[str | None] = mapped_column(
+        "PhuongThucThanhToan", String(20), nullable=True
+    )
+    issued_by: Mapped[int | None] = mapped_column(
+        "NguoiLap",
+        BigInteger,
+        ForeignKey("NGUOI_DUNG.MaNguoiDung", ondelete="RESTRICT", onupdate="RESTRICT"),
+        nullable=True,
+    )
     __table_args__ = (Index("ix_HOA_DON_ThoiDiemXuat", "ThoiDiemXuat"),)
 
 

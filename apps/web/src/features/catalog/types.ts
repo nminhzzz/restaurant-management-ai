@@ -5,8 +5,6 @@ export type Dish = {
   MaNhomMon?: number | null;
   GiaHienTai?: number | null;
   HinhAnh?: string | null;
-  AnThuCong?: boolean;
-  HetNLThuCong?: boolean;
 };
 
 export type Group = { MaNhomMon: number; TenNhom: string };

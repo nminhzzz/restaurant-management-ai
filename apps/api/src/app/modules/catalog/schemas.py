@@ -72,7 +72,6 @@ class DishOut(BaseModel):
     HinhAnh: str | None = None
     GiaHienTai: float | None = None
     TrangThai: str
-    AnThuCong: bool = Field(default=False, validation_alias="hide_manual")
     DaXoa: bool = Field(validation_alias="is_deleted")
 
     model_config = {"from_attributes": True, "populate_by_name": True}
@@ -197,5 +196,6 @@ class TableOut(BaseModel):
 
 
 class VisibilityUpdate(BaseModel):
-    AnThuCong: bool | None = None
-    HetNLThuCong: bool | None = None
+    HetNguyenLieu: bool | None = None
+
+    model_config = {"extra": "forbid"}

@@ -115,6 +115,7 @@ async def _resolve_line_inputs(
         dish_id=dish_id,
         quantity=quantity,
         unit_price=Decimal(str(price_version.price)) if price_version else Decimal("0"),
+        total=(Decimal(str(price_version.price)) * quantity) if price_version else Decimal("0"),
         price_version_id=price_version.id if price_version else None,
         recipe_id=recipe.id if recipe else None,
         status=LINE_WAITING,

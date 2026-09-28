@@ -27,8 +27,8 @@ class GoodsReceipt(Base):
         "NgayNhap", DateTime, server_default=func.now(), nullable=False
     )
     supplier_id: Mapped[int | None] = mapped_column(
-        "MaNhaCungCap",
-        ForeignKey("NHA_CUNG_CAP.MaNhaCungCap", ondelete="RESTRICT", onupdate="RESTRICT"),
+        "MaNCC",
+        ForeignKey("NHA_CUNG_CAP.MaNCC", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=True,
     )
     status: Mapped[str] = mapped_column(
@@ -39,6 +39,8 @@ class GoodsReceipt(Base):
         ForeignKey("NGUOI_DUNG.MaNguoiDung", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=True,
     )
+    total: Mapped[Decimal] = mapped_column("TongTien", DECIMAL(18, 4), nullable=False, default=0)
+    note: Mapped[str | None] = mapped_column("GhiChu", String(500), nullable=True)
 
 
 class GoodsReceiptLine(Base):
@@ -58,11 +60,20 @@ class GoodsReceiptLine(Base):
     )
     quantity: Mapped[Decimal] = mapped_column("SoLuong", DECIMAL(18, 4), nullable=False)
     unit_price: Mapped[Decimal] = mapped_column("DonGia", DECIMAL(18, 4), nullable=False)
+    original_purchase_unit: Mapped[str | None] = mapped_column(
+        "DonViMuaGoc", String(20), nullable=True
+    )
+    conversion_factor: Mapped[Decimal] = mapped_column(
+        "HeSoQuyDoi", DECIMAL(18, 4), nullable=False, default=1
+    )
+    total: Mapped[Decimal] = mapped_column("ThanhTien", DECIMAL(18, 4), nullable=False, default=0)
 
 
 class IngredientLot(Base):
     __tablename__ = "LO_NGUYEN_LIEU"
-    id: Mapped[int] = mapped_column("MaLo", BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        "MaLoNguyenLieu", BigInteger, primary_key=True, autoincrement=True
+    )
     ingredient_id: Mapped[int] = mapped_column(
         "MaNguyenLieu",
         ForeignKey("NGUYEN_LIEU.MaNguyenLieu", ondelete="RESTRICT", onupdate="RESTRICT"),
@@ -84,6 +95,11 @@ class IngredientLot(Base):
         "NgayNhap", DateTime, server_default=func.now(), nullable=False
     )
     is_adjustment: Mapped[bool] = mapped_column("LoDieuChinhKiemKe", default=False, nullable=False)
+    expiry_date: Mapped[date | None] = mapped_column("HanSuDung", Date, nullable=True)
+    received_quantity: Mapped[Decimal] = mapped_column(
+        "SoLuongNhap", DECIMAL(18, 4), nullable=False, default=0
+    )
+    unit_price: Mapped[Decimal] = mapped_column("DonGia", DECIMAL(18, 4), nullable=False, default=0)
     __table_args__ = (
         Index(
             "ix_LO_NGUYEN_LIEU_MaNguyenLieu_TrangThai_NgayNhap",
@@ -104,6 +120,14 @@ class StockIssue(Base):
     created_at: Mapped[datetime] = mapped_column(
         "NgayTao", DateTime, server_default=func.now(), nullable=False
     )
+    issue_date: Mapped[datetime | None] = mapped_column("NgayXuat", DateTime, nullable=True)
+    created_by: Mapped[int | None] = mapped_column(
+        "NguoiLap",
+        BigInteger,
+        ForeignKey("NGUOI_DUNG.MaNguoiDung", ondelete="RESTRICT", onupdate="RESTRICT"),
+        nullable=True,
+    )
+    note: Mapped[str | None] = mapped_column("GhiChu", String(500), nullable=True)
 
 
 class StockIssueLine(Base):
@@ -138,6 +162,13 @@ class Stocktake(Base):
     status: Mapped[str] = mapped_column(
         "TrangThai", String(20), nullable=False, default="Nh\u00e1p"
     )
+    performed_by: Mapped[int | None] = mapped_column(
+        "NguoiThucHien",
+        BigInteger,
+        ForeignKey("NGUOI_DUNG.MaNguoiDung", ondelete="RESTRICT", onupdate="RESTRICT"),
+        nullable=True,
+    )
+    note: Mapped[str | None] = mapped_column("GhiChu", String(500), nullable=True)
 
 
 class StocktakeLine(Base):
@@ -177,11 +208,11 @@ class StockMovement(Base):
     )
     lot_id: Mapped[int | None] = mapped_column(
         "MaLoNguyenLieu",
-        ForeignKey("LO_NGUYEN_LIEU.MaLo", ondelete="RESTRICT", onupdate="RESTRICT"),
+        ForeignKey("LO_NGUYEN_LIEU.MaLoNguyenLieu", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=True,
     )
     kind: Mapped[str] = mapped_column("LoaiGiaoDich", String(30), nullable=False)
-    qty: Mapped[Decimal] = mapped_column("SoLuong", DECIMAL(18, 4), nullable=False)
+    qty: Mapped[Decimal] = mapped_column("SoLuongThayDoi", DECIMAL(18, 4), nullable=False)
     occurred_at: Mapped[datetime] = mapped_column(
         "ThoiDiem", DateTime, server_default=func.now(), nullable=False
     )
@@ -211,6 +242,9 @@ class StockMovement(Base):
         ForeignKey("NGUOI_DUNG.MaNguoiDung", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=True,
     )
+    balance_after: Mapped[Decimal] = mapped_column(
+        "TonSauGiaoDich", DECIMAL(18, 4), nullable=False, default=0
+    )
     __table_args__ = (
         CheckConstraint(
             "((LoaiGiaoDich = 'Nh\u1eadp' AND MaChiTietNhap IS NOT NULL) OR "
@@ -232,7 +266,7 @@ class MonthlyAverageCost(Base):
         primary_key=True,
     )
     month: Mapped[int] = mapped_column("Thang", Integer, primary_key=True)
-    avg_cost: Mapped[Decimal] = mapped_column("GiaBinhQuan", DECIMAL(18, 4), nullable=False)
+    avg_cost: Mapped[Decimal] = mapped_column("DonGiaBinhQuan", DECIMAL(18, 4), nullable=False)
     total_qty: Mapped[Decimal] = mapped_column(
         "TongSoLuongNhap", DECIMAL(18, 4), nullable=False, default=0
     )

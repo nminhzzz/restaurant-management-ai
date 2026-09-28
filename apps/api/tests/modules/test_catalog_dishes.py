@@ -161,7 +161,8 @@ async def test_a_new_dish_starts_as_draft(session, group):
 
     row = await session.get(Dish, dish_id)
     assert row is not None
-    assert row.hide_manual is False
+    assert row.missing_recipe is True
+    assert row.out_of_stock is False
     assert await active_recipe(session, dish_id, today()) is None
 
 

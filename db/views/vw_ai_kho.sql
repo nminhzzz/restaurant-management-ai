@@ -35,7 +35,7 @@ UNION ALL
 SELECT
     'GIAO_DICH_KHO', g.MaNguyenLieu, n.TenNguyenLieu, n.DonViTinh,
     CAST(NULL AS DECIMAL(18, 4)), CAST(NULL AS DECIMAL(18, 4)), CAST(NULL AS SIGNED),
-    g.MaGiaoDichKho, g.BusinessDate, g.SoLuong, g.LoaiGiaoDich,
+    g.MaGiaoDichKho, g.BusinessDate, g.SoLuongThayDoi, g.LoaiGiaoDich,
     CAST(NULL AS SIGNED), CAST(NULL AS DECIMAL(18, 4)), CAST(NULL AS CHAR(20)),
     CAST(NULL AS DATETIME), CAST(NULL AS DATE)
 FROM GIAO_DICH_KHO g
@@ -45,9 +45,7 @@ SELECT
     'LO_NGUYEN_LIEU', l.MaNguyenLieu, n.TenNguyenLieu, n.DonViTinh,
     CAST(NULL AS DECIMAL(18, 4)), CAST(NULL AS DECIMAL(18, 4)), CAST(NULL AS SIGNED),
     CAST(NULL AS SIGNED), CAST(NULL AS DATE), CAST(NULL AS DECIMAL(18, 4)), CAST(NULL AS CHAR(30)),
-    l.MaLo, l.SoLuongConLai, l.TrangThai, l.NgayNhap,
-    CASE WHEN n.SoNgayBaoQuan IS NULL THEN NULL
-         ELSE DATE_ADD(l.NgayNhap, INTERVAL n.SoNgayBaoQuan DAY)
-    END
+    l.MaLoNguyenLieu, l.SoLuongConLai, l.TrangThai, l.NgayNhap,
+    l.HanSuDung
 FROM LO_NGUYEN_LIEU l
 JOIN NGUYEN_LIEU n ON n.MaNguyenLieu = l.MaNguyenLieu;

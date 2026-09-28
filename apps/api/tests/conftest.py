@@ -49,7 +49,10 @@ def _require_resources_for_integration() -> None:
     # Load: skip if 1-min load > 0.9 * ncpu (machine is saturated)
     try:
         ncpu = os.cpu_count() or 4
-        load1 = os.getloadavg()[0]
+        getloadavg = getattr(os, "getloadavg", None)
+        if getloadavg is None:
+            return
+        load1 = getloadavg()[0]
         if load1 > 0.9 * ncpu:
             import pytest
 
@@ -348,7 +351,7 @@ async def seed_views(engine: AsyncEngine) -> None:
             "BusinessDate": "o.BusinessDate",
             "TrangThaiOrder": "o.TrangThai",
             "TenMon": "m.TenMon",
-            "TenNhom": "ng.TenNhom",
+            "TenNhom": "ng.TenNhomMon",
             "SoLuongMon": "ct.SoLuong",
             "DonGiaMon": "ct.DonGia",
             "ThanhTienMon": "ct.SoLuong * ct.DonGia",
@@ -371,7 +374,7 @@ async def seed_views(engine: AsyncEngine) -> None:
             "LoaiBanGhi": "'THANH_TOAN'",
             "MaOrder": "t.MaOrder",
             "BusinessDate": "t.BusinessDate",
-            "MaGiaoDich": "t.MaGiaoDich",
+            "MaGiaoDich": "t.MaGiaoDichTT",
             "PhuongThuc": "t.PhuongThuc",
             "SoTien": "t.SoTien",
         },
@@ -395,7 +398,7 @@ async def seed_views(engine: AsyncEngine) -> None:
             "TenNguyenLieu": "n.TenNguyenLieu",
             "DonViTinh": "n.DonViTinh",
             "Thang": "gv.Thang",
-            "GiaBinhQuanThang": "gv.GiaBinhQuan",
+            "GiaBinhQuanThang": "gv.DonGiaBinhQuan",
             "TongSoLuongNhapThang": "gv.TongSoLuongNhap",
         },
     )
@@ -408,7 +411,7 @@ async def seed_views(engine: AsyncEngine) -> None:
             "TenNguyenLieu": "n.TenNguyenLieu",
             "DonViTinh": "n.DonViTinh",
             "MaGiaoDichKho": "g.MaGiaoDichKho",
-            "SoLuong": "g.SoLuong",
+            "SoLuong": "g.SoLuongThayDoi",
             "LoaiGiaoDich": "g.LoaiGiaoDich",
         },
     )
@@ -421,7 +424,7 @@ async def seed_views(engine: AsyncEngine) -> None:
             "TenNguyenLieu": "n.TenNguyenLieu",
             "DonViTinh": "n.DonViTinh",
             "MaPhieuNhap": "pn.MaPhieuNhap",
-            "TenNhaCungCap": "ncc.TenNhaCungCap",
+            "TenNhaCungCap": "ncc.TenNCC",
             "DonGiaNhap": "ct.DonGia",
             "SoLuongNhap": "ct.SoLuong",
         },
@@ -445,7 +448,7 @@ async def seed_views(engine: AsyncEngine) -> None:
             "BusinessDate": "o.BusinessDate",
             "TrangThaiOrder": "o.TrangThai",
             "TenMon": "m.TenMon",
-            "TenNhom": "ng.TenNhom",
+            "TenNhom": "ng.TenNhomMon",
             "SoLuongMon": "ct.SoLuong",
             "DonGiaMon": "ct.DonGia",
             "ThanhTienMon": "ct.SoLuong * ct.DonGia",
@@ -468,7 +471,7 @@ async def seed_views(engine: AsyncEngine) -> None:
             "LoaiBanGhi": "'THANH_TOAN'",
             "MaOrder": "t.MaOrder",
             "BusinessDate": "t.BusinessDate",
-            "MaGiaoDich": "t.MaGiaoDich",
+            "MaGiaoDich": "t.MaGiaoDichTT",
             "PhuongThuc": "t.PhuongThuc",
             "SoTien": "t.SoTien",
         },
@@ -494,7 +497,7 @@ async def seed_views(engine: AsyncEngine) -> None:
             "DonViTinh": "n.DonViTinh",
             "MaGiaoDichKho": "g.MaGiaoDichKho",
             "BusinessDate": "g.BusinessDate",
-            "SoLuong": "g.SoLuong",
+            "SoLuong": "g.SoLuongThayDoi",
             "LoaiGiaoDich": "g.LoaiGiaoDich",
         },
     )
@@ -505,7 +508,7 @@ async def seed_views(engine: AsyncEngine) -> None:
             "MaNguyenLieu": "l.MaNguyenLieu",
             "TenNguyenLieu": "n.TenNguyenLieu",
             "DonViTinh": "n.DonViTinh",
-            "MaLo": "l.MaLo",
+            "MaLo": "l.MaLoNguyenLieu",
             "SoLuongConLai": "l.SoLuongConLai",
             "TrangThaiLo": "l.TrangThai",
             "NgayNhapLo": "l.NgayNhap",
@@ -533,7 +536,7 @@ async def seed_views(engine: AsyncEngine) -> None:
                 f"UNION ALL SELECT {quanly_phieu_nhap} FROM CHI_TIET_PHIEU_NHAP ct "
                 "JOIN PHIEU_NHAP_KHO pn ON pn.MaPhieuNhap = ct.MaPhieuNhap "
                 "JOIN NGUYEN_LIEU n ON n.MaNguyenLieu = ct.MaNguyenLieu "
-                "LEFT JOIN NHA_CUNG_CAP ncc ON ncc.MaNhaCungCap = pn.MaNhaCungCap"
+                "LEFT JOIN NHA_CUNG_CAP ncc ON ncc.MaNCC = pn.MaNCC"
             )
         )
         await conn.execute(

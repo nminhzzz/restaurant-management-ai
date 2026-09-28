@@ -52,7 +52,7 @@ async def _resolve_session(
         existing = await session.get(ChatSession, session_id)
         if existing is not None and existing.user_id == user_id:
             return existing
-    chat_session = ChatSession(user_id=user_id)
+    chat_session = ChatSession(user_id=user_id, role_id=None)
     session.add(chat_session)
     await session.flush()
     return chat_session

@@ -9,12 +9,10 @@ class UserStatus(StrEnum):
 
 
 class DishStatus(StrEnum):
-    # NHAP is application-derived (no effective CONG_THUC) — not stored in
-    # MON_AN.TrangThai (see phase-0 decision #1).
+    # MON_AN.TrangThai is generated from the recipe and stock flags.
     NHAP = "Nháp"
     HOAT_DONG = "Hoạt động"
     HET_NGUYEN_LIEU = "Hết nguyên liệu"
-    AN_THU_CONG = "Ẩn thủ công"
 
 
 class OrderStatus(StrEnum):
@@ -47,9 +45,10 @@ class PrintStatus(StrEnum):
 
 
 class VersionStatus(StrEnum):
-    NHAP = "Nháp"
-    HIEU_LUC = "Hiệu lực"
+    NHAP = "Chờ áp dụng"
+    HIEU_LUC = "Đang áp dụng"
     HET_HIEU_LUC = "Hết hiệu lực"
+    DA_HUY = "Đã hủy"
 
 
 class ChangeType(StrEnum):
@@ -66,8 +65,9 @@ class ReceiptStatus(StrEnum):
 
 class LotStatus(StrEnum):
     CON_HAN = "Còn hạn"
+    SAP_HET_HAN = "Sắp hết hạn"
     HET_HAN = "Hết hạn"
-    DA_HUY = "Đã hủy"
+    DA_DUNG_HET = "Đã dùng hết"
 
 
 class StocktakeStatus(StrEnum):

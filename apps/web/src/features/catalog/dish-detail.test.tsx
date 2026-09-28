@@ -51,7 +51,7 @@ describe("DishDetail", () => {
           MaMon: 1,
           Gia: 60000,
           BusinessDateApDung: "2026-09-26",
-          TrangThai: "Nháp",
+          TrangThai: "Chờ áp dụng",
           LoaiThayDoi: "Tạo mới",
         },
       ],
@@ -87,7 +87,7 @@ describe("DishDetail", () => {
           MaCongThuc: 7,
           MaMon: 1,
           BusinessDateApDung: "2026-09-20",
-          TrangThai: "Hiệu lực",
+          TrangThai: "Đang áp dụng",
           LoaiThayDoi: "Tạo mới",
           items: [
             {

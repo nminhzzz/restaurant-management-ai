@@ -112,7 +112,7 @@ async def test_manual_issue_hides_dish_when_recipe_can_no_longer_be_served(sessi
     )
     assert r.status_code == 201, r.text
     await session.refresh(d)
-    assert d.out_of_stock_auto is True
+    assert d.out_of_stock is True
 
 
 @pytest.mark.anyio
@@ -128,7 +128,7 @@ async def test_receipt_restores_dish_once_recipe_can_be_served_again(session):
     )
     assert r.status_code == 201, r.text
     await session.refresh(d)
-    assert d.out_of_stock_auto is True
+    assert d.out_of_stock is True
 
     r2 = await client.post(
         "/api/v1/inventory/receipts",
@@ -137,7 +137,7 @@ async def test_receipt_restores_dish_once_recipe_can_be_served_again(session):
     )
     assert r2.status_code == 201, r2.text
     await session.refresh(d)
-    assert d.out_of_stock_auto is False
+    assert d.out_of_stock is False
 
 
 @pytest.mark.anyio
@@ -155,4 +155,4 @@ async def test_stocktake_confirm_recomputes_visibility(session):
     r = await client.post(f"/api/v1/inventory/stocktakes/{sid}/confirm", headers=h)
     assert r.status_code == 200
     await session.refresh(d)
-    assert d.out_of_stock_auto is True
+    assert d.out_of_stock is True

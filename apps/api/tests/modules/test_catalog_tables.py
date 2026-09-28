@@ -60,7 +60,7 @@ async def set_manual_hidden(client, headers, dish_id, value=True):
 async def set_manual_out_of_stock(client, headers, dish_id, value=True):
     return await client.patch(
         f"/api/v1/catalog/dishes/{dish_id}/visibility",
-        json={"HetNLThuCong": value},
+        json={"HetNguyenLieu": value},
         headers=headers,
     )
 
@@ -108,35 +108,35 @@ async def test_a_soft_deleted_table_frees_its_name(session, free_table):
 
 
 @pytest.mark.asyncio
-async def test_the_two_out_of_stock_causes_are_independent(session, dish):
+async def test_the_manager_can_toggle_the_single_stock_flag(session, dish_with_recipe):
+    dish = dish_with_recipe
     h = await _headers(session, "MANAGER")
     async with await _make_client(session) as c:
-        await set_manual_out_of_stock(c, h, dish.id, value=True)
+        response = await set_manual_out_of_stock(c, h, dish.id, value=True)
     app.dependency_overrides.clear()
     row = await get_dish(session, dish.id)
-    # status via generated column or display_status
-    assert await display_status(session, row) in {
-        "Hết nguyên liệu",
-        "Ẩn thủ công",
-        "Hoạt động",
-        "Nháp",
-    }
+    assert response.status_code == 200
+    assert row.out_of_stock is True
+    assert await display_status(session, row) == "Hết nguyên liệu"
     h2 = await _headers(session, "MANAGER")
     async with await _make_client(session) as c:
         await set_manual_out_of_stock(c, h2, dish.id, value=False)
     app.dependency_overrides.clear()
     row2 = await get_dish(session, dish.id)
-    assert await display_status(session, row2) in {"Hoạt động", "Nháp"}
+    assert row2.out_of_stock is False
+    assert await display_status(session, row2) == "Hoạt động"
 
 
 @pytest.mark.asyncio
-async def test_manual_hiding_is_independent_of_stock(session, dish):
+async def test_the_removed_manual_hiding_field_is_rejected(session, dish):
     h = await _headers(session, "MANAGER")
     async with await _make_client(session) as c:
-        await set_manual_hidden(c, h, dish.id, value=True)
+        response = await set_manual_hidden(c, h, dish.id, value=True)
     app.dependency_overrides.clear()
     row = await get_dish(session, dish.id)
-    assert row.hide_manual is True
+    assert response.status_code == 422
+    assert row.missing_recipe is True
+    assert row.out_of_stock is False
 
 
 @pytest.mark.asyncio

@@ -126,14 +126,18 @@ export function DishDetail({
   const prices = versionsRes.status === "ready" ? versionsRes.data.prices : [];
   const recipes =
     versionsRes.status === "ready" ? versionsRes.data.recipes : [];
-  const pendingPrice = prices.find((p) => p.TrangThai === "Nháp") ?? null;
-  const currentPrice = prices.find((p) => p.TrangThai === "Hiệu lực") ?? null;
+  const pendingPrice =
+    prices.find((p) => p.TrangThai === "Chờ áp dụng") ?? null;
+  const currentPrice =
+    prices.find((p) => p.TrangThai === "Đang áp dụng") ?? null;
   const priceHistory = prices
     .filter((p) => p !== pendingPrice && p !== currentPrice)
     .slice(0, HISTORY_LIMIT);
 
-  const pendingRecipe = recipes.find((r) => r.TrangThai === "Nháp") ?? null;
-  const currentRecipe = recipes.find((r) => r.TrangThai === "Hiệu lực") ?? null;
+  const pendingRecipe =
+    recipes.find((r) => r.TrangThai === "Chờ áp dụng") ?? null;
+  const currentRecipe =
+    recipes.find((r) => r.TrangThai === "Đang áp dụng") ?? null;
   const recipeHistory = recipes
     .filter((r) => r !== pendingRecipe && r !== currentRecipe)
     .slice(0, HISTORY_LIMIT);
