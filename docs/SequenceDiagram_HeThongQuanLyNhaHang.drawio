@@ -269,45 +269,45 @@
     </mxGraphModel>
   </diagram>
   <diagram name="SD-03a. Thanh toán bằng mã QR (tự động)" id="8Ceb2cRJtXbiCbZoicNB">
-    <mxGraphModel dx="3453" dy="1138" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1580" pageHeight="1250" math="0" shadow="0">
+    <mxGraphModel dx="1030" dy="626" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1580" pageHeight="1250" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="X4vQ32zX1J-3" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;" value=":Màn hình thanh toán" vertex="1">
-          <mxGeometry height="1120" width="150" x="240" y="50" as="geometry" />
+          <mxGeometry height="1440" width="150" x="240" y="50" as="geometry" />
         </mxCell>
         <mxCell id="X4vQ32zX1J-4" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;" value=":XuLyThanhToan" vertex="1">
-          <mxGeometry height="1120" width="150" x="470" y="50" as="geometry" />
+          <mxGeometry height="1440" width="150" x="470" y="50" as="geometry" />
         </mxCell>
         <mxCell id="X4vQ32zX1J-5" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;" value=":GIAO_DICH_&lt;br&gt;THANH_TOAN" vertex="1">
-          <mxGeometry height="1120" width="150" x="700" y="50" as="geometry" />
+          <mxGeometry height="1440" width="150" x="700" y="50" as="geometry" />
         </mxCell>
         <mxCell id="X4vQ32zX1J-6" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;" value=":Cổng thanh toán QR" vertex="1">
-          <mxGeometry height="1120" width="150" x="930" y="50" as="geometry" />
+          <mxGeometry height="1440" width="150" x="930" y="50" as="geometry" />
         </mxCell>
         <mxCell id="X4vQ32zX1J-7" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;" value=":HOA_DON" vertex="1">
-          <mxGeometry height="1120" width="150" x="1160" y="50" as="geometry" />
+          <mxGeometry height="1440" width="150" x="1160" y="50" as="geometry" />
         </mxCell>
-        <mxCell id="X4vQ32zX1J-8" parent="1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;" value="" vertex="1">
-          <mxGeometry height="725" width="10" x="310" y="355" as="geometry" />
+        <mxCell id="X4vQ32zX1J-8" parent="1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;fillColor=#FFFFFF;" value="" vertex="1">
+          <mxGeometry height="585" width="10" x="310" y="355" as="geometry" />
         </mxCell>
-        <mxCell id="X4vQ32zX1J-9" parent="1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;" value="" vertex="1">
-          <mxGeometry height="640" width="10" x="540" y="405" as="geometry" />
+        <mxCell id="X4vQ32zX1J-9" parent="1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;fillColor=#FFFFFF;" value="" vertex="1">
+          <mxGeometry height="1030" width="10" x="540" y="405" as="geometry" />
         </mxCell>
-        <mxCell id="X4vQ32zX1J-10" parent="1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;" value="" vertex="1">
+        <mxCell id="X4vQ32zX1J-10" parent="1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;fillColor=#FFFFFF;" value="" vertex="1">
           <mxGeometry height="55" width="10" x="770" y="455" as="geometry" />
         </mxCell>
-        <mxCell id="X4vQ32zX1J-11" parent="1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;" value="" vertex="1">
-          <mxGeometry height="45" width="10" x="770" y="895" as="geometry" />
+        <mxCell id="X4vQ32zX1J-11" parent="1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;fillColor=#FFFFFF;" value="" vertex="1">
+          <mxGeometry height="35" width="10" x="770" y="1125" as="geometry" />
         </mxCell>
-        <mxCell id="X4vQ32zX1J-12" parent="1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;" value="" vertex="1">
+        <mxCell id="X4vQ32zX1J-12" parent="1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;fillColor=#FFFFFF;" value="" vertex="1">
           <mxGeometry height="55" width="10" x="1000" y="555" as="geometry" />
         </mxCell>
-        <mxCell id="X4vQ32zX1J-13" parent="1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;" value="" vertex="1">
-          <mxGeometry height="30" width="10" x="1000" y="740" as="geometry" />
+        <mxCell id="X4vQ32zX1J-13" parent="1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;fillColor=#FFFFFF;" value="" vertex="1">
+          <mxGeometry height="30" width="10" x="1000" y="1023" as="geometry" />
         </mxCell>
-        <mxCell id="X4vQ32zX1J-14" parent="1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;" value="" vertex="1">
-          <mxGeometry height="55" width="10" x="1230" y="935" as="geometry" />
+        <mxCell id="X4vQ32zX1J-14" parent="1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;fillColor=#FFFFFF;" value="" vertex="1">
+          <mxGeometry height="50" width="10" x="1230" y="1165" as="geometry" />
         </mxCell>
         <mxCell id="X4vQ32zX1J-15" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=block;rounded=0;endFill=1;" value="5: khách xác nhận số tiền; Thu ngân chọn QR">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
@@ -351,75 +351,8 @@
             <mxPoint x="320" y="640" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="X4vQ32zX1J-22" parent="1" style="shape=umlFrame;whiteSpace=wrap;html=1;width=70;height=30;" value="opt" vertex="1">
-          <mxGeometry height="95" width="670" x="440" y="675" as="geometry" />
-        </mxCell>
-        <mxCell id="X4vQ32zX1J-23" parent="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=2;" value="[webhook đến bất đồng bộ, kể cả sau khi QR hết hạn]" vertex="1">
-          <mxGeometry height="24" width="300" x="455" y="708" as="geometry" />
-        </mxCell>
-        <mxCell id="X4vQ32zX1J-24" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=open;endSize=10;rounded=0;" value="12: webhook xác nhận giao dịch">
-          <mxGeometry height="50" relative="1" width="50" as="geometry">
-            <mxPoint x="1000" y="748" as="sourcePoint" />
-            <mxPoint x="550" y="748" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="X4vQ32zX1J-25" parent="1" style="shape=umlFrame;whiteSpace=wrap;html=1;width=70;height=30;" value="alt" vertex="1">
-          <mxGeometry height="270" width="1090" x="230" y="785" as="geometry" />
-        </mxCell>
-        <mxCell id="X4vQ32zX1J-26" parent="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=2;" value="[chữ ký, mã, số tiền đúng; order chưa thanh toán, chưa mở lại/chốt Thất thoát]" vertex="1">
-          <mxGeometry height="24" width="300" x="245" y="818" as="geometry" />
-        </mxCell>
-        <mxCell id="X4vQ32zX1J-27" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=block;rounded=0;endFill=1;align=left;spacingLeft=6;edgeStyle=orthogonalEdgeStyle;curved=0;" value="13: đối chiếu chữ ký và số tiền">
-          <mxGeometry height="50" relative="1" width="50" as="geometry">
-            <Array as="points">
-              <mxPoint x="610" y="845" />
-              <mxPoint x="610" y="881" />
-            </Array>
-            <mxPoint x="550" y="845" as="sourcePoint" />
-            <mxPoint x="550" y="881" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="X4vQ32zX1J-28" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=block;rounded=0;endFill=1;" value="14: trong transaction: Thành công nếu chưa ghi nhận">
-          <mxGeometry height="50" relative="1" width="50" as="geometry">
-            <mxPoint x="550" y="905" as="sourcePoint" />
-            <mxPoint x="770" y="905" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="X4vQ32zX1J-29" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=block;rounded=0;endFill=1;" value="15: cùng transaction: phát hành hóa đơn duy nhất">
-          <mxGeometry height="50" relative="1" width="50" as="geometry">
-            <mxPoint x="550" y="945" as="sourcePoint" />
-            <mxPoint x="1230" y="945" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="X4vQ32zX1J-30" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=open;endSize=10;dashed=1;rounded=0;" value="16: SoHoaDon">
-          <mxGeometry height="50" relative="1" width="50" as="geometry">
-            <mxPoint x="1230" y="973" as="sourcePoint" />
-            <mxPoint x="550" y="973" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="X4vQ32zX1J-31" edge="1" parent="1" style="endArrow=none;dashed=1;html=1;rounded=0;" value="">
-          <mxGeometry height="50" relative="1" width="50" as="geometry">
-            <mxPoint x="230" y="990" as="sourcePoint" />
-            <mxPoint x="1320" y="990" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="X4vQ32zX1J-32" parent="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=2;" value="[sau 10 phút chưa xác nhận / webhook sai / đến muộn sau chốt]" vertex="1">
-          <mxGeometry height="24" width="320" x="235" y="990" as="geometry" />
-        </mxCell>
-        <mxCell id="X4vQ32zX1J-33" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=open;endSize=10;dashed=1;rounded=0;" value="17: timeout → Hết hạn; webhook sai → log; tiền đến muộn → ngoại lệ chờ Quản lý">
-          <mxGeometry height="50" relative="1" width="50" as="geometry">
-            <mxPoint x="540" y="1032" as="sourcePoint" />
-            <mxPoint x="320" y="1032" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="X4vQ32zX1J-34" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=open;endSize=10;dashed=1;rounded=0;" value="18: Hết hạn → QR mới/đối soát; ngoại lệ → Quản lý áp dụng cho order chưa trả hoặc hoàn tiền">
-          <mxGeometry height="50" relative="1" width="50" as="geometry">
-            <mxPoint x="310" y="1080" as="sourcePoint" />
-            <mxPoint x="120" y="1080" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
         <mxCell id="LEe_CAOMChvgxSSX5T2p-1" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;participant=umlActor;" value="" vertex="1">
-          <mxGeometry height="1120" width="40" x="100" y="50" as="geometry" />
+          <mxGeometry height="1440" width="40" x="100" y="50" as="geometry" />
         </mxCell>
         <mxCell id="LEe_CAOMChvgxSSX5T2p-2" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="Thu ngân" vertex="1">
           <mxGeometry height="30" width="90" x="130" y="60" as="geometry" />
@@ -448,57 +381,168 @@
             <mxPoint x="120" y="280" as="targetPoint" />
           </mxGeometry>
         </mxCell>
+        <mxCell id="qr_verify_frame" parent="1" style="shape=umlFrame;whiteSpace=wrap;html=1;width=70;height=30;fillColor=none;" value="opt" vertex="1">
+          <mxGeometry height="130" width="1090" x="230" y="670" as="geometry" />
+        </mxCell>
+        <mxCell id="qr_verify_guard" parent="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=2;" value="[khách báo đã chuyển nhưng webhook chưa về (QR còn hiệu lực, hoặc đã hết hạn rồi khách mới báo)]" vertex="1">
+          <mxGeometry height="24" width="800" x="245" y="697" as="geometry" />
+        </mxCell>
+        <mxCell id="qr_verify_msg1" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=block;rounded=0;endFill=1;" value="12: Yêu cầu xác minh">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="120" y="738" as="sourcePoint" />
+            <mxPoint x="310" y="738" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="qr_verify_msg2" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=block;rounded=0;endFill=1;" value="13: yeuCauXacMinh(MaGiaoDichTT) → SD-03b">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="320" y="778" as="sourcePoint" />
+            <mxPoint x="540" y="778" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="qr_timeout_frame" parent="1" style="shape=umlFrame;whiteSpace=wrap;html=1;width=70;height=30;fillColor=none;" value="opt" vertex="1">
+          <mxGeometry height="130" width="1090" x="230" y="810" as="geometry" />
+        </mxCell>
+        <mxCell id="qr_timeout_guard" parent="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=2;" value="[đủ 10 phút và giao dịch còn Chờ xác nhận]" vertex="1">
+          <mxGeometry height="24" width="550" x="245" y="837" as="geometry" />
+        </mxCell>
+        <mxCell id="qr_timeout_update" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=block;rounded=0;endFill=1;" value="15: QR → Hết hạn; order → Đang mở">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="550" y="878" as="sourcePoint" />
+            <mxPoint x="770" y="878" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="qr_timeout_bar" parent="1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;fillColor=#FFFFFF;" value="" vertex="1">
+          <mxGeometry height="30" width="10" x="770" y="873" as="geometry" />
+        </mxCell>
+        <mxCell id="qr_timeout_ui" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;rounded=0;" value="16: hiển thị Mã QR hết hạn">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="540" y="918" as="sourcePoint" />
+            <mxPoint x="320" y="918" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="qr_webhook_frame" parent="1" style="shape=umlFrame;whiteSpace=wrap;html=1;width=70;height=30;fillColor=none;" value="opt" vertex="1">
+          <mxGeometry height="500" width="880" x="440" y="950" as="geometry" />
+        </mxCell>
+        <mxCell id="qr_webhook_guard" parent="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=2;" value="[nhận webhook, kể cả sau hết hạn hoặc hủy QR]" vertex="1">
+          <mxGeometry height="24" width="600" x="455" y="983" as="geometry" />
+        </mxCell>
+        <mxCell id="qr_webhook_msg" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=open;rounded=0;" value="17: webhook(MaGiaoDichCong, MaOrder, soTien)">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="1000" y="1028" as="sourcePoint" />
+            <mxPoint x="550" y="1028" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="qr_result_frame" parent="1" style="shape=umlFrame;whiteSpace=wrap;html=1;width=70;height=30;fillColor=none;" value="alt" vertex="1">
+          <mxGeometry height="385" width="870" x="450" y="1050" as="geometry" />
+        </mxCell>
+        <mxCell id="qr_success_guard" parent="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=2;" value="[hợp lệ, đủ tiền; order chưa thanh toán/mở lại/đóng/hủy]" vertex="1">
+          <mxGeometry height="24" width="810" x="465" y="1083" as="geometry" />
+        </mxCell>
+        <mxCell id="qr_success" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=block;rounded=0;endFill=1;" value="18: khóa, kiểm tra; giao dịch Thành công + order Đã thanh toán">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="550" y="1130" as="sourcePoint" />
+            <mxPoint x="770" y="1130" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="qr_invoice" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=block;rounded=0;endFill=1;" value="19: cùng transaction: phát hành hóa đơn duy nhất">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="550" y="1170" as="sourcePoint" />
+            <mxPoint x="1230" y="1170" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="qr_invoice_return" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;rounded=0;" value="20: SoHoaDon (đã có thì không tạo lại)">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="1230" y="1205" as="sourcePoint" />
+            <mxPoint x="550" y="1205" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="qr_div1" edge="1" parent="1" style="endArrow=none;dashed=1;html=1;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="450" y="1230" as="sourcePoint" />
+            <mxPoint x="1320" y="1230" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="qr_invalid_guard" parent="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=2;" value="[webhook không hợp lệ hoặc không xác định được giao dịch]" vertex="1">
+          <mxGeometry height="24" width="810" x="465" y="1238" as="geometry" />
+        </mxCell>
+        <mxCell id="qr_invalid" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=block;rounded=0;endFill=1;" value="21: ghi log; không xác nhận thanh toán">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="550" y="1285" as="sourcePoint" />
+            <mxPoint x="770" y="1285" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="qr_div2" edge="1" parent="1" style="endArrow=none;dashed=1;html=1;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="450" y="1315" as="sourcePoint" />
+            <mxPoint x="1320" y="1315" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="qr_exception_guard" parent="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=2;" value="[khoản nhận hợp lệ nhưng order mở lại/đóng/hủy/đã trả hoặc lệch tiền]" vertex="1">
+          <mxGeometry height="24" width="820" x="465" y="1323" as="geometry" />
+        </mxCell>
+        <mxCell id="qr_exception" edge="1" parent="1" style="html=1;verticalAlign=bottom;endArrow=block;rounded=0;endFill=1;" value="22: lưu ngoại lệ; Quản lý áp dụng hoặc lưu kết quả hoàn tiền">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="550" y="1385" as="sourcePoint" />
+            <mxPoint x="770" y="1385" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="qr_invalid_bar" parent="1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;fillColor=#FFFFFF;" value="" vertex="1">
+          <mxGeometry height="30" width="10" x="770" y="1280" as="geometry" />
+        </mxCell>
+        <mxCell id="qr_exception_bar" parent="1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;fillColor=#FFFFFF;" value="" vertex="1">
+          <mxGeometry height="30" width="10" x="770" y="1380" as="geometry" />
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
   <diagram name="SD-03b. Đối soát thủ công khi QR không tự khớp" id="SD03bManualRecon01">
-    <mxGraphModel dx="858" dy="522" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1350" pageHeight="1010" math="0" shadow="0">
+    <mxGraphModel dx="1585" dy="963" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1350" pageHeight="1010" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="B1" parent="0" />
         <mxCell id="B3" parent="B1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;" value=":Màn hình thanh toán" vertex="1">
-          <mxGeometry height="810" width="150" x="240" y="50" as="geometry" />
+          <mxGeometry height="920" width="150" x="240" y="50" as="geometry" />
         </mxCell>
         <mxCell id="B4" parent="B1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;" value=":XuLyThanhToan" vertex="1">
-          <mxGeometry height="810" width="150" x="470" y="50" as="geometry" />
+          <mxGeometry height="920" width="150" x="470" y="50" as="geometry" />
         </mxCell>
         <mxCell id="B5" parent="B1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;" value=":GIAO_DICH_&lt;br&gt;THANH_TOAN" vertex="1">
-          <mxGeometry height="810" width="150" x="700" y="50" as="geometry" />
+          <mxGeometry height="920" width="150" x="700" y="50" as="geometry" />
         </mxCell>
         <mxCell id="B7" parent="B1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;" value=":HOA_DON" vertex="1">
-          <mxGeometry height="810" width="150" x="930" y="50" as="geometry" />
+          <mxGeometry height="920" width="150" x="930" y="50" as="geometry" />
         </mxCell>
-        <mxCell id="B8" parent="B1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;" value="" vertex="1">
+        <mxCell id="B8" parent="B1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;fillColor=#FFFFFF;" value="" vertex="1">
           <mxGeometry height="80" width="10" x="310" y="110" as="geometry" />
         </mxCell>
-        <mxCell id="B9" parent="B1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;" value="" vertex="1">
+        <mxCell id="B9" parent="B1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;fillColor=#FFFFFF;" value="" vertex="1">
           <mxGeometry height="680" width="10" x="540" y="150" as="geometry" />
         </mxCell>
-        <mxCell id="B10" parent="B1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;" value="" vertex="1">
+        <mxCell id="B10" parent="B1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;fillColor=#FFFFFF;" value="" vertex="1">
           <mxGeometry height="30" width="10" x="770" y="190" as="geometry" />
         </mxCell>
-        <mxCell id="B12" parent="B1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;" value="" vertex="1">
+        <mxCell id="B12" parent="B1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;fillColor=#FFFFFF;" value="" vertex="1">
           <mxGeometry height="30" width="10" x="770" y="370" as="geometry" />
         </mxCell>
-        <mxCell id="B13" parent="B1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;" value="" vertex="1">
+        <mxCell id="B13" parent="B1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;fillColor=#FFFFFF;" value="" vertex="1">
           <mxGeometry height="30" width="10" x="1000" y="400" as="geometry" />
         </mxCell>
-        <mxCell id="B14" parent="B1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;" value="" vertex="1">
+        <mxCell id="B14" parent="B1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;fillColor=#FFFFFF;" value="" vertex="1">
           <mxGeometry height="30" width="10" x="770" y="480" as="geometry" />
         </mxCell>
-        <mxCell id="M1" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="1: nhập mã giao dịch ngân hàng (MaGiaoDichNganHang) và đính kèm ảnh chứng từ">
+        <mxCell id="M1" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="1: nhập mã giao dịch">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
             <mxPoint x="120" y="110" as="sourcePoint" />
             <mxPoint x="310" y="110" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="M2" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="2: ghiNhanDoiSoat(MaGiaoDichTT, MaGiaoDichNganHang, anhChungTu)">
+        <mxCell id="M2" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="2: ghiNhanDoiSoat(MaGiaoDichTT, MaGiaoDichNganHang)">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
             <mxPoint x="320" y="150" as="sourcePoint" />
             <mxPoint x="540" y="150" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="M3" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="3: cập nhật MaGiaoDichNganHang, AnhChungTu, trạng thái Chờ đối soát">
+        <mxCell id="M3" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="3: lưu bằng chứng; order/giao dịch → Chờ xác minh thanh toán">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
             <mxPoint x="550" y="190" as="sourcePoint" />
             <mxPoint x="770" y="190" as="targetPoint" />
@@ -510,25 +554,25 @@
             <mxPoint x="1230" y="230" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="M5" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="5: xacNhanDoiSoat(ketQua)">
+        <mxCell id="M5" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="5: đối chiếu sao kê, mã, số tiền và thời điểm">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
             <mxPoint x="1230" y="270" as="sourcePoint" />
             <mxPoint x="550" y="270" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="ALT1" parent="B1" style="shape=umlFrame;whiteSpace=wrap;html=1;width=70;height=30;" value="alt" vertex="1">
-          <mxGeometry height="230" width="1090" x="230" y="310" as="geometry" />
+          <mxGeometry height="625" width="1090" x="230" y="310" as="geometry" />
         </mxCell>
         <mxCell id="LBL1" parent="B1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=2;" value="[ketQua = Đã nhận tiền]" vertex="1">
           <mxGeometry height="24" width="300" x="245" y="343" as="geometry" />
         </mxCell>
-        <mxCell id="M6" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="6: cập nhật trạng thái Thành công">
+        <mxCell id="M6" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="6: khóa, kiểm tra; giao dịch Thành công + order Đã thanh toán">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
             <mxPoint x="550" y="370" as="sourcePoint" />
             <mxPoint x="770" y="370" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="M7" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="7: phatHanhHoaDon(MaOrder, MaGiaoDichTT)">
+        <mxCell id="M7" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="7: cùng transaction: phát hành hóa đơn duy nhất">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
             <mxPoint x="550" y="400" as="sourcePoint" />
             <mxPoint x="1000" y="400" as="targetPoint" />
@@ -540,83 +584,119 @@
             <mxPoint x="1320" y="440" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="LBL2" parent="B1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=2;" value="[ketQua = Không có giao dịch → Tranh chấp]" vertex="1">
-          <mxGeometry height="24" width="320" x="245" y="440" as="geometry" />
+        <mxCell id="LBL2" parent="B1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=2;" value="[chưa đủ căn cứ đã nhận tiền]" vertex="1">
+          <mxGeometry height="24" width="650" x="245" y="446" as="geometry" />
         </mxCell>
-        <mxCell id="M8" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="8: cập nhật trạng thái Tranh chấp">
+        <mxCell id="M8" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="8: lưu kết quả kiểm tra; giữ Chờ xác minh thanh toán">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
             <mxPoint x="550" y="480" as="sourcePoint" />
             <mxPoint x="770" y="480" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="fix_dispute_alt" parent="B1" style="shape=umlFrame;whiteSpace=wrap;html=1;width=70;height=30;" value="alt" vertex="1">
-          <mxGeometry height="275" width="1090" x="230" y="555" as="geometry" />
+          <mxGeometry height="380" width="880" x="440" y="555" as="geometry" />
         </mxCell>
-        <mxCell id="fix_dispute_lbl1" parent="B1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=2;" value="[Quản lý duyệt bằng chứng bổ sung → Thành công]" vertex="1">
-          <mxGeometry height="24" width="560" x="245" y="587" as="geometry" />
+        <mxCell id="fix_dispute_lbl1" parent="B1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=2;" value="[sau tra soát: Quản lý xác minh đã nhận đủ tiền]" vertex="1">
+          <mxGeometry height="24" width="850" x="455" y="587" as="geometry" />
         </mxCell>
-        <mxCell id="fix_dispute_lbl2" parent="B1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=2;" value="[khách chưa chuyển tiền → Quản lý mở lại thanh toán]" vertex="1">
-          <mxGeometry height="24" width="560" x="245" y="670" as="geometry" />
+        <mxCell id="fix_dispute_lbl2" parent="B1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=2;" value="[đã thống nhất với khách: Quản lý mở lại thanh toán]" vertex="1">
+          <mxGeometry height="24" width="850" x="455" y="718" as="geometry" />
         </mxCell>
-        <mxCell id="fix_dispute_lbl3" parent="B1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=2;" value="[Quản lý kết luận không thu được tiền]" vertex="1">
-          <mxGeometry height="24" width="560" x="245" y="752" as="geometry" />
+        <mxCell id="fix_dispute_lbl3" parent="B1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=2;" value="[sau xử lý bên ngoài: Quản lý quyết định ngừng theo dõi thu tiền]" vertex="1">
+          <mxGeometry height="24" width="850" x="455" y="823" as="geometry" />
         </mxCell>
-        <mxCell id="fix_dispute_msg1" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="9: xác nhận tiền, phát hành hóa đơn duy nhất">
+        <mxCell id="fix_dispute_msg1" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="11: cùng transaction: phát hành hóa đơn duy nhất">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
-            <mxPoint x="550" y="625" as="sourcePoint" />
-            <mxPoint x="1000" y="625" as="targetPoint" />
+            <mxPoint x="550" y="701" as="sourcePoint" />
+            <mxPoint x="1000" y="701" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="fix_dispute_msg2" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="10: hủy giao dịch tranh chấp; mở lại chỉ để thanh toán, giữ khóa món và không gắn lại bàn">
+        <mxCell id="fix_dispute_msg2" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="13: hủy lần thử cũ; order → Đang mở">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
-            <mxPoint x="550" y="708" as="sourcePoint" />
-            <mxPoint x="770" y="708" as="targetPoint" />
+            <mxPoint x="550" y="795" as="sourcePoint" />
+            <mxPoint x="770" y="795" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="fix_dispute_msg3" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="11: chốt Thất thoát; không phát hành hóa đơn">
+        <mxCell id="fix_dispute_msg3" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;rounded=0;" value="15: Đóng – chưa thu được tiền; lưu số tiền chưa thu">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
-            <mxPoint x="550" y="790" as="sourcePoint" />
-            <mxPoint x="770" y="790" as="targetPoint" />
+            <mxPoint x="550" y="900" as="sourcePoint" />
+            <mxPoint x="770" y="900" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="fix_bar_received" parent="B1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;" value="" vertex="1">
-          <mxGeometry height="35" width="10" x="770" y="620" as="geometry" />
+        <mxCell id="fix_bar_received" parent="B1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;fillColor=#FFFFFF;" value="" vertex="1">
+          <mxGeometry height="30" width="10" x="770" y="650" as="geometry" />
         </mxCell>
-        <mxCell id="fix_bar_invoice" parent="B1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;" value="" vertex="1">
-          <mxGeometry height="35" width="10" x="1000" y="620" as="geometry" />
+        <mxCell id="fix_bar_invoice" parent="B1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;fillColor=#FFFFFF;" value="" vertex="1">
+          <mxGeometry height="30" width="10" x="1000" y="685" as="geometry" />
         </mxCell>
-        <mxCell id="fix_bar_reopen" parent="B1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;" value="" vertex="1">
-          <mxGeometry height="35" width="10" x="770" y="700" as="geometry" />
+        <mxCell id="fix_bar_reopen" parent="B1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;fillColor=#FFFFFF;" value="" vertex="1">
+          <mxGeometry height="30" width="10" x="770" y="790" as="geometry" />
         </mxCell>
-        <mxCell id="fix_bar_loss" parent="B1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;" value="" vertex="1">
-          <mxGeometry height="35" width="10" x="770" y="782" as="geometry" />
+        <mxCell id="fix_bar_loss" parent="B1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;fillColor=#FFFFFF;" value="" vertex="1">
+          <mxGeometry height="30" width="10" x="770" y="895" as="geometry" />
         </mxCell>
         <mxCell id="fix_div_dispute_1" edge="1" parent="B1" style="endArrow=none;dashed=1;html=1;rounded=0;" value="">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
-            <mxPoint x="230" y="660" as="sourcePoint" />
-            <mxPoint x="1320" y="660" as="targetPoint" />
+            <mxPoint x="440" y="710" as="sourcePoint" />
+            <mxPoint x="1320" y="710" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="fix_div_dispute_2" edge="1" parent="B1" style="endArrow=none;dashed=1;html=1;rounded=0;" value="">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
-            <mxPoint x="230" y="744" as="sourcePoint" />
-            <mxPoint x="1320" y="744" as="targetPoint" />
+            <mxPoint x="440" y="815" as="sourcePoint" />
+            <mxPoint x="1320" y="815" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="Lmef_gaAt05h5cDwaNib-0" parent="B1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;participant=umlActor;" value="" vertex="1">
-          <mxGeometry height="810" width="40" x="100" y="50" as="geometry" />
+          <mxGeometry height="920" width="40" x="100" y="50" as="geometry" />
         </mxCell>
         <mxCell id="Lmef_gaAt05h5cDwaNib-1" parent="B1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="Thu ngân" vertex="1">
           <mxGeometry height="30" width="90" x="130" y="60" as="geometry" />
         </mxCell>
         <mxCell id="Lmef_gaAt05h5cDwaNib-2" parent="B1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;participant=umlActor;" value="" vertex="1">
-          <mxGeometry height="810" width="40" x="1210" y="50" as="geometry" />
+          <mxGeometry height="920" width="40" x="1210" y="50" as="geometry" />
         </mxCell>
-        <mxCell id="B11" parent="Lmef_gaAt05h5cDwaNib-2" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;" value="" vertex="1">
+        <mxCell id="B11" parent="Lmef_gaAt05h5cDwaNib-2" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;fillColor=#FFFFFF;" value="" vertex="1">
           <mxGeometry height="40" width="10" x="15" y="180" as="geometry" />
         </mxCell>
         <mxCell id="Lmef_gaAt05h5cDwaNib-3" parent="B1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="Quản lý" vertex="1">
           <mxGeometry height="30" width="90" x="1240" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="manual_confirm_request" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;rounded=0;endFill=1;" value="9: xác nhận đã nhận tiền">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="1230" y="625" as="sourcePoint" />
+            <mxPoint x="550" y="625" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="manual_confirm_state" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;rounded=0;endFill=1;" value="10: khóa, kiểm tra; giao dịch Thành công + order Đã thanh toán">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="550" y="655" as="sourcePoint" />
+            <mxPoint x="770" y="655" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="manual_reopen_request" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;rounded=0;endFill=1;" value="12: mở lại thanh toán(lý do, kết quả xử lý)">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="1230" y="765" as="sourcePoint" />
+            <mxPoint x="550" y="765" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="manual_close_request" edge="1" parent="B1" style="html=1;verticalAlign=bottom;endArrow=block;rounded=0;endFill=1;" value="14: đóng order(lý do, kết quả xử lý)">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="1230" y="870" as="sourcePoint" />
+            <mxPoint x="550" y="870" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="manual_process_close" parent="B1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;fillColor=#FFFFFF;" value="" vertex="1">
+          <mxGeometry height="50" width="10" x="540" y="865" as="geometry" />
+        </mxCell>
+        <mxCell id="manual_manager_confirm" parent="B1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;fillColor=#FFFFFF;" value="" vertex="1">
+          <mxGeometry height="25" width="10" x="1225" y="610" as="geometry" />
+        </mxCell>
+        <mxCell id="manual_manager_reopen" parent="B1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;fillColor=#FFFFFF;" value="" vertex="1">
+          <mxGeometry height="25" width="10" x="1225" y="750" as="geometry" />
+        </mxCell>
+        <mxCell id="manual_manager_close" parent="B1" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;fillColor=#FFFFFF;" value="" vertex="1">
+          <mxGeometry height="25" width="10" x="1225" y="855" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

@@ -253,7 +253,7 @@
     </mxGraphModel>
   </diagram>
   <diagram name="Quan ly ban hang" id="Quan_ly_ban_hang">
-    <mxGraphModel dx="3185" dy="963" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0">
+    <mxGraphModel dx="2630" dy="626" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -276,16 +276,16 @@
           <mxGeometry height="24" width="240" y="40" as="geometry" />
         </mxCell>
         <mxCell id="id9" parent="1" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=0;resizeParentMax=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#F5F8FC;strokeColor=#2C3E50;dashed=0;fontSize=12;" value="ORDER" vertex="1">
-          <mxGeometry height="307" width="240" x="40" y="40" as="geometry" />
+          <mxGeometry height="323" width="240" x="40" y="40" as="geometry" />
         </mxCell>
         <mxCell id="id10" parent="id9" style="text;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;whiteSpace=wrap;html=1;fontSize=11;" value="- MaOrder : Long&lt;br&gt;- MaOrderHienThi : String&lt;br&gt;- BusinessDate : LocalDate&lt;br&gt;- MaBan : int&lt;br&gt;- LoaiDon : String&lt;br&gt;- TrangThai : String&lt;br&gt;- TongTien : double&lt;br&gt;- NguoiTao : int&lt;br&gt;- ThoiDiemTao : LocalDateTime&lt;br&gt;- ThoiDiemDong : LocalDateTime&lt;br&gt;- LyDoHuy : String" vertex="1">
-          <mxGeometry height="168" width="240" y="26" as="geometry" />
+          <mxGeometry height="152" width="240" y="26" as="geometry" />
         </mxCell>
         <mxCell id="id11" parent="id9" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;html=1;" value="" vertex="1">
-          <mxGeometry height="8" width="240" y="194" as="geometry" />
+          <mxGeometry height="8" width="240" y="178" as="geometry" />
         </mxCell>
-        <mxCell id="id12" parent="id9" style="text;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;whiteSpace=wrap;html=1;fontSize=11;" value="+ taoOrder(maBan: Object): void&lt;br&gt;+ themMonVaoOrder(maMon: Object, soLuong: Object): void&lt;br&gt;+ doiBan(maBanMoi: Object): void&lt;br&gt;+ tinhTongTien(): void&lt;br&gt;+ huyOrder(lyDo: Object): void&lt;br&gt;+ moLaiChiThanhToan(): void" vertex="1">
-          <mxGeometry height="104" width="240" y="202" as="geometry" />
+        <mxCell id="id12" parent="id9" style="text;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;whiteSpace=wrap;html=1;fontSize=11;" value="+ taoOrder(maBan: Object): void&lt;br&gt;+ themMonVaoOrder(maMon: Object, soLuong: Object): void&lt;br&gt;+ doiBan(maBanMoi: Object): void&lt;br&gt;+ tinhTongTien(): void&lt;br&gt;+ huyOrder(lyDo: Object): void&lt;br&gt;+ moLaiThanhToan(lyDo: String): void&lt;br&gt;+ dongOrderKhongThuDuocTien(&lt;br&gt;&amp;nbsp;&amp;nbsp;lyDo: String, ketQuaXuLy: String): void" vertex="1">
+          <mxGeometry height="128" width="240" y="186" as="geometry" />
         </mxCell>
         <mxCell id="id13" parent="1" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=0;resizeParentMax=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#F5F8FC;strokeColor=#2C3E50;dashed=0;fontSize=12;" value="CHI_TIET_ORDER" vertex="1">
           <mxGeometry height="223" width="240" x="373.17" y="147" as="geometry" />
@@ -312,7 +312,7 @@
           <mxGeometry height="32" width="240" y="138" as="geometry" />
         </mxCell>
         <mxCell id="id21" parent="1" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=0;resizeParentMax=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#F5F8FC;strokeColor=#2C3E50;dashed=0;fontSize=12;" value="HOA_DON" vertex="1">
-          <mxGeometry height="234" width="240" x="40" y="363" as="geometry" />
+          <mxGeometry height="234" width="240" x="40" y="376.5" as="geometry" />
         </mxCell>
         <mxCell id="id22" parent="id21" style="text;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;whiteSpace=wrap;html=1;fontSize=11;" value="- MaHoaDon : Long&lt;br&gt;- MaOrder : Long&lt;br&gt;- MaGiaoDichThanhToan : Long&lt;br&gt;- SoHoaDon : String&lt;br&gt;- ThoiDiemXuat : LocalDateTime&lt;br&gt;- TongTien : double&lt;br&gt;- PhuongThucThanhToan : String&lt;br&gt;- NguoiLap : int&lt;br&gt;-&amp;nbsp;BusinessDate : LocalDate&lt;br&gt;- SoLanIn : int" vertex="1">
           <mxGeometry height="152" width="240" y="26" as="geometry" />
@@ -324,7 +324,7 @@
           <mxGeometry height="56" width="240" y="186" as="geometry" />
         </mxCell>
         <mxCell id="id25" parent="1" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=0;resizeParentMax=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#F5F8FC;strokeColor=#2C3E50;dashed=0;fontSize=12;" value="GIAO_DICH_THANH_TOAN" vertex="1">
-          <mxGeometry height="360" width="240" x="40" y="620" as="geometry" />
+          <mxGeometry height="420" width="240" x="40" y="650" as="geometry" />
         </mxCell>
         <mxCell id="id26" parent="id25" style="text;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;whiteSpace=wrap;html=1;fontSize=11;" value="- MaGiaoDichTT : Long&lt;br&gt;- MaOrder : Long&lt;br&gt;- PhuongThuc : String&lt;br&gt;- SoTien : double&lt;br&gt;- TrangThai : String&lt;br&gt;- MaQR : String&lt;br&gt;- ThoiDiemTaoQR : LocalDateTime&lt;br&gt;- ThoiDiemHetHan : LocalDateTime&lt;br&gt;- MaGiaoDichCong : String&lt;br&gt;- NoiDungWebhook : String&lt;br&gt;- MaGiaoDichNganHang : String&lt;br&gt;- AnhChungTu : String&lt;div&gt;- BusinessDate : LocalDate&lt;/div&gt;- TrangThaiNgoaiLe : String?&lt;br&gt;- SoTienNgoaiLe : double?&lt;br&gt;- MaThamChieuHoan : String?&lt;br&gt;- ThoiDiemXuLyNgoaiLe : LocalDateTime?&lt;br&gt;- NguoiXuLyNgoaiLe : int?" vertex="1">
           <mxGeometry height="250" width="240" y="26" as="geometry" />
@@ -332,8 +332,8 @@
         <mxCell id="id27" parent="id25" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;html=1;" value="" vertex="1">
           <mxGeometry height="8" width="240" y="276" as="geometry" />
         </mxCell>
-        <mxCell id="id28" parent="id25" style="text;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;whiteSpace=wrap;html=1;fontSize=11;" value="+ xacNhanThanhToan(): void&lt;br&gt;+ xuLyWebhook(duLieu: Object): void&lt;br&gt;+ kiemTraTrangThai(): boolean&lt;br&gt;+ xuLyNgoaiLeTienDenMuon(ketQua: Object): void" vertex="1">
-          <mxGeometry height="86" width="240" y="284" as="geometry" />
+        <mxCell id="id28" parent="id25" style="text;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;whiteSpace=wrap;html=1;fontSize=11;" value="+ xacNhanThanhToan(): void&lt;br&gt;+ xuLyWebhook(duLieu: Object): void&lt;br&gt;+ kiemTraTrangThai(): boolean&lt;br&gt;+ yeuCauXacMinh(): void&lt;br&gt;+ luuKetQuaXacMinh(noiDung: String,&lt;br&gt;&amp;nbsp;&amp;nbsp;bangChung: Object): void&lt;br&gt;+ apDungKhoanTienDenMuon(): void&lt;br&gt;+ ghiNhanKetQuaHoanTien(&lt;br&gt;&amp;nbsp;&amp;nbsp;maThamChieu: String, soTien: double): void" vertex="1">
+          <mxGeometry height="128" width="240" y="284" as="geometry" />
         </mxCell>
         <mxCell id="id29" parent="1" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=0;resizeParentMax=0;collapsible=0;marginBottom=0;whiteSpace=wrap;html=1;fillColor=#F5F8FC;strokeColor=#2C3E50;dashed=0;fontSize=12;" value="PHIEU_BEP" vertex="1">
           <mxGeometry height="181" width="240" x="373.17" y="403" as="geometry" />
