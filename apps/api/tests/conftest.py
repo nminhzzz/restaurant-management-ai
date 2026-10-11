@@ -80,6 +80,15 @@ def _clear_settings_cache() -> Iterator[None]:
 
 
 @pytest.fixture(autouse=True)
+def _isolate_payment_gateway_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep payment tests independent of developer-specific SePay settings."""
+    monkeypatch.setenv("PAYMENT_GATEWAY", "simulator")
+    monkeypatch.setenv("SEPAY_BANK_ACCOUNT", "")
+    monkeypatch.setenv("SEPAY_BANK_CODE", "")
+    monkeypatch.setenv("SEPAY_WEBHOOK_API_KEY", "")
+
+
+@pytest.fixture(autouse=True)
 def freeze_clock(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(business_date, "now", lambda: FIXED_NOW)
 

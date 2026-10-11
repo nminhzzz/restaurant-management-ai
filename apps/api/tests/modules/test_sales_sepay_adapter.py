@@ -87,6 +87,9 @@ def test_a_non_ascii_header_does_not_raise():
 
 def test_selecting_sepay_without_credentials_fails_at_startup(monkeypatch):
     monkeypatch.setenv("PAYMENT_GATEWAY", "sepay")
+    monkeypatch.setenv("SEPAY_BANK_ACCOUNT", "")
+    monkeypatch.setenv("SEPAY_BANK_CODE", "")
+    monkeypatch.setenv("SEPAY_WEBHOOK_API_KEY", "")
     get_settings.cache_clear()
     with pytest.raises(RuntimeError, match="SEPAY"):
         get_settings()
