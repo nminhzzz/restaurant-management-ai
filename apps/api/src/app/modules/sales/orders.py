@@ -157,6 +157,7 @@ async def _return_line_stock(
     line: OrderLine,
     dishes: Decimal,
     *,
+    business_date_value: date,
     actor_id: int | None = None,
 ) -> None:
     """Return the ingredients for `dishes` portions of this line, FIFO per drawn movement."""
@@ -198,8 +199,6 @@ async def _return_line_stock(
             reversal.ingredient_id, Decimal(0)
         ) + Decimal(str(reversal.qty))
 
-    now = business_date.now()
-    start = await effective_business_day_start(session, now)
     for ingredient_id, amount in needed.items():
         remaining = amount
         skip = returned.get(ingredient_id, Decimal(0))
@@ -228,7 +227,7 @@ async def _return_line_stock(
                     lot_id=movement.lot_id,
                     kind=StockMovementType.HOAN_KHO,
                     qty=take,
-                    business_date=business_date.business_date_of(now, start),
+                    business_date=business_date_value,
                     order_line_id=line.id,
                     performed_by=actor_id,
                 )
@@ -236,6 +235,12 @@ async def _return_line_stock(
             returned[movement.lot_id] = returned.get(movement.lot_id, Decimal(0)) + take
             remaining -= take
     await session.flush()
+
+
+async def _current_business_date(session: AsyncSession) -> date:
+    moment = business_date.now()
+    start = await effective_business_day_start(session, moment)
+    return business_date.business_date_of(moment, start)
 
 
 async def _set_order_status(session: AsyncSession, order: Order, status: str) -> None:
@@ -368,7 +373,10 @@ async def update_line(
         await _draw_line_stock(session, line, delta, order.business_date, actor_id=actor_id)
         line.quantity = int(line.quantity) + delta
     elif delta < 0:
-        await _return_line_stock(session, line, Decimal(-delta), actor_id=actor_id)
+        current_bd = await _current_business_date(session)
+        await _return_line_stock(
+            session, line, Decimal(-delta), business_date_value=current_bd, actor_id=actor_id
+        )
         line.quantity = quantity
     await session.flush()
     return line
@@ -400,7 +408,10 @@ async def cancel_line(
     if not reason or not reason.strip():
         raise BusinessRuleError("Cần lý do hủy.")
 
-    await _return_line_stock(session, line, Decimal(line.quantity), actor_id=actor_id)
+    current_bd = await _current_business_date(session)
+    await _return_line_stock(
+        session, line, Decimal(line.quantity), business_date_value=current_bd, actor_id=actor_id
+    )
     line.status = LINE_CANCELLED
     await session.flush()
     session.add(
@@ -495,9 +506,16 @@ async def cancel_order(
         .scalars()
         .all()
     )
+    current_bd = await _current_business_date(session)
     for line in lines:
         if line.status == LINE_WAITING:
-            await _return_line_stock(session, line, Decimal(line.quantity), actor_id=actor_id)
+            await _return_line_stock(
+                session,
+                line,
+                Decimal(line.quantity),
+                business_date_value=current_bd,
+                actor_id=actor_id,
+            )
         if line.status != LINE_CANCELLED:
             line.status = LINE_CANCELLED
     await _set_order_status(session, order, "Đã hủy")

@@ -1,7 +1,10 @@
 """Phase 4 Task 2 — line status, cancel, move, cancel order."""
 
+from datetime import date, datetime, time
+
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import select
 
 from app.core.database import get_session
 from app.core.security import create_access_token, hash_password
@@ -15,8 +18,13 @@ from app.modules.catalog.models import (
     Recipe,
     RecipeItem,
 )
-from app.modules.inventory.models import GoodsReceipt, GoodsReceiptLine, IngredientLot
-from app.modules.settings.models import User
+from app.modules.inventory.models import (
+    GoodsReceipt,
+    GoodsReceiptLine,
+    IngredientLot,
+    StockMovement,
+)
+from app.modules.settings.models import SystemConfig, User
 from app.modules.settings.service import seed_reference_data
 from app.shared import business_date
 from app.shared.enums import VersionStatus
@@ -219,6 +227,57 @@ async def test_only_manager_cancel_whole(session):
     )
     assert r.status_code == 200
     assert await order_status(session, oid) == "Đã hủy"
+
+
+@pytest.mark.anyio
+async def test_cancel_whole_uses_one_business_date_across_transition(session, monkeypatch):
+    first, _ = await _setup_dish_with_stock(session, dish_name="First")
+    second, _ = await _setup_dish_with_stock(session, dish_name="Second")
+    table = await _table(session)
+    client = await _make_client(session)
+    cashier, _ = await _headers(session, role="CASHIER", username="cashier01")
+    manager, _ = await _headers(session, role="MANAGER", username="manager01")
+    created = await client.post(
+        "/api/v1/sales/orders",
+        json={
+            "MaBan": table.id,
+            "lines": [
+                {"MaMon": first.id, "SoLuong": 1},
+                {"MaMon": second.id, "SoLuong": 1},
+            ],
+        },
+        headers=cashier,
+    )
+    assert created.status_code == 201, created.text
+    order_id = created.json()["MaOrder"]
+    cfg = (await session.execute(select(SystemConfig))).scalar_one()
+    cfg.pending_business_day_start = time(4)
+    cfg.pending_business_day_effective_date = date(2026, 9, 25)
+    await session.commit()
+    moments = iter(
+        [
+            datetime(2026, 9, 25, 3, 59),
+            datetime(2026, 9, 25, 3, 59),
+            datetime(2026, 9, 25, 4),
+            datetime(2026, 9, 25, 4),
+        ]
+    )
+    monkeypatch.setattr(business_date, "now", lambda: next(moments))
+
+    cancelled = await client.post(
+        f"/api/v1/sales/orders/{order_id}/cancel",
+        json={"reason": "khách bỏ về"},
+        headers=manager,
+    )
+
+    assert cancelled.status_code == 200, cancelled.text
+    returned = (
+        await session.scalars(
+            select(StockMovement).where(StockMovement.qty > 0).order_by(StockMovement.id)
+        )
+    ).all()
+    assert len(returned) == 2
+    assert {movement.business_date for movement in returned} == {date(2026, 9, 24)}
 
 
 @pytest.mark.anyio

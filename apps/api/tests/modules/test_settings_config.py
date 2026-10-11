@@ -4,7 +4,7 @@ from datetime import date, datetime, time
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 from app.core.database import get_session
 from app.core.security import create_access_token, hash_password
@@ -56,6 +56,8 @@ async def test_config_is_a_singleton(session):
 
 @pytest.mark.asyncio
 async def test_seed_config_has_report_defaults(session):
+    await session.execute(delete(SystemConfig))
+    assert (await session.execute(select(SystemConfig))).scalar_one_or_none() is None
     await seed_reference_data(session)
     cfg = (await session.execute(select(SystemConfig))).scalar_one()
     assert cfg.business_day_start == time(6)
