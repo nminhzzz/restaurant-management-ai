@@ -1,5 +1,7 @@
 """Monthly weighted average costing close."""
 
+from datetime import datetime
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 
@@ -101,7 +103,7 @@ async def test_closing_a_month_prices_its_write_offs_and_is_audited(session):
     """
     from sqlalchemy import select as sel
 
-    from app.modules.inventory.models import StockIssueLine
+    from app.modules.inventory.models import StockIssue, StockIssueLine
     from app.shared.audit import SystemAuditLog
 
     ing = await _ingredient(session, "NL hao hụt cần chốt")
@@ -118,6 +120,10 @@ async def test_closing_a_month_prices_its_write_offs_and_is_audited(session):
         headers=h,
     )
     assert issued.status_code == 201, issued.text
+    issue = (await session.execute(sel(StockIssue))).scalar_one()
+    assert issue.issue_date == FIXED_NOW
+    issue.created_at = datetime(2026, 8, 31, 23, 0)
+    await session.flush()
 
     month = FIXED_NOW.year * 100 + FIXED_NOW.month
     r = await client.post(f"/api/v1/inventory/costing/{month}/close", headers=h)
@@ -135,3 +141,40 @@ async def test_closing_a_month_prices_its_write_offs_and_is_audited(session):
     ).scalar_one()
     assert audit.user_id == manager.id
     assert audit.target_id == str(month)
+
+
+@pytest.mark.anyio
+async def test_closing_a_month_prices_legacy_issue_without_issue_date(session):
+    from sqlalchemy import select
+
+    from app.modules.inventory.models import StockIssue, StockIssueLine
+
+    ing = await _ingredient(session, "NL phiếu xuất cũ")
+    client = await _make_client(session)
+    headers, _ = await _headers(session)
+    receipt = await client.post(
+        "/api/v1/inventory/receipts",
+        json={"lines": [{"ingredient_id": ing.id, "quantity": 10, "unit_price": 1500}]},
+        headers=headers,
+    )
+    assert receipt.status_code == 201, receipt.text
+    issued = await client.post(
+        "/api/v1/inventory/issues",
+        json={"reason": "Hao hụt", "lines": [{"ingredient_id": ing.id, "quantity": 2}]},
+        headers=headers,
+    )
+    assert issued.status_code == 201, issued.text
+    issue = (await session.execute(select(StockIssue))).scalar_one()
+    issue.issue_date = None
+    issue.created_at = FIXED_NOW
+    await session.flush()
+
+    month = FIXED_NOW.year * 100 + FIXED_NOW.month
+    response = await client.post(f"/api/v1/inventory/costing/{month}/close", headers=headers)
+
+    assert response.status_code == 200, response.text
+    line = (
+        await session.execute(select(StockIssueLine).where(StockIssueLine.issue_id == issue.id))
+    ).scalar_one()
+    await session.refresh(line)
+    assert line.estimated_cost == 3000

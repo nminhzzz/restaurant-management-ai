@@ -91,13 +91,14 @@ async def backfill_issue_costs(session: AsyncSession, month: int) -> int:
     end = datetime(year + 1, 1, 1) if m == 12 else datetime(year, m + 1, 1)
     from app.modules.inventory.models import StockIssue
 
+    issue_date = func.coalesce(StockIssue.issue_date, StockIssue.created_at)
     q = (
         select(StockIssueLine)
         .join(StockIssue, StockIssueLine.issue_id == StockIssue.id)
         .where(
             StockIssueLine.estimated_cost == 0,
-            StockIssue.created_at >= start,
-            StockIssue.created_at < end,
+            issue_date >= start,
+            issue_date < end,
         )
     )
     lines = (await session.execute(q)).scalars().all()
