@@ -240,3 +240,4 @@ test-results/
 .DS_Store
 *.bkp
 .$*.drawio.bkp
+.worktrees/
