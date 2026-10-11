@@ -10,7 +10,7 @@ from app.core.database import get_session
 from app.core.security import create_access_token, hash_password
 from app.main import app
 from app.modules.settings.models import SystemConfig, User
-from app.modules.settings.service import seed_reference_data
+from app.modules.settings.service import effective_business_day_start, seed_reference_data
 from app.shared.audit import SystemAuditLog
 from app.shared.roles import Role
 
@@ -128,6 +128,72 @@ async def test_earlier_hour_does_not_activate_during_current_business_date(sessi
     assert body["GioBatDauBusinessDateMoi"] == "04:00:00"
     assert body["NgayHieuLucGioMoi"] == "2026-10-12"
     assert datetime.combine(date.fromisoformat(body["NgayHieuLucGioMoi"]), time(4)) > current
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("pending", "before", "activation", "after"),
+    [
+        (
+            time(4),
+            datetime(2026, 10, 12, 3, 59),
+            datetime(2026, 10, 12, 4),
+            datetime(2026, 10, 12, 4, 1),
+        ),
+        (
+            time(8, 30),
+            datetime(2026, 10, 12, 8, 29),
+            datetime(2026, 10, 12, 8, 30),
+            datetime(2026, 10, 12, 8, 31),
+        ),
+    ],
+)
+async def test_pending_business_day_start_switches_at_its_exact_instant(
+    session, pending, before, activation, after
+):
+    await seed_reference_data(session)
+    cfg = (await session.execute(select(SystemConfig))).scalar_one()
+    cfg.pending_business_day_start = pending
+    cfg.pending_business_day_effective_date = date(2026, 10, 12)
+    await session.flush()
+
+    assert await effective_business_day_start(session, before) == time(6)
+    assert await effective_business_day_start(session, activation) == pending
+    assert await effective_business_day_start(session, after) == pending
+
+
+@pytest.mark.asyncio
+async def test_replacing_pending_start_uses_active_policy_for_next_date(session, monkeypatch):
+    from app.modules.settings import service
+
+    await seed_reference_data(session)
+    cfg = (await session.execute(select(SystemConfig))).scalar_one()
+    cfg.pending_business_day_start = time(4)
+    cfg.pending_business_day_effective_date = date(2026, 10, 13)
+    monkeypatch.setattr(service, "now", lambda: datetime(2026, 10, 11, 9))
+
+    await service.update_config(session, 1, {"GioBatDauBusinessDateMoi": time(8, 30)})
+
+    assert cfg.business_day_start == time(6)
+    assert cfg.pending_business_day_start == time(8, 30)
+    assert cfg.pending_business_day_effective_date == date(2026, 10, 12)
+
+
+@pytest.mark.asyncio
+async def test_new_schedule_after_activation_uses_current_policy(session, monkeypatch):
+    from app.modules.settings import service
+
+    await seed_reference_data(session)
+    cfg = (await session.execute(select(SystemConfig))).scalar_one()
+    cfg.pending_business_day_start = time(8, 30)
+    cfg.pending_business_day_effective_date = date(2026, 10, 12)
+    monkeypatch.setattr(service, "now", lambda: datetime(2026, 10, 12, 8, 31))
+
+    await service.update_config(session, 1, {"GioBatDauBusinessDateMoi": time(7)})
+
+    assert cfg.business_day_start == time(8, 30)
+    assert cfg.pending_business_day_start == time(7)
+    assert cfg.pending_business_day_effective_date == date(2026, 10, 13)
 
 
 @pytest.mark.asyncio

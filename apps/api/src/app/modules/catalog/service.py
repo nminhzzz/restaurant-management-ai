@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import BusinessRuleError, NotFoundError
 from app.modules.catalog.models import Dish, DishGroup, DishPriceVersion, Recipe
+from app.modules.settings.service import effective_business_day_start
 from app.shared import business_date as _bd
 from app.shared.audit import SystemAuditLog
 from app.shared.enums import VersionStatus
@@ -280,9 +281,11 @@ async def schedule_price_change(
         raise NotFoundError("Không tìm thấy món ăn.")
     if price is not None and _Decimal(str(price)) <= 0:
         raise BusinessRuleError("Giá phải lớn hơn 0.")
-    bd = business_date_val or _bd.next_business_date(_bd.now())
+    moment = _bd.now()
+    start = await effective_business_day_start(session, moment)
+    bd = business_date_val or _bd.next_business_date(moment, start)
     # must be future
-    current_bd = _bd.business_date_of(_bd.now())
+    current_bd = _bd.business_date_of(moment, start)
     if bd <= current_bd:
         raise BusinessRuleError("BusinessDate áp dụng phải là ngày trong tương lai.")
     # only one pending: delete existing Nháp
@@ -358,7 +361,9 @@ async def apply_price_directly(session, actor_id: int, dish_id: int, price: _Dec
         row.status = VersionStatus.HET_HIEU_LUC.value
         row.effective_to = _bd.now()
     await session.flush()
-    bd = _bd.business_date_of(_bd.now())
+    moment = _bd.now()
+    start = await effective_business_day_start(session, moment)
+    bd = _bd.business_date_of(moment, start)
     v = DishPriceVersion(
         dish_id=dish_id,
         price=float(price),
@@ -366,7 +371,7 @@ async def apply_price_directly(session, actor_id: int, dish_id: int, price: _Dec
         status=VersionStatus.HIEU_LUC.value,
         change_type="Cập nhật",
         created_by=actor_id,
-        effective_from=_bd.now(),
+        effective_from=moment,
     )
     session.add(v)
     await session.flush()
@@ -399,8 +404,10 @@ async def schedule_recipe_change(
     for _, qty in items:
         if _Decimal(str(qty)) <= 0:
             raise BusinessRuleError("Định lượng phải lớn hơn 0.")
-    bd = business_date_val or _bd.next_business_date(_bd.now())
-    current_bd = _bd.business_date_of(_bd.now())
+    moment = _bd.now()
+    start = await effective_business_day_start(session, moment)
+    bd = business_date_val or _bd.next_business_date(moment, start)
+    current_bd = _bd.business_date_of(moment, start)
     if bd <= current_bd:
         raise BusinessRuleError("BusinessDate áp dụng phải là ngày trong tương lai.")
     # validate ingredients exist
@@ -471,14 +478,16 @@ async def assign_recipe(session, actor_id: int, dish_id: int, items: list[tuple[
         ing = await session.get(_Ing, ing_id)
         if ing is None or ing.is_deleted:
             raise BusinessRuleError(f"Nguyên liệu {ing_id} không tồn tại.")
-    bd = _bd.business_date_of(_bd.now())
+    moment = _bd.now()
+    start = await effective_business_day_start(session, moment)
+    bd = _bd.business_date_of(moment, start)
     r = Recipe(
         dish_id=dish_id,
         business_date=bd,
         status=VersionStatus.HIEU_LUC.value,
         change_type="Tạo mới",
         created_by=actor_id,
-        effective_from=_bd.now(),
+        effective_from=moment,
     )
     session.add(r)
     await session.flush()
@@ -524,14 +533,16 @@ async def apply_recipe_directly(
         row.status = VersionStatus.HET_HIEU_LUC.value
         row.effective_to = _bd.now()
     await session.flush()
-    bd = _bd.business_date_of(_bd.now())
+    moment = _bd.now()
+    start = await effective_business_day_start(session, moment)
+    bd = _bd.business_date_of(moment, start)
     r = Recipe(
         dish_id=dish_id,
         business_date=bd,
         status=VersionStatus.HIEU_LUC.value,
         change_type="Cập nhật",
         created_by=actor_id,
-        effective_from=_bd.now(),
+        effective_from=moment,
     )
     session.add(r)
     d.missing_recipe = False

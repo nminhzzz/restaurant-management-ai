@@ -1,11 +1,14 @@
 """Phase 5 Task 1 — report periods and revenue (FR-REP-01, FR-REP-02)."""
 
-from datetime import date
+from datetime import date, datetime, time
 from decimal import Decimal
 
 import pytest
 
 from app.modules.reports.periods import resolve_period
+from app.modules.reports.service import period_for
+from app.modules.settings.models import SystemConfig
+from app.shared import business_date
 
 REVENUE = "/api/v1/reports/revenue"
 
@@ -27,6 +30,17 @@ def test_a_month_covers_every_business_date_in_it() -> None:
 
     assert period.start == date(2026, 9, 1)
     assert period.end == date(2026, 9, 30)
+
+
+@pytest.mark.anyio
+async def test_default_report_day_uses_configured_boundary(session, monkeypatch):
+    cfg = await session.get(SystemConfig, 1)
+    cfg.business_day_start = time(8, 30)
+    monkeypatch.setattr(business_date, "now", lambda: datetime(2026, 9, 24, 8, 29))
+
+    period = await period_for(session, "day")
+
+    assert period.start == date(2026, 9, 23)
 
 
 @pytest.mark.anyio

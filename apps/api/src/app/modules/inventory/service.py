@@ -17,12 +17,14 @@ from app.modules.inventory.models import (
     StocktakeLine,
 )
 from app.modules.inventory.stock import StockChange, apply_stock_movement
+from app.modules.settings.service import effective_business_day_start
 from app.shared import business_date
 from app.shared.audit import SystemAuditLog
 
 
-def _bd():
-    return business_date.business_date_of(business_date.now())
+async def _bd(session: AsyncSession, moment: datetime) -> date:
+    start = await effective_business_day_start(session, moment)
+    return business_date.business_date_of(moment, start)
 
 
 # Receipts
@@ -33,6 +35,7 @@ async def create_receipt(
     receipt_date: datetime | None,
     lines: list[dict],
 ) -> GoodsReceipt:
+    operation_bd = await _bd(session, business_date.now())
     if supplier_id is not None:
         from app.modules.catalog.models import Supplier
 
@@ -114,7 +117,7 @@ async def create_receipt(
                 ingredient_id=ingredient_id,
                 delta=qty_std,
                 kind="Nhập",
-                business_date=_bd(),
+                business_date=operation_bd,
                 source_receipt_line_id=gl.id,
             ),
             actor_id=actor_id,
@@ -137,6 +140,7 @@ async def create_receipt(
 
 
 async def cancel_receipt(session: AsyncSession, actor_id: int, receipt_id: int) -> None:
+    operation_bd = await _bd(session, business_date.now())
     from app.shared.enums import StockMovementType
 
     receipt = await session.get(GoodsReceipt, receipt_id)
@@ -187,7 +191,7 @@ async def cancel_receipt(session: AsyncSession, actor_id: int, receipt_id: int) 
                 lot_id=lot.id,
                 kind=StockMovementType.HOAN_KHO,
                 qty=-remaining,
-                business_date=_bd(),
+                business_date=operation_bd,
                 receipt_line_id=gl.id,
                 performed_by=actor_id,
             )
@@ -219,6 +223,7 @@ async def update_receipt(
     unit/conversion column to CHI_TIET_PHIEU_NHAP, so the edited quantity is the
     already-converted standard-unit quantity stored on the line.
     """
+    operation_bd = await _bd(session, business_date.now())
     receipt = await session.get(GoodsReceipt, receipt_id)
     if receipt is None:
         raise NotFoundError("Không tìm thấy phiếu nhập.")
@@ -261,7 +266,7 @@ async def update_receipt(
                     lot_id=None,
                     kind="Nhập",
                     qty=delta,
-                    business_date=_bd(),
+                    business_date=operation_bd,
                     receipt_line_id=gl.id,
                     performed_by=actor_id,
                 )
@@ -315,6 +320,7 @@ async def list_receipts(
 async def create_issue(
     session: AsyncSession, actor_id: int, reason: str, lines: list[dict]
 ) -> StockIssue:
+    operation_bd = await _bd(session, business_date.now())
     issue = StockIssue(
         reason=reason, status="Nháp", issue_date=business_date.now(), created_by=actor_id
     )
@@ -336,7 +342,7 @@ async def create_issue(
                 delta=-qty,
                 kind="Xuất thủ công",
                 allow_expired=_allow_exp,
-                business_date=_bd(),
+                business_date=operation_bd,
                 source_issue_line_id=il.id,
             ),
             actor_id=actor_id,
@@ -446,6 +452,7 @@ async def record_counts(
 
 
 async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: int) -> None:
+    operation_bd = await _bd(session, business_date.now())
     st = await session.get(Stocktake, stocktake_id)
     if st is None:
         raise NotFoundError("Không tìm thấy phiếu kiểm kê.")
@@ -493,7 +500,7 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
                     lot_id=_lot.id,
                     kind="Điều chỉnh kiểm kê",
                     qty=-take,
-                    business_date=_bd(),
+                    business_date=operation_bd,
                     stocktake_line_id=line.id,
                     performed_by=actor_id,
                 )
@@ -536,7 +543,7 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
                 lot_id=lot.id,
                 kind="Điều chỉnh kiểm kê",
                 qty=diff,
-                business_date=_bd(),
+                business_date=operation_bd,
                 stocktake_line_id=line.id,
                 performed_by=actor_id,
             )

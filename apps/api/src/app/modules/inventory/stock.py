@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.errors import BusinessRuleError
 from app.modules.catalog.models import Ingredient
 from app.modules.inventory.models import IngredientLot, StockMovement
+from app.modules.settings.service import effective_business_day_start
 from app.shared import business_date
 from app.shared.enums import LotStatus, StockMovementType
 
@@ -27,8 +28,10 @@ class StockChange:
     source_stocktake_line_id: int | None = None
 
 
-def _bd_now() -> date:
-    return business_date.business_date_of(business_date.now())
+async def _bd_now(session: AsyncSession) -> date:
+    moment = business_date.now()
+    start = await effective_business_day_start(session, moment)
+    return business_date.business_date_of(moment, start)
 
 
 async def lock_ingredient(session: AsyncSession, ingredient_id: int) -> Ingredient:
@@ -68,7 +71,7 @@ async def apply_stock_movement(
     session: AsyncSession, change: StockChange, *, actor_id: int | None = None
 ) -> list[StockMovement]:
     ing = await lock_ingredient(session, change.ingredient_id)
-    bd = change.business_date or _bd_now()
+    bd = change.business_date if change.business_date is not None else await _bd_now(session)
     delta = Decimal(str(change.delta))
 
     movements: list[StockMovement] = []
@@ -172,7 +175,7 @@ async def reverse_movement(
     # movement.qty is negative for draw, so -qty is positive
     ing.stock_qty = ing.stock_qty - movement.qty
     await session.flush()
-    bd = _bd_now()
+    bd = await _bd_now(session)
     rev = StockMovement(
         ingredient_id=movement.ingredient_id,
         lot_id=movement.lot_id,

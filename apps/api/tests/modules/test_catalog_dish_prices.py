@@ -1,12 +1,16 @@
 """Dish prices on the catalogue API match the price an order would snapshot."""
 
+from datetime import date, datetime, time
 from decimal import Decimal
 
 import pytest
 
 from app.main import app
 from app.modules.catalog.models import DishPriceVersion
+from app.modules.catalog.service import schedule_price_change
 from app.modules.catalog.versions import active_price_version, active_prices
+from app.modules.settings.models import SystemConfig
+from app.shared import business_date
 from app.shared.enums import VersionStatus
 from tests.helpers import today, tomorrow
 from tests.modules.test_catalog_dishes import (
@@ -83,3 +87,27 @@ async def test_a_price_given_on_create_is_persisted(session, group):
     assert created.json()["GiaHienTai"] == 60000
     item = next(x for x in listed.json()["items"] if x["TenMon"] == "Bún chả")
     assert item["GiaHienTai"] == 60000
+
+
+@pytest.mark.asyncio
+async def test_list_uses_configured_minute_boundary(session, dish, monkeypatch):
+    cfg = await session.get(SystemConfig, 1)
+    cfg.business_day_start = time(8, 30)
+    session.add(_version(dish.id, 65000, date(2026, 9, 23)))
+    session.add(_version(dish.id, 70000, date(2026, 9, 24)))
+    await session.commit()
+    monkeypatch.setattr(business_date, "now", lambda: datetime(2026, 9, 24, 8, 29))
+
+    assert await _price_in_list(session, "Phở bò") == 65000
+
+
+@pytest.mark.asyncio
+async def test_scheduled_price_uses_one_policy_and_clock_snapshot(session, dish, monkeypatch):
+    cfg = await session.get(SystemConfig, 1)
+    cfg.business_day_start = time(8, 30)
+    moments = iter([datetime(2026, 9, 24, 8, 29), datetime(2026, 9, 25, 9)])
+    monkeypatch.setattr(business_date, "now", lambda: next(moments))
+
+    version = await schedule_price_change(session, 1, dish.id, Decimal("70000"))
+
+    assert version.business_date == date(2026, 9, 24)

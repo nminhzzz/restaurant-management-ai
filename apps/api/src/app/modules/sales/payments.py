@@ -19,6 +19,7 @@ from app.core.errors import BusinessRuleError, NotFoundError, UnauthenticatedErr
 from app.modules.sales.gateways import sepay, simulator
 from app.modules.sales.models import Invoice, Order, OrderLine, PaymentTransaction
 from app.modules.sales.orders import LINE_CANCELLED
+from app.modules.settings.service import effective_business_day_start
 from app.shared import business_date
 from app.shared.audit import SystemAuditLog
 
@@ -118,7 +119,8 @@ async def pay_cash(session: AsyncSession, order_id: int, *, actor_id: int | None
 
     total = await order_total(session, order)
     order.total = total
-    bd = business_date.business_date_of(now)
+    start = await effective_business_day_start(session, now)
+    bd = business_date.business_date_of(now, start)
     payment = PaymentTransaction(
         order_id=order.id,
         amount=total,
@@ -160,12 +162,13 @@ async def start_qr(
         raise BusinessRuleError("Đã có QR đang chờ.")
 
     now = business_date.now()
+    start = await effective_business_day_start(session, now)
     payment = PaymentTransaction(
         order_id=order.id,
         amount=await order_total(session, order),
         method="QR",
         status=QR_PENDING,
-        business_date=business_date.business_date_of(now),
+        business_date=business_date.business_date_of(now, start),
         created_at=now,
         deadline=now + QR_LIFETIME,
     )

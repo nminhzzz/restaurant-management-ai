@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, time
 
 from app.shared.business_date import (
     business_date_of,
@@ -30,3 +30,13 @@ def test_range_spans_exactly_one_business_day() -> None:
 
 def test_next_business_date_is_the_default_effective_date() -> None:
     assert next_business_date(datetime(2026, 8, 27, 10, 0)) == date(2026, 8, 28)
+
+
+def test_minute_precision_changes_the_boundary() -> None:
+    assert business_date_of(datetime(2026, 8, 28, 8, 29), time(8, 30)) == date(2026, 8, 27)
+    assert business_date_of(datetime(2026, 8, 28, 8, 30), time(8, 30)) == date(2026, 8, 28)
+    assert business_date_start(date(2026, 8, 28), time(8, 30)) == datetime(2026, 8, 28, 8, 30)
+    assert business_date_range(date(2026, 8, 28), time(8, 30)) == (
+        datetime(2026, 8, 28, 8, 30),
+        datetime(2026, 8, 29, 8, 30),
+    )

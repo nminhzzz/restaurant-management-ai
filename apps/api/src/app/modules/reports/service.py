@@ -24,17 +24,21 @@ from app.modules.reports.schemas import (
     RevenueSummaryOut,
     WeekdayBucketOut,
 )
+from app.modules.settings.service import effective_business_day_start
 from app.shared import business_date
 
 
-def period_for(
-    granularity: str, anchor: date | None = None, month: str | None = None
+async def period_for(
+    session: AsyncSession, granularity: str, anchor: date | None = None, month: str | None = None
 ) -> BusinessPeriod:
     """A report period comes from either an explicit `month` or an anchor day."""
     if month:
         return month_period(month)
-    default_anchor = anchor or business_date.business_date_of(business_date.now())
-    return resolve_period(granularity, default_anchor)
+    if anchor is None:
+        moment = business_date.now()
+        start = await effective_business_day_start(session, moment)
+        anchor = business_date.business_date_of(moment, start)
+    return resolve_period(granularity, anchor)
 
 
 def period_out(period: BusinessPeriod) -> PeriodOut:

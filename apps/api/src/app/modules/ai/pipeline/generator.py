@@ -20,6 +20,7 @@ from app.modules.ai.errors import ClarificationNeeded, QuotaExceeded
 from app.modules.ai.pipeline.normalize import normalize_question
 from app.modules.ai.pipeline.prompt import build_prompt
 from app.modules.ai.scope import views_for
+from app.modules.settings.service import effective_business_day_start
 from app.shared import business_date
 from app.shared.roles import Role
 
@@ -39,17 +40,18 @@ def set_daily_calls(day: str, count: int) -> None:
     _daily_calls[day] = count
 
 
-def _today() -> str:
-    return business_date.business_date_of(business_date.now()).isoformat()
+async def _today(session: AsyncSession) -> str:
+    moment = business_date.now()
+    start = await effective_business_day_start(session, moment)
+    return business_date.business_date_of(moment, start).isoformat()
 
 
-def _enforce_quota() -> None:
-    if _daily_calls.get(_today(), 0) >= get_settings().ai_daily_question_quota:
+def _enforce_quota(day: str) -> None:
+    if _daily_calls.get(day, 0) >= get_settings().ai_daily_question_quota:
         raise QuotaExceeded("Đã đạt hạn mức câu hỏi trong ngày. Vui lòng thử lại vào ngày mai.")
 
 
-def _charge_quota() -> None:
-    day = _today()
+def _charge_quota(day: str) -> None:
     _daily_calls[day] = _daily_calls.get(day, 0) + 1
 
 
@@ -62,13 +64,14 @@ async def generate_sql(session: AsyncSession, question: str, role: Role) -> str:
     if cached is not None:
         return cached
 
-    _enforce_quota()
+    day = await _today(session)
+    _enforce_quota(day)
     client = llm.get_client()
     allowed = views_for(role)
     last_error: BusinessRuleError | None = None
 
     for _ in range(settings.ai_max_sql_attempts):
-        _charge_quota()
+        _charge_quota(day)
         prompt = await build_prompt(session, normalized, role)
         if last_error is not None:
             prompt += f"\n\nLần trước câu SQL chưa hợp lệ: {last_error}. Hãy sửa lại."

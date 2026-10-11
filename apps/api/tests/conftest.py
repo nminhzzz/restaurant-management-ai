@@ -145,8 +145,12 @@ async def engine() -> AsyncIterator[AsyncEngine]:
 
 @pytest_asyncio.fixture
 async def session(engine: AsyncEngine) -> AsyncIterator[AsyncSession]:
+    from app.modules.settings.models import SystemConfig
+
     factory = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
     async with factory() as sess:
+        sess.add(SystemConfig(default_stock_threshold=5))
+        await sess.flush()
         yield sess
         await sess.rollback()
 

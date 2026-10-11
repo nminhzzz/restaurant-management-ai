@@ -28,12 +28,13 @@ from app.shared.roles import Role
 router = APIRouter(prefix="/reports", tags=["Module 4 — Reports"])
 
 
-def report_period(
+async def report_period(
     granularity: str = Query("month"),
     anchor: date | None = Query(None),
     month: str | None = Query(None),
+    session: AsyncSession = Depends(get_session),
 ) -> BusinessPeriod:
-    return service.period_for(granularity, anchor, month)
+    return await service.period_for(session, granularity, anchor, month)
 
 
 @router.get("/revenue", response_model=RevenueOut)

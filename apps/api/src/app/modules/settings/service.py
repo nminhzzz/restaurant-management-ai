@@ -204,6 +204,23 @@ async def get_config(session: AsyncSession) -> SystemConfig:
     return cfg
 
 
+def _pending_has_activated(cfg: SystemConfig, moment: datetime) -> bool:
+    pending = cfg.pending_business_day_start
+    effective_date = cfg.pending_business_day_effective_date
+    if pending is None or effective_date is None:
+        return False
+    return moment >= datetime.combine(effective_date, pending, tzinfo=moment.tzinfo)
+
+
+async def effective_business_day_start(session: AsyncSession, moment: datetime) -> time:
+    """Return the one configured boundary effective at ``moment``."""
+    cfg = await get_config(session)
+    if _pending_has_activated(cfg, moment):
+        assert cfg.pending_business_day_start is not None
+        return cfg.pending_business_day_start
+    return cfg.business_day_start
+
+
 async def update_config(
     session: AsyncSession, actor_id: int, data: ConfigUpdate | dict
 ) -> SystemConfig:
@@ -225,19 +242,15 @@ async def update_config(
         cfg.default_stock_threshold = d["NguongTonMacDinh"]
     if d.get("GioBatDauBusinessDateMoi") is not None:
         requested_start = d["GioBatDauBusinessDateMoi"]
-        cfg.pending_business_day_start = requested_start
         current = now()
-        # next_business_date accepts hours; shift the moment by the minute/second
-        # part so the configured Time is respected at the boundary.
-        shifted = current - timedelta(
-            minutes=cfg.business_day_start.minute,
-            seconds=cfg.business_day_start.second,
-            microseconds=cfg.business_day_start.microsecond,
-        )
-        effective_date = next_business_date(shifted, cfg.business_day_start.hour)
+        if _pending_has_activated(cfg, current):
+            assert cfg.pending_business_day_start is not None
+            cfg.business_day_start = cfg.pending_business_day_start
+        effective_date = next_business_date(current, cfg.business_day_start)
         activation = datetime.combine(effective_date, requested_start, tzinfo=current.tzinfo)
         if activation <= current:
             effective_date += timedelta(days=1)
+        cfg.pending_business_day_start = requested_start
         cfg.pending_business_day_effective_date = effective_date
     for field, attribute in (
         ("SoNgayCanhBaoHetHan", "expiry_warning_days"),

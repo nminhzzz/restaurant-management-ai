@@ -6,7 +6,7 @@ original ledger row) is what keeps a reduce-then-cancel sequence from returning 
 was taken: the two operations together return exactly the quantity the line was charged for.
 """
 
-from datetime import date, datetime
+from datetime import date
 from decimal import Decimal
 
 from sqlalchemy import select, text
@@ -23,6 +23,7 @@ from app.modules.inventory.models import IngredientLot, StockMovement
 from app.modules.inventory.stock import StockChange, apply_stock_movement
 from app.modules.sales.models import DemOrder, KitchenTicket, Order, OrderLine
 from app.modules.sales.tickets import render_ticket
+from app.modules.settings.service import effective_business_day_start
 from app.shared import business_date
 from app.shared.audit import SystemAuditLog
 from app.shared.enums import StockMovementType
@@ -198,6 +199,7 @@ async def _return_line_stock(
         ) + Decimal(str(reversal.qty))
 
     now = business_date.now()
+    start = await effective_business_day_start(session, now)
     for ingredient_id, amount in needed.items():
         remaining = amount
         skip = returned.get(ingredient_id, Decimal(0))
@@ -226,7 +228,7 @@ async def _return_line_stock(
                     lot_id=movement.lot_id,
                     kind=StockMovementType.HOAN_KHO,
                     qty=take,
-                    business_date=_bd_of(now),
+                    business_date=business_date.business_date_of(now, start),
                     order_line_id=line.id,
                     performed_by=actor_id,
                 )
@@ -234,10 +236,6 @@ async def _return_line_stock(
             returned[movement.lot_id] = returned.get(movement.lot_id, Decimal(0)) + take
             remaining -= take
     await session.flush()
-
-
-def _bd_of(moment: datetime) -> date:
-    return business_date.business_date_of(moment)
 
 
 async def _set_order_status(session: AsyncSession, order: Order, status: str) -> None:
@@ -257,7 +255,8 @@ async def submit_order(
     session: AsyncSession, payload: dict, *, actor_id: int | None = None
 ) -> dict:
     now = business_date.now()
-    bd = _bd_of(now)
+    start = await effective_business_day_start(session, now)
+    bd = business_date.business_date_of(now, start)
     order_type = payload.get("order_type") or "Tại chỗ"
     table_id = payload.get("table_id")
     lines_in: list[dict] = payload.get("lines") or []
