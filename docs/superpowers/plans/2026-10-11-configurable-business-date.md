@@ -61,7 +61,7 @@
 - Each async operation resolves one policy and passes it to the shared calculation helper.
 - Replacing a pending time recalculates the next effective Business Date from the currently active policy.
 
-**Decision gate before implementation:** FR-SET-04 and bảng 17 say the new time applies from the next Business Date and does not affect the current one, but do not specify the transition instant when the new time is earlier/later than the active time. Do not implement a guessed boundary. Before Task 2, agree whether activation occurs at the current schedule's next boundary or at the new time on `NgayHieuLucGioMoi`; encode the selected rule in before/at/after tests and keep it in the report/AGENTS guidance.
+**Ruling for transition semantics:** Set `NgayHieuLucGioMoi` to the next Business Date calculated under the currently active schedule. The pending time activates at `datetime.combine(NgayHieuLucGioMoi, GioBatDauBusinessDateMoi)`; before that instant use the active time, at and after it use the pending time. This follows the report's description of `NgayHieuLucGioMoi` as the Business Date that starts using the new time. Tests must cover a change to an earlier and later time, including immediately before and at the transition.
 
 - [ ] Step 1: Add tests for default 06:00, minute precision (08:30), immediately before/at/after effective instant, moving the start earlier and later, replacing a pending change, and keeping one resolved policy within a transaction.
 - [ ] Step 2: Run cd apps/api && uv run pytest tests/core/test_business_date.py tests/modules/test_settings_config.py -q; Expected: FAIL on minute precision and missing resolver behavior.
