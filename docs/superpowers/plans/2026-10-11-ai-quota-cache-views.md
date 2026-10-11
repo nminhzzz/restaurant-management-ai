@@ -1,0 +1,80 @@
+# AI Quota, Cache, and Role Views Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox syntax for tracking.
+
+**Goal:** Khớp FR-AI-10/NFR-06/12: quota 50 câu/người/Business Date, cache ngắn hạn an toàn, view Bếp thấy lượng giữ nhưng không lộ dữ liệu cấm.
+
+**Architecture:** Dùng TRUY_VAN_AI làm sổ quota; khóa bản ghi user để reserve một lượt hỏi trước khi gọi LLM, rồi cập nhật cùng bản ghi khi có kết quả. Cache được scope theo user/role/view/date và dữ liệu kết quả; truy vấn DB vẫn chạy mới mỗi lượt.
+
+**Tech Stack:** FastAPI, SQLAlchemy 2 async, MySQL 8.4 views/grants, pytest, sqlglot.
+
+**Spec:** ../specs/2026-10-11-align-code-with-report-design.md, mục 3.
+
+## Global Constraints
+
+- Mỗi role chỉ dùng một view và một read-only DB account riêng.
+- Mọi SQL sinh ra vẫn qua guard.validate_sql; giữ trần 500 dòng, timeout 3 giây và tối đa 2 lần sinh.
+- Không cache câu hỏi tồn/giữ/số suất còn phục vụ; các câu này luôn query dữ liệu mới.
+- Cache không chia sẻ giữa người dùng, vai trò hoặc phạm vi view.
+- Không cấp tài khoản AI quyền đọc trực tiếp bảng nghiệp vụ.
+
+---
+
+### Task 1: Quota riêng theo user/Business Date
+
+**Files:**
+- Modify: apps/api/src/app/modules/ai/service.py
+- Modify: apps/api/src/app/modules/ai/pipeline/generator.py
+- Modify: apps/api/src/app/modules/ai/models.py if a pending status is required
+- Test: apps/api/tests/modules/test_ai_generator.py
+- Test: apps/api/tests/modules/test_ai_service.py
+
+**Interfaces:**
+- answer(session, question, role, user_id, session_id) reserves one question before model calls.
+- generate_sql receives user_id and effective Business Date; it no longer increments a process-global counter per SQL attempt.
+- One TRUY_VAN_AI row is created as pending and updated for all success/refusal/error exits.
+- One user question consumes one quota slot regardless of the number of SQL-generation attempts; a rejection before reservation consumes none. Incomplete pending rows are visible as failed/interrupted history and still count, preventing worker crashes from restoring quota.
+
+- [ ] Step 1: Add tests for separate users, limit reached, retrying after bad SQL, and two concurrent same-user requests.
+- [ ] Step 2: Run cd apps/api && uv run pytest tests/modules/test_ai_generator.py tests/modules/test_ai_service.py -q; Expected: FAIL because quota is process-global.
+- [ ] Step 3: Lock the user row, count that user's reserved question rows within the effective Business Date, then insert and commit one pending query row before generation. Persist the question's Business Date so later setting changes cannot move its quota bucket.
+- [ ] Step 4: Update the pending row instead of inserting a second history record; set default to 50 and remove _daily_calls.
+- [ ] Step 5: Run targeted AI service/generator tests; Expected: PASS.
+
+### Task 2: Short-lived cache without stale results
+
+**Files:**
+- Modify: apps/api/src/app/modules/ai/pipeline/generator.py
+- Modify: apps/api/src/app/modules/ai/service.py
+- Modify: apps/api/src/app/modules/ai/pipeline/interpreter.py
+- Test: apps/api/tests/modules/test_ai_generator.py
+- Test: apps/api/tests/modules/test_ai_service.py
+
+**Interfaces:**
+- Cache keys include user ID, role, allowed view, normalized question, normalized temporal parameters, effective Business Date and permission fingerprint.
+- SQL is revalidated through guard.validate_sql after cache retrieval.
+- Interpretation cache also includes a digest of freshly queried result rows; the DB query is never skipped.
+- Entries have short TTL and a maximum size.
+- Cache the validated SQL/template only; always execute it against the scoped read-only connection. Interpretation may be cached only after a fresh query and only under a digest of the current result rows; skip caching when the question depends on volatile stock/hold/service-capacity data.
+
+- [ ] Step 1: Add tests showing cache isolation across users/roles/views/dates/temporal parameters, permission-version changes, expiry, and changed result rows changing the interpretation key.
+- [ ] Step 2: Run the target AI tests; Expected: FAIL on current key (role, normalized question) and no TTL.
+- [ ] Step 3: Implement bounded TTL cache and key construction; revalidate cached SQL with the current view scope and guard, do not cache final rows or skip DB execution, and bypass cache for volatile inventory/hold/capacity questions.
+- [ ] Step 4: Run cd apps/api && uv run pytest tests/modules/test_ai_generator.py tests/modules/test_ai_service.py tests/modules/test_ai_guard.py tests/modules/test_ai_accounts.py -q; Expected: PASS.
+
+### Task 3: Add held quantity to warehouse view
+
+**Files:**
+- Modify: db/views/vw_ai_kho.sql
+- Modify: db/views/README.md
+- Modify: apps/api/tests/schema/test_ai_views.py
+- Test: MySQL 8.4 integration test through apps/api/tests/schema/test_ai_views.py
+
+**Interfaces:**
+- vw_ai_kho exposes a named aggregate for active held and available quantities, computed from unexpired holds and eligible lots.
+- Cashier view remains free of inventory/cost/purchase fields; grants remain one view per role.
+
+- [ ] Step 1: Add view-column contract and assertions that expired holds do not count and forbidden fields stay excluded.
+- [ ] Step 2: Run cd apps/api && uv run pytest tests/schema/test_ai_views.py -q; Expected: FAIL until DDL and expected columns agree.
+- [ ] Step 3: Extend NULL-padded UNION ALL branches in vw_ai_kho.sql and document row types in db/views/README.md.
+- [ ] Step 4: Run view contract and MySQL 8.4 grant tests; Expected: exact columns and grants remain role-scoped.
