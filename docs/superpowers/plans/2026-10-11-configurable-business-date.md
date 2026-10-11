@@ -35,6 +35,7 @@
 - SystemConfig thêm GioBatDauBusinessDateMoi, NgayHieuLucGioMoi, SoNgayCanhBaoHetHan, SoCauHoiAIMoiNgay, ThoiGianGiuChoPhut.
 - ConfigOut trả các trường; ConfigUpdate nhận giờ mới và tham số số nguyên dương.
 - Giá trị mặc định: 06:00, giờ chờ/ngày hiệu lực NULL, cảnh báo 3 ngày, quota 50, giữ 5 phút.
+- Ngày hiệu lực ban đầu là Business Date kế tiếp theo giờ hiện hành. Nếu giờ mới tại ngày đó đã qua hoặc bằng thời điểm cấu hình, dời ngày hiệu lực thêm một Business Date để mốc kích hoạt luôn nằm trong tương lai.
 
 - [ ] Step 1: Cập nhật EXPECTED trong test_settings_models.py và EXPECTED_TABLES trong test_schema_contract.py; thêm test seed mặc định.
 - [ ] Step 2: Chạy cd apps/api && uv run pytest tests/schema/test_settings_models.py tests/schema/test_schema_contract.py tests/modules/test_settings_config.py -q; Expected: FAIL vì metadata/API chưa có cột.
@@ -63,7 +64,7 @@
 
 **Ruling for transition semantics:** Set `NgayHieuLucGioMoi` to the next Business Date calculated under the currently active schedule. The pending time activates at `datetime.combine(NgayHieuLucGioMoi, GioBatDauBusinessDateMoi)`; before that instant use the active time, at and after it use the pending time. This follows the report's description of `NgayHieuLucGioMoi` as the Business Date that starts using the new time. Tests must cover a change to an earlier and later time, including immediately before and at the transition.
 
-- [ ] Step 1: Add tests for default 06:00, minute precision (08:30), immediately before/at/after effective instant, moving the start earlier and later, replacing a pending change, and keeping one resolved policy within a transaction.
+- [ ] Step 1: Add tests for default 06:00, minute precision (08:30), immediately before/at/after effective instant, moving the start earlier and later, replacing a pending change, and keeping one resolved policy within a transaction. Include scheduling at 05:30 with active 06:00 and requested 04:00; the effective date must move to the following Business Date.
 - [ ] Step 2: Run cd apps/api && uv run pytest tests/core/test_business_date.py tests/modules/test_settings_config.py -q; Expected: FAIL on minute precision and missing resolver behavior.
 - [ ] Step 3: Implement resolver in settings.service; update every Business Date caller found by `rg "business_date\.(now|business_date_of)" apps/api/src/app` (including catalog price versioning, order/payment, inventory, reports and AI). Keep one resolved policy for the whole transaction; background work must receive a policy snapshot instead of silently reverting to 06:00.
 - [ ] Step 4: Run cd apps/api && uv run pytest tests/core/test_business_date.py tests/modules/test_settings_config.py tests/modules/test_catalog_dish_prices.py tests/modules/test_sales_orders.py tests/modules/test_inventory_stock_list.py tests/modules/test_reports_revenue.py tests/modules/test_ai_generator.py -q; Expected: PASS.
