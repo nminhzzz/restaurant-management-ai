@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox syntax for tracking.
 
-**Goal:** Khớp FR-SET-04 với cấu hình Business Date có hiệu lực, cảnh báo hạn dùng, thời gian giữ chỗ và quota AI.
+**Goal:** Khớp FR-SET-04 với cấu hình Business Date có hiệu lực, ngưỡng cảnh báo hạn dùng, thời gian giữ chỗ và quota AI.
 
 **Architecture:** Mở rộng singleton CAU_HINH_HE_THONG bằng migration có giá trị mặc định tương thích. Settings service trả giờ bắt đầu hiệu lực; app.shared.business_date giữ toàn bộ phép tính ngày thuần. Cấu hình được validate, audit và hiển thị ở màn hình Cài đặt.
 
@@ -83,3 +83,26 @@
 - [ ] Step 2: Run cd apps/web && pnpm test -- config-panel.test.tsx; Expected: FAIL because current UI has no fields/payload.
 - [ ] Step 3: Add form state, validation and pending-effective-date copy in Vietnamese.
 - [ ] Step 4: Run cd apps/web && pnpm test -- config-panel.test.tsx; Expected: PASS.
+
+### Task 4: Áp dụng ngưỡng cảnh báo hạn sử dụng theo lô
+
+**Files:**
+- Modify: apps/api/src/app/modules/inventory/service.py
+- Modify: apps/api/src/app/modules/inventory/router.py
+- Modify: apps/api/src/app/modules/inventory/schemas.py
+- Test: apps/api/tests/modules/test_inventory_stock_list.py
+- Modify: apps/web/src/features/inventory/inventory-workspace.tsx
+- Create: apps/web/src/features/inventory/lot-expiry-table.tsx
+- Create: apps/web/src/features/inventory/lot-expiry-table.test.tsx
+
+**Interfaces:**
+- Add paginated `GET /inventory/lots` for Manager/Warehouse with lot id, ingredient, remaining quantity, expiry date and computed status.
+- Compute status from server calendar date and `SoNgayCanhBaoHetHan`: `Hết hạn` when expiry date is before today; `Sắp hết hạn` when the date is today through today + configured days inclusive; otherwise `Còn hạn`. Missing expiry date is treated as `Còn hạn`.
+- Status is computed at read time so it changes when the day or configured warning threshold changes; do not depend on stale stored `IngredientLot.status` for expiry classification.
+- Add a separate inventory tab/table for lot expiry warnings so expiry warnings remain distinct from low-stock badges.
+
+- [ ] Step 1: Add API tests for each exact date boundary (yesterday, today, today + threshold, one day after threshold), missing expiry date, role protection and pagination; add UI tests for separate expiry statuses.
+- [ ] Step 2: Run `cd apps/api && uv run pytest tests/modules/test_inventory_stock_list.py -q` and `cd apps/web && pnpm test -- lot-expiry-table.test.tsx`; Expected: FAIL because no lot-status endpoint/table exists.
+- [ ] Step 3: Implement a query joining lots to ingredients, read the singleton config threshold once, compute status using one captured server date, and return stable pagination/serialization. Keep the existing low-stock status calculation separate.
+- [ ] Step 4: Add the lot-expiry table/tab with distinct labels for `Còn hạn`, `Sắp hết hạn`, and `Hết hạn`; handle loading, error, empty and pagination states.
+- [ ] Step 5: Run the focused API/UI tests and related inventory stock table tests; Expected: PASS.

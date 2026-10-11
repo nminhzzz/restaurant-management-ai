@@ -23,7 +23,7 @@
 ## Thứ tự thực hiện
 
 1. [Làm ổn định baseline pytest](2026-10-11-stabilize-api-gate.md) — cô lập test khỏi .env và sửa bộ lọc kỳ chi phí xuất kho.
-2. [Cấu hình và Business Date hiệu lực](2026-10-11-configurable-business-date.md) — migration, API, helper, UI và audit.
+2. [Cấu hình và Business Date hiệu lực](2026-10-11-configurable-business-date.md) — migration, API, helper, UI, audit và cảnh báo hạn lô.
 3. [Giữ chỗ món server-side](2026-10-11-server-side-item-holds.md) — FIFO, gửi idempotent, kiểm kê và giao diện gọi món.
 4. [Quota/cache AI và view phân quyền](2026-10-11-ai-quota-cache-views.md) — quota theo người/ngày nghiệp vụ, cache an toàn và lượng giữ cho Bếp.
 5. [Đồng bộ tài liệu dự án](2026-10-11-document-consistency.md) — quy tắc Business Date và 22 liên kết ảnh sai casing.
@@ -31,7 +31,7 @@
 ### Checkpoint chung
 
 - Sau plan 1: API tests xanh; lỗi do test fixture được phân biệt với lỗi code.
-- Sau plan 2: mọi caller dùng chung chính sách Business Date; test API/schema/UI xanh.
+- Sau plan 2: mọi caller dùng chung chính sách Business Date; cấu hình ngày hiệu lực và cảnh báo hạn lô đúng ngưỡng; test API/schema/UI xanh.
 - Sau plan 3: giữ không làm trừ tồn; gửi trùng không tạo hiệu ứng kép; kiểm kê cô lập được.
 - Sau plan 4: quota riêng theo user; dữ liệu động luôn mới; view/grant vẫn đúng phạm vi.
 - Sau plan 5: AGENTS.md khớp report; tất cả link ảnh tồn tại.
