@@ -229,14 +229,16 @@ async def update_config(
         current = now()
         # next_business_date accepts hours; shift the moment by the minute/second
         # part so the configured Time is respected at the boundary.
-        current -= timedelta(
+        shifted = current - timedelta(
             minutes=cfg.business_day_start.minute,
             seconds=cfg.business_day_start.second,
             microseconds=cfg.business_day_start.microsecond,
         )
-        cfg.pending_business_day_effective_date = next_business_date(
-            current, cfg.business_day_start.hour
-        )
+        effective_date = next_business_date(shifted, cfg.business_day_start.hour)
+        activation = datetime.combine(effective_date, requested_start, tzinfo=current.tzinfo)
+        if activation <= current:
+            effective_date += timedelta(days=1)
+        cfg.pending_business_day_effective_date = effective_date
     for field, attribute in (
         ("SoNgayCanhBaoHetHan", "expiry_warning_days"),
         ("SoCauHoiAIMoiNgay", "ai_daily_question_quota"),

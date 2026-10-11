@@ -109,6 +109,28 @@ async def test_manager_schedules_new_hour_and_audits_complete_snapshots(session,
 
 
 @pytest.mark.asyncio
+async def test_earlier_hour_does_not_activate_during_current_business_date(session, monkeypatch):
+    from app.modules.settings import service
+
+    current = datetime(2026, 10, 11, 5, 30)
+    monkeypatch.setattr(service, "now", lambda: current)
+    client, token = await _mgr(session)
+    async with client:
+        response = await client.put(
+            "/api/v1/settings/config",
+            json={"GioBatDauBusinessDateMoi": "04:00"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+    app.dependency_overrides.clear()
+    assert response.status_code == 200
+    body = response.json()
+    assert body["GioBatDauBusinessDate"] == "06:00:00"
+    assert body["GioBatDauBusinessDateMoi"] == "04:00:00"
+    assert body["NgayHieuLucGioMoi"] == "2026-10-12"
+    assert datetime.combine(date.fromisoformat(body["NgayHieuLucGioMoi"]), time(4)) > current
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "field", ["SoNgayCanhBaoHetHan", "SoCauHoiAIMoiNgay", "ThoiGianGiuChoPhut"]
 )
