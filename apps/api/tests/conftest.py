@@ -1,6 +1,7 @@
 """Shared pytest fixtures - Phase 0 foundation."""
 
 from collections.abc import AsyncIterator, Callable, Iterator
+from unittest.mock import patch
 
 import pytest
 import pytest_asyncio
@@ -21,11 +22,22 @@ import app.modules.settings.models
 import app.shared.audit  # noqa: F401
 from app.core.config import get_settings
 from app.core.security import create_access_token
-from app.main import app as fastapi_app
 from app.shared import business_date
 from app.shared.base import Base
 from app.shared.roles import Role
 from tests.helpers import FIXED_NOW
+
+# app.main builds the FastAPI app at import time and validates payment settings.
+# Keep that one import independent of developer credentials, then restore the
+# process environment so tests can choose their own gateway.
+_payment_env_defaults = {
+    "PAYMENT_GATEWAY": "simulator",
+    "SEPAY_BANK_ACCOUNT": "",
+    "SEPAY_BANK_CODE": "",
+    "SEPAY_WEBHOOK_API_KEY": "",
+}
+with patch.dict("os.environ", _payment_env_defaults):
+    from app.main import app as fastapi_app
 
 
 def _require_resources_for_integration() -> None:
