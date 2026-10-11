@@ -8,9 +8,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.errors import BusinessRuleError, NotFoundError, UnauthenticatedError
 from app.core.security import create_access_token, hash_password, verify_password
 from app.modules.settings.models import RoleTable, SystemConfig, User
-from app.modules.settings.schemas import ConfigUpdate
+from app.modules.settings.schemas import ConfigOut, ConfigUpdate
 from app.shared.audit import SystemAuditLog
 from app.shared.base import Base
+from app.shared.business_date import next_business_date, now
 from app.shared.enums import UserStatus
 from app.shared.roles import Role
 
@@ -47,6 +48,9 @@ async def seed_reference_data(session: AsyncSession) -> None:
                 invoice_template=None,
                 default_stock_threshold=5,
                 business_day_start=time(6, 0),
+                expiry_warning_days=3,
+                ai_daily_question_quota=50,
+                reservation_hold_minutes=5,
             )
         )
         await session.flush()
@@ -203,9 +207,10 @@ async def get_config(session: AsyncSession) -> SystemConfig:
 async def update_config(
     session: AsyncSession, actor_id: int, data: ConfigUpdate | dict
 ) -> SystemConfig:
-    d = data.model_dump(exclude_none=False) if isinstance(data, ConfigUpdate) else data
+    d = data.model_dump(exclude_unset=True) if isinstance(data, ConfigUpdate) else data
     cfg = await get_config(session)
-    # Only allow specific fields, ignore business_day_start
+    before = ConfigOut.model_validate(cfg).model_dump(mode="json")
+    # The active start remains in force until the pending Business Date.
     if "TenNhaHang" in d and d["TenNhaHang"] is not None:
         cfg.restaurant_name = d["TenNhaHang"]
     if "DiaChi" in d:
@@ -218,14 +223,40 @@ async def update_config(
                 "Ng\u01b0\u1ee1ng t\u1ed3n kh\u00f4ng \u0111\u01b0\u1ee3c \u00e2m."
             )
         cfg.default_stock_threshold = d["NguongTonMacDinh"]
-    # BusinessDate locked
+    if d.get("GioBatDauBusinessDateMoi") is not None:
+        requested_start = d["GioBatDauBusinessDateMoi"]
+        cfg.pending_business_day_start = requested_start
+        current = now()
+        # next_business_date accepts hours; shift the moment by the minute/second
+        # part so the configured Time is respected at the boundary.
+        current -= timedelta(
+            minutes=cfg.business_day_start.minute,
+            seconds=cfg.business_day_start.second,
+            microseconds=cfg.business_day_start.microsecond,
+        )
+        cfg.pending_business_day_effective_date = next_business_date(
+            current, cfg.business_day_start.hour
+        )
+    for field, attribute in (
+        ("SoNgayCanhBaoHetHan", "expiry_warning_days"),
+        ("SoCauHoiAIMoiNgay", "ai_daily_question_quota"),
+        ("ThoiGianGiuChoPhut", "reservation_hold_minutes"),
+    ):
+        value = d.get(field)
+        if value is not None:
+            if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+                raise BusinessRuleError(f"{field} phải là số nguyên dương.")
+            setattr(cfg, attribute, value)
     await session.flush()
+    after = ConfigOut.model_validate(cfg).model_dump(mode="json")
     session.add(
         SystemAuditLog(
             user_id=actor_id,
             action="UPDATE_CONFIG",
             target_entity="CAU_HINH_HE_THONG",
             target_id=str(cfg.id),
+            before=before,
+            after=after,
         )
     )
     await session.flush()

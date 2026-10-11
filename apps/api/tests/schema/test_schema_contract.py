@@ -56,6 +56,16 @@ def test_the_schema_has_the_report_tables_plus_the_counter() -> None:
     assert set(Base.metadata.tables) == EXPECTED_TABLES
 
 
+def test_system_config_has_runtime_settings_from_the_report() -> None:
+    assert {
+        "GioBatDauBusinessDateMoi",
+        "NgayHieuLucGioMoi",
+        "SoNgayCanhBaoHetHan",
+        "SoCauHoiAIMoiNgay",
+        "ThoiGianGiuChoPhut",
+    } <= {column.name for column in Base.metadata.tables["CAU_HINH_HE_THONG"].columns}
+
+
 def test_the_index_strategy_of_section_3_2_3_is_present() -> None:
     for table, columns in EXPECTED_INDEXES:
         indexes = Base.metadata.tables[table].indexes

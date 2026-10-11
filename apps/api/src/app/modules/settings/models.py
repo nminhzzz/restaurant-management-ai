@@ -1,8 +1,8 @@
 """Settings module tables: VAI_TRO, NGUOI_DUNG, CAU_HINH_HE_THONG."""
 
-from datetime import datetime, time
+from datetime import date, datetime, time
 
-from sqlalchemy import DECIMAL, DateTime, ForeignKey, Index, String, Time, func
+from sqlalchemy import DECIMAL, Date, DateTime, ForeignKey, Index, Integer, String, Time, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.shared.base import Base, BigInteger
@@ -54,4 +54,19 @@ class SystemConfig(Base):
     )
     business_day_start: Mapped[time] = mapped_column(
         "GioBatDauBusinessDate", Time, nullable=False, default=time(hour=6)
+    )
+    pending_business_day_start: Mapped[time | None] = mapped_column(
+        "GioBatDauBusinessDateMoi", Time, nullable=True
+    )
+    pending_business_day_effective_date: Mapped[date | None] = mapped_column(
+        "NgayHieuLucGioMoi", Date, nullable=True
+    )
+    expiry_warning_days: Mapped[int] = mapped_column(
+        "SoNgayCanhBaoHetHan", Integer, nullable=False, default=3
+    )
+    ai_daily_question_quota: Mapped[int] = mapped_column(
+        "SoCauHoiAIMoiNgay", Integer, nullable=False, default=50
+    )
+    reservation_hold_minutes: Mapped[int] = mapped_column(
+        "ThoiGianGiuChoPhut", Integer, nullable=False, default=5
     )

@@ -1,6 +1,6 @@
 """Schemas for Module 5 Settings."""
 
-from datetime import datetime, time
+from datetime import date, datetime, time
 from typing import Annotated, Any
 
 from pydantic import BaseModel, Field, StringConstraints
@@ -64,6 +64,15 @@ class ConfigOut(BaseModel):
     MauHoaDon: str | None = Field(default=None, validation_alias="invoice_template")
     NguongTonMacDinh: int = Field(validation_alias="default_stock_threshold")
     GioBatDauBusinessDate: time = Field(validation_alias="business_day_start")
+    GioBatDauBusinessDateMoi: time | None = Field(
+        default=None, validation_alias="pending_business_day_start"
+    )
+    NgayHieuLucGioMoi: date | None = Field(
+        default=None, validation_alias="pending_business_day_effective_date"
+    )
+    SoNgayCanhBaoHetHan: int = Field(validation_alias="expiry_warning_days")
+    SoCauHoiAIMoiNgay: int = Field(validation_alias="ai_daily_question_quota")
+    ThoiGianGiuChoPhut: int = Field(validation_alias="reservation_hold_minutes")
 
     model_config = {"from_attributes": True, "populate_by_name": True}
 
@@ -73,7 +82,10 @@ class ConfigUpdate(BaseModel):
     DiaChi: Annotated[str | None, StringConstraints(max_length=255)] = None
     MauHoaDon: Annotated[str | None, StringConstraints(max_length=50)] = None
     NguongTonMacDinh: int | None = Field(default=None, ge=0)
-    # GioBatDauBusinessDate is fixed at 06:00, not editable via API
+    GioBatDauBusinessDateMoi: time | None = None
+    SoNgayCanhBaoHetHan: int | None = Field(default=None, gt=0)
+    SoCauHoiAIMoiNgay: int | None = Field(default=None, gt=0)
+    ThoiGianGiuChoPhut: int | None = Field(default=None, gt=0)
 
 
 class BackupDump(BaseModel):
