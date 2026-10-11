@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { FormField } from "@/components/form-field";
 import { ErrorState, LoadingState } from "@/components/page-states";
@@ -68,6 +68,35 @@ function ConfigForm({
   const [holdMinutes, setHoldMinutes] = useState(
     String(config.ThoiGianGiuChoPhut),
   );
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  const activationMs =
+    config.GioBatDauBusinessDateMoi && config.NgayHieuLucGioMoi
+      ? Date.parse(
+          `${config.NgayHieuLucGioMoi}T${config.GioBatDauBusinessDateMoi}+07:00`,
+        )
+      : null;
+  const waitingForActivation =
+    activationMs !== null &&
+    Number.isFinite(activationMs) &&
+    nowMs < activationMs;
+  const hasActivated =
+    activationMs !== null &&
+    Number.isFinite(activationMs) &&
+    nowMs >= activationMs;
+  const currentHour = hasActivated
+    ? (config.GioBatDauBusinessDateMoi ?? config.GioBatDauBusinessDate)
+    : config.GioBatDauBusinessDate;
+
+  useEffect(() => {
+    if (activationMs === null || !Number.isFinite(activationMs)) return;
+    const remaining = activationMs - Date.now();
+    if (remaining <= 0) return;
+    const timer = setTimeout(
+      () => setNowMs(Date.now()),
+      Math.min(remaining, 2_147_483_647),
+    );
+    return () => clearTimeout(timer);
+  }, [activationMs, nowMs]);
 
   const thresholdError =
     threshold.trim() !== "" && !/^\d+$/.test(threshold.trim())
@@ -158,15 +187,12 @@ function ConfigForm({
         label="Giờ bắt đầu Business Date"
         help="Giờ đang áp dụng; nhập giờ mới ở bên dưới để lên lịch thay đổi."
       >
-        <Input
-          id="cfg-business-date"
-          value={config.GioBatDauBusinessDate}
-          disabled
-          readOnly
-        />
+        <Input id="cfg-business-date" value={currentHour} disabled readOnly />
       </FormField>
       <p className="text-sm text-subtle">
-        {config.GioBatDauBusinessDateMoi && config.NgayHieuLucGioMoi
+        {waitingForActivation &&
+        config.GioBatDauBusinessDateMoi &&
+        config.NgayHieuLucGioMoi
           ? `Giờ đang chờ áp dụng: ${config.GioBatDauBusinessDateMoi.slice(0, 5)} từ Business Date ${config.NgayHieuLucGioMoi.split("-").reverse().join("/")}.`
           : "Chưa có giờ mới đang chờ áp dụng."}
       </p>

@@ -1,4 +1,10 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/api-client", async (importOriginal) => {
@@ -86,16 +92,83 @@ describe("ConfigPanel", () => {
     fetchMock.mockResolvedValue({
       ...config,
       GioBatDauBusinessDateMoi: "04:00:00",
-      NgayHieuLucGioMoi: "2026-10-12",
+      NgayHieuLucGioMoi: "2099-10-12",
     });
     render(<ConfigPanel />);
 
     expect(
-      await screen.findByText(/04:00 từ Business Date 12\/10\/2026/),
+      await screen.findByText(/04:00 từ Business Date 12\/10\/2099/),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Giờ bắt đầu Business Date")).toHaveValue(
       "06:00:00",
     );
+  });
+
+  it.each([
+    ["2026-10-11T21:00:00.000Z", "04:00:00"],
+    ["2026-10-11T21:00:01.000Z", "04:00:00"],
+  ])(
+    "shows the new hour as active at and after activation (%s)",
+    async (instant, hour) => {
+      vi.useFakeTimers();
+      try {
+        vi.setSystemTime(new Date(instant));
+        fetchMock.mockResolvedValue({
+          ...config,
+          GioBatDauBusinessDateMoi: "04:00:00",
+          NgayHieuLucGioMoi: "2026-10-12",
+        });
+        render(<ConfigPanel />);
+        await act(async () => {});
+
+        expect(screen.getByLabelText("Giờ bắt đầu Business Date")).toHaveValue(
+          hour,
+        );
+        expect(
+          screen.getByText(/chưa có giờ mới đang chờ áp dụng/i),
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByText(/giờ đang chờ áp dụng: 04:00/i),
+        ).not.toBeInTheDocument();
+      } finally {
+        cleanup();
+        vi.useRealTimers();
+      }
+    },
+  );
+
+  it("switches the displayed hour when activation arrives while mounted", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-10-11T20:59:59.000Z"));
+      fetchMock.mockResolvedValue({
+        ...config,
+        GioBatDauBusinessDateMoi: "04:00:00",
+        NgayHieuLucGioMoi: "2026-10-12",
+      });
+      render(<ConfigPanel />);
+      await act(async () => {});
+
+      expect(screen.getByLabelText("Giờ bắt đầu Business Date")).toHaveValue(
+        "06:00:00",
+      );
+      expect(
+        screen.getByText(/04:00 từ Business Date 12\/10\/2026/),
+      ).toBeInTheDocument();
+
+      await act(async () => {
+        vi.advanceTimersByTime(1000);
+      });
+      expect(screen.getByLabelText("Giờ bắt đầu Business Date")).toHaveValue(
+        "04:00:00",
+      );
+      expect(
+        screen.getByText(/chưa có giờ mới đang chờ áp dụng/i),
+      ).toBeInTheDocument();
+    } finally {
+      cleanup();
+      vi.useRealTimers();
+    }
   });
 
   it("sends a replacement pending hour and positive runtime settings", async () => {
