@@ -17,6 +17,11 @@ const config = {
   MauHoaDon: null,
   NguongTonMacDinh: 5,
   GioBatDauBusinessDate: "06:00:00",
+  GioBatDauBusinessDateMoi: null,
+  NgayHieuLucGioMoi: null,
+  SoNgayCanhBaoHetHan: 3,
+  SoCauHoiAIMoiNgay: 50,
+  ThoiGianGiuChoPhut: 5,
 };
 
 describe("ConfigPanel", () => {
@@ -56,5 +61,122 @@ describe("ConfigPanel", () => {
     const field = await screen.findByLabelText("Giờ bắt đầu Business Date");
     expect(field).toBeDisabled();
     expect(field).toHaveValue("06:00:00");
+  });
+
+  it("shows runtime defaults and explains the effect of changing hold time", async () => {
+    fetchMock.mockResolvedValue(config);
+    render(<ConfigPanel />);
+
+    expect(
+      await screen.findByLabelText("Số ngày cảnh báo sắp hết hạn"),
+    ).toHaveValue("3");
+    expect(
+      screen.getByLabelText("Hạn mức câu hỏi AI mỗi người mỗi ngày"),
+    ).toHaveValue("50");
+    expect(screen.getByLabelText("Thời gian giữ chỗ (phút)")).toHaveValue("5");
+    expect(
+      screen.getByText(/giữ nguyên thời điểm hết hạn đã ghi nhận/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/chưa có giờ mới đang chờ áp dụng/i),
+    ).toBeInTheDocument();
+  });
+
+  it("shows the pending hour and effective Business Date", async () => {
+    fetchMock.mockResolvedValue({
+      ...config,
+      GioBatDauBusinessDateMoi: "04:00:00",
+      NgayHieuLucGioMoi: "2026-10-12",
+    });
+    render(<ConfigPanel />);
+
+    expect(
+      await screen.findByText(/04:00 từ Business Date 12\/10\/2026/),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Giờ bắt đầu Business Date")).toHaveValue(
+      "06:00:00",
+    );
+  });
+
+  it("sends a replacement pending hour and positive runtime settings", async () => {
+    fetchMock.mockResolvedValue(config);
+    render(<ConfigPanel />);
+
+    fireEvent.change(
+      await screen.findByLabelText("Giờ bắt đầu Business Date mới"),
+      {
+        target: { value: "07:30" },
+      },
+    );
+    fireEvent.change(screen.getByLabelText("Số ngày cảnh báo sắp hết hạn"), {
+      target: { value: "4" },
+    });
+    fireEvent.change(
+      screen.getByLabelText("Hạn mức câu hỏi AI mỗi người mỗi ngày"),
+      {
+        target: { value: "75" },
+      },
+    );
+    fireEvent.change(screen.getByLabelText("Thời gian giữ chỗ (phút)"), {
+      target: { value: "8" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Lưu cấu hình" }));
+
+    await vi.waitFor(() => {
+      const request = fetchMock.mock.calls.find(
+        ([, options]) => options?.method === "PUT",
+      );
+      expect(request?.[1].body).toMatchObject({
+        GioBatDauBusinessDateMoi: "07:30",
+        SoNgayCanhBaoHetHan: 4,
+        SoCauHoiAIMoiNgay: 75,
+        ThoiGianGiuChoPhut: 8,
+        TenNhaHang: "Nhà hàng ABC",
+        NguongTonMacDinh: 5,
+      });
+      expect(request?.[1].body).not.toHaveProperty("GioBatDauBusinessDate");
+    });
+  });
+
+  it.each([
+    ["Số ngày cảnh báo sắp hết hạn", "0"],
+    ["Hạn mức câu hỏi AI mỗi người mỗi ngày", "-1"],
+    ["Thời gian giữ chỗ (phút)", "1.5"],
+  ])(
+    "rejects a nonpositive or noninteger value for %s",
+    async (label, invalid) => {
+      fetchMock.mockResolvedValue(config);
+      render(<ConfigPanel />);
+
+      fireEvent.change(await screen.findByLabelText(label), {
+        target: { value: invalid },
+      });
+      expect(
+        screen.getByRole("button", { name: "Lưu cấu hình" }),
+      ).toBeDisabled();
+      expect(
+        fetchMock.mock.calls.filter(([, options]) => options?.method === "PUT"),
+      ).toHaveLength(0);
+    },
+  );
+
+  it("does not reschedule a pending hour when another field is saved", async () => {
+    fetchMock.mockResolvedValue({
+      ...config,
+      GioBatDauBusinessDateMoi: "04:00:00",
+      NgayHieuLucGioMoi: "2026-10-12",
+    });
+    render(<ConfigPanel />);
+
+    fireEvent.change(await screen.findByLabelText("Tên nhà hàng"), {
+      target: { value: "Nhà hàng mới" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Lưu cấu hình" }));
+    await vi.waitFor(() => {
+      const request = fetchMock.mock.calls.find(
+        ([, options]) => options?.method === "PUT",
+      );
+      expect(request?.[1].body).not.toHaveProperty("GioBatDauBusinessDateMoi");
+    });
   });
 });
