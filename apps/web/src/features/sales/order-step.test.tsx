@@ -477,4 +477,311 @@ describe("OrderStep", () => {
     await vi.waitFor(() => expect(onSent).toHaveBeenCalledWith(42, "floor"));
     expect(submits).toBe(2);
   });
+
+  it("releases a previous hold when an increased quantity cannot be reserved", async () => {
+    let oldHoldActive = false;
+    let dishFiveUpdates = 0;
+    fetchMock.mockImplementation(
+      (path: string, options?: { method?: string }) => {
+        if (path === "/catalog/tables")
+          return Promise.resolve([{ MaBan: 4, TenBan: "Bàn 04" }]);
+        if (path === "/catalog/dishes?size=200") return Promise.resolve(dishes);
+        if (path === "/catalog/groups")
+          return Promise.resolve([{ MaNhomMon: 1, TenNhom: "Món chính" }]);
+        if (path === "/sales/selections")
+          return Promise.resolve({ MaLuotChon: "selection-existing-hold" });
+        if (path === "/sales/selections/selection-existing-hold/lines/5") {
+          dishFiveUpdates += 1;
+          if (dishFiveUpdates === 1) {
+            oldHoldActive = true;
+            return Promise.resolve({
+              MaGiuCho: 101,
+              MaLuotChon: "selection-existing-hold",
+              MaMon: 5,
+              SoLuong: 1,
+              ThoiDiemHetHan: "2099-01-01T10:00:00",
+              TrangThai: "Đang giữ",
+            });
+          }
+          return Promise.reject(
+            new ApiError(409, "OUT_OF_STOCK", "Hết nguyên liệu."),
+          );
+        }
+        if (path === "/sales/selections/selection-existing-hold/lines/8")
+          return Promise.resolve({
+            MaGiuCho: 108,
+            MaLuotChon: "selection-existing-hold",
+            MaMon: 8,
+            SoLuong: 1,
+            ThoiDiemHetHan: "2099-01-01T10:00:00",
+            TrangThai: "Đang giữ",
+          });
+        if (path === "/sales/holds/101" && options?.method === "DELETE") {
+          oldHoldActive = false;
+          return Promise.resolve({ MaGiuCho: 101, TrangThai: "Đã hủy" });
+        }
+        if (path === "/sales/selections/selection-existing-hold/submit")
+          return Promise.resolve({
+            MaOrder: 142,
+            CanXacNhanLai: false,
+            stale: [],
+            lines: [
+              ...(oldHoldActive
+                ? [
+                    {
+                      MaChiTietOrder: 9,
+                      MaMon: 5,
+                      SoLuong: 1,
+                      DonGia: 65000,
+                    },
+                  ]
+                : []),
+              { MaChiTietOrder: 10, MaMon: 8, SoLuong: 1, DonGia: 30000 },
+            ],
+          });
+        return Promise.resolve({});
+      },
+    );
+    render(
+      <OrderStep tableId={4} orderId={142} onBack={vi.fn()} onSent={vi.fn()} />,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: /Phở bò/ }));
+    await screen.findByText(/Giữ đến/);
+    fireEvent.change(screen.getByLabelText("Số lượng Phở bò"), {
+      target: { value: "2" },
+    });
+    expect(await screen.findByText("Hết nguyên liệu.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Gỏi cuốn/ }));
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/sales/selections/selection-existing-hold/lines/8",
+        expect.objectContaining({ method: "PUT" }),
+      ),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Gửi bếp" }));
+
+    expect(
+      await screen.findByText(
+        "Một số món chưa giữ được. Sửa lỗi từng món rồi gửi lại.",
+      ),
+    ).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/sales/holds/101",
+      expect.objectContaining({ method: "DELETE" }),
+    );
+    expect(screen.getByLabelText("Số lượng Phở bò")).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("Số lượng Gỏi cuốn"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("blocks submit when the previous hold cannot be released", async () => {
+    let dishFiveUpdates = 0;
+    let deleteAttempts = 0;
+    fetchMock.mockImplementation(
+      (path: string, options?: { method?: string }) => {
+        if (path === "/catalog/tables")
+          return Promise.resolve([{ MaBan: 4, TenBan: "Bàn 04" }]);
+        if (path === "/catalog/dishes?size=200") return Promise.resolve(dishes);
+        if (path === "/catalog/groups")
+          return Promise.resolve([{ MaNhomMon: 1, TenNhom: "Món chính" }]);
+        if (path === "/sales/selections")
+          return Promise.resolve({ MaLuotChon: "selection-release-failure" });
+        if (path === "/sales/selections/selection-release-failure/lines/5") {
+          dishFiveUpdates += 1;
+          if (dishFiveUpdates === 1 || dishFiveUpdates === 4)
+            return Promise.resolve({
+              MaGiuCho: 301,
+              MaLuotChon: "selection-release-failure",
+              MaMon: 5,
+              SoLuong: dishFiveUpdates === 1 ? 1 : 2,
+              ThoiDiemHetHan: "2099-01-01T10:00:00",
+              TrangThai: "Đang giữ",
+            });
+          return Promise.reject(
+            new ApiError(409, "OUT_OF_STOCK", "Hết nguyên liệu."),
+          );
+        }
+        if (path === "/sales/selections/selection-release-failure/lines/8")
+          return Promise.resolve({
+            MaGiuCho: 308,
+            MaLuotChon: "selection-release-failure",
+            MaMon: 8,
+            SoLuong: 1,
+            ThoiDiemHetHan: "2099-01-01T10:00:00",
+            TrangThai: "Đang giữ",
+          });
+        if (path === "/sales/holds/301" && options?.method === "DELETE") {
+          deleteAttempts += 1;
+          if (deleteAttempts < 3)
+            return Promise.reject(
+              new ApiError(503, "UNAVAILABLE", "Không thể bỏ giữ món."),
+            );
+          return Promise.resolve({ MaGiuCho: 301, TrangThai: "Đã hủy" });
+        }
+        if (path === "/sales/selections/selection-release-failure/submit")
+          return Promise.resolve({
+            MaOrder: 142,
+            CanXacNhanLai: false,
+            stale: [],
+            lines: [
+              { MaChiTietOrder: 3, MaMon: 5, SoLuong: 2, DonGia: 65000 },
+              { MaChiTietOrder: 4, MaMon: 8, SoLuong: 1, DonGia: 30000 },
+            ],
+          });
+        return Promise.resolve({});
+      },
+    );
+    render(
+      <OrderStep tableId={4} orderId={142} onBack={vi.fn()} onSent={vi.fn()} />,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: /Phở bò/ }));
+    await screen.findByText(/Giữ đến/);
+    fireEvent.change(screen.getByLabelText("Số lượng Phở bò"), {
+      target: { value: "2" },
+    });
+    expect(await screen.findByText(/Không thể bỏ giữ món/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Gỏi cuốn/ }));
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/sales/selections/selection-release-failure/lines/8",
+        expect.objectContaining({ method: "PUT" }),
+      ),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Gửi bếp" }));
+    expect(
+      await screen.findByText(
+        "Không thể bỏ giữ chỗ cũ. Sửa lỗi từng món trước khi gửi order.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Số lượng Phở bò")).toBeInTheDocument();
+    expect(screen.getByLabelText("Số lượng Gỏi cuốn")).toBeInTheDocument();
+    expect(
+      fetchMock.mock.calls.some(
+        ([path]) =>
+          path === "/sales/selections/selection-release-failure/submit",
+      ),
+    ).toBe(false);
+
+    fireEvent.click(screen.getByRole("button", { name: "Gửi bếp" }));
+    await vi.waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(
+          ([path]) =>
+            path === "/sales/selections/selection-release-failure/submit",
+        ),
+      ).toBe(true),
+    );
+  });
+
+  it("releases unsent holds before retrying a partial send in a new selection", async () => {
+    const onSent = vi.fn();
+    let selectionCount = 0;
+    let unsentOldHoldActive = false;
+    fetchMock.mockImplementation(
+      (
+        path: string,
+        options?: { method?: string; body?: Record<string, unknown> },
+      ) => {
+        if (path === "/catalog/tables")
+          return Promise.resolve([{ MaBan: 4, TenBan: "Bàn 04" }]);
+        if (path === "/catalog/dishes?size=200") return Promise.resolve(dishes);
+        if (path === "/catalog/groups")
+          return Promise.resolve([{ MaNhomMon: 1, TenNhom: "Món chính" }]);
+        if (path === "/sales/selections" && options?.method === "POST") {
+          selectionCount += 1;
+          return Promise.resolve({
+            MaLuotChon:
+              selectionCount === 1
+                ? "selection-before-partial"
+                : "selection-after-partial",
+          });
+        }
+        if (path === "/sales/selections/selection-before-partial/lines/5")
+          return Promise.resolve({
+            MaGiuCho: 201,
+            MaLuotChon: "selection-before-partial",
+            MaMon: 5,
+            SoLuong: 1,
+            ThoiDiemHetHan: "2099-01-01T10:00:00",
+            TrangThai: "Đang giữ",
+          });
+        if (path === "/sales/selections/selection-before-partial/lines/8") {
+          unsentOldHoldActive = true;
+          return Promise.resolve({
+            MaGiuCho: 208,
+            MaLuotChon: "selection-before-partial",
+            MaMon: 8,
+            SoLuong: 1,
+            ThoiDiemHetHan: "2099-01-01T10:00:00",
+            TrangThai: "Đang giữ",
+          });
+        }
+        if (path === "/sales/holds/208" && options?.method === "DELETE") {
+          unsentOldHoldActive = false;
+          return Promise.resolve({ MaGiuCho: 208, TrangThai: "Đã hủy" });
+        }
+        if (path === "/sales/selections/selection-before-partial/submit") {
+          return Promise.resolve({
+            MaOrder: 142,
+            CanXacNhanLai: false,
+            stale: [],
+            lines: [{ MaChiTietOrder: 1, MaMon: 5, SoLuong: 1, DonGia: 65000 }],
+          });
+        }
+        if (path === "/sales/selections/selection-after-partial/lines/8")
+          return Promise.resolve({
+            MaGiuCho: 308,
+            MaLuotChon: "selection-after-partial",
+            MaMon: 8,
+            SoLuong: 1,
+            ThoiDiemHetHan: "2099-01-01T10:00:00",
+            TrangThai: "Đang giữ",
+          });
+        if (path === "/sales/selections/selection-after-partial/submit")
+          return Promise.resolve({
+            MaOrder: 142,
+            CanXacNhanLai: false,
+            stale: [],
+            lines: [{ MaChiTietOrder: 2, MaMon: 8, SoLuong: 1, DonGia: 30000 }],
+          });
+        return Promise.resolve({});
+      },
+    );
+    render(
+      <OrderStep tableId={4} orderId={null} onBack={vi.fn()} onSent={onSent} />,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: /Phở bò/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Gỏi cuốn/ }));
+    await vi.waitFor(() =>
+      expect(screen.getAllByText(/Giữ đến/)).toHaveLength(2),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Gửi bếp" }));
+    expect(
+      await screen.findByText(
+        "Một số món chưa giữ được. Sửa lỗi từng món rồi gửi lại.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Số lượng Gỏi cuốn")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/sales/holds/208",
+      expect.objectContaining({ method: "DELETE" }),
+    );
+    expect(unsentOldHoldActive).toBe(false);
+
+    fireEvent.click(screen.getByRole("button", { name: "Gửi bếp" }));
+    await vi.waitFor(() => expect(onSent).toHaveBeenCalledWith(142, "floor"));
+    expect(selectionCount).toBe(2);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/sales/selections",
+      expect.objectContaining({
+        method: "POST",
+        body: expect.objectContaining({ MaOrder: 142 }),
+      }),
+    );
+    expect(unsentOldHoldActive).toBe(false);
+  });
 });

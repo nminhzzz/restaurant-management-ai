@@ -151,6 +151,8 @@ export function OrderStep({
   const selectionPromiseRef = useRef<Promise<string> | null>(null);
   const sendRequestIdRef = useRef<string | null>(null);
   const mutationQueuesRef = useRef(new Map<number, Promise<void>>());
+  const unsafeHoldsRef = useRef<Record<number, number>>({});
+  const pendingSelectionResetRef = useRef<number | null | undefined>(undefined);
   const [pendingLines, setPendingLines] = useState<number[]>([]);
 
   useEffect(() => {
@@ -275,6 +277,42 @@ export function OrderStep({
     setLineErrors(next);
   }
 
+  async function releaseHoldNow(dishId: number): Promise<boolean> {
+    const hold = holdDisplaysRef.current[dishId];
+    if (!hold) {
+      delete unsafeHoldsRef.current[dishId];
+      return true;
+    }
+    try {
+      await apiFetch(`/sales/holds/${hold.MaGiuCho}`, { method: "DELETE" });
+      saveHoldDisplay(dishId, null);
+      delete unsafeHoldsRef.current[dishId];
+      sendRequestIdRef.current = null;
+      return true;
+    } catch (failure: unknown) {
+      unsafeHoldsRef.current[dishId] = hold.MaGiuCho;
+      saveLineError(
+        dishId,
+        `${messageOf(failure, "Không thể bỏ giữ món.")} Giữ chỗ cũ vẫn còn; thử lại trước khi gửi order.`,
+      );
+      return false;
+    }
+  }
+
+  async function releaseUnsentHolds(
+    lines: CartLine[],
+    sentDishIds: Set<number>,
+  ): Promise<boolean> {
+    const results = await Promise.all(
+      lines
+        .filter((line) => !sentDishIds.has(line.MaMon))
+        .map((line) =>
+          enqueueMutation(line.MaMon, () => releaseHoldNow(line.MaMon)),
+        ),
+    );
+    return results.every(Boolean);
+  }
+
   function syncLine(line: CartLine): Promise<boolean> {
     setPendingLines((previous) =>
       previous.includes(line.MaMon) ? previous : [...previous, line.MaMon],
@@ -297,16 +335,19 @@ export function OrderStep({
         );
         saveHoldDisplay(line.MaMon, hold);
         saveLineError(line.MaMon, null);
+        delete unsafeHoldsRef.current[line.MaMon];
         sendRequestIdRef.current = null;
         return true;
       } catch (failure: unknown) {
-        saveLineError(
-          line.MaMon,
-          messageOf(
-            failure,
-            "Không giữ được món. Hãy kiểm tra số lượng còn lại.",
-          ),
+        const updateMessage = messageOf(
+          failure,
+          "Không giữ được món. Hãy kiểm tra số lượng còn lại.",
         );
+        if (holdDisplaysRef.current[line.MaMon]) {
+          const released = await releaseHoldNow(line.MaMon);
+          if (!released) return false;
+        }
+        saveLineError(line.MaMon, updateMessage);
         return false;
       } finally {
         setPendingLines((previous) =>
@@ -351,25 +392,16 @@ export function OrderStep({
     if (line.SoLuong + delta <= 0) {
       setCart((previous) => previous.filter((l) => l.MaMon !== line.MaMon));
       saveLineError(line.MaMon, null);
-      void enqueueMutation(line.MaMon, async () => {
-        const hold = holdDisplaysRef.current[line.MaMon];
-        if (hold) {
-          const selectionId = selectionIdRef.current;
-          if (selectionId)
-            await apiFetch(`/sales/holds/${hold.MaGiuCho}`, {
-              method: "DELETE",
-            });
-          saveHoldDisplay(line.MaMon, null);
-          sendRequestIdRef.current = null;
-        }
-      }).catch((failure: unknown) => {
-        setCart((previous) =>
-          previous.some((item) => item.MaMon === line.MaMon)
-            ? previous
-            : [...previous, line],
-        );
-        saveLineError(line.MaMon, messageOf(failure, "Không thể bỏ giữ món."));
-      });
+      void enqueueMutation(line.MaMon, () => releaseHoldNow(line.MaMon)).then(
+        (released) => {
+          if (!released)
+            setCart((previous) =>
+              previous.some((item) => item.MaMon === line.MaMon)
+                ? previous
+                : [...previous, line],
+            );
+        },
+      );
     } else {
       updateLine(line.MaMon, { SoLuong: line.SoLuong + delta });
     }
@@ -398,6 +430,18 @@ export function OrderStep({
           })),
         );
       }
+      if (pendingSelectionResetRef.current !== undefined) {
+        const orderToAttach = pendingSelectionResetRef.current;
+        const released = await releaseUnsentHolds(cart, new Set());
+        if (!released) {
+          setError(
+            "Không thể chuyển các món còn lại sang lượt chọn mới. Hãy thử lại.",
+          );
+          return;
+        }
+        resetSelection(orderToAttach);
+        pendingSelectionResetRef.current = undefined;
+      }
       const holdResults = await Promise.all(
         cart.map(async (line) => {
           const pending = mutationQueuesRef.current.get(line.MaMon);
@@ -415,6 +459,12 @@ export function OrderStep({
       if (holdResults.every((result) => !result)) {
         setError(
           "Không có món nào được giữ. Hãy sửa lỗi từng món rồi thử lại.",
+        );
+        return;
+      }
+      if (Object.keys(unsafeHoldsRef.current).length > 0) {
+        setError(
+          "Không thể bỏ giữ chỗ cũ. Sửa lỗi từng món trước khi gửi order.",
         );
         return;
       }
@@ -445,8 +495,14 @@ export function OrderStep({
         );
         for (const line of sentLines) saveHoldDisplay(line.MaMon, null);
         for (const dishId of staleIds) saveHoldDisplay(dishId, null);
-        if (sentLines.length > 0 && result.MaOrder !== null)
-          resetSelection(result.MaOrder);
+        if (sentLines.length > 0 && result.MaOrder !== null) {
+          pendingSelectionResetRef.current = result.MaOrder;
+          const released = await releaseUnsentHolds(cart, sentIds);
+          if (released) {
+            resetSelection(result.MaOrder);
+            pendingSelectionResetRef.current = undefined;
+          }
+        }
         setReconfirm(true);
         setReconfirmNext(next);
         setReconfirmMessage(
@@ -486,7 +542,14 @@ export function OrderStep({
       );
       for (const line of sentLines) saveHoldDisplay(line.MaMon, null);
       if (hasLineErrors || sentIds.size < cart.length) {
-        if (sentIds.size > 0) resetSelection(id);
+        if (sentIds.size > 0) {
+          pendingSelectionResetRef.current = id;
+          const released = await releaseUnsentHolds(cart, sentIds);
+          if (released) {
+            resetSelection(id);
+            pendingSelectionResetRef.current = undefined;
+          }
+        }
         setError("Một số món chưa giữ được. Sửa lỗi từng món rồi gửi lại.");
         return;
       }
