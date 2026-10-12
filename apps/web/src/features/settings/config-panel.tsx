@@ -89,8 +89,15 @@ function ConfigForm({
 
   useEffect(() => {
     if (activationMs === null || !Number.isFinite(activationMs)) return;
-    const remaining = activationMs - Date.now();
-    if (remaining <= 0) return;
+    const currentTime = Date.now();
+    const remaining = activationMs - currentTime;
+    if (remaining <= 0) {
+      if (nowMs < activationMs) {
+        const timer = setTimeout(() => setNowMs(Date.now()), 0);
+        return () => clearTimeout(timer);
+      }
+      return;
+    }
     const timer = setTimeout(
       () => setNowMs(Date.now()),
       Math.min(remaining, 2_147_483_647),

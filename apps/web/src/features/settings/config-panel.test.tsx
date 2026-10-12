@@ -171,6 +171,31 @@ describe("ConfigPanel", () => {
     }
   });
 
+  it("updates immediately if activation passes between render and effect", async () => {
+    const activationMs = Date.parse("2026-10-12T04:00:00+07:00");
+    let nowCalls = 0;
+    vi.spyOn(Date, "now").mockImplementation(() => {
+      nowCalls += 1;
+      return nowCalls === 1 ? activationMs - 1 : activationMs;
+    });
+    fetchMock.mockResolvedValue({
+      ...config,
+      GioBatDauBusinessDateMoi: "04:00:00",
+      NgayHieuLucGioMoi: "2026-10-12",
+    });
+
+    render(<ConfigPanel />);
+
+    const businessDateHour = await screen.findByLabelText(
+      "Giờ bắt đầu Business Date",
+    );
+    await vi.waitFor(() => expect(businessDateHour).toHaveValue("04:00:00"));
+    expect(
+      screen.getByText(/chưa có giờ mới đang chờ áp dụng/i),
+    ).toBeInTheDocument();
+    expect(nowCalls).toBeGreaterThanOrEqual(2);
+  });
+
   it("sends a replacement pending hour and positive runtime settings", async () => {
     fetchMock.mockResolvedValue(config);
     render(<ConfigPanel />);
