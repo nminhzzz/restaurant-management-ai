@@ -78,3 +78,23 @@
 - [ ] Step 2: Run cd apps/api && uv run pytest tests/schema/test_ai_views.py -q; Expected: FAIL until DDL and expected columns agree.
 - [ ] Step 3: Extend NULL-padded UNION ALL branches in vw_ai_kho.sql and document row types in db/views/README.md.
 - [ ] Step 4: Run view contract and MySQL 8.4 grant tests; Expected: exact columns and grants remain role-scoped.
+
+### Task 4: Use the effective Business Date in AI prompts
+
+**Reason:** Code review found that `ai/pipeline/prompt.py` still tells the model that a Business Date runs 06:00–06:00 and defines “hôm nay” as `BusinessDate = CURDATE()`. The system now supports a configured boundary, and Task 1/2 already pass the effective Business Date into SQL generation. A cached query key can include the correct date while the prompt still asks the model to generate SQL using the wrong date semantics.
+
+**Files:**
+- Modify: apps/api/src/app/modules/ai/pipeline/prompt.py
+- Modify: apps/api/src/app/modules/ai/pipeline/generator.py
+- Test: apps/api/tests/modules/test_ai_prompt.py
+- Test: apps/api/tests/modules/test_ai_generator.py
+
+**Interfaces:**
+- `build_prompt` receives the captured effective Business Date for this question.
+- The prompt says “hôm nay” means the supplied Business Date literal and instructs the model to filter `BusinessDate` against that value, not `CURDATE()`.
+- Schema notes describe Business Date as configured by the restaurant without asserting a fixed 06:00 boundary.
+
+- [ ] Step 1: Add prompt/generator tests proving the effective Business Date is present for relative-date questions, fixed 06:00 and `CURDATE()` guidance are absent, and the role still sees only its allowed view.
+- [ ] Step 2: Run `cd apps/api && uv run pytest tests/modules/test_ai_prompt.py tests/modules/test_ai_generator.py -q`; Expected: FAIL because the prompt still hardcodes the old boundary.
+- [ ] Step 3: Pass the already captured date from `generate_sql` into `build_prompt`, update Business Date guidance, and keep SQL guard/cache behavior unchanged.
+- [ ] Step 4: Run focused prompt/generator/service tests and `make gate`; Expected: PASS.
