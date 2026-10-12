@@ -2,7 +2,7 @@
 
 KHOA CÔNG NGHỆ THÔNG TIN
 
-![Hình 1](images/image_1.png)
+![Hình 1](Images/image_1.png)
 
 Lê Nam Khánh – Nguyễn Mạnh Hùng – Lê Nho Minh
 
@@ -18,7 +18,7 @@ Hà Nội – Năm 2026
 
 KHOA CÔNG NGHỆ THÔNG TIN
 
-![Hình 2](images/image_2.png)
+![Hình 2](Images/image_2.png)
 
 Lê Nam Khánh – Nguyễn Mạnh Hùng – Lê Nho Minh
 
@@ -768,31 +768,31 @@ Bảng 6. Tổng hợp các nhóm chức năng và mức ưu tiên
 
 Các sơ đồ Use Case gồm một sơ đồ tổng quan và sáu sơ đồ chi tiết theo module, tương ứng với đặc tả chức năng tại mục 3.4. Ba tác nhân người dùng là Quản lý, Thu ngân/Nhân viên order và Bếp; hai hệ thống ngoài là Cổng thanh toán và DeepSeek API. Quản lý kế thừa quyền của hai vai trò còn lại. Các xử lý tự động như trừ/hoàn kho, in phiếu, cảnh báo và ghi nhật ký được mô tả trong luồng xử lý và quy tắc của các chức năng liên quan.
 
-![Hình 3](images/image_3.png)
+![Hình 3](Images/image_3.png)
 
 Hình 1. Use Case tổng quan
 
-![Hình 4](images/image_4.png)
+![Hình 4](Images/image_4.png)
 
 Hình 2. Use Case quản lý danh mục
 
-![Hình 5](images/image_5.png)
+![Hình 5](Images/image_5.png)
 
 Hình 3. Use Case bán hàng
 
-![Hình 6](images/image_6.png)
+![Hình 6](Images/image_6.png)
 
 Hình 4. Use Case quản lý kho
 
-![Hình 7](images/image_7.png)
+![Hình 7](Images/image_7.png)
 
 Hình 5. Use Case báo cáo
 
-![Hình 8](images/image_8.png)
+![Hình 8](Images/image_8.png)
 
 Hình 6. Use Case cài đặt
 
-![Hình 9](images/image_9.png)
+![Hình 9](Images/image_9.png)
 
 Hình 7. Use Case AI Assistant
 
@@ -802,27 +802,27 @@ Mô hình lớp mô tả các đối tượng nghiệp vụ, thuộc tính và q
 
 Các lớp tham chiếu từ module khác được thể hiện bằng khung nét đứt nền xám, tên lớp kèm tên module trong ngoặc (ví dụ “(Module Danh mục)”), chỉ trình bày thông tin cần thiết để nhận diện quan hệ giữa các module.
 
-![Hình 10](images/image_10.png)
+![Hình 10](Images/image_10.png)
 
 Hình 8. Class Diagram - Module Cài đặt hệ thống
 
-![Hình 11](images/image_11.png)
+![Hình 11](Images/image_11.png)
 
 Hình 9. Class Diagram - Module Quản lý danh mục
 
-![Hình 12](images/image_12.png)
+![Hình 12](Images/image_12.png)
 
 Hình 10. Class Diagram - Module Quản lý bán hàng
 
-![Hình 13](images/image_13.png)
+![Hình 13](Images/image_13.png)
 
 Hình 11. Class Diagram - Giữ chỗ món (Module Quản lý bán hàng)
 
-![Hình 14](images/image_14.png)
+![Hình 14](Images/image_14.png)
 
 Hình 12. Class Diagram - Module Quản lý kho
 
-![Hình 15](images/image_15.png)
+![Hình 15](Images/image_15.png)
 
 Hình 13. Class Diagram - Module AI Assistant
 
@@ -842,31 +842,31 @@ Module AI Assistant: PHIEN_CHAT_AI, TRUY_VAN_AI - PHIEN_CHAT_AI kết hợp nhi�
 
 Bảy hình sơ đồ tuần tự (SD-01 đến SD-05, trong đó SD-02 gồm SD-02 và SD-02a, SD-03 gồm SD-03a và SD-03b) dưới đây mô tả luồng xử lý của các use case chính, tương ứng với đặc tả chức năng tại mục 3.4. SD-02a mô tả bước chọn món trước khi gửi order: hệ thống lấy giá, công thức và thời hạn, khóa lô còn hạn theo FIFO rồi giữ đủ định lượng theo lô, hoặc báo thiếu nguyên liệu và giữ nguyên dòng trước thao tác; giảm, xóa dòng hoặc hết thời hạn giữ chỗ thì phần đã giữ được giải phóng. SD-02 tham chiếu SD-02a ở bước chọn món và mô tả bước gửi order xuống bếp. SD-03a bắt đầu từ bước in phiếu tạm tính theo FR-SALE-21, sau đó khách kiểm tra và Thu ngân chọn QR; hình này gồm webhook và mã QR hết hạn, đồng thời tham chiếu SD-03b khi khách báo đã chuyển tiền nhưng hệ thống chưa ghi nhận. SD-03b mô tả đối soát thủ công, cập nhật kết quả xác minh, mở lại thanh toán và đóng order chưa thu được tiền; cả hai hình chỉ phát hành HOA_DON khi giao dịch được xác nhận thành công. Trong SD-01 và SD-05, “Người dùng” chỉ bất kỳ vai trò nào trong ba vai trò ở mục 3.1.2.
 
-![Hình 16](images/image_16.png)
+![Hình 16](Images/image_16.png)
 
 Hình 14. SD-01 - Đăng nhập và phân quyền theo vai trò
 
-![Hình 17](images/image_17.png)
+![Hình 17](Images/image_17.png)
 
 Hình 15. SD-02 - Lập và gửi order xuống bếp
 
-![Hình 18](images/image_18.png)
+![Hình 18](Images/image_18.png)
 
 Hình 16. SD-02a - Chọn món và quản lý giữ chỗ nguyên liệu
 
-![Hình 19](images/image_19.png)
+![Hình 19](Images/image_19.png)
 
 Hình 17. SD-03a - Thanh toán bằng mã QR: tạo mã QR, webhook và hết hạn
 
-![Hình 20](images/image_20.png)
+![Hình 20](Images/image_20.png)
 
 Hình 18. SD-03b - Thanh toán bằng mã QR: đối soát thủ công
 
-![Hình 21](images/image_21.png)
+![Hình 21](Images/image_21.png)
 
 Hình 19. SD-04 - Nhập kho và tạo lô nguyên liệu
 
-![Hình 22](images/image_22.png)
+![Hình 22](Images/image_22.png)
 
 Hình 20. SD-05 - Hỏi AI Assistant
 
