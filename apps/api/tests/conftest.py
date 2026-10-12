@@ -337,6 +337,8 @@ _KHO_COLUMNS = [
     "TenNguyenLieu",
     "DonViTinh",
     "SoLuongTon",
+    "SoLuongGiu",
+    "SoLuongKhaDung",
     "MucTonToiThieu",
     "CanhBaoTonThap",
     "MaGiaoDichKho",

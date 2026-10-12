@@ -64,11 +64,19 @@ Cột: `LoaiBanGhi`, `MaOrder`, `BusinessDate`, `LoaiDon`, `TrangThaiOrder`, `Ma
 
 3 nhánh: `TON_KHO`, `GIAO_DICH_KHO`, `LO_NGUYEN_LIEU`.
 
-Cột: `LoaiBanGhi`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `SoLuongTon`, `MucTonToiThieu`
-(ngưỡng hiệu lực), `CanhBaoTonThap` (cờ cảnh báo tồn thấp — FR-AI-04), `MaGiaoDichKho`,
-`BusinessDate`, `SoLuong`, `LoaiGiaoDich`, `MaLo`, `SoLuongConLai`, `TrangThaiLo`, `NgayNhapLo`,
-`HanSuDungLo` (hạn sử dụng tính từ `NgayNhap + SoNgayBaoQuan`). **Không có** `TongTien`, `SoTien`,
-`DonGia`/`DonGiaNhap`, hay bất kỳ cột doanh thu/hóa đơn/giá nào.
+Cột: `LoaiBanGhi`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `SoLuongTon`,
+`SoLuongGiu` (tổng lượng đang giữ trên các lô đủ điều kiện),
+`SoLuongKhaDung` (tồn còn dùng được sau khi trừ lượng giữ), `MucTonToiThieu` (ngưỡng hiệu lực),
+`CanhBaoTonThap` (cờ cảnh báo tồn thấp — FR-AI-04), `MaGiaoDichKho`, `BusinessDate`, `SoLuong`,
+`LoaiGiaoDich`, `MaLo`, `SoLuongConLai`, `TrangThaiLo`, `NgayNhapLo`, `HanSuDungLo` (hạn sử dụng tính
+từ `NgayNhap + SoNgayBaoQuan`).
+
+Ở nhánh `TON_KHO`, `SoLuongGiu` chỉ cộng giữ chỗ có trạng thái `Đang giữ` và
+`ThoiDiemHetHan > CURRENT_TIMESTAMP`, trên lô có tồn dương, trạng thái khác `Hết hạn` và còn trong
+ngày sử dụng (`HanSuDung` cộng một ngày lớn hơn thời điểm hiện tại). `SoLuongKhaDung` là tổng
+`GREATEST(0, SoLuongConLai - lượng giữ)` trên chính các lô đủ điều kiện. Hai cột được NULL-pad ở
+nhánh giao dịch và nhánh lô. **Không có** `TongTien`, `SoTien`, `DonGia`/`DonGiaNhap`, hay bất kỳ
+cột doanh thu/hóa đơn/giá nào.
 
 ### Cột cấm (không bao giờ lộ ở bất kỳ view nào)
 
