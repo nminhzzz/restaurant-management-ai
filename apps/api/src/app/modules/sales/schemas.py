@@ -45,3 +45,23 @@ class AddLineIn(BaseModel):
 
 class UpdateLineIn(BaseModel):
     quantity: int = Field(ge=1)
+
+
+class CreateSelectionIn(BaseModel):
+    selection_id: str | None = Field(default=None, max_length=64, alias="MaLuotChon")
+    table_id: int | None = Field(default=None, alias="MaBan")
+    order_id: int | None = Field(default=None, alias="MaOrder")
+    model_config = {"populate_by_name": True}
+
+
+class UpsertSelectionLineIn(BaseModel):
+    quantity: int = Field(ge=1, alias="SoLuong")
+    note: str | None = Field(default=None, max_length=500, alias="GhiChu")
+    table_id: int | None = Field(default=None, alias="MaBan")
+    order_id: int | None = Field(default=None, alias="MaOrder")
+    model_config = {"populate_by_name": True}
+
+
+class SubmitSelectionIn(BaseModel):
+    send_request_id: str = Field(min_length=1, max_length=100, alias="MaYeuCauGui")
+    model_config = {"populate_by_name": True}

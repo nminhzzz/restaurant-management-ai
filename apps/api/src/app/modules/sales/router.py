@@ -16,10 +16,15 @@ from app.core.config import get_settings
 from app.core.database import get_session
 from app.core.dependencies import Principal, require_roles
 from app.core.errors import NotFoundError, UnauthenticatedError
-from app.modules.sales import floor, orders, payments
+from app.modules.sales import floor, holds, orders, payments
 from app.modules.sales.gateways import sepay
 from app.modules.sales.models import Invoice, KitchenTicket, Order, OrderLine
-from app.modules.sales.schemas import SubmitOrderIn
+from app.modules.sales.schemas import (
+    CreateSelectionIn,
+    SubmitOrderIn,
+    SubmitSelectionIn,
+    UpsertSelectionLineIn,
+)
 from app.shared.audit import SystemAuditLog
 from app.shared.roles import Role
 
@@ -57,6 +62,84 @@ async def get_floor(
     user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
 ):
     return await floor.floor_board(session)
+
+
+@router.post("/selections", status_code=201)
+async def create_selection(
+    payload: CreateSelectionIn,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
+):
+    selection_id = await orders.create_selection(
+        session,
+        user.user_id,
+        payload.selection_id,
+        table_id=payload.table_id,
+        order_id=payload.order_id,
+    )
+    await session.commit()
+    return {"MaLuotChon": selection_id}
+
+
+@router.put("/selections/{selection_id}/lines/{dish_id}")
+async def upsert_selection_line(
+    selection_id: str,
+    dish_id: int,
+    payload: UpsertSelectionLineIn,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
+):
+    hold = await holds.upsert_hold(
+        session,
+        user.user_id,
+        selection_id,
+        dish_id,
+        payload.quantity,
+        payload.note,
+        payload.table_id,
+        payload.order_id,
+    )
+    await session.commit()
+    return {
+        "MaGiuCho": hold.id,
+        "MaLuotChon": hold.selection_id,
+        "MaMon": hold.dish_id,
+        "SoLuong": hold.quantity,
+        "ThoiDiemHetHan": hold.expires_at.isoformat(),
+        "TrangThai": hold.status,
+    }
+
+
+@router.delete("/holds/{hold_id}")
+async def delete_selection_hold(
+    hold_id: int,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
+):
+    await holds.release_hold(session, user.user_id, hold_id)
+    await session.commit()
+    return {"MaGiuCho": hold_id, "TrangThai": "Đã hủy"}
+
+
+@router.post("/selections/{selection_id}/submit")
+async def submit_selection(
+    selection_id: str,
+    payload: SubmitSelectionIn,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
+):
+    result = await orders.submit_selection(
+        session, user.user_id, selection_id, payload.send_request_id
+    )
+    await session.commit()
+    body = {
+        "MaOrder": result["order"].id if result["order"] is not None else None,
+        "MaOrderHienThi": result["order"].display_code if result["order"] is not None else None,
+        "CanXacNhanLai": result["CanXacNhanLai"],
+        "stale": result["stale"],
+        "lines": [_line_payload(line) for line in result["lines"]],
+    }
+    return body
 
 
 @router.post("/orders", status_code=201)

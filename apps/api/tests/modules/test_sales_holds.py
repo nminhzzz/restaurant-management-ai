@@ -4,15 +4,20 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 
 import pytest
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select
 
+from app.core.database import get_session
 from app.core.errors import BusinessRuleError
+from app.core.security import create_access_token
+from app.main import app
 from app.modules.catalog.models import Dish, DishPriceVersion, Ingredient, Recipe, RecipeItem
 from app.modules.inventory.models import (
     GoodsReceipt,
     GoodsReceiptLine,
     IngredientLot,
     StockMovement,
+    Stocktake,
 )
 from app.modules.inventory.service import (
     cancel_receipt,
@@ -28,7 +33,7 @@ from app.modules.sales.holds import (
     release_hold,
     upsert_hold,
 )
-from app.modules.sales.models import ItemHoldLot
+from app.modules.sales.models import ItemHold, ItemHoldLot, Order
 from app.modules.sales.orders import cancel_order, submit_order
 from app.modules.settings.models import User
 from app.modules.settings.service import seed_reference_data
@@ -80,6 +85,331 @@ async def _setup(session, *, quantities=(3, 4), expiry_dates=(None, None)):
         lots.append(lot)
     await session.commit()
     return user, dish, ingredient, lots
+
+
+async def _client(session):
+    async def _get_session():
+        yield session
+
+    app.dependency_overrides[get_session] = _get_session
+    return AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
+
+
+def _auth(user):
+    token = create_access_token(str(user.id), {"role": user.role_id, "username": user.username})
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.mark.anyio
+async def test_selection_routes_submit_exact_held_lots_once(session):
+    user, dish, ingredient, lots = await _setup(session)
+    client = await _client(session)
+    headers = _auth(user)
+    created = await client.post("/api/v1/sales/selections", json={}, headers=headers)
+    assert created.status_code == 201, created.text
+    selection_id = created.json()["MaLuotChon"]
+    hold_response = await client.put(
+        f"/api/v1/sales/selections/{selection_id}/lines/{dish.id}",
+        json={"SoLuong": 5, "GhiChu": "Ít cay"},
+        headers=headers,
+    )
+    assert hold_response.status_code == 200, hold_response.text
+    hold_id = hold_response.json()["MaGiuCho"]
+    submitted = await client.post(
+        f"/api/v1/sales/selections/{selection_id}/submit",
+        json={"MaYeuCauGui": "send-exact-lots"},
+        headers=headers,
+    )
+    assert submitted.status_code == 200, submitted.text
+    body = submitted.json()
+    assert body["CanXacNhanLai"] is False
+    assert len(body["lines"]) == 1
+    line_id = body["lines"][0]["MaChiTietOrder"]
+    movements = (
+        (
+            await session.execute(
+                select(StockMovement)
+                .where(StockMovement.order_line_id == line_id)
+                .order_by(StockMovement.id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert [(row.lot_id, row.qty) for row in movements] == [
+        (lots[0].id, Decimal("-3")),
+        (lots[1].id, Decimal("-2")),
+    ]
+    hold = await session.get(ItemHold, hold_id)
+    assert hold.order_line_id == line_id
+    assert hold.send_request_id == "send-exact-lots"
+    assert hold.status == "Đã gửi"
+    await session.refresh(ingredient)
+    assert ingredient.stock_qty == 2
+    session.add(Stocktake(status="Đang kiểm kê", performed_by=user.id))
+    await session.commit()
+    retry = await client.post(
+        f"/api/v1/sales/selections/{selection_id}/submit",
+        json={"MaYeuCauGui": "send-exact-lots"},
+        headers=headers,
+    )
+    assert retry.status_code == 200
+    assert retry.json() == body
+    assert (await session.execute(select(Order))).scalars().all().__len__() == 1
+    assert (await session.execute(select(StockMovement))).scalars().all().__len__() == 2
+
+
+@pytest.mark.anyio
+async def test_selection_routes_check_roles_owner_and_release(session):
+    user, dish, _, _ = await _setup(session)
+    other = User(
+        username="other-cashier",
+        password_hash="unused",
+        full_name="Other",
+        role_id="CASHIER",
+        status="Hoạt động",
+    )
+    manager = User(
+        username="hold-manager",
+        password_hash="unused",
+        full_name="Manager",
+        role_id="MANAGER",
+        status="Hoạt động",
+    )
+    warehouse = User(
+        username="hold-warehouse",
+        password_hash="unused",
+        full_name="Warehouse",
+        role_id="WAREHOUSE",
+        status="Hoạt động",
+    )
+    session.add_all([other, manager, warehouse])
+    await session.commit()
+    client = await _client(session)
+    assert (
+        await client.post("/api/v1/sales/selections", json={}, headers=_auth(warehouse))
+    ).status_code == 403
+    assert (
+        await client.post("/api/v1/sales/selections", json={}, headers=_auth(manager))
+    ).status_code == 201
+    selected = await client.post("/api/v1/sales/selections", json={}, headers=_auth(user))
+    selection_id = selected.json()["MaLuotChon"]
+    held = await client.put(
+        f"/api/v1/sales/selections/{selection_id}/lines/{dish.id}",
+        json={"SoLuong": 1},
+        headers=_auth(user),
+    )
+    assert held.status_code == 200
+    hold_id = held.json()["MaGiuCho"]
+    assert (
+        await client.put(
+            f"/api/v1/sales/selections/{selection_id}/lines/{dish.id}",
+            json={"SoLuong": 2},
+            headers=_auth(other),
+        )
+    ).status_code in (403, 404)
+    assert (
+        await client.post(
+            f"/api/v1/sales/selections/{selection_id}/submit",
+            json={"MaYeuCauGui": "other-send"},
+            headers=_auth(other),
+        )
+    ).status_code in (403, 404)
+    assert (
+        await client.delete(f"/api/v1/sales/holds/{hold_id}", headers=_auth(other))
+    ).status_code in (403, 404)
+    released = await client.delete(f"/api/v1/sales/holds/{hold_id}", headers=_auth(user))
+    assert released.status_code == 200
+    assert (await session.get(ItemHold, hold_id)).status == "Đã hủy"
+
+
+@pytest.mark.anyio
+async def test_stale_price_releases_hold_and_requests_reconfirmation(session):
+    user, dish, ingredient, _ = await _setup(session)
+    client = await _client(session)
+    headers = _auth(user)
+    selection_id = (await client.post("/api/v1/sales/selections", json={}, headers=headers)).json()[
+        "MaLuotChon"
+    ]
+    held = await client.put(
+        f"/api/v1/sales/selections/{selection_id}/lines/{dish.id}",
+        json={"SoLuong": 2},
+        headers=headers,
+    )
+    hold_id = held.json()["MaGiuCho"]
+    session.add(
+        DishPriceVersion(
+            dish_id=dish.id, price=12000, business_date=date(2026, 9, 24), status="Đang áp dụng"
+        )
+    )
+    await session.commit()
+    response = await client.post(
+        f"/api/v1/sales/selections/{selection_id}/submit",
+        json={"MaYeuCauGui": "stale-send"},
+        headers=headers,
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["CanXacNhanLai"] is True
+    assert response.json()["stale"][0]["MaGiuCho"] == hold_id
+    assert (await session.get(ItemHold, hold_id)).status == "Đã hủy"
+    await session.refresh(ingredient)
+    assert ingredient.stock_qty == 7
+    assert (await session.execute(select(Order))).scalars().all() == []
+
+
+@pytest.mark.anyio
+async def test_stale_recipe_releases_hold_and_requests_reconfirmation(session):
+    user, dish, ingredient, _ = await _setup(session)
+    client = await _client(session)
+    headers = _auth(user)
+    selection_id = (await client.post("/api/v1/sales/selections", json={}, headers=headers)).json()[
+        "MaLuotChon"
+    ]
+    held = await client.put(
+        f"/api/v1/sales/selections/{selection_id}/lines/{dish.id}",
+        json={"SoLuong": 1},
+        headers=headers,
+    )
+    hold_id = held.json()["MaGiuCho"]
+    new_recipe = Recipe(dish_id=dish.id, business_date=date(2026, 9, 24), status="Đang áp dụng")
+    session.add(new_recipe)
+    await session.flush()
+    session.add(RecipeItem(recipe_id=new_recipe.id, ingredient_id=ingredient.id, quantity=2))
+    await session.commit()
+
+    response = await client.post(
+        f"/api/v1/sales/selections/{selection_id}/submit",
+        json={"MaYeuCauGui": "stale-recipe"},
+        headers=headers,
+    )
+    assert response.status_code == 200
+    assert response.json()["CanXacNhanLai"] is True
+    assert response.json()["stale"] == [{"MaGiuCho": hold_id, "MaMon": dish.id}]
+    assert (await session.get(ItemHold, hold_id)).status == "Đã hủy"
+    assert (await session.execute(select(Order))).scalars().all() == []
+    assert (await session.execute(select(StockMovement))).scalars().all() == []
+
+
+@pytest.mark.anyio
+async def test_selection_submit_reallocates_an_expired_hold_before_conversion(session):
+    user, dish, ingredient, _ = await _setup(session)
+    client = await _client(session)
+    headers = _auth(user)
+    selection_id = (await client.post("/api/v1/sales/selections", json={}, headers=headers)).json()[
+        "MaLuotChon"
+    ]
+    held = await client.put(
+        f"/api/v1/sales/selections/{selection_id}/lines/{dish.id}",
+        json={"SoLuong": 2},
+        headers=headers,
+    )
+    hold_id = held.json()["MaGiuCho"]
+    hold = await session.get(ItemHold, hold_id)
+    hold.expires_at = FIXED_NOW.replace(tzinfo=None) - timedelta(minutes=1)
+    await session.commit()
+
+    submitted = await client.post(
+        f"/api/v1/sales/selections/{selection_id}/submit",
+        json={"MaYeuCauGui": "expired-reallocation"},
+        headers=headers,
+    )
+    assert submitted.status_code == 200, submitted.text
+    assert submitted.json()["CanXacNhanLai"] is False
+    await session.refresh(hold)
+    assert hold.status == "Đã gửi"
+    movements = (
+        (
+            await session.execute(
+                select(StockMovement).where(StockMovement.order_line_id == hold.order_line_id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert sum((Decimal(str(row.qty)) for row in movements), Decimal(0)) == Decimal("-2")
+    await session.refresh(ingredient)
+    assert ingredient.stock_qty == 5
+
+
+@pytest.mark.anyio
+async def test_selection_submit_rolls_back_all_lines_when_a_later_hold_is_invalid(session):
+    user, dish, ingredient, _ = await _setup(session)
+    second_dish = Dish(name="Second held dish", missing_recipe=False, out_of_stock=False)
+    session.add(second_dish)
+    await session.flush()
+    second_price = DishPriceVersion(
+        dish_id=second_dish.id, price=15000, business_date=date(2026, 9, 24), status="Đang áp dụng"
+    )
+    second_recipe = Recipe(
+        dish_id=second_dish.id, business_date=date(2026, 9, 24), status="Đang áp dụng"
+    )
+    session.add_all([second_price, second_recipe])
+    await session.flush()
+    session.add(RecipeItem(recipe_id=second_recipe.id, ingredient_id=ingredient.id, quantity=1))
+    await session.commit()
+
+    client = await _client(session)
+    headers = _auth(user)
+    selection_id = (await client.post("/api/v1/sales/selections", json={}, headers=headers)).json()[
+        "MaLuotChon"
+    ]
+    first = await client.put(
+        f"/api/v1/sales/selections/{selection_id}/lines/{dish.id}",
+        json={"SoLuong": 1},
+        headers=headers,
+    )
+    second = await client.put(
+        f"/api/v1/sales/selections/{selection_id}/lines/{second_dish.id}",
+        json={"SoLuong": 1},
+        headers=headers,
+    )
+    assert first.status_code == second.status_code == 200
+    second_hold_id = second.json()["MaGiuCho"]
+    await session.execute(
+        ItemHoldLot.__table__.delete().where(ItemHoldLot.hold_id == second_hold_id)
+    )
+    await session.commit()
+
+    failed = await client.post(
+        f"/api/v1/sales/selections/{selection_id}/submit",
+        json={"MaYeuCauGui": "rollback-all-lines"},
+        headers=headers,
+    )
+    assert failed.status_code == 422
+    await session.rollback()
+    assert (await session.execute(select(Order))).scalars().all() == []
+    assert (await session.execute(select(StockMovement))).scalars().all() == []
+    assert (await session.get(ItemHold, first.json()["MaGiuCho"])).status == "Đang giữ"
+
+
+@pytest.mark.anyio
+async def test_selection_submit_observes_active_stocktake_gate(session):
+    user, dish, _, _ = await _setup(session)
+    client = await _client(session)
+    headers = _auth(user)
+    selection_id = (await client.post("/api/v1/sales/selections", json={}, headers=headers)).json()[
+        "MaLuotChon"
+    ]
+    held = await client.put(
+        f"/api/v1/sales/selections/{selection_id}/lines/{dish.id}",
+        json={"SoLuong": 1},
+        headers=headers,
+    )
+    assert held.status_code == 200
+    session.add(
+        Stocktake(
+            status="Đang kiểm kê",
+            performed_by=user.id,
+        )
+    )
+    await session.commit()
+    response = await client.post(
+        f"/api/v1/sales/selections/{selection_id}/submit",
+        json={"MaYeuCauGui": "stocktake-blocked"},
+        headers=headers,
+    )
+    assert response.status_code == 422
+    assert "kiểm kê" in response.json()["error"]["message"]
 
 
 @pytest.mark.anyio

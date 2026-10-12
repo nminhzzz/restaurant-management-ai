@@ -152,6 +152,12 @@ async def upsert_hold(
     await lock_ingredients(
         session, [item.ingredient_id for item in await recipe_items(session, recipe.id)]
     )
+    token_query = select(ItemHold).where(ItemHold.selection_id == selection_id)
+    if session.get_bind().dialect.name == "mysql":
+        token_query = token_query.with_for_update(read=True)
+    token_owner = (await session.execute(token_query)).scalars().first()
+    if token_owner is not None and token_owner.owner_id != actor_id:
+        raise NotFoundError("Không tìm thấy lượt chọn.")
     existing_lines = await list_holds(session, actor_id, selection_id, for_update=True)
     if any(line.order_id != order_id or line.table_id != table_id for line in existing_lines):
         raise BusinessRuleError("Lượt chọn không khớp order hoặc bàn.")
