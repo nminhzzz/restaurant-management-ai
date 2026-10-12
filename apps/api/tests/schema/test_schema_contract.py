@@ -37,6 +37,8 @@ EXPECTED_TABLES = {
     "PHIEN_CHAT_AI",
     "TRUY_VAN_AI",
     "DEM_ORDER",
+    "GIU_CHO_MON",
+    "CHI_TIET_GIU_CHO",
 }
 
 EXPECTED_INDEXES = {
@@ -49,6 +51,9 @@ EXPECTED_INDEXES = {
     ("NHAT_KY_HE_THONG", ("ThoiDiem",)),
     ("HOA_DON", ("ThoiDiemXuat",)),
     ("TRUY_VAN_AI", ("MaPhien", "ThoiDiem")),
+    ("GIU_CHO_MON", ("MaLuotChon", "TrangThai")),
+    ("GIU_CHO_MON", ("TrangThai", "ThoiDiemHetHan")),
+    ("CHI_TIET_GIU_CHO", ("MaLoNguyenLieu", "MaGiuCho")),
 }
 
 

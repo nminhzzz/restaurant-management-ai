@@ -12,6 +12,7 @@ from sqlalchemy import (
     Index,
     Integer,
     String,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column
@@ -228,4 +229,90 @@ class KitchenTicket(Base):
     print_count: Mapped[int] = mapped_column("SoLanIn", Integer, nullable=False, default=1)
     created_at: Mapped[datetime] = mapped_column(
         "NgayTao", DateTime, server_default=func.now(), nullable=False
+    )
+
+
+class ItemHold(Base):
+    __tablename__ = "GIU_CHO_MON"
+
+    id: Mapped[int] = mapped_column("MaGiuCho", BigInteger, primary_key=True, autoincrement=True)
+    selection_id: Mapped[str] = mapped_column("MaLuotChon", String(64), nullable=False)
+    owner_id: Mapped[int] = mapped_column(
+        "MaNguoiDung",
+        BigInteger,
+        ForeignKey("NGUOI_DUNG.MaNguoiDung", ondelete="RESTRICT", onupdate="RESTRICT"),
+        nullable=False,
+    )
+    table_id: Mapped[int | None] = mapped_column(
+        "MaBan",
+        BigInteger,
+        ForeignKey("BAN.MaBan", ondelete="RESTRICT", onupdate="RESTRICT"),
+        nullable=True,
+    )
+    order_id: Mapped[int | None] = mapped_column(
+        "MaOrder",
+        BigInteger,
+        ForeignKey("ORDER.MaOrder", ondelete="RESTRICT", onupdate="RESTRICT"),
+        nullable=True,
+    )
+    dish_id: Mapped[int] = mapped_column(
+        "MaMon",
+        BigInteger,
+        ForeignKey("MON_AN.MaMon", ondelete="RESTRICT", onupdate="RESTRICT"),
+        nullable=False,
+    )
+    recipe_id: Mapped[int] = mapped_column(
+        "MaCongThuc",
+        BigInteger,
+        ForeignKey("CONG_THUC.MaCongThuc", ondelete="RESTRICT", onupdate="RESTRICT"),
+        nullable=False,
+    )
+    price_version_id: Mapped[int] = mapped_column(
+        "MaPhienBanGia",
+        BigInteger,
+        ForeignKey("LICH_SU_GIA_MON.MaPhienBanGia", ondelete="RESTRICT", onupdate="RESTRICT"),
+        nullable=False,
+    )
+    quantity: Mapped[int] = mapped_column("SoLuong", Integer, nullable=False)
+    note: Mapped[str | None] = mapped_column("GhiChu", String(500), nullable=True)
+    expires_at: Mapped[datetime] = mapped_column("ThoiDiemHetHan", DateTime, nullable=False)
+    status: Mapped[str] = mapped_column("TrangThai", String(20), nullable=False, default="Đang giữ")
+    send_request_id: Mapped[str | None] = mapped_column("MaYeuCauGui", String(100), nullable=True)
+    send_line_id: Mapped[str | None] = mapped_column("MaDongYeuCau", String(100), nullable=True)
+    order_line_id: Mapped[int | None] = mapped_column(
+        "MaChiTietOrder",
+        BigInteger,
+        ForeignKey("CHI_TIET_ORDER.MaChiTietOrder", ondelete="RESTRICT", onupdate="RESTRICT"),
+        nullable=True,
+        unique=True,
+    )
+
+    __table_args__ = (
+        CheckConstraint("SoLuong > 0", name="hold_quantity_positive"),
+        UniqueConstraint("MaYeuCauGui", "MaDongYeuCau"),
+        Index("ix_GIU_CHO_MON_MaLuotChon_TrangThai", "MaLuotChon", "TrangThai"),
+        Index("ix_GIU_CHO_MON_TrangThai_ThoiDiemHetHan", "TrangThai", "ThoiDiemHetHan"),
+    )
+
+
+class ItemHoldLot(Base):
+    __tablename__ = "CHI_TIET_GIU_CHO"
+
+    hold_id: Mapped[int] = mapped_column(
+        "MaGiuCho",
+        BigInteger,
+        ForeignKey("GIU_CHO_MON.MaGiuCho", ondelete="RESTRICT", onupdate="RESTRICT"),
+        primary_key=True,
+    )
+    lot_id: Mapped[int] = mapped_column(
+        "MaLoNguyenLieu",
+        BigInteger,
+        ForeignKey("LO_NGUYEN_LIEU.MaLoNguyenLieu", ondelete="RESTRICT", onupdate="RESTRICT"),
+        primary_key=True,
+    )
+    quantity_held: Mapped[Decimal] = mapped_column("SoLuongGiu", DECIMAL(18, 4), nullable=False)
+
+    __table_args__ = (
+        CheckConstraint("SoLuongGiu > 0", name="held_quantity_positive"),
+        Index("ix_CHI_TIET_GIU_CHO_MaLoNguyenLieu_MaGiuCho", "MaLoNguyenLieu", "MaGiuCho"),
     )
