@@ -72,6 +72,7 @@ class LotStatus(StrEnum):
 
 class StocktakeStatus(StrEnum):
     NHAP = "Nháp"
+    DANG_KIEM_KE = "Đang kiểm kê"
     DA_CHOT = "Đã chốt"
     DA_HUY = "Đã hủy"
 

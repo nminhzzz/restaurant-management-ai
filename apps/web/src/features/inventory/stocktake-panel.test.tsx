@@ -28,6 +28,9 @@ function route() {
       if (path === "/inventory/stocktakes/1/confirm") {
         return Promise.resolve({ ok: true });
       }
+      if (path === "/inventory/stocktakes/1/cancel") {
+        return Promise.resolve({ ok: true });
+      }
       if (path.startsWith("/inventory/stocktakes")) {
         return Promise.resolve({ items: [], total: 0 });
       }
@@ -97,6 +100,47 @@ describe("StocktakePanel", () => {
     );
   });
 
+  it("cancels an active stocktake and returns to creation", async () => {
+    render(<StocktakePanel />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Tạo phiếu kiểm kê" }),
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "Hủy kiểm kê" }));
+
+    await screen.findByRole("button", { name: "Tạo phiếu kiểm kê" });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/inventory/stocktakes/1/cancel",
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
+
+  it("can cancel an active stocktake when the ingredient list is empty", async () => {
+    fetchMock.mockImplementation(
+      (path: string, options: { method?: string } = {}) => {
+        if (path === "/inventory/stocktakes" && options.method === "POST") {
+          return Promise.resolve({ MaPhieuKiemKe: 1 });
+        }
+        if (path === "/inventory/stocktakes/1/cancel") {
+          return Promise.resolve({ ok: true });
+        }
+        if (path.startsWith("/inventory/stocktakes")) {
+          return Promise.resolve({ items: [], total: 0 });
+        }
+        return Promise.resolve({ items: [], total: 0 });
+      },
+    );
+    render(<StocktakePanel />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Tạo phiếu kiểm kê" }),
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Hủy kiểm kê" }));
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/inventory/stocktakes/1/cancel",
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
+
   it("requests history page 1 with the default page size and shows the real total", async () => {
     fetchMock.mockImplementation(
       (path: string, options: { method?: string } = {}) => {
@@ -108,7 +152,7 @@ describe("StocktakePanel", () => {
         }
         if (path.startsWith("/inventory/stocktakes")) {
           return Promise.resolve({
-            items: [{ MaPhieuKiemKe: 5, TrangThai: "Đã xác nhận" }],
+            items: [{ MaPhieuKiemKe: 5, TrangThai: "Đã chốt" }],
             total: 26,
           });
         }
@@ -139,7 +183,7 @@ describe("StocktakePanel", () => {
         }
         if (path.startsWith("/inventory/stocktakes")) {
           return Promise.resolve({
-            items: [{ MaPhieuKiemKe: 5, TrangThai: "Đã xác nhận" }],
+            items: [{ MaPhieuKiemKe: 5, TrangThai: "Đã chốt" }],
             total: 26,
           });
         }
@@ -161,11 +205,11 @@ describe("StocktakePanel", () => {
     );
 
     fireEvent.change(screen.getByLabelText("Trạng thái"), {
-      target: { value: "Đã xác nhận" },
+      target: { value: "Đã chốt" },
     });
     await vi.waitFor(() =>
       expect(fetchMock).toHaveBeenLastCalledWith(
-        "/inventory/stocktakes?status=%C4%90%C3%A3+x%C3%A1c+nh%E1%BA%ADn&page=1&page_size=20",
+        "/inventory/stocktakes?status=%C4%90%C3%A3+ch%E1%BB%91t&page=1&page_size=20",
       ),
     );
 
@@ -177,7 +221,7 @@ describe("StocktakePanel", () => {
     });
     await vi.waitFor(() =>
       expect(fetchMock).toHaveBeenLastCalledWith(
-        "/inventory/stocktakes?status=%C4%90%C3%A3+x%C3%A1c+nh%E1%BA%ADn&date_from=2026-09-01&date_to=2026-09-25&page=1&page_size=20",
+        "/inventory/stocktakes?status=%C4%90%C3%A3+ch%E1%BB%91t&date_from=2026-09-01&date_to=2026-09-25&page=1&page_size=20",
       ),
     );
   });

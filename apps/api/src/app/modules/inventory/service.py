@@ -16,10 +16,17 @@ from app.modules.inventory.models import (
     Stocktake,
     StocktakeLine,
 )
-from app.modules.inventory.stock import StockChange, apply_stock_movement
+from app.modules.inventory.stock import (
+    StockChange,
+    active_held_quantity,
+    apply_stock_movement,
+    lock_ingredients,
+    lock_stocktake_gate,
+)
 from app.modules.settings.service import effective_business_day_start
 from app.shared import business_date
 from app.shared.audit import SystemAuditLog
+from app.shared.enums import StocktakeStatus
 
 
 async def _bd(session: AsyncSession, moment: datetime) -> date:
@@ -35,6 +42,8 @@ async def create_receipt(
     receipt_date: datetime | None,
     lines: list[dict],
 ) -> GoodsReceipt:
+    await lock_stocktake_gate(session)
+    await lock_ingredients(session, [line["ingredient_id"] for line in lines])
     operation_bd = await _bd(session, business_date.now())
     if supplier_id is not None:
         from app.modules.catalog.models import Supplier
@@ -140,6 +149,7 @@ async def create_receipt(
 
 
 async def cancel_receipt(session: AsyncSession, actor_id: int, receipt_id: int) -> None:
+    await lock_stocktake_gate(session)
     operation_bd = await _bd(session, business_date.now())
     from app.shared.enums import StockMovementType
 
@@ -159,6 +169,7 @@ async def cancel_receipt(session: AsyncSession, actor_id: int, receipt_id: int) 
         .scalars()
         .all()
     )
+    await lock_ingredients(session, [line.ingredient_id for line in lines])
     affected_ingredient_ids: list[int] = []
     for gl in lines:
         lot = (
@@ -168,6 +179,8 @@ async def cancel_receipt(session: AsyncSession, actor_id: int, receipt_id: int) 
         ).scalar_one_or_none()
         if lot is None:
             continue
+        if await active_held_quantity(session, lot.id) > 0:
+            raise BusinessRuleError("Lô nguyên liệu đang được giữ cho món.")
         # If lot has been partially/fully consumed, we can only cancel up to remaining
         remaining = Decimal(str(lot.quantity_remaining))
         original = Decimal(str(gl.quantity))
@@ -223,6 +236,11 @@ async def update_receipt(
     unit/conversion column to CHI_TIET_PHIEU_NHAP, so the edited quantity is the
     already-converted standard-unit quantity stored on the line.
     """
+    await lock_stocktake_gate(session)
+    target_lines = [await session.get(GoodsReceiptLine, line["line_id"]) for line in lines]
+    await lock_ingredients(
+        session, [line.ingredient_id for line in target_lines if line is not None]
+    )
     operation_bd = await _bd(session, business_date.now())
     receipt = await session.get(GoodsReceipt, receipt_id)
     if receipt is None:
@@ -243,6 +261,8 @@ async def update_receipt(
         ).scalar_one_or_none()
         if lot is None:
             raise BusinessRuleError("Không tìm thấy lô hàng của dòng phiếu nhập.")
+        if new_qty < await active_held_quantity(session, lot.id):
+            raise BusinessRuleError("Lô nguyên liệu đang được giữ cho món.")
         if Decimal(str(lot.quantity_remaining)) != Decimal(str(gl.quantity)):
             raise BusinessRuleError(
                 "Đã có giao dịch xuất kho liên quan, phải điều chỉnh qua kiểm kê định kỳ."
@@ -320,6 +340,8 @@ async def list_receipts(
 async def create_issue(
     session: AsyncSession, actor_id: int, reason: str, lines: list[dict]
 ) -> StockIssue:
+    await lock_stocktake_gate(session)
+    await lock_ingredients(session, [line["ingredient_id"] for line in lines])
     operation_bd = await _bd(session, business_date.now())
     issue = StockIssue(
         reason=reason, status="Nháp", issue_date=business_date.now(), created_by=actor_id
@@ -387,8 +409,28 @@ async def list_issues(
 
 
 # Stocktakes
+async def _current_stocktake(session: AsyncSession, stocktake_id: int) -> Stocktake | None:
+    query = select(Stocktake).where(Stocktake.id == stocktake_id)
+    if session.get_bind().dialect.name == "mysql":
+        query = query.with_for_update().execution_options(populate_existing=True)
+    return (await session.execute(query)).scalar_one_or_none()
+
+
 async def create_stocktake(session: AsyncSession, actor_id: int) -> Stocktake:
-    st = Stocktake(status="Nháp", stocktake_date=business_date.now(), performed_by=actor_id)
+    await lock_stocktake_gate(session, allow_active=True)
+    active_query = select(Stocktake.id).where(
+        Stocktake.status == StocktakeStatus.DANG_KIEM_KE.value
+    )
+    if session.get_bind().dialect.name == "mysql":
+        active_query = active_query.with_for_update()
+    active = (await session.execute(active_query)).scalar_one_or_none()
+    if active is not None:
+        raise BusinessRuleError("Đã có phiếu kiểm kê đang hoạt động.")
+    st = Stocktake(
+        status=StocktakeStatus.DANG_KIEM_KE.value,
+        stocktake_date=business_date.now(),
+        performed_by=actor_id,
+    )
     session.add(st)
     await session.flush()
     return st
@@ -424,11 +466,13 @@ async def list_stocktakes(
 async def record_counts(
     session: AsyncSession, stocktake_id: int, counts: list[tuple[int, Decimal]]
 ) -> None:
-    st = await session.get(Stocktake, stocktake_id)
+    await lock_stocktake_gate(session, allow_active=True)
+    st = await _current_stocktake(session, stocktake_id)
     if st is None:
         raise NotFoundError("Không tìm thấy phiếu kiểm kê.")
-    if st.status != "Nháp":
+    if st.status != StocktakeStatus.DANG_KIEM_KE.value:
         raise BusinessRuleError("Phiếu kiểm kê đã chốt, không thể ghi nhận thêm.")
+    await lock_ingredients(session, [ingredient_id for ingredient_id, _ in counts])
     seen_ids: set[int] = set()
     for iid, actual in counts:
         if iid in seen_ids:
@@ -452,11 +496,12 @@ async def record_counts(
 
 
 async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: int) -> None:
+    await lock_stocktake_gate(session, allow_active=True)
     operation_bd = await _bd(session, business_date.now())
-    st = await session.get(Stocktake, stocktake_id)
+    st = await _current_stocktake(session, stocktake_id)
     if st is None:
         raise NotFoundError("Không tìm thấy phiếu kiểm kê.")
-    if st.status != "Nháp":
+    if st.status != StocktakeStatus.DANG_KIEM_KE.value:
         raise BusinessRuleError("Phiếu kiểm kê đã được xác nhận trước đó.")
     lines = (
         (
@@ -469,6 +514,7 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
     )
     if not lines:
         raise BusinessRuleError("Chưa ghi nhận kiểm kê.")
+    await lock_ingredients(session, [line.ingredient_id for line in lines])
     affected_ingredient_ids: list[int] = []
     for line in lines:
         affected_ingredient_ids.append(line.ingredient_id)
@@ -553,7 +599,7 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
             ing = await session.get(Ing4, line.ingredient_id)
             if ing:
                 ing.stock_qty = ing.stock_qty + diff
-    st.status = "Đã xác nhận"
+    st.status = StocktakeStatus.DA_CHOT.value
     await session.flush()
     session.add(
         SystemAuditLog(
@@ -566,6 +612,25 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
     await session.flush()
     if affected_ingredient_ids:
         await recompute_automatic_out_of_stock(session, affected_ingredient_ids)
+
+
+async def cancel_stocktake(session: AsyncSession, actor_id: int, stocktake_id: int) -> None:
+    await lock_stocktake_gate(session, allow_active=True)
+    stocktake = await _current_stocktake(session, stocktake_id)
+    if stocktake is None:
+        raise NotFoundError("Không tìm thấy phiếu kiểm kê.")
+    if stocktake.status != StocktakeStatus.DANG_KIEM_KE.value:
+        raise BusinessRuleError("Phiếu kiểm kê không còn hoạt động.")
+    stocktake.status = StocktakeStatus.DA_HUY.value
+    session.add(
+        SystemAuditLog(
+            user_id=actor_id,
+            action="CANCEL_STOCKTAKE",
+            target_entity="PHIEU_KIEM_KE",
+            target_id=str(stocktake_id),
+        )
+    )
+    await session.flush()
 
 
 async def list_stock(

@@ -4,15 +4,16 @@ from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import BusinessRuleError
 from app.modules.catalog.models import Ingredient
 from app.modules.inventory.models import IngredientLot, StockMovement
+from app.modules.settings.models import SystemConfig
 from app.modules.settings.service import effective_business_day_start
 from app.shared import business_date
-from app.shared.enums import LotStatus, StockMovementType
+from app.shared.enums import LotStatus, StockMovementType, StocktakeStatus
 
 
 @dataclass
@@ -42,12 +43,46 @@ async def lock_ingredient(session: AsyncSession, ingredient_id: int) -> Ingredie
         dialect = "sqlite"
     q = select(Ingredient).where(Ingredient.id == ingredient_id)
     if dialect == "mysql":
-        q = q.with_for_update()
+        q = q.with_for_update().execution_options(populate_existing=True)
     r = await session.execute(q)
     ing = r.scalar_one_or_none()
     if ing is None:
         raise BusinessRuleError("Nguyên liệu không tồn tại.")
     return ing
+
+
+async def lock_ingredients(session: AsyncSession, ingredient_ids: list[int]) -> None:
+    for ingredient_id in sorted(set(ingredient_ids)):
+        await lock_ingredient(session, ingredient_id)
+
+
+async def lock_stocktake_gate(session: AsyncSession, *, allow_active: bool = False) -> SystemConfig:
+    """Serialize all stock decisions against the singleton config row."""
+    from app.modules.inventory.models import Stocktake
+
+    query = (
+        select(SystemConfig)
+        .order_by(SystemConfig.id)
+        .limit(1)
+        .execution_options(populate_existing=True)
+    )
+    if session.get_bind().dialect.name == "mysql":
+        query = query.with_for_update()
+    config = (await session.execute(query)).scalar_one_or_none()
+    if config is None:
+        raise BusinessRuleError("Chưa có cấu hình hệ thống.")
+    if not allow_active:
+        active_query = (
+            select(Stocktake.id)
+            .where(Stocktake.status == StocktakeStatus.DANG_KIEM_KE.value)
+            .limit(1)
+        )
+        if session.get_bind().dialect.name == "mysql":
+            active_query = active_query.with_for_update()
+        active = (await session.execute(active_query)).scalar_one_or_none()
+        if active is not None:
+            raise BusinessRuleError("Đang kiểm kê, không thể thay đổi tồn kho.")
+    return config
 
 
 async def lots_for_fifo(
@@ -59,17 +94,45 @@ async def lots_for_fifo(
     ]
     if not allow_expired:
         conds.append(IngredientLot.status != LotStatus.HET_HAN.value)
-    r = await session.execute(
+        conds.append(
+            or_(
+                IngredientLot.expiry_date.is_(None),
+                IngredientLot.expiry_date >= business_date.now().date(),
+            )
+        )
+    q = (
         select(IngredientLot)
         .where(*conds)
         .order_by(IngredientLot.received_at.asc(), IngredientLot.id.asc())
     )
+    if session.get_bind().dialect.name == "mysql":
+        q = q.with_for_update().execution_options(populate_existing=True)
+    r = await session.execute(q)
     return list(r.scalars().all())
+
+
+async def active_held_quantity(session: AsyncSession, lot_id: int) -> Decimal:
+    from app.modules.sales.models import ItemHold, ItemHoldLot
+
+    query = (
+        select(ItemHoldLot.quantity_held)
+        .join(ItemHold, ItemHold.id == ItemHoldLot.hold_id)
+        .where(
+            ItemHoldLot.lot_id == lot_id,
+            ItemHold.status == "Đang giữ",
+            ItemHold.expires_at > business_date.now(),
+        )
+    )
+    if session.get_bind().dialect.name == "mysql":
+        query = query.with_for_update()
+    held = await session.execute(query)
+    return sum((Decimal(str(value)) for value in held.scalars()), Decimal(0))
 
 
 async def apply_stock_movement(
     session: AsyncSession, change: StockChange, *, actor_id: int | None = None
 ) -> list[StockMovement]:
+    await lock_stocktake_gate(session)
     ing = await lock_ingredient(session, change.ingredient_id)
     bd = change.business_date if change.business_date is not None else await _bd_now(session)
     delta = Decimal(str(change.delta))
@@ -119,7 +182,14 @@ async def apply_stock_movement(
     # delta < 0: FIFO draw
     need = -delta
     lots = await lots_for_fifo(session, change.ingredient_id, allow_expired=change.allow_expired)
-    total_avail = sum(Decimal(str(lot_item.quantity_remaining)) for lot_item in lots)
+    availability = {
+        lot.id: max(
+            Decimal(0),
+            Decimal(str(lot.quantity_remaining)) - await active_held_quantity(session, lot.id),
+        )
+        for lot in lots
+    }
+    total_avail = sum(availability.values(), Decimal(0))
     if total_avail < need:
         raise BusinessRuleError("Không đủ tồn kho.")
 
@@ -127,9 +197,11 @@ async def apply_stock_movement(
     for lot in lots:
         if remaining <= 0:
             break
-        avail = Decimal(str(lot.quantity_remaining))
+        avail = availability[lot.id]
         take = min(avail, remaining)
-        lot.quantity_remaining = avail - take
+        if take <= 0:
+            continue
+        lot.quantity_remaining = Decimal(str(lot.quantity_remaining)) - take
         # keep status as is (simplified)
         m = StockMovement(
             ingredient_id=change.ingredient_id,
@@ -165,13 +237,14 @@ async def apply_stock_movement(
 async def reverse_movement(
     session: AsyncSession, movement: StockMovement, *, actor_id: int | None = None
 ) -> StockMovement:
+    await lock_stocktake_gate(session)
+    ing = await lock_ingredient(session, movement.ingredient_id)
     # return qty to original lot, ignore expiry
     if movement.lot_id is not None:
         lot = await session.get(IngredientLot, movement.lot_id)
         if lot is not None:
             lot.quantity_remaining = lot.quantity_remaining - movement.qty
             await session.flush()
-    ing = await lock_ingredient(session, movement.ingredient_id)
     # movement.qty is negative for draw, so -qty is positive
     ing.stock_qty = ing.stock_qty - movement.qty
     await session.flush()

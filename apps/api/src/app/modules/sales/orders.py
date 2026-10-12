@@ -20,7 +20,12 @@ from app.modules.catalog.versions import (
     recipe_items,
 )
 from app.modules.inventory.models import IngredientLot, StockMovement
-from app.modules.inventory.stock import StockChange, apply_stock_movement
+from app.modules.inventory.stock import (
+    StockChange,
+    apply_stock_movement,
+    lock_ingredients,
+    lock_stocktake_gate,
+)
 from app.modules.sales.models import DemOrder, KitchenTicket, Order, OrderLine
 from app.modules.sales.tickets import render_ticket
 from app.modules.settings.service import effective_business_day_start
@@ -138,7 +143,9 @@ async def _draw_line_stock(
 ) -> None:
     if line.recipe_id is None:
         return
-    for item in await recipe_items(session, line.recipe_id):
+    items = await recipe_items(session, line.recipe_id)
+    await lock_ingredients(session, [item.ingredient_id for item in items])
+    for item in sorted(items, key=lambda row: row.ingredient_id):
         await apply_stock_movement(
             session,
             StockChange(
@@ -168,6 +175,7 @@ async def _return_line_stock(
         needed[item.ingredient_id] = needed.get(item.ingredient_id, Decimal(0)) + (
             Decimal(str(item.quantity)) * dishes
         )
+    await lock_ingredients(session, list(needed))
     drawings = list(
         (
             await session.execute(
@@ -259,12 +267,24 @@ async def _free_table(session: AsyncSession, order: Order) -> None:
 async def submit_order(
     session: AsyncSession, payload: dict, *, actor_id: int | None = None
 ) -> dict:
+    await lock_stocktake_gate(session)
     now = business_date.now()
     start = await effective_business_day_start(session, now)
     bd = business_date.business_date_of(now, start)
     order_type = payload.get("order_type") or "Tại chỗ"
     table_id = payload.get("table_id")
     lines_in: list[dict] = payload.get("lines") or []
+    ingredient_ids: list[int] = []
+    for line_input in lines_in:
+        dish_id = line_input.get("dish_id") or line_input.get("MaMon")
+        if dish_id is None:
+            continue
+        recipe = await active_recipe(session, int(dish_id), bd)
+        if recipe is not None:
+            ingredient_ids.extend(
+                item.ingredient_id for item in await recipe_items(session, recipe.id)
+            )
+    await lock_ingredients(session, ingredient_ids)
 
     if order_type == "Mang về":
         table_id = None
@@ -325,11 +345,17 @@ async def add_line(
     *,
     actor_id: int | None = None,
 ) -> OrderLine:
+    await lock_stocktake_gate(session)
     order = await session.get(Order, order_id)
     if order is None:
         raise NotFoundError("Order không tồn tại.")
     ensure_order_is_open(order)
 
+    recipe = await active_recipe(session, dish_id, order.business_date)
+    if recipe is not None:
+        await lock_ingredients(
+            session, [item.ingredient_id for item in await recipe_items(session, recipe.id)]
+        )
     line, ok, reason = await _resolve_line_inputs(session, dish_id, quantity, order.business_date)
     if not ok:
         raise BusinessRuleError(
@@ -353,6 +379,7 @@ async def update_line(
     *,
     actor_id: int | None = None,
 ) -> OrderLine:
+    await lock_stocktake_gate(session)
     order = await session.get(Order, order_id)
     if order is None:
         raise NotFoundError("Order không tồn tại.")
@@ -362,6 +389,10 @@ async def update_line(
         raise NotFoundError("Dòng món không tồn tại.")
     if line.status != LINE_WAITING:
         raise BusinessRuleError("Chỉ sửa món ở trạng thái Chờ.")
+    if line.recipe_id is not None:
+        await lock_ingredients(
+            session, [item.ingredient_id for item in await recipe_items(session, line.recipe_id)]
+        )
 
     delta = quantity - int(line.quantity)
     if delta > 0:
@@ -396,6 +427,7 @@ async def advance_line_status(session: AsyncSession, line_id: int, to_status: st
 async def cancel_line(
     session: AsyncSession, line_id: int, reason: str, *, actor_id: int | None = None
 ) -> OrderLine:
+    await lock_stocktake_gate(session)
     line = await session.get(OrderLine, line_id)
     if line is None:
         raise NotFoundError("Dòng món không tồn tại.")
@@ -407,6 +439,10 @@ async def cancel_line(
     ensure_order_is_open(order)
     if not reason or not reason.strip():
         raise BusinessRuleError("Cần lý do hủy.")
+    if line.recipe_id is not None:
+        await lock_ingredients(
+            session, [item.ingredient_id for item in await recipe_items(session, line.recipe_id)]
+        )
 
     current_bd = await _current_business_date(session)
     await _return_line_stock(
@@ -478,6 +514,7 @@ async def move_table(
 async def cancel_order(
     session: AsyncSession, order_id: int, reason: str, *, actor_id: int | None = None
 ) -> Order:
+    await lock_stocktake_gate(session)
     from app.modules.sales.payments import QR_PENDING, PaymentTransaction, expire_stale_qr
 
     await expire_stale_qr(session)
@@ -506,6 +543,13 @@ async def cancel_order(
         .scalars()
         .all()
     )
+    ingredient_ids: list[int] = []
+    for line in lines:
+        if line.status == LINE_WAITING and line.recipe_id is not None:
+            ingredient_ids.extend(
+                item.ingredient_id for item in await recipe_items(session, line.recipe_id)
+            )
+    await lock_ingredients(session, ingredient_ids)
     current_bd = await _current_business_date(session)
     for line in lines:
         if line.status == LINE_WAITING:
