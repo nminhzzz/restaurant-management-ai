@@ -115,3 +115,60 @@ async def test_an_empty_result_is_explained_not_left_blank(session, fake_llm):
     )
     assert "không có" in result.answer.headline.lower()
     assert fake_llm.calls == 0
+
+
+@pytest.mark.anyio
+async def test_interpretation_cache_expires_after_its_ttl(session, fake_llm, monkeypatch):
+    from app.modules.ai.pipeline import interpreter
+
+    now = 100.0
+    monkeypatch.setattr(interpreter, "monotonic", lambda: now)
+    args = (
+        session,
+        "hôm qua bao nhiêu đơn?",
+        "SELECT 1",
+        [{"SoDon": 42}],
+        Role.CASHIER,
+        1,
+        date(2026, 9, 24),
+    )
+
+    await interpret(*args)
+    assert fake_llm.calls == 1
+
+    now += interpreter.INTERPRETATION_CACHE_TTL_SECONDS + 0.1
+    await interpret(*args)
+
+    assert fake_llm.calls == 2
+
+
+@pytest.mark.anyio
+async def test_interpretation_cache_evicts_the_least_recently_used_entry(
+    session, fake_llm, monkeypatch
+):
+    from app.modules.ai.pipeline import interpreter
+
+    monkeypatch.setattr(interpreter, "INTERPRETATION_CACHE_MAX_ENTRIES", 2)
+
+    async def ask(question: str) -> None:
+        await interpret(
+            session,
+            question,
+            "SELECT 1",
+            [{"SoDon": 42}],
+            Role.CASHIER,
+            user_id=1,
+            effective_business_date=date(2026, 9, 24),
+        )
+
+    await ask("question one")
+    await ask("question two")
+    await ask("question one")  # Refresh the first entry; second is now least recent.
+    await ask("question three")
+    assert fake_llm.calls == 3
+
+    await ask("question one")  # Still cached.
+    assert fake_llm.calls == 3
+
+    await ask("question two")  # Evicted entry must be interpreted again.
+    assert fake_llm.calls == 4
