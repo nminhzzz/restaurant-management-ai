@@ -55,7 +55,10 @@ Chạy riêng: `cd apps/api && uv run pytest`, `cd apps/web && pnpm test`.
   sửa ở đó, đừng chép tay vào từng trang.
 - Truy vấn SQL chỉ được dựng qua SQLAlchemy; không nối chuỗi SQL.
 - Mọi thao tác ghi đều phải kiểm tra quyền ở tầng API. Ẩn nút trên giao diện không phải là phân quyền.
-- Tuân thủ `Business Date` (06:00 → 06:00 hôm sau) qua `app.shared.business_date`; không tự tính lại.
+- Tính `Business Date` qua `app.shared.business_date`; lấy mốc bắt đầu hiệu lực từ cấu hình đã lưu bằng
+  `app.modules.settings.service.effective_business_day_start`, không tự tính lại hoặc giả định giờ cố định.
+  Khi thay đổi mốc giờ, áp dụng mốc mới từ Business Date kế tiếp theo `GioBatDauBusinessDateMoi` và
+  `NgayHieuLucGioMoi`; không làm thay đổi Business Date đang diễn ra.
 
 ## Trợ lý AI
 
