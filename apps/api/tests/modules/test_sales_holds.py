@@ -33,6 +33,7 @@ from app.modules.sales.orders import cancel_order, submit_order
 from app.modules.settings.models import User
 from app.modules.settings.service import seed_reference_data
 from app.shared import business_date
+from app.shared.business_date import VN_TZ
 from tests.helpers import FIXED_NOW
 
 
@@ -123,6 +124,21 @@ async def test_hold_ttl_is_capped_by_earliest_lot_expiry(session, monkeypatch):
     monkeypatch.setattr(business_date, "now", lambda: datetime(2026, 9, 24, 23, 58))
     hold = await upsert_hold(session, user.id, "selection-a", dish.id, 2, None, None, None)
     assert hold.expires_at == datetime(2026, 9, 25)
+
+
+@pytest.mark.anyio
+async def test_expiry_dated_hold_accepts_aware_local_clock(session, monkeypatch):
+    user, dish, _, _ = await _setup(session, expiry_dates=(date(2026, 9, 24), None))
+    aware_now = datetime(2026, 9, 24, 23, 58, tzinfo=VN_TZ)
+    monkeypatch.setattr(business_date, "now", lambda: aware_now)
+
+    hold = await upsert_hold(session, user.id, "selection-aware", dish.id, 2, None, None, None)
+    assert hold.expires_at == datetime(2026, 9, 25)
+    assert hold.expires_at.tzinfo is None
+    hold_id, user_id = hold.id, user.id
+    await session.commit()
+    refreshed = await reallocate_expired_hold(session, user_id, hold_id)
+    assert refreshed.expires_at == datetime(2026, 9, 25)
 
 
 @pytest.mark.anyio
@@ -233,11 +249,12 @@ async def test_active_stocktake_blocks_order_reversal(session):
 
 
 @pytest.mark.anyio
-async def test_submit_recheck_rejects_hold_invalidated_by_stocktake(session):
+async def test_submit_recheck_rejects_expired_hold_invalidated_by_stocktake(session, monkeypatch):
     user, dish, ingredient, _ = await _setup(session)
     hold = await upsert_hold(session, user.id, "selection-a", dish.id, 5, None, None, None)
     hold_id, user_id, ingredient_id = hold.id, user.id, ingredient.id
     await session.commit()
+    monkeypatch.setattr(business_date, "now", lambda: FIXED_NOW + timedelta(minutes=6))
     stocktake = await create_stocktake(session, user_id)
     await record_counts(session, stocktake.id, [(ingredient_id, Decimal(2))])
     await confirm_stocktake(session, user_id, stocktake.id)
@@ -245,6 +262,45 @@ async def test_submit_recheck_rejects_hold_invalidated_by_stocktake(session):
 
     with pytest.raises(BusinessRuleError, match="Không đủ tồn kho"):
         await reallocate_expired_hold(session, user_id, hold_id)
+
+
+@pytest.mark.anyio
+async def test_stocktake_rejects_actual_below_active_hold_quantity(session):
+    user, dish, ingredient, lots = await _setup(session)
+    hold = await upsert_hold(session, user.id, "selection-a", dish.id, 5, None, None, None)
+    await session.commit()
+    stocktake = await create_stocktake(session, user.id)
+    await record_counts(session, stocktake.id, [(ingredient.id, Decimal(4))])
+
+    with pytest.raises(BusinessRuleError, match="đang được giữ"):
+        await confirm_stocktake(session, user.id, stocktake.id)
+
+    assert [lot.quantity_remaining for lot in lots] == [3, 4]
+    assert ingredient.stock_qty == 7
+    assert hold.status == "Đang giữ"
+
+
+@pytest.mark.anyio
+async def test_stocktake_draws_only_unheld_lot_quantities(session):
+    user, dish, ingredient, lots = await _setup(session)
+    hold = await upsert_hold(session, user.id, "selection-a", dish.id, 5, None, None, None)
+    await session.commit()
+    stocktake = await create_stocktake(session, user.id)
+    await record_counts(session, stocktake.id, [(ingredient.id, Decimal(5))])
+    await confirm_stocktake(session, user.id, stocktake.id)
+    await session.flush()
+
+    allocations = (
+        (await session.execute(select(ItemHoldLot).where(ItemHoldLot.hold_id == hold.id)))
+        .scalars()
+        .all()
+    )
+    assert [lot.quantity_remaining for lot in lots] == [3, 2]
+    assert [(row.lot_id, row.quantity_held) for row in allocations] == [
+        (lots[0].id, Decimal(3)),
+        (lots[1].id, Decimal(2)),
+    ]
+    assert ingredient.stock_qty == 5
 
 
 @pytest.mark.anyio

@@ -137,6 +137,58 @@ async def test_confirm_overwrites_stock_and_records_difference(session):
 
 
 @pytest.mark.anyio
+async def test_repeated_count_replaces_actual_without_reapplying_adjustment(session):
+    from sqlalchemy import select
+
+    from app.modules.inventory.models import StockMovement, StocktakeLine
+
+    ing = await _ingredient(session, "Repeated count ingredient", 10)
+    client = await _make_client(session)
+    headers, _ = await _headers(session)
+    stocktake = await client.post("/api/v1/inventory/stocktakes", headers=headers)
+    stocktake_id = stocktake.json()["MaPhieuKiemKe"]
+
+    for actual in (8, 7):
+        response = await client.post(
+            f"/api/v1/inventory/stocktakes/{stocktake_id}/counts",
+            json=[{"ingredient_id": ing.id, "actual_qty": actual}],
+            headers=headers,
+        )
+        assert response.status_code == 200, response.text
+
+    lines = (
+        (
+            await session.execute(
+                select(StocktakeLine).where(StocktakeLine.stocktake_id == stocktake_id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert len(lines) == 1
+    assert float(lines[0].system_qty) == 10
+    assert float(lines[0].actual_qty) == 7
+
+    confirmed = await client.post(
+        f"/api/v1/inventory/stocktakes/{stocktake_id}/confirm", headers=headers
+    )
+    assert confirmed.status_code == 200, confirmed.text
+    await session.refresh(ing)
+    assert float(ing.stock_qty) == 7
+    assert await lot_total(session, ing.id) == 7
+    movements = (
+        (
+            await session.execute(
+                select(StockMovement).where(StockMovement.stocktake_line_id == lines[0].id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert sum((movement.qty for movement in movements), 0) == -3
+
+
+@pytest.mark.anyio
 async def test_confirm_with_surplus_creates_adjustment_lot(session):
     ing = await _ingredient(session, "NL", 10)
     client = await _make_client(session)

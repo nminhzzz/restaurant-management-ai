@@ -480,18 +480,38 @@ async def record_counts(
         seen_ids.add(iid)
         if Decimal(str(actual)) < 0:
             raise BusinessRuleError("Tồn thực tế không được âm.")
-        # get system qty
+        existing_lines = (
+            (
+                await session.execute(
+                    select(StocktakeLine)
+                    .where(
+                        StocktakeLine.stocktake_id == stocktake_id,
+                        StocktakeLine.ingredient_id == iid,
+                    )
+                    .order_by(StocktakeLine.id)
+                    .with_for_update()
+                    .execution_options(populate_existing=True)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        if existing_lines:
+            existing_lines[0].actual_qty = actual
+            for duplicate in existing_lines[1:]:
+                await session.delete(duplicate)
+            continue
         from app.modules.catalog.models import Ingredient
 
         ing = await session.get(Ingredient, iid)
-        sys_qty = Decimal(str(ing.stock_qty)) if ing else Decimal(0)
-        line = StocktakeLine(
-            stocktake_id=stocktake_id,
-            ingredient_id=iid,
-            system_qty=sys_qty,
-            actual_qty=actual,
+        session.add(
+            StocktakeLine(
+                stocktake_id=stocktake_id,
+                ingredient_id=iid,
+                system_qty=Decimal(str(ing.stock_qty)) if ing else Decimal(0),
+                actual_qty=actual,
+            )
         )
-        session.add(line)
     await session.flush()
 
 
@@ -515,6 +535,39 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
     if not lines:
         raise BusinessRuleError("Chưa ghi nhận kiểm kê.")
     await lock_ingredients(session, [line.ingredient_id for line in lines])
+    from app.modules.inventory.stock import lots_for_fifo
+
+    fifo_availability: dict[int, tuple[list[IngredientLot], dict[int, Decimal]]] = {}
+    for line in lines:
+        all_lots = (
+            (
+                await session.execute(
+                    select(IngredientLot)
+                    .where(IngredientLot.ingredient_id == line.ingredient_id)
+                    .order_by(IngredientLot.id)
+                    .with_for_update()
+                    .execution_options(populate_existing=True)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        held_by_lot = {lot.id: await active_held_quantity(session, lot.id) for lot in all_lots}
+        held_total = sum(held_by_lot.values(), Decimal(0))
+        if Decimal(str(line.actual_qty)) < held_total or any(
+            Decimal(str(lot.quantity_remaining)) < held_by_lot[lot.id] for lot in all_lots
+        ):
+            raise BusinessRuleError("Tồn thực tế thấp hơn số lượng đang được giữ cho món.")
+        if Decimal(str(line.actual_qty)) >= Decimal(str(line.system_qty)):
+            continue
+        fifo_lots = await lots_for_fifo(session, line.ingredient_id)
+        fifo_availability[line.id] = (
+            fifo_lots,
+            {
+                lot.id: max(Decimal(0), Decimal(str(lot.quantity_remaining)) - held_by_lot[lot.id])
+                for lot in fifo_lots
+            },
+        )
     affected_ingredient_ids: list[int] = []
     for line in lines:
         affected_ingredient_ids.append(line.ingredient_id)
@@ -522,23 +575,21 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
         if diff == 0:
             continue
         if diff < 0:
-            # Deduct via FIFO but never touch HET_HAN lots; keep 3-tier in sync
-            from app.modules.inventory.stock import lots_for_fifo
-
-            fifo_lots = await lots_for_fifo(session, line.ingredient_id)
+            # Deduct only quantities outside active allocations.
+            fifo_lots, availability = fifo_availability[line.id]
             need = -diff
-            total_avail = sum(
-                (Decimal(str(lot.quantity_remaining)) for lot in fifo_lots), Decimal(0)
-            )
+            total_avail = sum(availability.values(), Decimal(0))
             take_total = min(total_avail, need)
             # consume FIFO lots in order
             rem = take_total
             for _lot in fifo_lots:
                 if rem <= 0:
                     break
-                avail = Decimal(str(_lot.quantity_remaining))
+                avail = availability[_lot.id]
                 take = min(avail, rem)
-                _lot.quantity_remaining = avail - take
+                if take == 0:
+                    continue
+                _lot.quantity_remaining = Decimal(str(_lot.quantity_remaining)) - take
                 from app.modules.inventory.models import StockMovement as SM2
 
                 m2 = SM2(

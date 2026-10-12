@@ -19,6 +19,12 @@ ACTIVE = "Đang giữ"
 RELEASED = "Đã hủy"
 
 
+def _local_naive(moment: datetime) -> datetime:
+    if moment.tzinfo is None:
+        return moment
+    return moment.astimezone(business_date.VN_TZ).replace(tzinfo=None)
+
+
 async def list_holds(
     session: AsyncSession, actor_id: int, selection_id: str, *, for_update: bool = False
 ) -> list[ItemHold]:
@@ -133,11 +139,12 @@ async def upsert_hold(
     dish = await session.get(Dish, dish_id)
     if dish is None or dish.is_deleted:
         raise BusinessRuleError("Món không tồn tại.")
-    now = business_date.now()
+    moment = business_date.now()
+    now = _local_naive(moment)
     from app.modules.settings.service import effective_business_day_start
 
-    start = await effective_business_day_start(session, now)
-    bd = business_date.business_date_of(now, start)
+    start = await effective_business_day_start(session, moment)
+    bd = business_date.business_date_of(moment, start)
     recipe = await active_recipe(session, dish_id, bd)
     price = await active_price_version(session, dish_id, bd)
     if recipe is None or price is None:
@@ -235,7 +242,7 @@ async def reallocate_expired_hold(session: AsyncSession, actor_id: int, hold_id:
         ).scalar_one()
     if hold.status != ACTIVE:
         raise BusinessRuleError("Giữ chỗ đã kết thúc.")
-    now = business_date.now()
+    now = _local_naive(business_date.now())
     hold.expires_at = await _allocate(
         session,
         hold,
