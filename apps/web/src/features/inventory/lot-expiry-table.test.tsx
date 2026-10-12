@@ -84,6 +84,38 @@ describe("lot expiry table", () => {
     );
   });
 
+  it("hides the previous page while the next page request is pending", async () => {
+    let resolveSecond!: (value: unknown) => void;
+    const secondPage = new Promise((resolve) => {
+      resolveSecond = resolve;
+    });
+    fetchMock.mockImplementation((path: string) =>
+      path.includes("page=2")
+        ? secondPage
+        : Promise.resolve({ items: lots, total: 41, page: 1, page_size: 20 }),
+    );
+    render(<LotExpiryTable />);
+    await screen.findByRole("table", { name: "Hạn sử dụng theo lô" });
+    fireEvent.click(screen.getByRole("button", { name: "Trang 2" }));
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenLastCalledWith(
+        "/inventory/lots?page=2&page_size=20",
+      ),
+    );
+    expect(screen.getByText("Đang tải…")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("table", { name: "Hạn sử dụng theo lô" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryAllByText("Gạo")).toHaveLength(0);
+    resolveSecond({
+      items: [{ ...lots[0], MaLoNguyenLieu: 21, TenNguyenLieu: "Muối" }],
+      total: 41,
+      page: 2,
+      page_size: 20,
+    });
+    expect(await screen.findByText("Muối")).toBeInTheDocument();
+  });
+
   it("shows an empty state", async () => {
     fetchMock.mockResolvedValue({
       items: [],

@@ -10,6 +10,7 @@ from app.core.database import get_session
 from app.core.security import create_access_token, hash_password
 from app.main import app
 from app.modules.catalog.models import Ingredient
+from app.modules.inventory import service as inventory_service
 from app.modules.inventory.models import IngredientLot
 from app.modules.settings.models import SystemConfig, User
 from app.modules.settings.service import seed_reference_data
@@ -157,7 +158,7 @@ async def test_deleted_ingredient_excluded_from_stock_list(session):
 
 
 @pytest.mark.anyio
-async def test_lot_expiry_uses_today_and_persisted_warning_boundary(session):
+async def test_lot_expiry_uses_today_and_persisted_warning_boundary(session, monkeypatch):
     await seed_reference_data(session)
     cfg = await session.get(SystemConfig, 1)
     assert cfg is not None
@@ -165,7 +166,14 @@ async def test_lot_expiry_uses_today_and_persisted_warning_boundary(session):
     ing = Ingredient(name="Bột", unit="kg", stock_qty=15, is_deleted=False)
     session.add(ing)
     await session.flush()
-    today = date.today()
+    today = date(2031, 4, 5)
+
+    class FrozenDate(date):
+        @classmethod
+        def today(cls):
+            return today
+
+    monkeypatch.setattr(inventory_service, "date", FrozenDate)
     dates = [
         today - timedelta(days=1),
         today,

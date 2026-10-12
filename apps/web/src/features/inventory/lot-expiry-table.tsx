@@ -55,7 +55,8 @@ export function LotExpiryTable() {
         title="Hạn sử dụng theo lô"
         description="Ngày hết hạn của từng lô nguyên liệu theo ngày hiện tại."
       />
-      {lots.status === "loading" ? (
+      {lots.status === "loading" ||
+      (lots.status === "ready" && lots.data.page !== page) ? (
         <LoadingState />
       ) : lots.status === "error" ? (
         <ErrorState message={lots.message} onRetry={lots.reload} />
