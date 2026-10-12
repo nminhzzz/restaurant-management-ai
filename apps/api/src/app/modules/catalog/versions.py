@@ -28,6 +28,26 @@ async def active_price_version(
     return r.scalar_one_or_none()
 
 
+async def active_price_version_for_update(
+    session: AsyncSession, dish_id: int, bd: date
+) -> DishPriceVersion | None:
+    """Read and lock the current active price row, bypassing RR snapshot reads."""
+    query = (
+        select(DishPriceVersion)
+        .where(
+            DishPriceVersion.dish_id == dish_id,
+            DishPriceVersion.status == VersionStatus.HIEU_LUC.value,
+            DishPriceVersion.business_date <= bd,
+        )
+        .order_by(DishPriceVersion.business_date.desc(), DishPriceVersion.id.desc())
+        .limit(1)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    result = await session.execute(query)
+    return result.scalar_one_or_none()
+
+
 async def active_price(session: AsyncSession, dish_id: int, bd: date) -> Decimal | None:
     v = await active_price_version(session, dish_id, bd)
     return Decimal(str(v.price)) if v else None
@@ -70,6 +90,24 @@ async def active_recipe(session: AsyncSession, dish_id: int, bd: date) -> Recipe
         .limit(1)
     )
     return r.scalar_one_or_none()
+
+
+async def active_recipe_for_update(session: AsyncSession, dish_id: int, bd: date) -> Recipe | None:
+    """Read and lock the current active recipe row, bypassing RR snapshot reads."""
+    query = (
+        select(Recipe)
+        .where(
+            Recipe.dish_id == dish_id,
+            Recipe.status == VersionStatus.HIEU_LUC.value,
+            Recipe.business_date <= bd,
+        )
+        .order_by(Recipe.business_date.desc(), Recipe.id.desc())
+        .limit(1)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    result = await session.execute(query)
+    return result.scalar_one_or_none()
 
 
 async def recipe_items(session: AsyncSession, recipe_id: int):

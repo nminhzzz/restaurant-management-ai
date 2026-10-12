@@ -160,6 +160,81 @@ async def test_selection_routes_submit_exact_held_lots_once(session):
 
 
 @pytest.mark.anyio
+async def test_selection_submit_uses_one_consistent_price_and_recipe_snapshot(session, monkeypatch):
+    from app.modules.sales import orders
+
+    user, dish, _, _ = await _setup(session)
+    client = await _client(session)
+    headers = _auth(user)
+    selection_id = (await client.post("/api/v1/sales/selections", json={}, headers=headers)).json()[
+        "MaLuotChon"
+    ]
+    held = await client.put(
+        f"/api/v1/sales/selections/{selection_id}/lines/{dish.id}",
+        json={"SoLuong": 1},
+        headers=headers,
+    )
+    hold = await session.get(ItemHold, held.json()["MaGiuCho"])
+    held_price = await session.get(DishPriceVersion, hold.price_version_id)
+    held_recipe = await session.get(Recipe, hold.recipe_id)
+    ingredient_id = (
+        await session.execute(
+            select(RecipeItem.ingredient_id).where(RecipeItem.recipe_id == held_recipe.id)
+        )
+    ).scalar_one()
+    original_lock_ingredients = orders.lock_ingredients
+    simulated_update_calls = 0
+
+    async def _simulate_apply_now_after_snapshot(_session, ingredient_ids):
+        nonlocal simulated_update_calls
+        simulated_update_calls += 1
+        held_price.status = "Hết hiệu lực"
+        session.add(
+            DishPriceVersion(
+                dish_id=dish.id,
+                price=12000,
+                business_date=date(2026, 9, 24),
+                status="Đang áp dụng",
+            )
+        )
+        held_recipe.status = "Hết hiệu lực"
+        concurrently_applied_recipe = Recipe(
+            dish_id=dish.id,
+            business_date=date(2026, 9, 24),
+            status="Đang áp dụng",
+        )
+        session.add(concurrently_applied_recipe)
+        await session.flush()
+        session.add(
+            RecipeItem(
+                recipe_id=concurrently_applied_recipe.id,
+                ingredient_id=ingredient_id,
+                quantity=2,
+            )
+        )
+        await session.commit()
+        await original_lock_ingredients(_session, ingredient_ids)
+
+    async def _unguarded_reread(*_args):
+        raise AssertionError("submit must reuse the version row locked for validation")
+
+    monkeypatch.setattr(orders, "lock_ingredients", _simulate_apply_now_after_snapshot)
+    monkeypatch.setattr(orders, "active_price_version", _unguarded_reread)
+    monkeypatch.setattr(orders, "active_recipe", _unguarded_reread)
+    response = await client.post(
+        f"/api/v1/sales/selections/{selection_id}/submit",
+        json={"MaYeuCauGui": "price-snapshot-race"},
+        headers=headers,
+    )
+    assert response.status_code == 200, response.text
+    line = response.json()["lines"][0]
+    assert line["MaPhienBanGia"] == held_price.id
+    assert line["MaCongThuc"] == held_recipe.id
+    assert line["DonGia"] == 10000
+    assert simulated_update_calls == 1
+
+
+@pytest.mark.anyio
 async def test_selection_routes_check_roles_owner_and_release(session):
     user, dish, _, _ = await _setup(session)
     other = User(

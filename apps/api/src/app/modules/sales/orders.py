@@ -14,10 +14,12 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import BusinessRuleError, ConflictError, NotFoundError
-from app.modules.catalog.models import DiningTable, Ingredient
+from app.modules.catalog.models import DiningTable, DishPriceVersion, Ingredient, Recipe
 from app.modules.catalog.versions import (
     active_price_version,
+    active_price_version_for_update,
     active_recipe,
+    active_recipe_for_update,
     recipe_items,
 )
 from app.modules.inventory.models import IngredientLot, StockMovement
@@ -238,6 +240,14 @@ async def submit_selection(
     if order is not None and order.table_id != table_id:
         raise BusinessRuleError("Order không còn thuộc bàn đã chọn.")
 
+    # Lock active version rows by dish id before ingredients. Catalog apply-now updates
+    # those version rows before it locks recipe ingredients, so this order avoids cycles.
+    current_versions: dict[int, tuple[DishPriceVersion | None, Recipe | None]] = {}
+    for dish_id in sorted({hold.dish_id for hold in open_holds}):
+        price = await active_price_version_for_update(session, dish_id, bd)
+        recipe = await active_recipe_for_update(session, dish_id, bd)
+        current_versions[dish_id] = (price, recipe)
+
     # Take all ingredient locks in deterministic order before touching allocations.
     ingredient_ids: list[int] = []
     for hold in open_holds:
@@ -247,17 +257,14 @@ async def submit_selection(
     await lock_ingredients(session, ingredient_ids)
 
     stale_holds: list[ItemHold] = []
-    current_versions: dict[int, tuple[int | None, int | None]] = {}
     for hold in open_holds:
-        if hold.dish_id not in current_versions:
-            price = await active_price_version(session, hold.dish_id, bd)
-            recipe = await active_recipe(session, hold.dish_id, bd)
-            current_versions[hold.dish_id] = (
-                price.id if price is not None else None,
-                recipe.id if recipe is not None else None,
-            )
-        price_id, recipe_id = current_versions[hold.dish_id]
-        if price_id != hold.price_version_id or recipe_id != hold.recipe_id:
+        price, recipe = current_versions[hold.dish_id]
+        if (
+            price is None
+            or recipe is None
+            or price.id != hold.price_version_id
+            or recipe.id != hold.recipe_id
+        ):
             hold.status = HOLD_RELEASED
             hold.send_request_id = send_request_id
             hold.send_line_id = str(hold.id)
@@ -329,22 +336,17 @@ async def submit_selection(
         if held_by_ingredient != expected:
             raise BusinessRuleError("Phân bổ giữ chỗ không khớp công thức món.")
 
-        price = await active_price_version(session, hold.dish_id, bd)
-        if price is None:
-            # It may have become stale while the request was being processed; don't charge it.
-            hold.status = HOLD_RELEASED
-            hold.send_request_id = send_request_id
-            hold.send_line_id = str(hold.id)
-            stale_holds.append(hold)
-            continue
+        price, recipe = current_versions[hold.dish_id]
+        if price is None or recipe is None:
+            raise BusinessRuleError("Phiên bản món đã thay đổi, vui lòng xác nhận lại.")
         line = OrderLine(
             order_id=order.id,
             dish_id=hold.dish_id,
             quantity=hold.quantity,
             unit_price=Decimal(str(price.price)),
             total=Decimal(str(price.price)) * int(hold.quantity),
-            price_version_id=hold.price_version_id,
-            recipe_id=hold.recipe_id,
+            price_version_id=price.id,
+            recipe_id=recipe.id,
             note=hold.note,
             status=LINE_WAITING,
         )
