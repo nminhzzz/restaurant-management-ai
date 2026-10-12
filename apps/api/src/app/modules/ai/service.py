@@ -172,7 +172,15 @@ async def answer(
             columns = list(rows[0].keys()) if rows else []
             spec = charts.choose_chart(columns, rows)
             columns_meta = labels.describe_columns(columns, rows)
-            interpretation = await interpreter.interpret(session, normalized, sql_text, rows, role)
+            interpretation = await interpreter.interpret(
+                session,
+                normalized,
+                sql_text,
+                rows,
+                role,
+                user_id,
+                effective_date,
+            )
     except ClarificationNeeded as exc:
         await _update_query(
             session,

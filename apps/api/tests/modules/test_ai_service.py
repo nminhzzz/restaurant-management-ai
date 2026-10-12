@@ -1,14 +1,14 @@
 """Phase 6 Task 5 — the six-step pipeline and its query log (SD-05, FR-AI-01…09)."""
 
 import asyncio
-from datetime import datetime, time
+from datetime import date, datetime, time
 
 import pytest
 from sqlalchemy import func, select
 
 from app.modules.ai.errors import ClarificationNeeded
 from app.modules.ai.models import AssistantQuery, ChatSession
-from app.modules.ai.pipeline import generator
+from app.modules.ai.pipeline import generator, interpreter
 from app.modules.ai.service import INTERRUPTED_ANSWER, TIMEOUT_ANSWER, answer, session_detail
 from app.modules.settings.models import SystemConfig
 from app.shared.roles import Role
@@ -297,6 +297,86 @@ async def test_concurrent_same_user_questions_cannot_both_take_last_slot(
         assert first.kind == "clarify"
         assert second.kind == "refused"
         assert calls == 1
+
+
+@pytest.mark.anyio
+async def test_interpretation_cache_requires_fresh_result_digest_and_user_scope(session, fake_llm):
+    fake_llm.reply_sequence(
+        [
+            '{"headline": "Hai đơn.", "highlights": [], "follow_ups": []}',
+            '{"headline": "Ba đơn.", "highlights": [], "follow_ups": []}',
+            '{"headline": "Hai đơn.", "highlights": [], "follow_ups": []}',
+        ]
+    )
+    rows = [{"SoDon": 2}]
+    common = (session, "đếm đơn hôm nay", "SELECT COUNT(*) FROM vw_ai_thungan")
+    date_value = date(2026, 9, 24)
+
+    first = await interpreter.interpret(
+        *common, rows, Role.CASHIER, user_id=2, effective_business_date=date_value
+    )
+    reused = await interpreter.interpret(
+        *common, rows, Role.CASHIER, user_id=2, effective_business_date=date_value
+    )
+    changed_rows = await interpreter.interpret(
+        *common,
+        [{"SoDon": 3}],
+        Role.CASHIER,
+        user_id=2,
+        effective_business_date=date_value,
+    )
+    other_user = await interpreter.interpret(
+        *common, rows, Role.CASHIER, user_id=3, effective_business_date=date_value
+    )
+
+    assert first.text == reused.text
+    assert changed_rows.answer.headline == "Ba đơn."
+    assert other_user.answer.headline == "Hai đơn."
+    assert fake_llm.calls == 3
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "question",
+    [
+        "nguyên liệu tồn kho còn bao nhiêu?",
+        "món nào đang giữ chỗ?",
+        "còn phục vụ được bao nhiêu suất?",
+    ],
+)
+async def test_interpretation_cache_bypasses_volatile_questions(session, fake_llm, question):
+    fake_llm.reply('{"headline": "Còn 5 kg.", "highlights": [], "follow_ups": []}')
+    common = (
+        session,
+        question,
+        "SELECT SoLuongTon FROM vw_ai_kho",
+        [{"SoLuongTon": 5}],
+        Role.WAREHOUSE,
+    )
+    context = {"user_id": 3, "effective_business_date": date(2026, 9, 24)}
+
+    await interpreter.interpret(*common, **context)
+    await interpreter.interpret(*common, **context)
+
+    assert fake_llm.calls == 2
+
+
+@pytest.mark.anyio
+async def test_sql_cache_still_executes_the_read_query_for_every_question(
+    session, seed_views, fake_llm, ai_engine
+):
+    fake_llm.reply_sequence(
+        [
+            "SELECT COUNT(*) AS SoDon FROM vw_ai_thungan",
+            '{"headline": "Có đơn.", "highlights": [], "follow_ups": []}',
+        ]
+    )
+
+    await answer(session, "hôm nay có bao nhiêu đơn?", Role.CASHIER, user_id=2)
+    await answer(session, "hôm nay có bao nhiêu đơn?", Role.CASHIER, user_id=2)
+
+    assert sum(statement.startswith("SELECT") for statement in ai_engine.executed) == 2
+    assert fake_llm.calls == 2
 
 
 @pytest.mark.anyio

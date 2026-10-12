@@ -1,11 +1,12 @@
 """Phase 6 Task 2 — SQL generation through the guard, with quota and cache (NFR-16)."""
 
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 
 from app.core.errors import BusinessRuleError
 from app.modules.ai.errors import ClarificationNeeded
+from app.modules.ai.pipeline import generator, prompt
 from app.modules.ai.pipeline.generator import generate_sql
 from app.shared.roles import Role
 
@@ -87,5 +88,101 @@ async def test_the_cache_does_not_leak_across_roles(session, fake_llm, seed_view
 
     await generate_sql(session, "có bao nhiêu", Role.CASHIER, 1, date(2026, 9, 24))
     await generate_sql(session, "có bao nhiêu", Role.WAREHOUSE, 1, date(2026, 9, 24))
+
+    assert fake_llm.calls == 2
+
+
+@pytest.mark.anyio
+async def test_sql_cache_is_scoped_to_user_role_date_temporal_meaning_and_permission(
+    session, fake_llm, seed_views, monkeypatch
+):
+    today = date(2026, 9, 24)
+    fake_llm.reply("SELECT COUNT(*) FROM vw_ai_thungan")
+    args = (session, "doanh thu hôm nay", Role.CASHIER)
+
+    await generate_sql(*args, user_id=1, effective_business_date=today)
+    await generate_sql(*args, user_id=1, effective_business_date=today)
+    await generate_sql(*args, user_id=2, effective_business_date=today)
+    await generate_sql(*args, user_id=1, effective_business_date=today + timedelta(days=1))
+    await generate_sql(session, "doanh thu hôm qua", Role.CASHIER, 1, today)
+    monkeypatch.setitem(prompt.ROLE_SCOPE_NOTE, Role.CASHIER, "phạm vi quyền mới")
+    await generate_sql(*args, user_id=1, effective_business_date=today)
+
+    assert fake_llm.calls == 5
+
+
+@pytest.mark.anyio
+async def test_sql_cache_key_includes_the_current_allowed_view_fingerprint(
+    session, fake_llm, seed_views, monkeypatch
+):
+    fake_llm.reply_sequence(
+        ["SELECT COUNT(*) FROM vw_ai_thungan", "SELECT COUNT(*) FROM vw_ai_quanly"]
+    )
+    await generate_sql(session, "đếm đơn", Role.CASHIER, 1, date(2026, 9, 24))
+    monkeypatch.setattr(generator, "views_for", lambda role: frozenset({"vw_ai_quanly"}))
+    await generate_sql(session, "đếm đơn", Role.CASHIER, 1, date(2026, 9, 24))
+
+    assert fake_llm.calls == 2
+
+
+@pytest.mark.anyio
+async def test_sql_cache_expires_and_evicts_oldest_entries(
+    session, fake_llm, seed_views, monkeypatch
+):
+    now = [0.0]
+    monkeypatch.setattr(generator, "SQL_CACHE_TTL_SECONDS", 5, raising=False)
+    monkeypatch.setattr(generator, "SQL_CACHE_MAX_ENTRIES", 1, raising=False)
+    monkeypatch.setattr(generator, "monotonic", lambda: now[0], raising=False)
+    fake_llm.reply("SELECT COUNT(*) FROM vw_ai_thungan")
+    bd = date(2026, 9, 24)
+
+    await generate_sql(session, "câu một", Role.CASHIER, 1, bd)
+    await generate_sql(session, "câu hai", Role.CASHIER, 1, bd)
+    await generate_sql(session, "câu một", Role.CASHIER, 1, bd)
+    now[0] = 10.0
+    await generate_sql(session, "câu một", Role.CASHIER, 1, bd)
+
+    assert fake_llm.calls == 4
+
+
+@pytest.mark.anyio
+async def test_cached_sql_is_revalidated_before_it_can_be_reused(
+    session, fake_llm, seed_views, monkeypatch
+):
+    original_validate = generator.guard.validate_sql
+    validations = 0
+
+    def validate(sql, *, allowed_views, max_rows):
+        nonlocal validations
+        validations += 1
+        if validations == 2:
+            raise BusinessRuleError("permission scope changed")
+        return original_validate(sql, allowed_views=allowed_views, max_rows=max_rows)
+
+    monkeypatch.setattr(generator.guard, "validate_sql", validate)
+    fake_llm.reply("SELECT COUNT(*) FROM vw_ai_thungan")
+    bd = date(2026, 9, 24)
+    await generate_sql(session, "đếm đơn", Role.CASHIER, 1, bd)
+    await generate_sql(session, "đếm đơn", Role.CASHIER, 1, bd)
+
+    assert validations == 3
+    assert fake_llm.calls == 2
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "question",
+    [
+        "nguyên liệu tồn kho còn bao nhiêu?",
+        "món nào đang giữ chỗ?",
+        "còn phục vụ được bao nhiêu suất?",
+    ],
+)
+async def test_sql_cache_bypasses_volatile_questions(session, fake_llm, seed_views, question):
+    fake_llm.reply("SELECT COUNT(*) FROM vw_ai_kho")
+    args = (session, question, Role.WAREHOUSE, 3, date(2026, 9, 24))
+
+    await generate_sql(*args)
+    await generate_sql(*args)
 
     assert fake_llm.calls == 2

@@ -10,7 +10,10 @@ The SQL cache remains process-local and role-scoped.
 """
 
 import asyncio
+import re
+from collections import OrderedDict
 from datetime import date
+from time import monotonic
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,18 +22,100 @@ from app.core.errors import BusinessRuleError
 from app.modules.ai import guard, llm
 from app.modules.ai.errors import ClarificationNeeded
 from app.modules.ai.pipeline.normalize import normalize_question
-from app.modules.ai.pipeline.prompt import build_prompt
+from app.modules.ai.pipeline.prompt import ROLE_SCOPE_NOTE, build_prompt
 from app.modules.ai.scope import views_for
 from app.shared.roles import Role
 
 CLARIFY_PREFIX = "CLARIFY:"
+SQL_CACHE_TTL_SECONDS = 30.0
+SQL_CACHE_MAX_ENTRIES = 256
 
-_cache: dict[tuple[str, str], str] = {}
+_TEMPORAL_PATTERN = re.compile(
+    r"\b(?:hôm nay|hôm qua|hôm kia|tuần này|tuần trước|tuần qua|tháng này|"
+    r"tháng trước|tháng qua|năm nay|năm trước|(?:\d+)\s*(?:ngày|tuần|tháng|năm)\s+"
+    r"(?:qua|gần đây)|(?:ngày|tháng|năm)\s+\d{1,4}(?:[/\-]\d{1,2}){0,2})\b"
+)
+_VOLATILE_QUESTION = re.compile(
+    r"\b(?:tồn kho|tồn|nguyên liệu|giữ chỗ|giữ món|đang giữ|còn phục vụ|"
+    r"phục vụ được|số suất|suất còn|công suất)\b",
+    re.IGNORECASE,
+)
+_CacheKey = tuple[object, ...]
+_cache: OrderedDict[_CacheKey, tuple[str, float]] = OrderedDict()
 
 
 def reset_state() -> None:
     """Clear the process-local SQL cache (used between tests)."""
     _cache.clear()
+
+
+def temporal_parameters(question: str) -> tuple[str, ...]:
+    """Capture explicit date and relative-period phrases in a normalized question."""
+    normalized = normalize_question(question).casefold()
+    return tuple(_TEMPORAL_PATTERN.findall(normalized))
+
+
+def is_volatile_question(question: str) -> bool:
+    """Questions about live stock, holds, or service capacity must bypass caches."""
+    return _VOLATILE_QUESTION.search(normalize_question(question)) is not None
+
+
+def permission_fingerprint(
+    role: Role, allowed_views: frozenset[str] | None = None
+) -> tuple[tuple[str, ...], str]:
+    """Version the cache by the live view allow-list and role scope description."""
+    views = allowed_views if allowed_views is not None else views_for(role)
+    return tuple(sorted(views)), ROLE_SCOPE_NOTE[role]
+
+
+def cache_context_key(
+    user_id: int,
+    question: str,
+    role: Role,
+    effective_business_date: date,
+    *,
+    allowed_views: frozenset[str] | None = None,
+) -> _CacheKey:
+    """Shared isolation context for SQL and interpretation entries."""
+    normalized = normalize_question(question)
+    return (
+        user_id,
+        role.value,
+        permission_fingerprint(role, allowed_views),
+        normalized,
+        temporal_parameters(normalized),
+        effective_business_date,
+    )
+
+
+def _cached_sql(key: _CacheKey, *, allowed_views: frozenset[str], max_rows: int) -> str | None:
+    entry = _cache.get(key)
+    if entry is None:
+        return None
+    sql, expires_at = entry
+    if expires_at <= monotonic():
+        del _cache[key]
+        return None
+    try:
+        validated = guard.validate_sql(sql, allowed_views=allowed_views, max_rows=max_rows)
+    except BusinessRuleError:
+        del _cache[key]
+        return None
+    _cache.move_to_end(key)
+    return validated
+
+
+def _store_sql(key: _CacheKey, sql: str) -> None:
+    if SQL_CACHE_TTL_SECONDS <= 0 or SQL_CACHE_MAX_ENTRIES <= 0:
+        return
+    now = monotonic()
+    for expired_key, (_, expires_at) in list(_cache.items()):
+        if expires_at <= now:
+            del _cache[expired_key]
+    _cache[key] = (sql, now + SQL_CACHE_TTL_SECONDS)
+    _cache.move_to_end(key)
+    while len(_cache) > SQL_CACHE_MAX_ENTRIES:
+        _cache.popitem(last=False)
 
 
 async def generate_sql(
@@ -43,13 +128,24 @@ async def generate_sql(
     """Validated SQL for this question, or a raised signal for the orchestrator."""
     settings = get_settings()
     normalized = normalize_question(question)
-    cache_key = (role.value, normalized)
-    cached = _cache.get(cache_key)
+    allowed = views_for(role)
+    cache_key = cache_context_key(
+        user_id,
+        normalized,
+        role,
+        effective_business_date,
+        allowed_views=allowed,
+    )
+    volatile = is_volatile_question(normalized)
+    cached = (
+        None
+        if volatile
+        else _cached_sql(cache_key, allowed_views=allowed, max_rows=settings.ai_max_rows)
+    )
     if cached is not None:
         return cached
 
     client = llm.get_client()
-    allowed = views_for(role)
     last_error: BusinessRuleError | None = None
 
     for _ in range(settings.ai_max_sql_attempts):
@@ -72,7 +168,8 @@ async def generate_sql(
             last_error = exc
             continue
 
-        _cache[cache_key] = sql
+        if not volatile:
+            _store_sql(cache_key, sql)
         return sql
 
     raise BusinessRuleError(guard.SQL_REJECTED_MESSAGE)

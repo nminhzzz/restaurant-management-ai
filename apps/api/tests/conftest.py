@@ -195,14 +195,16 @@ class FakeLlm:
 @pytest.fixture
 def fake_llm() -> Iterator[FakeLlm]:
     from app.modules.ai import llm
-    from app.modules.ai.pipeline import generator
+    from app.modules.ai.pipeline import generator, interpreter
 
     fake = FakeLlm()
     llm.set_client(fake)
     generator.reset_state()
+    interpreter.reset_state()
     yield fake
     llm.set_client(None)
     generator.reset_state()
+    interpreter.reset_state()
 
 
 class _FakeResult:
