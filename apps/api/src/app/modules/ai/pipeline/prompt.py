@@ -6,7 +6,9 @@ about exactly one view and never about the core tables or another role's view.
 """
 
 import json
+import re
 from collections.abc import Sequence
+from datetime import date
 from typing import Any
 
 from sqlalchemy import inspect
@@ -14,6 +16,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import REPO_ROOT
 from app.modules.ai.scope import ROLE_VIEWS
+from app.modules.settings.service import effective_business_day_start
+from app.shared import business_date
 from app.shared.roles import Role
 
 _EXAMPLES_PATH = REPO_ROOT / "data" / "eval" / "questions.example.jsonl"
@@ -46,7 +50,7 @@ COLUMN_NOTES: dict[str, str] = {
         "loại bản ghi của dòng này — luôn lọc bằng WHERE LoaiBanGhi = '...' trước, "
         "vì các cột khác chỉ có dữ liệu ở đúng nhánh của nó"
     ),
-    "BusinessDate": "ngày kinh doanh, mốc 06:00 → 06:00 hôm sau",
+    "BusinessDate": "ngày kinh doanh theo mốc giờ do nhà hàng cấu hình",
     "MaOrder": "mã đơn hàng",
     "TrangThaiOrder": "trạng thái order (Đang mở, Đã thanh toán, Đã hủy, ...)",
     "LyDoHuyOrder": "lý do hủy order, chỉ có ở LoaiBanGhi = 'ORDER'",
@@ -86,6 +90,20 @@ COLUMN_NOTES: dict[str, str] = {
     "NgayNhapLo": "ngày nhập của lô",
     "HanSuDungLo": "hạn sử dụng tính từ ngày nhập lô + số ngày bảo quản",
 }
+
+_RELATIVE_DAY_OFFSET = re.compile(
+    r"(?:\bCURRENT_DATE\b|CURDATE\s*\(\s*\))\s*-\s*(\d+)\b", re.IGNORECASE
+)
+_CURRENT_DATE = re.compile(r"\bCURRENT_DATE\b|CURDATE\s*\(\s*\)", re.IGNORECASE)
+
+
+def _anchor_example_dates(sql: str, effective_business_date: date) -> str:
+    """Replace sample SQL's server-current date with this request's Business Date."""
+    literal = f"'{effective_business_date.isoformat()}'"
+    anchored = _RELATIVE_DAY_OFFSET.sub(
+        lambda match: f"DATE_SUB({literal}, INTERVAL {match.group(1)} DAY)", sql
+    )
+    return _CURRENT_DATE.sub(literal, anchored)
 
 
 async def _columns_of(session: AsyncSession, view: str) -> list[tuple[str, str]]:
@@ -145,8 +163,17 @@ async def build_prompt(
     question: str,
     role: Role,
     examples: Sequence[object] | None = None,
+    *,
+    effective_business_date: date | None = None,
 ) -> str:
     """Instructions + the role's schema + few-shot examples + the question."""
+    if effective_business_date is None:
+        # Keep direct evaluation/legacy callers aligned with the configured boundary.
+        # The production generation path passes its already captured date explicitly.
+        moment = business_date.now()
+        start = await effective_business_day_start(session, moment)
+        effective_business_date = business_date.business_date_of(moment, start)
+
     view = ROLE_VIEWS[role]
     shots = list(examples) if examples is not None else _load_examples(role)
 
@@ -157,10 +184,12 @@ async def build_prompt(
         "Chỉ sinh đúng một câu lệnh SELECT, không kèm giải thích hay định dạng thừa.",
         # Without the dialect the model drifts to SQL Server (GETDATE, TOP), which MySQL
         # rejects; this is an instruction, so the schema-only baseline carries it too.
-        "Hệ quản trị là MySQL 8.4: chỉ dùng cú pháp MySQL (CURDATE(), NOW(), DATE_SUB, "
-        "DATE_FORMAT, LIMIT), không dùng GETDATE, TOP hay cú pháp của hệ quản trị khác.",
-        "Ngày kinh doanh nằm ở cột BusinessDate (một ngày kinh doanh chạy từ 06:00 tới "
-        "06:00 hôm sau); 'hôm nay' nghĩa là BusinessDate = CURDATE().",
+        "Hệ quản trị là MySQL 8.4: chỉ dùng cú pháp MySQL (NOW(), DATE_SUB, DATE_FORMAT, "
+        "LIMIT), không dùng GETDATE, TOP hay cú pháp của hệ quản trị khác.",
+        f"Ngày kinh doanh theo mốc giờ do nhà hàng cấu hình. Ngày kinh doanh hiệu lực cho "
+        f"câu hỏi này là '{effective_business_date.isoformat()}'. Với 'hôm nay', hãy lọc "
+        f"BusinessDate = '{effective_business_date.isoformat()}'; tính 'hôm qua' và các khoảng "
+        "tương đối khác từ ngày hiệu lực này, không lấy ngày hiện tại của máy chủ làm mốc.",
         f"Phạm vi dữ liệu của vai trò này: {ROLE_SCOPE_NOTE[role]}.",
         "Nếu câu hỏi nằm ngoài phạm vi hoặc còn thiếu thông tin, hãy trả lời bắt đầu bằng "
         "'CLARIFY:' kèm một câu hỏi làm rõ thay vì đoán.",
@@ -177,6 +206,7 @@ async def build_prompt(
             else:
                 asked = getattr(example, "question", "")
                 sql = getattr(example, "sql", "")
+            sql = _anchor_example_dates(str(sql), effective_business_date)
             parts.append(f"- Hỏi: {asked}\n  SQL: {sql}")
 
     parts += ["", f"Câu hỏi: {question}", "SQL:"]

@@ -149,7 +149,9 @@ async def generate_sql(
     last_error: BusinessRuleError | None = None
 
     for _ in range(settings.ai_max_sql_attempts):
-        prompt = await build_prompt(session, normalized, role)
+        prompt = await build_prompt(
+            session, normalized, role, effective_business_date=effective_business_date
+        )
         if last_error is not None:
             prompt += f"\n\nLần trước câu SQL chưa hợp lệ: {last_error}. Hãy sửa lại."
         raw = await asyncio.to_thread(client.complete, prompt) or ""

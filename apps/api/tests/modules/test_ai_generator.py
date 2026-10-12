@@ -24,6 +24,27 @@ async def test_generation_returns_sql_that_passed_the_guard(session, fake_llm, s
 
 
 @pytest.mark.anyio
+async def test_generation_passes_the_effective_business_date_to_the_prompt(
+    session, fake_llm, seed_views
+):
+    fake_llm.reply("SELECT COUNT(*) FROM vw_ai_thungan")
+    effective_business_date = date(2026, 9, 24)
+
+    await generate_sql(
+        session,
+        "Hôm qua có bao nhiêu đơn?",
+        Role.CASHIER,
+        1,
+        effective_business_date,
+    )
+
+    assert "BusinessDate = '2026-09-24'" in (fake_llm.last_prompt or "")
+    assert "06:00" not in (fake_llm.last_prompt or "")
+    assert "CURDATE()" not in (fake_llm.last_prompt or "")
+    assert "CURRENT_DATE" not in (fake_llm.last_prompt or "")
+
+
+@pytest.mark.anyio
 async def test_a_write_statement_is_never_returned(session, fake_llm, seed_views):
     """FR-AI-05 and NFR-06: the guard is not optional."""
     fake_llm.reply("DELETE FROM vw_ai_thungan")
