@@ -5,57 +5,41 @@ one of the `ai_max_sql_attempts` (two) generations, and running out raises. The 
 key includes the role, because the same words asked by another role must never reuse
 an answer produced under a different scope (FR-AI-05).
 
-Daily quota and cache are process-local on purpose: NFR-16 asks for cost control, not
-for durable accounting, and keeping them here avoids a table the report never mentions.
+The quota is reserved and persisted by the orchestration service before this module runs.
+The SQL cache remains process-local and role-scoped.
 """
 
 import asyncio
+from datetime import date
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.errors import BusinessRuleError
 from app.modules.ai import guard, llm
-from app.modules.ai.errors import ClarificationNeeded, QuotaExceeded
+from app.modules.ai.errors import ClarificationNeeded
 from app.modules.ai.pipeline.normalize import normalize_question
 from app.modules.ai.pipeline.prompt import build_prompt
 from app.modules.ai.scope import views_for
-from app.modules.settings.service import effective_business_day_start
-from app.shared import business_date
 from app.shared.roles import Role
 
 CLARIFY_PREFIX = "CLARIFY:"
 
 _cache: dict[tuple[str, str], str] = {}
-_daily_calls: dict[str, int] = {}
 
 
 def reset_state() -> None:
-    """Clear the cache and the quota counter (used between tests)."""
+    """Clear the process-local SQL cache (used between tests)."""
     _cache.clear()
-    _daily_calls.clear()
 
 
-def set_daily_calls(day: str, count: int) -> None:
-    _daily_calls[day] = count
-
-
-async def _today(session: AsyncSession) -> str:
-    moment = business_date.now()
-    start = await effective_business_day_start(session, moment)
-    return business_date.business_date_of(moment, start).isoformat()
-
-
-def _enforce_quota(day: str) -> None:
-    if _daily_calls.get(day, 0) >= get_settings().ai_daily_question_quota:
-        raise QuotaExceeded("Đã đạt hạn mức câu hỏi trong ngày. Vui lòng thử lại vào ngày mai.")
-
-
-def _charge_quota(day: str) -> None:
-    _daily_calls[day] = _daily_calls.get(day, 0) + 1
-
-
-async def generate_sql(session: AsyncSession, question: str, role: Role) -> str:
+async def generate_sql(
+    session: AsyncSession,
+    question: str,
+    role: Role,
+    user_id: int,
+    effective_business_date: date,
+) -> str:
     """Validated SQL for this question, or a raised signal for the orchestrator."""
     settings = get_settings()
     normalized = normalize_question(question)
@@ -64,14 +48,11 @@ async def generate_sql(session: AsyncSession, question: str, role: Role) -> str:
     if cached is not None:
         return cached
 
-    day = await _today(session)
-    _enforce_quota(day)
     client = llm.get_client()
     allowed = views_for(role)
     last_error: BusinessRuleError | None = None
 
     for _ in range(settings.ai_max_sql_attempts):
-        _charge_quota(day)
         prompt = await build_prompt(session, normalized, role)
         if last_error is not None:
             prompt += f"\n\nLần trước câu SQL chưa hợp lệ: {last_error}. Hãy sửa lại."

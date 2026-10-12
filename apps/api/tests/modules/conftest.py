@@ -772,18 +772,6 @@ async def two_months(session):
 
 
 @pytest.fixture
-def quota_reached(fake_llm):
-    """Spend the daily quota before the test runs, so no call reaches the model."""
-    from app.core.config import get_settings
-    from app.modules.ai.pipeline import generator
-    from app.shared import business_date
-
-    today = business_date.business_date_of(business_date.now()).isoformat()
-    generator.set_daily_calls(today, get_settings().ai_daily_question_quota)
-    return fake_llm
-
-
-@pytest.fixture
 def readonly_urls(monkeypatch):
     """Distinct per-role account URLs, so a test can prove they are not shared."""
     from app.core.config import get_settings

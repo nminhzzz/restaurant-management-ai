@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import pytest
 
 from app.modules.ai.models import AssistantQuery, ChatSession
+from app.shared import business_date
 
 BASE = datetime(2026, 9, 24, 9, 0)
 
@@ -22,6 +23,7 @@ async def _session_with(
                 scope="vw_ai_thungan",
                 question=question,
                 sql_text=None,
+                business_date=business_date.business_date_of(start),
                 status="Thành công",
                 summary=f"Trả lời {i}.\n- ý {i}\n\nPhạm vi dữ liệu: vw_ai_thungan — x.",
                 latency_ms=5,

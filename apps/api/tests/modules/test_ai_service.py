@@ -1,8 +1,16 @@
 """Phase 6 Task 5 — the six-step pipeline and its query log (SD-05, FR-AI-01…09)."""
 
-import pytest
+import asyncio
+from datetime import datetime, time
 
-from app.modules.ai.service import TIMEOUT_ANSWER, answer
+import pytest
+from sqlalchemy import func, select
+
+from app.modules.ai.errors import ClarificationNeeded
+from app.modules.ai.models import AssistantQuery, ChatSession
+from app.modules.ai.pipeline import generator
+from app.modules.ai.service import INTERRUPTED_ANSWER, TIMEOUT_ANSWER, answer, session_detail
+from app.modules.settings.models import SystemConfig
 from app.shared.roles import Role
 from tests.helpers import latest_query, session_count
 
@@ -146,6 +154,149 @@ async def test_every_message_shown_to_the_user_is_vietnamese(
     body = (await _chat(api_client, cashier_token, "cho tôi lợi nhuận")).json()
 
     assert "Không thể" in body["answer"] or "không thể" in body["answer"]
+
+
+@pytest.mark.anyio
+async def test_quota_is_per_user_and_a_question_is_reserved_once(
+    session, seed_views, fake_llm, ai_engine, monkeypatch
+):
+    config = (await session.execute(select(SystemConfig))).scalar_one()
+    config.ai_daily_question_quota = 1
+    await session.commit()
+    fake_llm.reply_sequence(
+        [
+            "SELECT COUNT(*) AS SoDon FROM vw_ai_thungan",
+            '{"headline": "Có đơn.", "highlights": [], "follow_ups": []}',
+            "SELECT COUNT(*) AS SoDon FROM vw_ai_thungan",
+            '{"headline": "Có đơn.", "highlights": [], "follow_ups": []}',
+        ]
+    )
+
+    first = await answer(session, "hỏi A", Role.CASHIER, user_id=2)
+    calls_after_first = fake_llm.calls
+    rejected = await answer(session, "hỏi B", Role.CASHIER, user_id=2)
+    other_user = await answer(session, "hỏi C", Role.CASHIER, user_id=3)
+
+    assert first.kind == "answer"
+    assert rejected.kind == "refused"
+    assert other_user.kind == "answer"
+    assert fake_llm.calls == calls_after_first + 2
+    assert (await session.execute(select(func.count(AssistantQuery.id)))).scalar_one() == 2
+
+
+@pytest.mark.anyio
+async def test_sql_retries_consume_one_question_quota_slot(
+    session, seed_views, fake_llm, ai_engine
+):
+    config = (await session.execute(select(SystemConfig))).scalar_one()
+    config.ai_daily_question_quota = 1
+    await session.commit()
+    fake_llm.reply_sequence(
+        [
+            "DELETE FROM vw_ai_thungan",
+            "SELECT COUNT(*) AS SoDon FROM vw_ai_thungan",
+            '{"headline": "Có đơn.", "highlights": [], "follow_ups": []}',
+        ]
+    )
+
+    response = await answer(session, "hỏi", Role.CASHIER, user_id=2)
+    rejected = await answer(session, "hỏi thêm", Role.CASHIER, user_id=2)
+
+    assert response.kind == "answer"
+    assert rejected.kind == "refused"
+    assert fake_llm.calls == 3
+    assert (await session.execute(select(func.count(AssistantQuery.id)))).scalar_one() == 1
+
+
+@pytest.mark.anyio
+async def test_a_quota_row_keeps_its_business_date_after_the_cutoff_changes(
+    session, seed_views, fake_llm, ai_engine, monkeypatch
+):
+    config = (await session.execute(select(SystemConfig))).scalar_one()
+    config.ai_daily_question_quota = 1
+    config.business_day_start = time(6)
+    await session.commit()
+    now = datetime(2026, 9, 25, 5, 0)
+    monkeypatch.setattr("app.modules.ai.service.business_date.now", lambda: now)
+    fake_llm.reply_sequence(
+        [
+            "SELECT COUNT(*) AS SoDon FROM vw_ai_thungan",
+            '{"headline": "Có đơn.", "highlights": [], "follow_ups": []}',
+            "SELECT COUNT(*) AS SoDon FROM vw_ai_thungan",
+            '{"headline": "Có đơn.", "highlights": [], "follow_ups": []}',
+        ]
+    )
+
+    first = await answer(session, "câu hỏi trước mốc", Role.CASHIER, user_id=2)
+    config.business_day_start = time(4)
+    await session.commit()
+    second = await answer(session, "câu hỏi sau đổi mốc", Role.CASHIER, user_id=2)
+    dates = (
+        (await session.execute(select(AssistantQuery.business_date).order_by(AssistantQuery.id)))
+        .scalars()
+        .all()
+    )
+
+    assert first.kind == second.kind == "answer"
+    assert dates == [datetime(2026, 9, 24).date(), datetime(2026, 9, 25).date()]
+
+
+@pytest.mark.anyio
+async def test_an_abandoned_pending_question_is_visible_as_interrupted(session):
+    chat = ChatSession(user_id=2, role_id=None)
+    session.add(chat)
+    await session.flush()
+    query = AssistantQuery(
+        session_id=chat.id,
+        scope="vw_ai_thungan",
+        question="câu bị ngắt",
+        sql_text=None,
+        business_date=datetime(2026, 9, 24).date(),
+        status="Đang xử lý",
+        summary=None,
+        latency_ms=None,
+    )
+    session.add(query)
+    await session.commit()
+
+    detail = await session_detail(session, user_id=2, session_id=chat.id)
+
+    assert detail.turns[0].status == "Bị gián đoạn"
+    assert detail.turns[0].headline == INTERRUPTED_ANSWER
+
+
+@pytest.mark.anyio
+async def test_concurrent_same_user_questions_cannot_both_take_last_slot(
+    session, session_factory, seed_views, monkeypatch
+):
+    config = (await session.execute(select(SystemConfig))).scalar_one()
+    config.ai_daily_question_quota = 1
+    await session.commit()
+    model_started = asyncio.Event()
+    release_model = asyncio.Event()
+    calls = 0
+
+    async def blocked_generation(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        model_started.set()
+        await release_model.wait()
+        raise ClarificationNeeded("Bạn muốn xem ngày nào?")
+
+    monkeypatch.setattr(generator, "generate_sql", blocked_generation)
+
+    async with session_factory() as first_session, session_factory() as second_session:
+        first_task = asyncio.create_task(
+            answer(first_session, "câu thứ nhất", Role.CASHIER, user_id=2)
+        )
+        await model_started.wait()
+        second = await answer(second_session, "câu thứ hai", Role.CASHIER, user_id=2)
+        release_model.set()
+        first = await first_task
+
+        assert first.kind == "clarify"
+        assert second.kind == "refused"
+        assert calls == 1
 
 
 @pytest.mark.anyio

@@ -13,6 +13,7 @@ worker thread so a stalled provider cannot hold the event loop and dodge the bud
 import asyncio
 import time
 from dataclasses import asdict
+from datetime import date
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -33,6 +34,9 @@ from app.modules.ai.schemas import (
     TurnOut,
 )
 from app.modules.ai.scope import ROLE_VIEWS
+from app.modules.settings.models import User
+from app.modules.settings.service import effective_business_day_start, get_config
+from app.shared import business_date
 from app.shared.roles import Role
 
 TITLE_LIMIT = 120
@@ -43,6 +47,9 @@ REFUSED_ANSWER = (
 )
 TIMEOUT_ANSWER = "Trợ lý phản hồi quá lâu. Vui lòng thử lại với câu hỏi ngắn gọn hơn."
 SCOPE_REFUSED_ANSWER = "Câu hỏi này nằm ngoài phạm vi dữ liệu mà vai trò của bạn được phép xem."
+PENDING_STATUS = "Đang xử lý"
+INTERRUPTED_STATUS = "Bị gián đoạn"
+INTERRUPTED_ANSWER = "Câu hỏi bị gián đoạn khi hệ thống đang xử lý. Vui lòng gửi lại nếu cần."
 
 
 async def _resolve_session(
@@ -58,28 +65,70 @@ async def _resolve_session(
     return chat_session
 
 
-async def _record(
+async def _reserve_question(
     session: AsyncSession,
-    chat_session: ChatSession,
+    user_id: int,
+    session_id: int | None,
     *,
     question: str,
+    role: Role,
+) -> tuple[ChatSession, AssistantQuery, date]:
+    """Atomically reserve one persisted per-user quota slot before external calls."""
+    # Lock before any consistent read. Under MySQL REPEATABLE READ, reading settings
+    # before this lock would pin a snapshot that could miss the preceding reservation.
+    # SQLite ignores FOR UPDATE; its concurrency test only checks committed-row visibility.
+    await session.execute(select(User.id).where(User.id == user_id).with_for_update())
+
+    moment = business_date.now()
+    start = await effective_business_day_start(session, moment)
+    effective_date = business_date.business_date_of(moment, start)
+    config = await get_config(session)
+    reserved_ids = (
+        await session.execute(
+            select(AssistantQuery.id)
+            .join(ChatSession, AssistantQuery.session_id == ChatSession.id)
+            .where(
+                ChatSession.user_id == user_id,
+                AssistantQuery.business_date == effective_date,
+            )
+            .with_for_update()
+        )
+    ).scalars()
+    used = len(reserved_ids.all())
+    if used >= config.ai_daily_question_quota:
+        raise QuotaExceeded("Đã đạt hạn mức câu hỏi trong ngày. Vui lòng thử lại vào ngày mai.")
+
+    chat_session = await _resolve_session(session, user_id, session_id)
+    query = AssistantQuery(
+        session_id=chat_session.id,
+        scope=ROLE_VIEWS[role],
+        question=question,
+        sql_text=None,
+        business_date=effective_date,
+        status=PENDING_STATUS,
+        summary=None,
+        latency_ms=None,
+    )
+    session.add(query)
+    await session.flush()
+    # A crash after this commit leaves a counted, visible pending/interrupted row.
+    await session.commit()
+    return chat_session, query, effective_date
+
+
+async def _update_query(
+    session: AsyncSession,
+    query: AssistantQuery,
+    *,
     sql_text: str | None,
     status: str,
     summary: str,
-    role: Role,
     elapsed_ms: int,
 ) -> None:
-    session.add(
-        AssistantQuery(
-            session_id=chat_session.id,
-            scope=ROLE_VIEWS[role],
-            question=question,
-            sql_text=sql_text,
-            status=status,
-            summary=summary,
-            latency_ms=elapsed_ms,
-        )
-    )
+    query.sql_text = sql_text
+    query.status = status
+    query.summary = summary
+    query.latency_ms = elapsed_ms
     await session.flush()
 
 
@@ -97,13 +146,26 @@ async def answer(
     """Answer one question within the caller's role scope, and log the turn."""
     settings = get_settings()
     started = time.perf_counter()
-    chat_session = await _resolve_session(session, user_id, session_id)
     normalized = normalize.normalize_question(question)
     sql_text: str | None = None
 
     try:
+        chat_session, query, effective_date = await _reserve_question(
+            session, user_id, session_id, question=question, role=role
+        )
+    except QuotaExceeded as exc:
+        return ChatResponse(
+            answer=exc.message,
+            headline=exc.message,
+            kind="refused",
+            session_id=session_id,
+        )
+
+    try:
         async with asyncio.timeout(settings.ai_response_budget_seconds):
-            sql_text = await generator.generate_sql(session, normalized, role)
+            sql_text = await generator.generate_sql(
+                session, normalized, role, user_id, effective_date
+            )
             rows = await executor.execute(
                 sql_text, role=role, timeout_seconds=settings.ai_sql_timeout_seconds
             )
@@ -112,14 +174,12 @@ async def answer(
             columns_meta = labels.describe_columns(columns, rows)
             interpretation = await interpreter.interpret(session, normalized, sql_text, rows, role)
     except ClarificationNeeded as exc:
-        await _record(
+        await _update_query(
             session,
-            chat_session,
-            question=question,
+            query,
             sql_text=None,
             status="Yêu cầu làm rõ",
             summary=exc.message,
-            role=role,
             elapsed_ms=_elapsed_ms(started),
         )
         await session.commit()
@@ -127,14 +187,12 @@ async def answer(
             answer=exc.message, headline=exc.message, kind="clarify", session_id=chat_session.id
         )
     except QuotaExceeded as exc:
-        await _record(
+        await _update_query(
             session,
-            chat_session,
-            question=question,
+            query,
             sql_text=None,
             status="Từ chối",
             summary=exc.message,
-            role=role,
             elapsed_ms=_elapsed_ms(started),
         )
         await session.commit()
@@ -142,14 +200,12 @@ async def answer(
             answer=exc.message, headline=exc.message, kind="refused", session_id=chat_session.id
         )
     except BusinessRuleError:
-        await _record(
+        await _update_query(
             session,
-            chat_session,
-            question=question,
+            query,
             sql_text=sql_text,
             status="Từ chối",
             summary=REFUSED_ANSWER,
-            role=role,
             elapsed_ms=_elapsed_ms(started),
         )
         await session.commit()
@@ -160,14 +216,12 @@ async def answer(
             session_id=chat_session.id,
         )
     except TimeoutError:
-        await _record(
+        await _update_query(
             session,
-            chat_session,
-            question=question,
+            query,
             sql_text=sql_text,
             status="Lỗi",
             summary=TIMEOUT_ANSWER,
-            role=role,
             elapsed_ms=_elapsed_ms(started),
         )
         await session.commit()
@@ -178,28 +232,24 @@ async def answer(
             session_id=chat_session.id,
         )
     except Exception:
-        await _record(
+        await _update_query(
             session,
-            chat_session,
-            question=question,
+            query,
             sql_text=sql_text,
             status="Lỗi",
             summary=SCOPE_REFUSED_ANSWER,
-            role=role,
             elapsed_ms=_elapsed_ms(started),
         )
         await session.commit()
         raise
 
     elapsed_ms = _elapsed_ms(started)
-    await _record(
+    await _update_query(
         session,
-        chat_session,
-        question=question,
+        query,
         sql_text=sql_text,
         status="Thành công",
         summary=interpretation.text,
-        role=role,
         elapsed_ms=elapsed_ms,
     )
     await session.commit()
@@ -295,14 +345,17 @@ async def session_detail(session: AsyncSession, user_id: int, session_id: int) -
     )
     out = []
     for turn in turns:
-        headline, highlights = split_answer(turn.summary or "")
+        is_interrupted = turn.status == PENDING_STATUS
+        headline, highlights = (
+            (INTERRUPTED_ANSWER, []) if is_interrupted else split_answer(turn.summary or "")
+        )
         out.append(
             TurnOut(
                 id=turn.id,
                 question=turn.question,
                 headline=headline,
                 highlights=highlights,
-                status=turn.status,
+                status=INTERRUPTED_STATUS if is_interrupted else turn.status,
                 occurred_at=turn.occurred_at,
             )
         )

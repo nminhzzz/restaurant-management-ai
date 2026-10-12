@@ -1,8 +1,8 @@
 """AI module tables."""
 
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, func
+from sqlalchemy import Date, DateTime, ForeignKey, Index, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.shared.base import Base, BigInteger
@@ -38,6 +38,7 @@ class AssistantQuery(Base):
     )
     scope: Mapped[str | None] = mapped_column("PhamViDuLieu", String(50), nullable=True)
     question: Mapped[str] = mapped_column("CauHoi", Text, nullable=False)
+    business_date: Mapped[date] = mapped_column("BusinessDate", Date, nullable=False)
     sql_text: Mapped[str | None] = mapped_column("CauSQLSinhRa", Text, nullable=True)
     status: Mapped[str] = mapped_column(
         "TrangThai", String(20), nullable=False, default="Th\u00e0nh c\u00f4ng"
@@ -47,4 +48,7 @@ class AssistantQuery(Base):
     occurred_at: Mapped[datetime] = mapped_column(
         "ThoiDiem", DateTime, server_default=func.now(), nullable=False
     )
-    __table_args__ = (Index("ix_TRUY_VAN_AI_MaPhien_ThoiDiem", "MaPhien", "ThoiDiem"),)
+    __table_args__ = (
+        Index("ix_TRUY_VAN_AI_MaPhien_ThoiDiem", "MaPhien", "ThoiDiem"),
+        Index("ix_TRUY_VAN_AI_BusinessDate_MaPhien", "BusinessDate", "MaPhien"),
+    )
