@@ -135,6 +135,7 @@ export function OrderStep({
   const [cart, setCart] = useState<CartLine[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const submitInFlightRef = useRef(false);
   const [holdDisplays, setHoldDisplays] = useState<Record<number, HoldDisplay>>(
     {},
   );
@@ -358,6 +359,7 @@ export function OrderStep({
   }
 
   function addDish(dish: Dish) {
+    if (submitInFlightRef.current) return;
     if (dish.GiaHienTai == null) return;
     const price = dish.GiaHienTai;
     const existing = cart.find((l) => l.MaMon === dish.MaMon);
@@ -379,6 +381,7 @@ export function OrderStep({
   }
 
   function updateLine(dishId: number, patch: Partial<CartLine>) {
+    if (submitInFlightRef.current) return;
     const line = cart.find((item) => item.MaMon === dishId);
     if (!line) return;
     const updated = { ...line, ...patch };
@@ -389,6 +392,7 @@ export function OrderStep({
   }
 
   function step(line: CartLine, delta: number) {
+    if (submitInFlightRef.current) return;
     if (line.SoLuong + delta <= 0) {
       setCart((previous) => previous.filter((l) => l.MaMon !== line.MaMon));
       saveLineError(line.MaMon, null);
@@ -408,14 +412,17 @@ export function OrderStep({
   }
 
   async function submitSelection(next: "floor" | "pay", isReconfirm = false) {
+    if (submitInFlightRef.current) return;
     setError(null);
     if (cart.length === 0) {
       if (orderId !== null && next === "pay") onSent(orderId, "pay");
       else setError("Chưa chọn món nào.");
       return;
     }
+    submitInFlightRef.current = true;
     setSubmitting(true);
     try {
+      await Promise.all([...mutationQueuesRef.current.values()]);
       if (isReconfirm) {
         const latest = await apiFetch<{ items: Dish[] }>(
           "/catalog/dishes?size=200",
@@ -563,15 +570,18 @@ export function OrderStep({
         messageOf(e, "Không gửi được món. Kiểm tra kết nối rồi thử lại."),
       );
     } finally {
+      submitInFlightRef.current = false;
       setSubmitting(false);
     }
   }
 
   function send(next: "floor" | "pay") {
+    if (submitInFlightRef.current) return;
     return submitSelection(next);
   }
 
   function confirmAndSend() {
+    if (submitInFlightRef.current) return;
     sendRequestIdRef.current = createRequestId();
     return submitSelection(reconfirmNext, true);
   }
@@ -580,7 +590,12 @@ export function OrderStep({
     <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
       <div className="min-w-0 space-y-5">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-container border border-border bg-surface px-3 py-2">
-          <Button variant="ghost" size="sm" onClick={onBack}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onBack}
+            disabled={submitting}
+          >
             <ArrowLeft />
             Sơ đồ bàn
           </Button>
@@ -654,7 +669,7 @@ export function OrderStep({
                   key={d.MaMon}
                   type="button"
                   onClick={() => addDish(d)}
-                  disabled={d.GiaHienTai == null}
+                  disabled={d.GiaHienTai == null || submitting}
                   className={cn(
                     "relative flex min-h-24 flex-col justify-between gap-2 rounded-container border bg-surface p-3 text-left transition-[border-color,box-shadow,transform] active:translate-y-px disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:hover:border-border disabled:hover:shadow-none",
                     inCart
@@ -758,6 +773,7 @@ export function OrderStep({
                         placeholder="Thêm ghi chú cho bếp"
                         className="min-w-0 flex-1 bg-transparent py-1 text-ink outline-none placeholder:text-subtle"
                         value={l.GhiChu}
+                        disabled={submitting}
                         onChange={(e) =>
                           updateLine(l.MaMon, { GhiChu: e.target.value })
                         }
@@ -772,6 +788,7 @@ export function OrderStep({
                             : `Bớt một ${l.TenMon}`
                         }
                         onClick={() => step(l, -1)}
+                        disabled={submitting}
                         className="grid size-11 place-items-center text-muted hover:bg-surface-sunken hover:text-ink"
                       >
                         {l.SoLuong === 1 ? (
@@ -787,6 +804,7 @@ export function OrderStep({
                         min={1}
                         className="h-11 w-12 border-x border-border text-center font-semibold tabular-nums outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
                         value={l.SoLuong}
+                        disabled={submitting}
                         onChange={(e) =>
                           updateLine(l.MaMon, {
                             SoLuong: Math.max(1, Number(e.target.value) || 1),
@@ -797,6 +815,7 @@ export function OrderStep({
                         type="button"
                         aria-label={`Thêm một ${l.TenMon}`}
                         onClick={() => step(l, 1)}
+                        disabled={submitting}
                         className="grid size-11 place-items-center text-muted hover:bg-surface-sunken hover:text-ink"
                       >
                         <Plus className="size-4" aria-hidden />

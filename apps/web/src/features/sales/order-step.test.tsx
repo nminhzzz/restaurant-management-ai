@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/api-client", async (importOriginal) => {
@@ -186,6 +186,161 @@ describe("OrderStep", () => {
         body: expect.objectContaining({ MaYeuCauGui: expect.any(String) }),
       }),
     );
+  });
+
+  it("ignores cart edits queued in the same render batch as submit", async () => {
+    let finishHold!: (value: {
+      MaGiuCho: number;
+      MaLuotChon: string;
+      MaMon: number;
+      SoLuong: number;
+      ThoiDiemHetHan: string;
+      TrangThai: string;
+    }) => void;
+    const pendingHold = new Promise<{
+      MaGiuCho: number;
+      MaLuotChon: string;
+      MaMon: number;
+      SoLuong: number;
+      ThoiDiemHetHan: string;
+      TrangThai: string;
+    }>((resolve) => {
+      finishHold = resolve;
+    });
+    let finishSubmit!: (value: {
+      MaOrder: number;
+      MaOrderHienThi: string;
+      CanXacNhanLai: boolean;
+      stale: [];
+      lines: {
+        MaChiTietOrder: number;
+        MaMon: number;
+        SoLuong: number;
+        DonGia: number;
+      }[];
+    }) => void;
+    const pendingSubmit = new Promise<{
+      MaOrder: number;
+      MaOrderHienThi: string;
+      CanXacNhanLai: boolean;
+      stale: [];
+      lines: {
+        MaChiTietOrder: number;
+        MaMon: number;
+        SoLuong: number;
+        DonGia: number;
+      }[];
+    }>((resolve) => {
+      finishSubmit = resolve;
+    });
+    route({
+      "/sales/selections": { MaLuotChon: "selection-locked" },
+      "/sales/selections/selection-locked/lines/5": pendingHold,
+      "/sales/selections/selection-locked/lines/8": {
+        MaGiuCho: 108,
+        MaLuotChon: "selection-locked",
+        MaMon: 8,
+        SoLuong: 1,
+        ThoiDiemHetHan: "2099-01-01T10:00:00",
+        TrangThai: "Đang giữ",
+      },
+      "/sales/selections/selection-locked/submit": pendingSubmit,
+    });
+    render(
+      <OrderStep
+        tableId={4}
+        orderId={null}
+        onBack={vi.fn()}
+        onSent={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: /Phở bò/ }));
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/sales/selections/selection-locked/lines/5",
+        expect.objectContaining({ method: "PUT" }),
+      ),
+    );
+    const submit = screen.getByRole("button", { name: "Gửi bếp" });
+    const addDish = screen.getByRole("button", { name: /Gỏi cuốn/ });
+    const note = screen.getByLabelText("Ghi chú Phở bò");
+    const quantity = screen.getByLabelText("Số lượng Phở bò");
+
+    act(() => {
+      fireEvent.click(submit);
+      fireEvent.click(addDish);
+      fireEvent.change(note, { target: { value: "ít hành" } });
+      fireEvent.change(quantity, { target: { value: "2" } });
+    });
+
+    expect(
+      fetchMock.mock.calls.some(
+        ([path]) => path === "/sales/selections/selection-locked/submit",
+      ),
+    ).toBe(false);
+    await act(async () => {
+      finishHold({
+        MaGiuCho: 105,
+        MaLuotChon: "selection-locked",
+        MaMon: 5,
+        SoLuong: 1,
+        ThoiDiemHetHan: "2099-01-01T10:00:00",
+        TrangThai: "Đang giữ",
+      });
+      await pendingHold;
+    });
+
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/sales/selections/selection-locked/submit",
+        expect.objectContaining({ method: "POST" }),
+      ),
+    );
+    expect(screen.getByLabelText("Số lượng Phở bò")).toHaveValue(1);
+    expect(
+      screen.queryByLabelText("Số lượng Gỏi cuốn"),
+    ).not.toBeInTheDocument();
+    expect(
+      fetchMock.mock.calls.filter(
+        ([path, init]) =>
+          path === "/sales/selections/selection-locked/lines/5" &&
+          init?.method === "PUT",
+      ),
+    ).toHaveLength(1);
+    expect(
+      fetchMock.mock.calls.some(
+        ([path, init]) =>
+          path === "/sales/selections/selection-locked/lines/8" &&
+          init?.method === "PUT",
+      ),
+    ).toBe(false);
+    expect(addDish).toBeDisabled();
+    expect(note).toBeDisabled();
+    expect(quantity).toBeDisabled();
+    fireEvent.click(addDish);
+    fireEvent.change(note, { target: { value: "nhiều hành" } });
+    fireEvent.change(quantity, { target: { value: "3" } });
+    expect(screen.getByLabelText("Ghi chú Phở bò")).toHaveValue("");
+    expect(screen.getByLabelText("Số lượng Phở bò")).toHaveValue(1);
+    expect(
+      fetchMock.mock.calls.some(
+        ([path, init]) =>
+          path === "/sales/selections/selection-locked/lines/8" &&
+          init?.method === "PUT",
+      ),
+    ).toBe(false);
+
+    await act(async () => {
+      finishSubmit({
+        MaOrder: 42,
+        MaOrderHienThi: "ORD-42",
+        CanXacNhanLai: false,
+        stale: [],
+        lines: [{ MaChiTietOrder: 1, MaMon: 5, SoLuong: 1, DonGia: 65000 }],
+      });
+      await pendingSubmit;
+    });
   });
 
   it("keeps the sent total right after a partial add-more failure", async () => {
