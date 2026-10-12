@@ -632,6 +632,48 @@ async def list_stock(
     return out, total
 
 
+async def list_lot_expiry(
+    session: AsyncSession, *, page: int, page_size: int
+) -> tuple[list[dict], int]:
+    from app.modules.catalog.models import Ingredient
+    from app.modules.settings.models import SystemConfig
+
+    config = (await session.execute(select(SystemConfig))).scalar_one_or_none()
+    warning_days = config.expiry_warning_days if config else 3
+    today = date.today()
+    warning_end = today + timedelta(days=warning_days)
+    base = (
+        select(IngredientLot, Ingredient)
+        .join(Ingredient, IngredientLot.ingredient_id == Ingredient.id)
+        .where(Ingredient.is_deleted.is_(False))
+    )
+    total = (await session.execute(select(func.count()).select_from(base.subquery()))).scalar_one()
+    rows = (
+        await session.execute(
+            base.order_by(IngredientLot.id).offset((page - 1) * page_size).limit(page_size)
+        )
+    ).all()
+    items = []
+    for lot, ingredient in rows:
+        if lot.expiry_date is not None and lot.expiry_date < today:
+            status = "Hết hạn"
+        elif lot.expiry_date is not None and lot.expiry_date <= warning_end:
+            status = "Sắp hết hạn"
+        else:
+            status = "Còn hạn"
+        items.append(
+            {
+                "MaLoNguyenLieu": lot.id,
+                "MaNguyenLieu": ingredient.id,
+                "TenNguyenLieu": ingredient.name,
+                "SoLuongConLai": float(lot.quantity_remaining),
+                "HanSuDung": lot.expiry_date,
+                "TrangThaiHanSuDung": status,
+            }
+        )
+    return items, total
+
+
 async def recompute_automatic_out_of_stock(session, ingredient_ids: list[int]) -> list[int]:
     from app.modules.catalog.models import Dish, Recipe, RecipeItem
     from app.modules.catalog.models import Ingredient as Ing

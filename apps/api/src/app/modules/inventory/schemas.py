@@ -1,7 +1,7 @@
 """Schemas for inventory."""
 
-from datetime import datetime
-from typing import Annotated
+from datetime import date, datetime
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
@@ -72,3 +72,19 @@ class StockRowOut(BaseModel):
     SoLuongTon: float
     MucTonToiThieuApDung: float
     CanhBaoTonThap: bool
+
+
+class LotExpiryRowOut(BaseModel):
+    MaLoNguyenLieu: int
+    MaNguyenLieu: int
+    TenNguyenLieu: str
+    SoLuongConLai: float
+    HanSuDung: date | None
+    TrangThaiHanSuDung: Literal["Còn hạn", "Sắp hết hạn", "Hết hạn"]
+
+
+class LotExpiryPageOut(BaseModel):
+    items: list[LotExpiryRowOut]
+    total: int
+    page: int
+    page_size: int

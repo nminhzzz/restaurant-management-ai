@@ -8,7 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_session
 from app.core.dependencies import Principal, require_roles
 from app.modules.inventory import service as svc
-from app.modules.inventory.schemas import CountIn, IssueCreate, ReceiptCreate, ReceiptUpdate
+from app.modules.inventory.schemas import (
+    CountIn,
+    IssueCreate,
+    LotExpiryPageOut,
+    ReceiptCreate,
+    ReceiptUpdate,
+)
 from app.shared.audit import SystemAuditLog
 from app.shared.roles import Role
 
@@ -195,6 +201,19 @@ async def list_stock(
     items, total = await svc.list_stock(
         session, search=search, alerting=alerting, page=page, page_size=page_size
     )
+    return {"items": items, "total": total, "page": page, "page_size": page_size}
+
+
+@router.get("/lots", response_model=LotExpiryPageOut)
+async def list_lots(
+    page: int = 1,
+    page_size: int = 20,
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    session: AsyncSession = Depends(get_session),
+):
+    page = max(1, page)
+    page_size = min(max(1, page_size), 100)
+    items, total = await svc.list_lot_expiry(session, page=page, page_size=page_size)
     return {"items": items, "total": total, "page": page, "page_size": page_size}
 
 

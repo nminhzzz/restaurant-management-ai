@@ -1,5 +1,8 @@
 """FR-INV-07 low-stock flag, FR-INV-12 stock listing with search/filter."""
 
+from datetime import date, timedelta
+from decimal import Decimal
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 
@@ -7,7 +10,8 @@ from app.core.database import get_session
 from app.core.security import create_access_token, hash_password
 from app.main import app
 from app.modules.catalog.models import Ingredient
-from app.modules.settings.models import User
+from app.modules.inventory.models import IngredientLot
+from app.modules.settings.models import SystemConfig, User
 from app.modules.settings.service import seed_reference_data
 
 
@@ -150,3 +154,77 @@ async def test_deleted_ingredient_excluded_from_stock_list(session):
     r = await client.get("/api/v1/inventory/stock", headers=h)
     ids = {row["MaNguyenLieu"] for row in r.json()["items"]}
     assert ing.id not in ids
+
+
+@pytest.mark.anyio
+async def test_lot_expiry_uses_today_and_persisted_warning_boundary(session):
+    await seed_reference_data(session)
+    cfg = await session.get(SystemConfig, 1)
+    assert cfg is not None
+    cfg.expiry_warning_days = 4
+    ing = Ingredient(name="Bột", unit="kg", stock_qty=15, is_deleted=False)
+    session.add(ing)
+    await session.flush()
+    today = date.today()
+    dates = [
+        today - timedelta(days=1),
+        today,
+        today + timedelta(days=4),
+        today + timedelta(days=5),
+        None,
+    ]
+    lots = [
+        IngredientLot(
+            ingredient_id=ing.id,
+            quantity_remaining=Decimal("2.5"),
+            expiry_date=expiry,
+            status="Còn hạn" if index == 0 else "Hết hạn",
+        )
+        for index, expiry in enumerate(dates)
+    ]
+    session.add_all(lots)
+    await session.commit()
+    client = await _make_client(session)
+    headers, _ = await _headers(session)
+    response = await client.get("/api/v1/inventory/lots", headers=headers)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total"] == 5
+    rows = {row["MaLoNguyenLieu"]: row for row in body["items"]}
+    assert [rows[lot.id]["TrangThaiHanSuDung"] for lot in lots] == [
+        "Hết hạn",
+        "Sắp hết hạn",
+        "Sắp hết hạn",
+        "Còn hạn",
+        "Còn hạn",
+    ]
+    assert rows[lots[0].id]["TenNguyenLieu"] == "Bột"
+    assert rows[lots[0].id]["SoLuongConLai"] == 2.5
+    assert rows[lots[0].id]["HanSuDung"] == dates[0].isoformat()
+    assert rows[lots[4].id]["HanSuDung"] is None
+
+
+@pytest.mark.anyio
+async def test_lot_expiry_pagination_is_stable_and_role_protected(session):
+    ing = Ingredient(name="Gạo", unit="kg", stock_qty=3, is_deleted=False)
+    session.add(ing)
+    await session.flush()
+    session.add_all(
+        [IngredientLot(ingredient_id=ing.id, quantity_remaining=Decimal("1")) for _ in range(3)]
+    )
+    await session.commit()
+    client = await _make_client(session)
+    warehouse, _ = await _headers(session)
+    first = await client.get("/api/v1/inventory/lots?page=1&page_size=2", headers=warehouse)
+    second = await client.get("/api/v1/inventory/lots?page=2&page_size=2", headers=warehouse)
+    assert first.status_code == second.status_code == 200
+    assert first.json()["total"] == second.json()["total"] == 3
+    assert len(first.json()["items"]) == 2
+    assert len(second.json()["items"]) == 1
+    assert {row["MaLoNguyenLieu"] for row in first.json()["items"]}.isdisjoint(
+        {row["MaLoNguyenLieu"] for row in second.json()["items"]}
+    )
+    manager, _ = await _headers(session, "MANAGER", "manager_lots")
+    assert (await client.get("/api/v1/inventory/lots", headers=manager)).status_code == 200
+    cashier, _ = await _headers(session, "CASHIER", "cashier_lots")
+    assert (await client.get("/api/v1/inventory/lots", headers=cashier)).status_code == 403
