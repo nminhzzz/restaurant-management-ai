@@ -3,17 +3,104 @@
 from collections.abc import Sequence
 from datetime import date
 from decimal import Decimal
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.catalog.models import DishPriceVersion, Recipe
+from app.modules.settings.service import effective_business_day_start
+from app.shared import business_date
+from app.shared.audit import record
 from app.shared.enums import VersionStatus
+
+_PROMOTED_FOR = "catalog_versions_promoted_for"
+
+
+async def promote_due_versions(session: AsyncSession, *, dish_id: int | None = None) -> int:
+    """FR-CAT-08/20: a pending version becomes the active one on its Business Date.
+
+    Lazy and idempotent: it runs inside whichever transaction needs a current version,
+    takes the row locks, and leaves one audit entry (no user) per promotion. Returns how
+    many versions it promoted. Within one session the work is skipped once nothing is
+    due for the current Business Date.
+    """
+    moment = business_date.now()
+    start = await effective_business_day_start(session, moment)
+    today = business_date.business_date_of(moment, start)
+    marker = (today, dish_id)
+    if session.info.get(_PROMOTED_FOR) == marker:
+        return 0
+    effective_at = business_date.business_date_start(today, start)
+    promoted = 0
+    versioned: tuple[tuple[Any, str, str], ...] = (
+        (DishPriceVersion, "LICH_SU_GIA_MON", "PROMOTE_PRICE_VERSION"),
+        (Recipe, "CONG_THUC", "PROMOTE_RECIPE_VERSION"),
+    )
+    for model, entity, action in versioned:
+        due_query = (
+            select(model)
+            .where(model.status == VersionStatus.NHAP.value, model.business_date <= today)
+            .order_by(model.dish_id, model.business_date, model.id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        if dish_id is not None:
+            due_query = due_query.where(model.dish_id == dish_id)
+        due = (await session.execute(due_query)).scalars().all()
+        by_dish: dict[int, list] = {}
+        for version in due:
+            by_dish.setdefault(version.dish_id, []).append(version)
+        for dish, versions in by_dish.items():
+            *superseded, newest = versions
+            for old in superseded:
+                old.status = VersionStatus.HET_HIEU_LUC.value
+            current = (
+                (
+                    await session.execute(
+                        select(model)
+                        .where(model.dish_id == dish, model.status == VersionStatus.HIEU_LUC.value)
+                        .with_for_update()
+                        .execution_options(populate_existing=True)
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            for row in current:
+                row.status = VersionStatus.HET_HIEU_LUC.value
+                row.effective_to = effective_at
+            newest.status = VersionStatus.HIEU_LUC.value
+            newest.effective_from = effective_at
+            record(
+                session,
+                user_id=None,
+                action=action,
+                target_entity=entity,
+                target_id=newest.id,
+                before={"TrangThai": VersionStatus.NHAP.value},
+                after={
+                    "TrangThai": VersionStatus.HIEU_LUC.value,
+                    "ThoiDiemHieuLuc": effective_at.isoformat(),
+                    "BusinessDateApDung": newest.business_date.isoformat(),
+                },
+            )
+            promoted += 1
+    if promoted:
+        await session.flush()
+    session.info[_PROMOTED_FOR] = marker
+    return promoted
+
+
+def forget_promotion_marker(session: AsyncSession) -> None:
+    """A new pending version invalidates the 'nothing is due' shortcut."""
+    session.info.pop(_PROMOTED_FOR, None)
 
 
 async def active_price_version(
     session: AsyncSession, dish_id: int, bd: date
 ) -> DishPriceVersion | None:
+    await promote_due_versions(session, dish_id=None)
     # Single query: latest HIEU_LUC with business_date <= bd
     r = await session.execute(
         select(DishPriceVersion)
@@ -32,6 +119,7 @@ async def active_price_version_for_update(
     session: AsyncSession, dish_id: int, bd: date
 ) -> DishPriceVersion | None:
     """Read and lock the current active price row, bypassing RR snapshot reads."""
+    await promote_due_versions(session, dish_id=None)
     query = (
         select(DishPriceVersion)
         .where(
@@ -59,6 +147,7 @@ async def active_prices(
     """`active_price_version` for many dishes in one query; dishes without a price are absent."""
     if not dish_ids:
         return {}
+    await promote_due_versions(session, dish_id=None)
     rows = await session.execute(
         select(DishPriceVersion)
         .where(
@@ -79,6 +168,7 @@ async def active_prices(
 
 
 async def active_recipe(session: AsyncSession, dish_id: int, bd: date) -> Recipe | None:
+    await promote_due_versions(session, dish_id=None)
     r = await session.execute(
         select(Recipe)
         .where(
@@ -94,6 +184,7 @@ async def active_recipe(session: AsyncSession, dish_id: int, bd: date) -> Recipe
 
 async def active_recipe_for_update(session: AsyncSession, dish_id: int, bd: date) -> Recipe | None:
     """Read and lock the current active recipe row, bypassing RR snapshot reads."""
+    await promote_due_versions(session, dish_id=None)
     query = (
         select(Recipe)
         .where(

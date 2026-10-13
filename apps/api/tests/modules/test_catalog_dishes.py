@@ -237,12 +237,6 @@ async def test_a_new_group_goes_to_the_end_of_the_list(session, three_groups):
 
 
 @pytest.mark.asyncio
-async def test_soft_deleted_table_is_hidden_from_the_floor_plan(session):
-    # placeholder for Task5 - not needed here
-    assert True
-
-
-@pytest.mark.asyncio
 async def test_a_dish_image_is_persisted_on_create_and_returned(session, group):
     headers = await _auth_headers(session)
     async with await _make_client(session) as client:

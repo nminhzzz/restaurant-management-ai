@@ -90,28 +90,81 @@ async def test_the_split_by_table_sums_back_to_the_total(
 
 
 @pytest.mark.anyio
-async def test_a_transaction_awaiting_reconciliation_is_provisional_revenue(
-    api_client, manager_token, order_awaiting_reconciliation
+async def test_an_unverified_payment_is_not_revenue(
+    api_client, manager_token, order_awaiting_reconciliation, invoices_in_september
 ):
-    """FR-REP-02: counted for now, but flagged."""
+    """FR-REP-02: an order waiting for verification has no invoice and adds no revenue."""
     body = (
         await api_client.get(REVENUE, headers=_auth(manager_token), params={"granularity": "month"})
     ).json()
 
-    assert Decimal(body["provisional"]) == order_awaiting_reconciliation.total
-    assert Decimal(body["total"]) >= Decimal(body["provisional"])
+    assert Decimal(body["total"]) == invoices_in_september.total
+    assert Decimal(body["provisional"]) == 0
+    assert body["SoDon"] == 2
 
 
 @pytest.mark.anyio
-async def test_marking_a_dispute_subtracts_it_from_revenue(
+async def test_a_payment_that_was_never_confirmed_changes_nothing(
     api_client, manager_token, disputed_payment, invoices_in_september
 ):
-    """FR-REP-02: a dispute is deducted retroactively."""
+    """Nothing to deduct either: money that was never counted is not taken off."""
     body = (
         await api_client.get(REVENUE, headers=_auth(manager_token), params={"granularity": "month"})
     ).json()
 
-    assert Decimal(body["total"]) == invoices_in_september.total - disputed_payment.total
+    assert Decimal(body["total"]) == invoices_in_september.total
+
+
+@pytest.mark.anyio
+async def test_revenue_can_be_split_by_order_type(api_client, manager_token, invoices_in_september):
+    """FR-REP-01: dine-in against takeaway, and the parts add up to the whole."""
+    whole = (
+        await api_client.get(REVENUE, headers=_auth(manager_token), params={"granularity": "month"})
+    ).json()
+    by_type = (
+        await api_client.get(
+            REVENUE, headers=_auth(manager_token), params={"group_by": "order_type"}
+        )
+    ).json()
+
+    assert {row["key"] for row in by_type["items"]} == {"Tại chỗ"}
+    assert sum(Decimal(row["DoanhThu"]) for row in by_type["items"]) == Decimal(whole["total"])
+
+
+@pytest.mark.anyio
+async def test_revenue_by_order_type_separates_dine_in_from_takeaway(
+    api_client, manager_token, session
+):
+    from datetime import date
+
+    from tests.modules.conftest import _r_dish, _r_invoice, _r_line, _r_order
+
+    dish = await _r_dish(session, "Món mang về")
+    takeaway = await _r_order(session, bd=date(2026, 9, 10), order_type="Mang về")
+    await _r_line(session, takeaway, dish, 2, 30000)
+    await _r_invoice(session, takeaway, bd=date(2026, 9, 10), total=60000)
+    await session.commit()
+
+    body = (
+        await api_client.get(
+            REVENUE,
+            headers=_auth(manager_token),
+            params={"group_by": "order_type", "granularity": "month", "anchor": "2026-09-01"},
+        )
+    ).json()
+
+    assert [(row["key"], row["DoanhThu"], row["SoDon"]) for row in body["items"]] == [
+        ("Mang về", "60000.0000", 1)
+    ]
+
+
+@pytest.mark.anyio
+async def test_an_unknown_grouping_is_rejected(api_client, manager_token):
+    response = await api_client.get(
+        REVENUE, headers=_auth(manager_token), params={"group_by": "waiter"}
+    )
+
+    assert response.status_code == 422
 
 
 @pytest.mark.anyio

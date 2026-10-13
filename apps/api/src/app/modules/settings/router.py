@@ -24,6 +24,7 @@ from app.modules.settings.schemas import (
     TokenResponse,
     UserCreate,
     UserOut,
+    UserUpdate,
 )
 from app.shared.pagination import Page
 from app.shared.roles import Role
@@ -83,6 +84,18 @@ async def create_user(
         payload.phone,
         payload.role,
     )
+    await session.commit()
+    return UserOut.model_validate(u)
+
+
+@router.patch("/users/{user_id}", response_model=UserOut)
+async def update_user(
+    user_id: int,
+    payload: UserUpdate,
+    user: Principal = Depends(require_roles(Role.MANAGER)),
+    session: AsyncSession = Depends(get_session),
+) -> UserOut:
+    u = await svc.update_user(session, user.user_id, user_id, payload)
     await session.commit()
     return UserOut.model_validate(u)
 

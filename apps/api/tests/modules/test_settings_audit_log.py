@@ -225,3 +225,33 @@ async def test_the_actions_endpoint_lists_distinct_action_codes_for_managers_onl
     assert resp.status_code == 200
     assert "CREATE_USER" in resp.json()
     assert forbidden.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_a_system_entry_without_a_user_does_not_break_the_listing(session):
+    from app.shared.audit import SystemAuditLog
+
+    client, token = await _mgr(session)
+    session.add(
+        SystemAuditLog(
+            user_id=None,
+            action="PROMOTE_PRICE_VERSION",
+            target_entity="LICH_SU_GIA_MON",
+            target_id="7",
+            before={"TrangThai": "Chờ áp dụng"},
+            after={"TrangThai": "Đang áp dụng"},
+        )
+    )
+    await session.commit()
+    async with client:
+        response = await client.get(
+            "/api/v1/settings/audit-log", headers={"Authorization": f"Bearer {token}"}
+        )
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    system_entry = next(
+        e for e in response.json()["items"] if e["LoaiThaoTac"] == "PROMOTE_PRICE_VERSION"
+    )
+    assert system_entry["MaNguoiDung"] is None
+    assert system_entry["DuLieuSau"] == {"TrangThai": "Đang áp dụng"}

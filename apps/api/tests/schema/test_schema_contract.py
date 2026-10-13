@@ -75,3 +75,16 @@ def test_the_index_strategy_of_section_3_2_3_is_present() -> None:
     for table, columns in EXPECTED_INDEXES:
         indexes = Base.metadata.tables[table].indexes
         assert any(tuple(c.name for c in index.columns) == columns for index in indexes), table
+
+
+def test_a_chat_session_always_records_the_role_it_was_opened_under() -> None:
+    column = Base.metadata.tables["PHIEN_CHAT_AI"].columns["MaVaiTro"]
+    assert column.nullable is False
+    assert [fk.target_fullname for fk in column.foreign_keys] == ["VAI_TRO.MaVaiTro"]
+
+
+def test_the_settings_object_has_no_ai_quota_field() -> None:
+    """The per-user daily quota lives in CAU_HINH_HE_THONG (SoCauHoiAIMoiNgay), not in the env."""
+    from app.core.config import Settings
+
+    assert "ai_daily_question_quota" not in Settings.model_fields

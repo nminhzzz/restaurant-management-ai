@@ -6,7 +6,7 @@ WEB := apps/web
 ENV_FILE := .env
 ENV_TEMPLATE := .env.example
 
-.PHONY: help setup env db-up db-down api web migrate revision seed bench-reports check-resources gate-integration \
+.PHONY: help setup env db-up db-down api web migrate revision seed bench-reports check-resources gate-integration gate-full \
          fmt fmt-check lint typecheck test test-api test-web build gate clean
 
 help: ## Liệt kê các lệnh có sẵn
@@ -45,8 +45,8 @@ revision: ## Sinh migration mới: make revision m="add order tables"
 seed: ## Sinh dữ liệu mô phỏng 12 tháng
 	cd $(API) && uv run python ../../scripts/seed/generate.py
 
-bench-reports: ## Đo thời gian endpoint báo cáo (NFR-01/NFR-03): make bench-reports m=2026-09
-	cd $(API) && uv run python ../../scripts/bench_reports.py --month $(or $(m),$(shell date +%Y-%m))
+bench-reports: ## Đo p95 qua HTTP (NFR-03 báo cáo, 5 VU; thêm w=1 cho NFR-01 ghi dữ liệu, 20 VU): make bench-reports m=2026-09 (cần API đang chạy, BENCH_USERNAME/BENCH_PASSWORD)
+	cd $(API) && uv run python ../../scripts/bench_reports.py --month $(or $(m),$(shell date +%Y-%m)) $(if $(w),--write)
 
 fmt: ## Tự sửa định dạng
 	cd $(API) && uv run ruff format .

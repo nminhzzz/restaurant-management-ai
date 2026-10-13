@@ -84,11 +84,22 @@ async def test_a_manager_cannot_lock_their_own_account(session):
 @pytest.mark.asyncio
 async def test_the_unlock_endpoint_is_manager_only(session):
     manager, cashier = await _staff(session)
+    other_cashier = User(
+        username="thungan02",
+        password_hash=hash_password("pass123"),
+        full_name="Nguyễn An",
+        role_id=Role.CASHIER.value,
+        status=ACTIVE,
+    )
+    session.add(other_cashier)
     await svc.lock_user(session, manager.id, cashier.id)
     await session.commit()
 
     async with _client(session) as client:
         forbidden = await client.patch(
+            f"/api/v1/settings/users/{cashier.id}/unlock", headers=_bearer(other_cashier)
+        )
+        locked_caller = await client.patch(
             f"/api/v1/settings/users/{cashier.id}/unlock", headers=_bearer(cashier)
         )
         allowed = await client.patch(
@@ -97,6 +108,7 @@ async def test_the_unlock_endpoint_is_manager_only(session):
     app.dependency_overrides.clear()
 
     assert forbidden.status_code == 403
+    assert locked_caller.status_code == 401  # a locked account cannot call anything (NFR-19)
     assert allowed.status_code == 200
     assert allowed.json()["TrangThai"] == ACTIVE
 

@@ -99,15 +99,47 @@ async def get_supplier_row(session, sid):
 
 
 @pytest.mark.asyncio
-async def test_an_ingredient_without_its_own_threshold_uses_the_default(
+async def test_an_ingredient_without_its_own_threshold_follows_the_live_default(
+    session, config_with_default_threshold
+):
+    """FR-CAT-12/FR-SET-05: no threshold means "use the default", checked at read time."""
+    h = await _headers_for(session, "MANAGER")
+    async with await _make_client(session) as c:
+        created = await create_ingredient(c, h, name="Bột mì", MucTonToiThieu=None)
+        config_with_default_threshold.default_stock_threshold = 9
+        await session.commit()
+        listed = await c.get("/api/v1/catalog/ingredients", headers=h)
+    app.dependency_overrides.clear()
+    assert created.status_code == 201
+    assert created.json()["MucTonToiThieu"] is None
+    assert float(created.json()["MucTonToiThieuApDung"]) == 7
+    row = next(
+        x for x in listed.json()["items"] if x["MaNguyenLieu"] == created.json()["MaNguyenLieu"]
+    )
+    assert row["MucTonToiThieu"] is None
+    assert float(row["MucTonToiThieuApDung"]) == 9
+
+
+@pytest.mark.asyncio
+async def test_an_explicit_zero_threshold_is_kept_and_null_resets_it(
     session, config_with_default_threshold
 ):
     h = await _headers_for(session, "MANAGER")
     async with await _make_client(session) as c:
-        created = await create_ingredient(c, h, name="Bột mì", MucTonToiThieu=None)
+        created = await create_ingredient(c, h, name="Muối", MucTonToiThieu=0)
+        iid = created.json()["MaNguyenLieu"]
+        reset = await c.patch(
+            f"/api/v1/catalog/ingredients/{iid}", json={"MucTonToiThieu": None}, headers=h
+        )
+        untouched = await c.patch(
+            f"/api/v1/catalog/ingredients/{iid}", json={"TenNguyenLieu": "Muối biển"}, headers=h
+        )
     app.dependency_overrides.clear()
-    assert created.status_code == 201
-    assert float(created.json()["MucTonToiThieu"]) == 7
+    assert float(created.json()["MucTonToiThieu"]) == 0
+    assert float(created.json()["MucTonToiThieuApDung"]) == 0
+    assert reset.json()["MucTonToiThieu"] is None
+    assert float(reset.json()["MucTonToiThieuApDung"]) == 7
+    assert untouched.json()["MucTonToiThieu"] is None  # not sent, not changed
 
 
 @pytest.mark.asyncio

@@ -34,3 +34,15 @@ VN_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
 def now() -> datetime:
     """Single clock seam — timezone-aware Asia/Ho_Chi_Minh."""
     return datetime.now(UTC).astimezone(VN_TZ)
+
+
+def naive_local(moment: datetime) -> datetime:
+    """Wall-clock Asia/Ho_Chi_Minh time without tzinfo, the form every DATETIME column stores."""
+    if moment.tzinfo is None:
+        return moment
+    return moment.astimezone(VN_TZ).replace(tzinfo=None)
+
+
+def local_now() -> datetime:
+    """`now()` as a naive Asia/Ho_Chi_Minh datetime, so no timestamp depends on the DB server tz."""
+    return naive_local(now())

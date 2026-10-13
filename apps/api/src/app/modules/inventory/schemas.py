@@ -44,8 +44,20 @@ class IssueLineIn(BaseModel):
 
 
 class IssueCreate(BaseModel):
-    reason: str = Field(default="Hao hụt")
+    reason: str = Field(default="Hao hụt", min_length=1, max_length=50)
     lines: list[IssueLineIn] = Field(min_length=1, max_length=100)
+
+
+class DishIssueLineIn(BaseModel):
+    order_line_id: int
+    servings: int = Field(gt=0, le=100_000)
+
+
+class DishIssueCreate(BaseModel):
+    # LyDo is a 50-character column (appendix D, a22).
+    reason: str = Field(min_length=1, max_length=50)
+    note: str | None = Field(default=None, max_length=500)
+    lines: list[DishIssueLineIn] = Field(min_length=1, max_length=100)
 
 
 class StocktakeCreate(BaseModel):
@@ -80,7 +92,8 @@ class LotExpiryRowOut(BaseModel):
     TenNguyenLieu: str
     SoLuongConLai: float
     HanSuDung: date | None
-    TrangThaiHanSuDung: Literal["Còn hạn", "Sắp hết hạn", "Hết hạn"]
+    SoNgayConLai: int | None = None
+    TrangThaiHanSuDung: Literal["Còn hạn", "Sắp hết hạn", "Hết hạn", "Đã dùng hết"]
 
 
 class LotExpiryPageOut(BaseModel):

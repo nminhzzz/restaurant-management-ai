@@ -10,6 +10,7 @@ from app.core.dependencies import Principal, require_roles
 from app.modules.inventory import service as svc
 from app.modules.inventory.schemas import (
     CountIn,
+    DishIssueCreate,
     IssueCreate,
     LotExpiryPageOut,
     ReceiptCreate,
@@ -112,6 +113,37 @@ async def create_issue(
     )
     await session.commit()
     return {"MaPhieuXuat": iss.id}
+
+
+@router.post("/issues/dishes", status_code=201)
+async def create_dish_issue(
+    payload: DishIssueCreate,
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    session: AsyncSession = Depends(get_session),
+):
+    issue, lines = await svc.create_dish_issue(
+        session,
+        user.user_id,
+        payload.reason,
+        payload.note,
+        [ln.model_dump() for ln in payload.lines],
+    )
+    await session.commit()
+    return {"MaPhieuXuat": issue.id, "NguonXuat": issue.source, "DongMon": lines}
+
+
+@router.get("/issues/dish-lines")
+async def list_writable_dish_lines(
+    business_date: date | None = None,
+    page: int = 1,
+    page_size: int = 50,
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    session: AsyncSession = Depends(get_session),
+):
+    page = max(1, page)
+    page_size = min(max(1, page_size), 100)
+    items, total = await svc.list_writable_dish_lines(session, business_date, page, page_size)
+    return {"items": items, "total": total, "page": page, "page_size": page_size}
 
 
 @router.post("/stocktakes", status_code=201)
@@ -249,7 +281,10 @@ async def list_issues(
         date_to=date_to,
     )
     return {
-        "items": [{"MaPhieuXuat": r.id, "LyDo": r.reason, "TrangThai": r.status} for r in items],
+        "items": [
+            {"MaPhieuXuat": r.id, "LyDo": r.reason, "TrangThai": r.status, "NguonXuat": r.source}
+            for r in items
+        ],
         "total": total,
         "page": page,
         "page_size": page_size,

@@ -269,7 +269,9 @@ async def ledger_total(session: AsyncSession, ingredient_id: int) -> float:
 
     try:
         r = await session.execute(
-            text("SELECT COALESCE(SUM(SoLuong),0) FROM GIAO_DICH_KHO WHERE MaNguyenLieu=:id"),
+            text(
+                "SELECT COALESCE(SUM(SoLuongThayDoi),0) FROM GIAO_DICH_KHO WHERE MaNguyenLieu=:id"
+            ),
             {"id": ingredient_id},
         )
         return float(r.scalar_one() or 0)
@@ -552,7 +554,7 @@ async def ledger_mismatch_count(session: AsyncSession) -> int:
                 " SELECT nl.MaNguyenLieu FROM NGUYEN_LIEU nl"
                 " LEFT JOIN GIAO_DICH_KHO g ON g.MaNguyenLieu = nl.MaNguyenLieu"
                 " GROUP BY nl.MaNguyenLieu, nl.SoLuongTon"
-                " HAVING ABS(nl.SoLuongTon - COALESCE(SUM(g.SoLuong), 0)) > 0.0001"
+                " HAVING ABS(nl.SoLuongTon - COALESCE(SUM(g.SoLuongThayDoi), 0)) > 0.0001"
                 ") rows_checked"
             )
         )

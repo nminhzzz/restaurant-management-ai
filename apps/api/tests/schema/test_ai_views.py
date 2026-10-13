@@ -11,6 +11,9 @@ import sqlglot
 from sqlalchemy import text
 from sqlglot import exp
 
+from app.modules.ai.pipeline.prompt import COLUMN_NOTES, VIEW_LOAIBANGHI_VALUES
+from app.modules.ai.scope import VIEW_COLUMNS
+
 # Expected column sets from db/views/README.md contract (FR-AI-02/03/04).
 EXPECTED_COLUMNS = {
     "vw_ai_quanly": {
@@ -47,6 +50,15 @@ EXPECTED_COLUMNS = {
         "TenNhaCungCap",
         "DonGiaNhap",
         "SoLuongNhap",
+        # FR-SET-03: the Manager inherits the Warehouse scope (held/available stock, lots).
+        "SoLuongGiu",
+        "SoLuongKhaDung",
+        "CanhBaoTonThap",
+        "MaLo",
+        "SoLuongConLai",
+        "TrangThaiLo",
+        "NgayNhapLo",
+        "HanSuDungLo",
     },
     "vw_ai_thungan": {
         "LoaiBanGhi",
@@ -126,6 +138,64 @@ def test_view_column_contract_is_documented() -> None:
         assert view in readme
     assert "`SoLuongGiu`" in readme
     assert "`SoLuongKhaDung`" in readme
+
+
+def _view_branches(name: str) -> list[exp.Select]:
+    path = Path(__file__).resolve().parents[4] / "db/views" / f"{name}.sql"
+    branch = sqlglot.parse_one(path.read_text(encoding="utf-8"), read="mysql").expression
+    branches: list[exp.Select] = []
+    while isinstance(branch, exp.Union):
+        assert isinstance(branch.expression, exp.Select)
+        branches.append(branch.expression)
+        branch = branch.this
+    assert isinstance(branch, exp.Select)
+    branches.append(branch)
+    return branches[::-1]
+
+
+@pytest.mark.parametrize("view", sorted(EXPECTED_COLUMNS))
+def test_scope_columns_match_the_view_ddl(view: str) -> None:
+    """The guard's column allow-list (scope.VIEW_COLUMNS) must be the real view columns."""
+    branches = _view_branches(view)
+    names = [expression.alias_or_name for expression in branches[0].expressions]
+
+    assert len(set(names)) == len(names)
+    assert set(names) == EXPECTED_COLUMNS[view]
+    assert set(VIEW_COLUMNS[view]) == EXPECTED_COLUMNS[view]
+    assert {len(branch.expressions) for branch in branches} == {len(names)}
+
+
+def test_manager_view_inherits_the_warehouse_scope() -> None:
+    """FR-SET-03: every Warehouse column and branch is also readable by the Manager."""
+    assert EXPECTED_COLUMNS["vw_ai_kho"] <= EXPECTED_COLUMNS["vw_ai_quanly"]
+    branch_names = {
+        branch.expressions[0].find(exp.Literal).this for branch in _view_branches("vw_ai_quanly")
+    }
+    assert {"TON_KHO", "GIAO_DICH_KHO", "LO_NGUYEN_LIEU"} <= branch_names
+
+
+def test_every_view_branch_is_documented_in_its_header() -> None:
+    root = Path(__file__).resolve().parents[4] / "db/views"
+    for view in EXPECTED_COLUMNS:
+        header = (root / f"{view}.sql").read_text(encoding="utf-8").split("CREATE", 1)[0]
+        for branch in _view_branches(view):
+            label = branch.expressions[0].find(exp.Literal).this
+            assert f"'{label}'" in header, f"{view}: branch {label} missing from header"
+
+
+@pytest.mark.parametrize("view", sorted(EXPECTED_COLUMNS))
+def test_prompt_lists_exactly_the_branches_of_each_view(view: str) -> None:
+    branches = tuple(
+        branch.expressions[0].find(exp.Literal).this for branch in _view_branches(view)
+    )
+
+    assert VIEW_LOAIBANGHI_VALUES[view] == branches
+
+
+def test_prompt_column_notes_only_describe_real_columns() -> None:
+    every_column = set().union(*EXPECTED_COLUMNS.values())
+
+    assert set(COLUMN_NOTES) <= every_column
 
 
 def test_cashier_view_never_carries_cost_or_purchase_price_columns() -> None:
@@ -317,3 +387,26 @@ async def test_grants_per_role_on_mysql(mysql_engine_factory) -> None:
                 await conn.execute(text("SELECT COUNT(*) FROM vw_ai_kho"))
     finally:
         await eng.dispose()
+
+
+@pytest.mark.parametrize("view", ["vw_ai_kho", "vw_ai_quanly"])
+def test_effective_min_stock_uses_coalesce_so_zero_is_a_real_threshold(view: str) -> None:
+    """NULL means "use the system default"; 0 is a threshold someone chose (FR-INV-07)."""
+    view_sql = (Path(__file__).resolve().parents[4] / f"db/views/{view}.sql").read_text(
+        encoding="utf-8"
+    )
+    normalized = " ".join(view_sql.lower().split())
+
+    assert "n.muctontoithieu > 0" not in normalized
+    assert normalized.count("coalesce(n.muctontoithieu, (select cfg.nguongtonmacdinh") == 2
+
+
+@pytest.mark.parametrize("view", ["vw_ai_quanly", "vw_ai_thungan", "vw_ai_kho"])
+def test_every_char_cast_in_a_view_pins_its_collation(view: str) -> None:
+    """A bare CAST(.. AS CHAR) takes the session collation and breaks the UNION at query time."""
+    import re
+
+    sql = (Path(__file__).resolve().parents[4] / f"db/views/{view}.sql").read_text(encoding="utf-8")
+    casts = re.findall(r"AS CHAR\(\d+\)\)(?! COLLATE utf8mb4_unicode_ci)", sql)
+
+    assert casts == [], f"{view}: {len(casts)} CAST(.. AS CHAR) without COLLATE utf8mb4_unicode_ci"

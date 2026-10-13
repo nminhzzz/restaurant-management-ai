@@ -1,6 +1,6 @@
 """FR-INV-07 low-stock flag, FR-INV-12 stock listing with search/filter."""
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 
 import pytest
@@ -10,10 +10,10 @@ from app.core.database import get_session
 from app.core.security import create_access_token, hash_password
 from app.main import app
 from app.modules.catalog.models import Ingredient
-from app.modules.inventory import service as inventory_service
 from app.modules.inventory.models import IngredientLot
 from app.modules.settings.models import SystemConfig, User
 from app.modules.settings.service import seed_reference_data
+from app.shared import business_date
 
 
 async def _make_client(session):
@@ -45,11 +45,19 @@ async def _headers(session, role="WAREHOUSE", username="kho03"):
     return {"Authorization": f"Bearer {tok}"}, u
 
 
+async def _stocked(session, name: str, quantity: int, **kwargs) -> Ingredient:
+    """An ingredient whose book stock is backed by one sellable lot (FR-INV-10)."""
+    ingredient = Ingredient(name=name, unit="kg", stock_qty=quantity, is_deleted=False, **kwargs)
+    session.add(ingredient)
+    await session.flush()
+    session.add(IngredientLot(ingredient_id=ingredient.id, quantity_remaining=Decimal(quantity)))
+    await session.flush()
+    return ingredient
+
+
 @pytest.mark.anyio
 async def test_low_stock_uses_ingredient_threshold_when_set(session):
-    ing = Ingredient(name="Muối", unit="kg", min_stock=10, stock_qty=3, is_deleted=False)
-    session.add(ing)
-    await session.flush()
+    ing = await _stocked(session, "Muối", 3, min_stock=10)
     await session.commit()
     client = await _make_client(session)
     h, _ = await _headers(session)
@@ -61,11 +69,9 @@ async def test_low_stock_uses_ingredient_threshold_when_set(session):
 
 
 @pytest.mark.anyio
-async def test_low_stock_falls_back_to_system_default_when_ingredient_threshold_is_zero(session):
-    # System default is seeded at 5 (see seed_reference_data).
-    ing = Ingredient(name="Đường", unit="kg", min_stock=0, stock_qty=3, is_deleted=False)
-    session.add(ing)
-    await session.flush()
+async def test_low_stock_falls_back_to_the_live_system_default_when_no_threshold_is_set(session):
+    # System default is seeded at 5 (see conftest); NULL means "use the default".
+    ing = await _stocked(session, "Đường", 3)
     await session.commit()
     client = await _make_client(session)
     h, _ = await _headers(session)
@@ -74,12 +80,57 @@ async def test_low_stock_falls_back_to_system_default_when_ingredient_threshold_
     assert row["MucTonToiThieuApDung"] == 5
     assert row["CanhBaoTonThap"] is True
 
+    cfg = await session.get(SystemConfig, 1)
+    cfg.default_stock_threshold = 2
+    await session.commit()
+    r = await client.get("/api/v1/inventory/stock", headers=h)
+    row = next(x for x in r.json()["items"] if x["MaNguyenLieu"] == ing.id)
+    assert row["MucTonToiThieuApDung"] == 2
+    assert row["CanhBaoTonThap"] is False
+
+
+@pytest.mark.anyio
+async def test_an_explicit_zero_threshold_is_not_the_default(session):
+    ing = await _stocked(session, "Tiêu", 1, min_stock=0)
+    await session.commit()
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    r = await client.get("/api/v1/inventory/stock", headers=h)
+    row = next(x for x in r.json()["items"] if x["MaNguyenLieu"] == ing.id)
+    assert row["MucTonToiThieuApDung"] == 0
+    assert row["CanhBaoTonThap"] is False
+
+
+@pytest.mark.anyio
+async def test_the_alert_compares_available_stock_not_book_stock(session):
+    """FR-INV-07: expired lots count in the book stock but not in the availability."""
+    ing = Ingredient(name="Sữa", unit="l", stock_qty=10, min_stock=5, is_deleted=False)
+    session.add(ing)
+    await session.flush()
+    session.add_all(
+        [
+            IngredientLot(ingredient_id=ing.id, quantity_remaining=Decimal(2)),
+            IngredientLot(
+                ingredient_id=ing.id,
+                quantity_remaining=Decimal(8),
+                expiry_date=date(2020, 1, 1),
+            ),
+        ]
+    )
+    await session.commit()
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    r = await client.get("/api/v1/inventory/stock", headers=h)
+    row = next(x for x in r.json()["items"] if x["MaNguyenLieu"] == ing.id)
+    assert row["SoLuongTon"] == 10
+    assert row["SoLuongKhaDung"] == 2
+    assert row["SoLuongGiu"] == 0
+    assert row["CanhBaoTonThap"] is True
+
 
 @pytest.mark.anyio
 async def test_stock_above_threshold_not_flagged(session):
-    ing = Ingredient(name="Gạo tẻ", unit="kg", min_stock=2, stock_qty=50, is_deleted=False)
-    session.add(ing)
-    await session.flush()
+    ing = await _stocked(session, "Gạo tẻ", 50, min_stock=2)
     await session.commit()
     client = await _make_client(session)
     h, _ = await _headers(session)
@@ -109,13 +160,8 @@ async def test_stock_search_by_name(session):
 
 @pytest.mark.anyio
 async def test_stock_filter_alerting_true_returns_only_low_rows(session):
-    session.add_all(
-        [
-            Ingredient(name="A1", unit="kg", min_stock=10, stock_qty=1, is_deleted=False),
-            Ingredient(name="A2", unit="kg", min_stock=1, stock_qty=100, is_deleted=False),
-        ]
-    )
-    await session.flush()
+    await _stocked(session, "A1", 1, min_stock=10)
+    await _stocked(session, "A2", 100, min_stock=1)
     await session.commit()
     client = await _make_client(session)
     h, _ = await _headers(session)
@@ -167,13 +213,7 @@ async def test_lot_expiry_uses_today_and_persisted_warning_boundary(session, mon
     session.add(ing)
     await session.flush()
     today = date(2031, 4, 5)
-
-    class FrozenDate(date):
-        @classmethod
-        def today(cls):
-            return today
-
-    monkeypatch.setattr(inventory_service, "date", FrozenDate)
+    monkeypatch.setattr(business_date, "now", lambda: datetime(2031, 4, 5, 12))
     dates = [
         today - timedelta(days=1),
         today,

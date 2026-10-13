@@ -22,6 +22,7 @@ from app.modules.reports.schemas import (
     HourlyOut,
     MarginOut,
     RevenueOut,
+    UnsettledListOut,
 )
 from app.shared.roles import Role
 
@@ -105,8 +106,16 @@ async def comparison(
 
 @router.get("/cancelled-orders", response_model=CancelledReportOut)
 async def cancelled_orders(
-    month: str = Query(...),
+    period: BusinessPeriod = Depends(report_period),
     user: Principal = Depends(require_roles(Role.MANAGER)),
     session: AsyncSession = Depends(get_session),
 ) -> CancelledReportOut:
-    return await service.cancelled(session, month)
+    return await service.cancelled(session, period)
+
+
+@router.get("/unsettled", response_model=UnsettledListOut)
+async def unsettled_orders(
+    user: Principal = Depends(require_roles(Role.MANAGER)),
+    session: AsyncSession = Depends(get_session),
+) -> UnsettledListOut:
+    return await service.unsettled(session)

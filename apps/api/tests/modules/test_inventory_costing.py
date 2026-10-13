@@ -1,6 +1,6 @@
 """Monthly weighted average costing close."""
 
-from datetime import datetime
+from datetime import date, datetime
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -178,3 +178,167 @@ async def test_closing_a_month_prices_legacy_issue_without_issue_date(session):
     ).scalar_one()
     await session.refresh(line)
     assert line.estimated_cost == 3000
+
+
+# --- FR-REP-05a: the average is weighted by the opening stock and carried forward -------------
+
+
+async def _receive(client, headers, ing, quantity, price, when):
+    response = await client.post(
+        "/api/v1/inventory/receipts",
+        json={
+            "receipt_date": when.isoformat(),
+            "lines": [{"ingredient_id": ing.id, "quantity": quantity, "unit_price": price}],
+        },
+        headers=headers,
+    )
+    assert response.status_code == 201, response.text
+    return response.json()["MaPhieuNhap"]
+
+
+async def _close(client, headers, month):
+    response = await client.post(f"/api/v1/inventory/costing/{month}/close", headers=headers)
+    assert response.status_code == 200, response.text
+    return {row["MaNguyenLieu"]: row for row in response.json()}
+
+
+async def _move_consumption_to(session, ing, day):
+    """The ledger of the tests is stamped with the frozen clock; place it in another month."""
+    from sqlalchemy import update
+
+    from app.modules.inventory.models import StockMovement
+
+    await session.execute(
+        update(StockMovement)
+        .where(StockMovement.ingredient_id == ing.id, StockMovement.kind != "Nhập")
+        .values(business_date=day)
+    )
+    await session.flush()
+
+
+AUG = datetime(2026, 8, 10, 9, 0)
+SEP = datetime(2026, 9, 5, 9, 0)
+
+
+@pytest.mark.anyio
+async def test_the_average_weights_the_opening_stock_with_the_previous_average(session):
+    ing = await _ingredient(session, "NL tồn đầu kỳ")
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    await _receive(client, h, ing, 10, 1000, AUG)
+    await _close(client, h, 202608)
+    await _receive(client, h, ing, 10, 2000, SEP)
+
+    september = (await _close(client, h, 202609))[ing.id]
+
+    # (10 x 1.000 opening + 10 x 2.000 received) / 20, not the 2.000 of the month's receipts alone.
+    assert september["GiaBinhQuan"] == 1500
+    assert september["TongSoLuongNhap"] == 10
+
+
+@pytest.mark.anyio
+async def test_the_opening_quantity_is_what_was_left_at_the_end_of_the_previous_month(session):
+    ing = await _ingredient(session, "NL còn lại cuối tháng")
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    await _receive(client, h, ing, 10, 1000, AUG)
+    await _close(client, h, 202608)
+    issued = await client.post(
+        "/api/v1/inventory/issues",
+        json={"reason": "Hao hụt", "lines": [{"ingredient_id": ing.id, "quantity": 6}]},
+        headers=h,
+    )
+    assert issued.status_code == 201, issued.text
+    await _move_consumption_to(session, ing, date(2026, 8, 20))
+    await _receive(client, h, ing, 4, 2000, SEP)
+
+    september = (await _close(client, h, 202609))[ing.id]
+
+    # 4 left in August: (4 x 1.000 + 4 x 2.000) / 8; the 6 consumed no longer weigh.
+    assert september["GiaBinhQuan"] == 1500
+
+
+@pytest.mark.anyio
+async def test_a_month_without_receipts_carries_the_nearest_earlier_average(session):
+    ing = await _ingredient(session, "NL không nhập tháng 9")
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    await _receive(client, h, ing, 10, 1000, AUG)
+    await _close(client, h, 202608)
+
+    september = (await _close(client, h, 202609))[ing.id]
+
+    assert september["GiaBinhQuan"] == 1000
+    assert september["TongSoLuongNhap"] == 0
+    # The carry skips months nobody closed: October still finds August's figure.
+    october = (await _close(client, h, 202610))[ing.id]
+    assert october["GiaBinhQuan"] == 1000
+
+
+@pytest.mark.anyio
+async def test_nothing_is_carried_for_an_ingredient_that_never_had_an_average(session):
+    ing = await _ingredient(session, "NL chưa từng nhập")
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+
+    assert ing.id not in await _close(client, h, 202609)
+
+
+@pytest.mark.anyio
+async def test_an_exhausted_opening_stock_leaves_the_new_receipts_to_set_the_price(session):
+    ing = await _ingredient(session, "NL hết tồn đầu kỳ")
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    await _receive(client, h, ing, 10, 1000, AUG)
+    await _close(client, h, 202608)
+    issued = await client.post(
+        "/api/v1/inventory/issues",
+        json={"reason": "Hao hụt", "lines": [{"ingredient_id": ing.id, "quantity": 10}]},
+        headers=h,
+    )
+    assert issued.status_code == 201, issued.text
+    await _move_consumption_to(session, ing, date(2026, 8, 31))
+    await _receive(client, h, ing, 10, 2000, SEP)
+
+    assert (await _close(client, h, 202609))[ing.id]["GiaBinhQuan"] == 2000
+
+
+@pytest.mark.anyio
+async def test_opening_stock_without_a_previous_average_cannot_be_priced_and_is_ignored(session):
+    ing = await _ingredient(session, "NL tồn đầu chưa có giá")
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    await _receive(client, h, ing, 10, 1000, AUG)  # August was never closed
+    await _receive(client, h, ing, 10, 2000, SEP)
+
+    assert (await _close(client, h, 202609))[ing.id]["GiaBinhQuan"] == 2000
+
+
+@pytest.mark.anyio
+async def test_a_cancelled_receipt_neither_prices_nor_weighs_the_opening_stock(session):
+    ing = await _ingredient(session, "NL phiếu hủy đầu kỳ")
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    await _receive(client, h, ing, 10, 1000, AUG)
+    cancelled = await _receive(client, h, ing, 10, 5000, AUG)
+    dropped = await client.delete(f"/api/v1/inventory/receipts/{cancelled}", headers=h)
+    assert dropped.status_code == 200, dropped.text
+    await _close(client, h, 202608)
+    await _receive(client, h, ing, 10, 2000, SEP)
+
+    assert (await _close(client, h, 202609))[ing.id]["GiaBinhQuan"] == 1500
+
+
+@pytest.mark.anyio
+async def test_closing_a_month_again_gives_the_same_figures(session):
+    ing = await _ingredient(session, "NL chốt lại")
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    await _receive(client, h, ing, 10, 1000, AUG)
+    await _close(client, h, 202608)
+    await _receive(client, h, ing, 10, 2000, SEP)
+
+    first = (await _close(client, h, 202609))[ing.id]
+    second = (await _close(client, h, 202609))[ing.id]
+
+    assert first["GiaBinhQuan"] == second["GiaBinhQuan"] == 1500

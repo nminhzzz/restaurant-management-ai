@@ -1,4 +1,8 @@
-"""Shared business enums - StrEnum with Vietnamese DB values."""
+"""Shared business enums - StrEnum with Vietnamese DB values.
+
+Only enums the code actually uses live here; each one lists the values of the
+report's attribute table (appendix D).
+"""
 
 from enum import StrEnum
 
@@ -9,39 +13,22 @@ class UserStatus(StrEnum):
 
 
 class DishStatus(StrEnum):
-    # MON_AN.TrangThai is generated from the recipe and stock flags.
+    # MON_AN.TrangThai is derived from the recipe flag, stock and the manual pause (FR-CAT-27).
     NHAP = "Nháp"
     HOAT_DONG = "Hoạt động"
     HET_NGUYEN_LIEU = "Hết nguyên liệu"
+    TAM_DUNG = "Tạm dừng phục vụ"
 
 
 class OrderStatus(StrEnum):
-    CHO_XAC_NHAN = "Chờ xác nhận"
-    DANG_CHE_BIEN = "Đang chế biến"
-    DA_PHUC_VU = "Đã phục vụ"
+    DANG_MO = "Đang mở"
+    CHO_XAC_NHAN_THANH_TOAN = "Chờ xác nhận thanh toán"
     DA_THANH_TOAN = "Đã thanh toán"
+    CHO_XAC_MINH_THANH_TOAN = "Chờ xác minh thanh toán"
+    # The en dash is part of the state's name in the report (appendix D, ORDER.TrangThai).
+    DONG_CHUA_THU_DUOC_TIEN = "Đóng – chưa thu được tiền"  # noqa: RUF001
     DA_HUY = "Đã hủy"
-
-
-class OrderLineStatus(StrEnum):
-    CHO = "Chờ"
-    DA_XAC_NHAN = "Đã xác nhận"
-    DANG_LAM = "Đang làm"
-    DA_PHUC_VU = "Đã phục vụ"
-    DA_HUY = "Đã hủy"
-
-
-class PaymentStatus(StrEnum):
-    CHO_THANH_TOAN = "Chờ thanh toán"
-    DA_THANH_TOAN = "Đã thanh toán"
-    THAT_BAI = "Thất bại"
-    HOAN_TIEN = "Hoàn tiền"
-
-
-class PrintStatus(StrEnum):
-    CHO_IN = "Chờ in"
-    DA_IN = "Đã in"
-    LOI = "Lỗi"
+    TU_DONG_DONG = "Tự động đóng"
 
 
 class VersionStatus(StrEnum):
@@ -51,15 +38,9 @@ class VersionStatus(StrEnum):
     DA_HUY = "Đã hủy"
 
 
-class ChangeType(StrEnum):
-    TAO_MOI = "Tạo mới"
-    CAP_NHAT = "Cập nhật"
-    XOA = "Xóa"
-
-
 class ReceiptStatus(StrEnum):
+    # A receipt stays "Nháp" (still correctable, FR-INV-02) until it is cancelled.
     NHAP = "Nháp"
-    DA_NHAP = "Đã nhập"
     DA_HUY = "Đã hủy"
 
 
@@ -70,8 +51,14 @@ class LotStatus(StrEnum):
     DA_DUNG_HET = "Đã dùng hết"
 
 
+class StockIssueSource(StrEnum):
+    # PHIEU_XUAT_KHO.NguonXuat (FR-INV-05): only the first one books a manual movement.
+    NGUYEN_LIEU = "Nguyên liệu"
+    MON_DA_CHE_BIEN = "Món đã chế biến"
+    KIEM_KE = "Kiểm kê"
+
+
 class StocktakeStatus(StrEnum):
-    NHAP = "Nháp"
     DANG_KIEM_KE = "Đang kiểm kê"
     DA_CHOT = "Đã chốt"
     DA_HUY = "Đã hủy"
@@ -85,23 +72,39 @@ class StockMovementType(StrEnum):
     DIEU_CHINH_KIEM_KE = "Điều chỉnh kiểm kê"
 
 
-class WriteOffReason(StrEnum):
-    HET_HAN = "Hết hạn"
-    HU_HONG = "Hư hỏng"
-    KHAC = "Khác"
-
-
 class TableStatus(StrEnum):
     TRONG = "Trống"
     DANG_PHUC_VU = "Đang phục vụ"
-    DA_DAT = "Đã đặt"
 
 
-class AssistantTurnStatus(StrEnum):
+class OrderLineStatus(StrEnum):
+    CHO_LAM = "Chờ làm"
+    DA_XAC_NHAN_XONG = "Đã xác nhận xong"
+    DA_PHUC_VU = "Đã phục vụ"
+    DA_HUY = "Đã hủy"
+
+
+class PaymentMethod(StrEnum):
+    TIEN_MAT = "Tiền mặt"
+    QR = "QR"
+
+
+class PaymentStatus(StrEnum):
+    CHO_XAC_NHAN = "Chờ xác nhận"
     THANH_CONG = "Thành công"
-    THAT_BAI = "Thất bại"
-    TU_CHOI = "Từ chối"
+    HET_HAN = "Hết hạn"
+    CHO_XAC_MINH = "Chờ xác minh thanh toán"
+    # The en dash is part of the state's name in the report (appendix D, GIAO_DICH_THANH_TOAN).
+    DONG_CHUA_THU_DUOC_TIEN = "Đóng – chưa thu được tiền"  # noqa: RUF001
+    DA_HUY = "Đã hủy"
 
 
-# Alias for inventory movement kind (same values as StockMovementType, used by GIAO_DICH_KHO check)
-StockMovementKind = StockMovementType
+class PaymentExceptionStatus(StrEnum):
+    CHO_XU_LY = "Chờ xử lý"
+    DA_HOAN_TIEN = "Đã hoàn tiền"
+    DA_AP_DUNG = "Đã áp dụng cho order"
+
+
+class OrderType(StrEnum):
+    TAI_CHO = "Tại chỗ"
+    MANG_VE = "Mang về"

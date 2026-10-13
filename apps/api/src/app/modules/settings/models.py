@@ -2,7 +2,18 @@
 
 from datetime import date, datetime, time
 
-from sqlalchemy import DECIMAL, Date, DateTime, ForeignKey, Index, Integer, String, Time, func
+from sqlalchemy import (
+    DECIMAL,
+    CheckConstraint,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Time,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.shared.base import Base, BigInteger
@@ -11,8 +22,8 @@ from app.shared.base import Base, BigInteger
 class RoleTable(Base):
     __tablename__ = "VAI_TRO"
 
-    id: Mapped[int] = mapped_column("MaVaiTro", String(20), primary_key=True)
-    name: Mapped[str] = mapped_column("TenVaiTro", String(50), nullable=False)
+    id: Mapped[str] = mapped_column("MaVaiTro", String(20), primary_key=True)
+    name: Mapped[str] = mapped_column("TenVaiTro", String(50), nullable=False, unique=True)
     description: Mapped[str | None] = mapped_column("MoTa", String(255), nullable=True)
 
 
@@ -69,4 +80,11 @@ class SystemConfig(Base):
     )
     reservation_hold_minutes: Mapped[int] = mapped_column(
         "ThoiGianGiuChoPhut", Integer, nullable=False, default=5
+    )
+
+    __table_args__ = (
+        CheckConstraint("NguongTonMacDinh >= 0", name="default_stock_threshold_non_negative"),
+        CheckConstraint("SoNgayCanhBaoHetHan > 0", name="expiry_warning_days_positive"),
+        CheckConstraint("SoCauHoiAIMoiNgay > 0", name="ai_daily_question_quota_positive"),
+        CheckConstraint("ThoiGianGiuChoPhut > 0", name="reservation_hold_minutes_positive"),
     )

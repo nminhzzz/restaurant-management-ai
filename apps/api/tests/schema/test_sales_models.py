@@ -136,3 +136,96 @@ def test_item_hold_migration_check_names_match_the_model() -> None:
         }
         migration.downgrade()
     engine.dispose()
+
+
+# --- the sales models equal what the migrations create (e5b2c8d4f3a1, a9c4e7d2b6f1) ----------
+
+
+def _load_migration(name: str):
+    path = Path(__file__).parents[2] / "migrations/versions" / name
+    spec = importlib.util.spec_from_file_location(name.removesuffix(".py"), path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _sales_tables() -> set[str]:
+    return {
+        "ORDER",
+        "CHI_TIET_ORDER",
+        "LICH_SU_DOI_BAN",
+        "HOA_DON",
+        "GIAO_DICH_THANH_TOAN",
+        "PHIEU_BEP",
+    }
+
+
+def test_unique_constraints_of_the_migration_exist_on_the_models_with_the_same_name() -> None:
+    migration = _load_migration("e5b2c8d4f3a1_align_schema_with_report_review_gaps.py")
+    for table_name, name, columns in migration.UNIQUES:
+        if table_name not in _sales_tables():
+            continue
+        table = Base.metadata.tables[table_name]
+        found = {
+            str(constraint.name): [column.name for column in constraint.columns]
+            for constraint in table.constraints
+            if isinstance(constraint, UniqueConstraint)
+        }
+        assert found.get(name) == columns, (table_name, name)
+
+
+def test_check_constraints_of_the_migration_exist_on_the_models_with_the_same_text() -> None:
+    migration = _load_migration("e5b2c8d4f3a1_align_schema_with_report_review_gaps.py")
+    for table_name, name, condition in migration.CHECKS:
+        if table_name not in _sales_tables():
+            continue
+        table = Base.metadata.tables[table_name]
+        found = {
+            str(constraint.name): str(constraint.sqltext)
+            for constraint in table.constraints
+            if isinstance(constraint, CheckConstraint)
+        }
+        assert found.get(f"ck_{table_name}_{name}") == condition, (table_name, name)
+
+
+def test_the_foreign_keys_of_the_migration_exist_on_the_sales_models() -> None:
+    migration = _load_migration("e5b2c8d4f3a1_align_schema_with_report_review_gaps.py")
+    for name, table_name, column, target in migration.FOREIGN_KEYS:
+        if table_name not in _sales_tables():
+            continue
+        table = Base.metadata.tables[table_name]
+        keys = {
+            fk.parent.name: (fk.target_fullname, fk.ondelete, fk.onupdate)
+            for fk in table.foreign_keys
+        }
+        assert keys[column] == (target, "RESTRICT", "RESTRICT"), (table_name, column)
+        assert name == f"fk_{table_name}_{column}"
+
+
+def test_payment_state_column_is_wide_enough_for_the_longest_state() -> None:
+    column = Base.metadata.tables["GIAO_DICH_THANH_TOAN"].columns["TrangThai"]
+    assert column.type.length == 30  # type: ignore[attr-defined]
+    assert len("Đóng \u2013 chưa thu được tiền") <= 30
+
+
+def test_every_timestamp_the_application_writes_has_an_application_side_default() -> None:
+    for table_name in _sales_tables():
+        for column in Base.metadata.tables[table_name].columns:
+            if column.server_default is not None and str(column.type) == "DATETIME":
+                assert column.default is not None, (table_name, column.name)
+
+
+def test_the_invoice_snapshot_column_is_created_by_the_sales_migration() -> None:
+    migration = _load_migration("a9c4e7d2b6f1_sales_invoice_snapshot_and_line_state.py")
+    assert migration.down_revision == "e5b2c8d4f3a1"
+    assert "NoiDungHoaDon" in Base.metadata.tables["HOA_DON"].columns
+
+
+def test_there_is_a_single_alembic_head() -> None:
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+
+    config = Config(str(Path(__file__).parents[2] / "alembic.ini"))
+    config.set_main_option("script_location", str(Path(__file__).parents[2] / "migrations"))
+    assert ScriptDirectory.from_config(config).get_heads() == ["c3f8a1d7e5b2"]

@@ -114,23 +114,54 @@ def client() -> Iterator[TestClient]:
 @pytest.fixture
 def token_for() -> Callable[..., str]:
     def _make(role: Role, user_id: int = 1) -> str:
-        return create_access_token(str(user_id), {"role": role.value, "username": "tester"})
+        # Tokens carry no role: the account's role is read from the database per request.
+        return create_access_token(str(user_id))
 
     return _make
 
 
+_SEEDED_ACCOUNTS = (
+    (1, "quanly", Role.MANAGER),
+    (2, "thungan", Role.CASHIER),
+    (3, "kho", Role.WAREHOUSE),
+)
+
+
+@pytest_asyncio.fixture
+async def seeded_accounts(session: AsyncSession) -> None:
+    """One active account per role with the ids the shared token fixtures sign."""
+    from app.core.security import hash_password
+    from app.modules.settings.models import User
+    from app.modules.settings.service import seed_reference_data
+
+    await seed_reference_data(session)
+    for user_id, username, role in _SEEDED_ACCOUNTS:
+        if await session.get(User, user_id) is None:
+            session.add(
+                User(
+                    id=user_id,
+                    username=username,
+                    password_hash=hash_password("pass123"),
+                    full_name=username,
+                    role_id=role.value,
+                    status="Hoạt động",
+                )
+            )
+    await session.commit()
+
+
 @pytest.fixture
-def manager_token(token_for: Callable[..., str]) -> str:
+def manager_token(token_for: Callable[..., str], seeded_accounts: None) -> str:
     return token_for(Role.MANAGER, user_id=1)
 
 
 @pytest.fixture
-def cashier_token(token_for: Callable[..., str]) -> str:
+def cashier_token(token_for: Callable[..., str], seeded_accounts: None) -> str:
     return token_for(Role.CASHIER, user_id=2)
 
 
 @pytest.fixture
-def warehouse_token(token_for: Callable[..., str]) -> str:
+def warehouse_token(token_for: Callable[..., str], seeded_accounts: None) -> str:
     return token_for(Role.WAREHOUSE, user_id=3)
 
 
@@ -226,6 +257,8 @@ class _FakeConnection:
         self._factory.executed.append(str(statement))
         if self._factory.error is not None:
             raise self._factory.error
+        if self._factory.errors and "MAX_EXECUTION_TIME" not in str(statement):
+            raise self._factory.errors.pop(0)
         return _FakeResult(self._factory)
 
     async def __aenter__(self):
@@ -257,6 +290,8 @@ class FakeEngineFactory:
         self.columns: list[str] = ["MaNguyenLieu", "TenNguyenLieu"]
         self.disposed = 0
         self.error: Exception | None = None
+        # Errors raised once each, in order, by the main query (not the timeout SET).
+        self.errors: list[Exception] = []
 
     def __call__(self, url: str) -> _FakeEngine:
         self.urls.append(url)
@@ -311,6 +346,14 @@ _QUANLY_COLUMNS = [
     "TenNhaCungCap",
     "DonGiaNhap",
     "SoLuongNhap",
+    "SoLuongGiu",
+    "SoLuongKhaDung",
+    "CanhBaoTonThap",
+    "MaLo",
+    "SoLuongConLai",
+    "TrangThaiLo",
+    "NgayNhapLo",
+    "HanSuDungLo",
 ]
 _THUNGAN_COLUMNS = [
     "LoaiBanGhi",
@@ -417,6 +460,22 @@ async def seed_views(engine: AsyncEngine) -> None:
             "DonViTinh": "n.DonViTinh",
             "SoLuongTon": "n.SoLuongTon",
             "MucTonToiThieu": "n.MucTonToiThieu",
+            "SoLuongGiu": "0",
+            "SoLuongKhaDung": "n.SoLuongTon",
+            "CanhBaoTonThap": "CASE WHEN n.SoLuongTon < n.MucTonToiThieu THEN 1 ELSE 0 END",
+        },
+    )
+    quanly_lo = _branch(
+        _QUANLY_COLUMNS,
+        {
+            "LoaiBanGhi": "'LO_NGUYEN_LIEU'",
+            "MaNguyenLieu": "l.MaNguyenLieu",
+            "TenNguyenLieu": "n.TenNguyenLieu",
+            "DonViTinh": "n.DonViTinh",
+            "MaLo": "l.MaLoNguyenLieu",
+            "SoLuongConLai": "l.SoLuongConLai",
+            "TrangThaiLo": "l.TrangThai",
+            "NgayNhapLo": "l.NgayNhap",
         },
     )
     quanly_gia_von = _branch(
@@ -565,7 +624,9 @@ async def seed_views(engine: AsyncEngine) -> None:
                 f"UNION ALL SELECT {quanly_phieu_nhap} FROM CHI_TIET_PHIEU_NHAP ct "
                 "JOIN PHIEU_NHAP_KHO pn ON pn.MaPhieuNhap = ct.MaPhieuNhap "
                 "JOIN NGUYEN_LIEU n ON n.MaNguyenLieu = ct.MaNguyenLieu "
-                "LEFT JOIN NHA_CUNG_CAP ncc ON ncc.MaNCC = pn.MaNCC"
+                "LEFT JOIN NHA_CUNG_CAP ncc ON ncc.MaNCC = pn.MaNCC "
+                f"UNION ALL SELECT {quanly_lo} FROM LO_NGUYEN_LIEU l "
+                "JOIN NGUYEN_LIEU n ON n.MaNguyenLieu = l.MaNguyenLieu"
             )
         )
         await conn.execute(

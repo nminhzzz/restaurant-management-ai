@@ -54,3 +54,17 @@ def month_period(month: str) -> BusinessPeriod:
     except (ValueError, AttributeError) as exc:
         raise BusinessRuleError("Tháng phải có dạng YYYY-MM hoặc YYYYMM.") from exc
     return resolve_period("month", anchor)
+
+
+def parse_period(text: str) -> BusinessPeriod:
+    """A month (`2026-09` / `202609`) or an inclusive range of Business Dates
+    (`2026-09-01..2026-09-07`), for the comparison of any two periods (FR-REP-08)."""
+    if ".." not in str(text):
+        return month_period(text)
+    try:
+        first, last = (date.fromisoformat(part.strip()) for part in str(text).split("..", 1))
+    except ValueError as exc:
+        raise BusinessRuleError("Khoảng thời gian phải có dạng YYYY-MM-DD..YYYY-MM-DD.") from exc
+    if last < first:
+        raise BusinessRuleError("Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.")
+    return BusinessPeriod(first, last, "range")

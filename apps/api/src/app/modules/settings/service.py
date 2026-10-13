@@ -2,18 +2,28 @@
 
 from datetime import UTC, date, datetime, time, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import BusinessRuleError, NotFoundError, UnauthenticatedError
 from app.core.security import create_access_token, hash_password, verify_password
 from app.modules.settings.models import RoleTable, SystemConfig, User
-from app.modules.settings.schemas import ConfigOut, ConfigUpdate
+from app.modules.settings.schemas import (
+    MAX_AI_DAILY_QUESTIONS,
+    MAX_EXPIRY_WARNING_DAYS,
+    MAX_HOLD_MINUTES,
+    MAX_STOCK_THRESHOLD,
+    ConfigOut,
+    ConfigUpdate,
+    UserUpdate,
+)
 from app.shared.audit import SystemAuditLog
 from app.shared.base import Base
 from app.shared.business_date import next_business_date, now
 from app.shared.enums import UserStatus
 from app.shared.roles import Role
+
+_DUMMY_HASH = hash_password("timing-equalizer-not-a-password")
 
 ROLE_SEEDS = (
     (
@@ -59,11 +69,9 @@ async def seed_reference_data(session: AsyncSession) -> None:
 async def authenticate(session: AsyncSession, username: str, password: str) -> User:
     result = await session.execute(select(User).where(User.username == username))
     user = result.scalar_one_or_none()
-    if (
-        user is None
-        or user.status != UserStatus.HOAT_DONG
-        or not verify_password(password, user.password_hash)
-    ):
+    # Always spend one password check so response time does not reveal which usernames exist.
+    password_ok = verify_password(password, user.password_hash if user else _DUMMY_HASH)
+    if user is None or user.status != UserStatus.HOAT_DONG or not password_ok:
         raise UnauthenticatedError(
             "T\u00ean \u0111\u0103ng nh\u1eadp ho\u1eb7c m\u1eadt kh\u1ea9u kh\u00f4ng \u0111\u00fang."
         )
@@ -71,7 +79,7 @@ async def authenticate(session: AsyncSession, username: str, password: str) -> U
 
 
 async def issue_token(user: User) -> dict:
-    token = create_access_token(str(user.id), {"role": user.role_id, "username": user.username})
+    token = create_access_token(str(user.id))
     return {
         "access_token": token,
         "token_type": "bearer",
@@ -124,12 +132,38 @@ async def create_user(
     return user
 
 
+async def _other_active_managers(session: AsyncSession, excluding: int) -> int:
+    return (
+        await session.execute(
+            select(func.count())
+            .select_from(User)
+            .where(
+                User.role_id == Role.MANAGER.value,
+                User.status == UserStatus.HOAT_DONG.value,
+                User.id != excluding,
+            )
+            # Two managers demoting each other at once must not leave the system without one.
+            .with_for_update()
+        )
+    ).scalar_one()
+
+
+def _is_active_manager(user: User) -> bool:
+    return user.role_id == Role.MANAGER.value and user.status == UserStatus.HOAT_DONG.value
+
+
 async def _set_user_status(
     session: AsyncSession, actor_id: int, user_id: int, status: str, action: str
 ) -> User:
     user = await session.get(User, user_id)
     if user is None:
         raise NotFoundError("Kh\u00f4ng t\u00ecm th\u1ea5y t\u00e0i kho\u1ea3n.")
+    if (
+        status == UserStatus.DA_KHOA.value
+        and _is_active_manager(user)
+        and await _other_active_managers(session, user_id) == 0
+    ):
+        raise BusinessRuleError("Không thể khóa Quản lý cuối cùng của hệ thống.")
     before = {"TrangThai": user.status}
     user.status = status
     await session.flush()
@@ -160,6 +194,41 @@ async def unlock_user(session: AsyncSession, actor_id: int, user_id: int) -> Use
     return await _set_user_status(
         session, actor_id, user_id, "Ho\u1ea1t \u0111\u1ed9ng", "UNLOCK_USER"
     )
+
+
+async def update_user(
+    session: AsyncSession, actor_id: int | None, user_id: int, data: UserUpdate
+) -> User:
+    """FR-SET-01: edit the profile or role of an account, audited with before and after."""
+    user = await session.get(User, user_id)
+    if user is None:
+        raise NotFoundError("Không tìm thấy tài khoản.")
+    changes = data.model_dump(exclude_unset=True)
+    before = {"HoTen": user.full_name, "SoDienThoai": user.phone, "MaVaiTro": user.role_id}
+    new_role = changes.get("role")
+    if new_role is not None and new_role.value != user.role_id:
+        if actor_id == user_id:
+            raise BusinessRuleError("Không thể tự đổi vai trò của chính mình.")
+        if _is_active_manager(user) and await _other_active_managers(session, user_id) == 0:
+            raise BusinessRuleError("Không thể hạ quyền Quản lý cuối cùng của hệ thống.")
+        user.role_id = new_role.value
+    if changes.get("full_name") is not None:
+        user.full_name = changes["full_name"]
+    if "phone" in changes:
+        user.phone = changes["phone"]
+    await session.flush()
+    session.add(
+        SystemAuditLog(
+            user_id=actor_id,
+            action="UPDATE_USER",
+            target_entity="NGUOI_DUNG",
+            target_id=str(user_id),
+            before=before,
+            after={"HoTen": user.full_name, "SoDienThoai": user.phone, "MaVaiTro": user.role_id},
+        )
+    )
+    await session.flush()
+    return user
 
 
 async def reset_password(
@@ -235,11 +304,10 @@ async def update_config(
     if "MauHoaDon" in d:
         cfg.invoice_template = d["MauHoaDon"]
     if "NguongTonMacDinh" in d and d["NguongTonMacDinh"] is not None:
-        if d["NguongTonMacDinh"] < 0:
-            raise BusinessRuleError(
-                "Ng\u01b0\u1ee1ng t\u1ed3n kh\u00f4ng \u0111\u01b0\u1ee3c \u00e2m."
-            )
-        cfg.default_stock_threshold = d["NguongTonMacDinh"]
+        threshold = d["NguongTonMacDinh"]
+        if isinstance(threshold, bool) or not 0 <= threshold <= MAX_STOCK_THRESHOLD:
+            raise BusinessRuleError("Ngưỡng tồn phải từ 0 trở lên.")
+        cfg.default_stock_threshold = threshold
     if d.get("GioBatDauBusinessDateMoi") is not None:
         requested_start = d["GioBatDauBusinessDateMoi"]
         current = now()
@@ -252,15 +320,15 @@ async def update_config(
             effective_date += timedelta(days=1)
         cfg.pending_business_day_start = requested_start
         cfg.pending_business_day_effective_date = effective_date
-    for field, attribute in (
-        ("SoNgayCanhBaoHetHan", "expiry_warning_days"),
-        ("SoCauHoiAIMoiNgay", "ai_daily_question_quota"),
-        ("ThoiGianGiuChoPhut", "reservation_hold_minutes"),
+    for field, attribute, upper in (
+        ("SoNgayCanhBaoHetHan", "expiry_warning_days", MAX_EXPIRY_WARNING_DAYS),
+        ("SoCauHoiAIMoiNgay", "ai_daily_question_quota", MAX_AI_DAILY_QUESTIONS),
+        ("ThoiGianGiuChoPhut", "reservation_hold_minutes", MAX_HOLD_MINUTES),
     ):
         value = d.get(field)
         if value is not None:
-            if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
-                raise BusinessRuleError(f"{field} phải là số nguyên dương.")
+            if isinstance(value, bool) or not isinstance(value, int) or not 0 < value <= upper:
+                raise BusinessRuleError(f"{field} phải là số nguyên từ 1 đến {upper}.")
             setattr(cfg, attribute, value)
     await session.flush()
     after = ConfigOut.model_validate(cfg).model_dump(mode="json")
