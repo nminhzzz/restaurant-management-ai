@@ -93,7 +93,7 @@ INSERT ORDER (BusinessDate, LoaiDon='Tại chỗ', TrangThai, MaBan=NULL)
 INSERT NHAT_KY_HE_THONG (DuLieuTruoc=JSON_OBJECT('a',1)) → {"a": 1} (JSON OK)
 ```
 
-## 4. Views (stub có TODO phase-6, đã khóa phạm vi)
+## 4. Views (bản stub tại thời điểm Phase 0, đã khóa phạm vi)
 
 ```
 vw_ai_quanly  — Manager:  SELECT MaOrder,BusinessDate,LoaiDon,TrangThai,MaBan FROM ORDER
@@ -136,4 +136,4 @@ pnpm build: 11 routes static (/, /login, /catalog, /sales, /inventory, /reports,
 - B1 (make db-up && make migrate) đã xong trên máy này; bằng chứng trên copy từ terminal thật ngày 2026-09-24.
 - B2 (migration tường minh) đã xong: 890db4fbb8b6 thay 001.
 - B3 (IF→CASE) đã xong, verify trên MySQL.
-- View stub vẫn còn TODO phase-6 — sẽ thay bằng column set thật trước Phase 6.
+- Các view stub ở mục 4 là ảnh chụp bằng chứng của Phase 0. Chúng đã được thay ở Phase 6 bằng column set thật nhiều nhánh `LoaiBanGhi` (xem `db/views/*.sql` và `db/views/README.md`); không còn TODO phase-6.

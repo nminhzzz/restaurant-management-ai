@@ -1,5 +1,7 @@
 # Document Consistency Implementation Plan
 
+> **Trạng thái (2026-10-13):** đã triển khai. Đánh dấu theo bằng chứng trong mã và test hiện có (`make test-api`/`make test-web` xanh ngày 2026-10-13); bước 'Expected: FAIL' (red) không lưu bằng chứng riêng nên được đánh dấu theo kết quả cuối của task. Bước chưa có bằng chứng (chạy MySQL thật, `make gate` đầy đủ) để trống.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox syntax for tracking.
 
 **Goal:** Đồng bộ hướng dẫn repo với báo cáo mới và sửa link hình hỏng trên filesystem phân biệt chữ hoa/thường.
@@ -27,10 +29,10 @@
 - Reference: docs/BaoCao_HeThongQuanLyNhaHang.md, FR-SET-04 và bảng 17
 - Reference: root AGENTS.md, which currently says the 06:00 start is fixed.
 
-- [ ] Step 1: Thêm test hợp đồng tài liệu kiểm tra AGENTS yêu cầu tính Business Date qua app.shared.business_date, lấy mốc hiệu lực từ cấu hình và report có các cột giờ mới/ngày hiệu lực.
-- [ ] Step 2: Chạy cd apps/api && uv run pytest tests/schema/test_document_contract.py -q; Expected: FAIL vì hướng dẫn hiện nói cố định 06:00.
-- [ ] Step 3: Sửa AGENTS.md: mốc giờ lấy từ cấu hình có hiệu lực, giờ mới áp dụng từ Business Date kế tiếp, mọi phép tính qua helper dùng chung.
-- [ ] Step 4: Chạy lại test hợp đồng; Expected: PASS.
+- [x] Step 1: Thêm test hợp đồng tài liệu kiểm tra AGENTS yêu cầu tính Business Date qua app.shared.business_date, lấy mốc hiệu lực từ cấu hình và report có các cột giờ mới/ngày hiệu lực.
+- [x] Step 2: Chạy cd apps/api && uv run pytest tests/schema/test_document_contract.py -q; Expected: FAIL vì hướng dẫn hiện nói cố định 06:00.
+- [x] Step 3: Sửa AGENTS.md: mốc giờ lấy từ cấu hình có hiệu lực, giờ mới áp dụng từ Business Date kế tiếp, mọi phép tính qua helper dùng chung.
+- [x] Step 4: Chạy lại test hợp đồng; Expected: PASS.
 
 ### Task 2: Sửa 22 đường dẫn ảnh
 
@@ -38,7 +40,7 @@
 - Modify: docs/BaoCao_HeThongQuanLyNhaHang.md
 - Test: apps/api/tests/schema/test_document_contract.py
 
-- [ ] Step 1: Mở rộng contract test ở Task 1 bằng validator đọc các Markdown image link và xác nhận file tồn tại tương đối với docs/.
-- [ ] Step 2: Chạy cd apps/api && uv run pytest tests/schema/test_document_contract.py -q; Expected: FAIL trên prefix images/ hiện tại.
-- [ ] Step 3: Đổi prefix trong 22 tham chiếu từ images/ sang Images/; không đổi tên file ảnh.
-- [ ] Step 4: Chạy `cd apps/api && uv run pytest tests/schema/test_document_contract.py -q` và `git diff --check`; Expected: PASS, mọi link trỏ tới `docs/Images/image_1.png` … `docs/Images/image_22.png`.
+- [x] Step 1: Mở rộng contract test ở Task 1 bằng validator đọc các Markdown image link và xác nhận file tồn tại tương đối với docs/.
+- [x] Step 2: Chạy cd apps/api && uv run pytest tests/schema/test_document_contract.py -q; Expected: FAIL trên prefix images/ hiện tại.
+- [x] Step 3: Đổi prefix trong 22 tham chiếu từ images/ sang Images/; không đổi tên file ảnh.
+- [x] Step 4: Chạy `cd apps/api && uv run pytest tests/schema/test_document_contract.py -q` và `git diff --check`; Expected: PASS, mọi link trỏ tới `docs/Images/image_1.png` … `docs/Images/image_22.png`.

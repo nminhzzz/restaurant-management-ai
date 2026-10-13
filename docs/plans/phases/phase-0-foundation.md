@@ -1,5 +1,7 @@
 # Phase 0 — Lược đồ CSDL, view phân quyền và tài khoản chỉ-đọc
 
+> **Trạng thái (2026-10-13):** Phase 0 đã triển khai (xem `docs/plans/2026-09-24-master-roadmap.md`). Các ô `- [ ]` bên dưới là danh sách bước thực hiện lịch sử và **không còn được cập nhật theo từng bước**; trạng thái thật được xác nhận bằng mã nguồn, test và `docs/testing/test-cases.md`. Số hiệu FR/§ trong tài liệu này theo báo cáo tại thời điểm lập kế hoạch và đã lỗi thời so với báo cáo hiện hành.
+
 > **Cho người thực thi:** dùng skill `executing-plans` (hoặc `subagent-driven-development`) để chạy
 > kế hoạch này theo từng task. Các bước có ô `- [ ]` để đánh dấu tiến độ.
 
@@ -116,19 +118,19 @@ nêu ra để bạn xác nhận, không tự ý sửa báo cáo.
 - Modify: `apps/api/pyproject.toml`
 - Modify: `apps/api/src/app/shared/business_date.py` (thêm `now()` — seam duy nhất cho đồng hồ)
 - Modify: `apps/api/tests/conftest.py`
-- Create: `apps/api/tests/factories.py`
+- ~~Create: `apps/api/tests/factories.py`~~ (lỗi thời, không tạo)
 - Create: `apps/api/tests/helpers.py`
 
 **Interfaces:**
 - Consumes: `Base.metadata` (Task 1–5 mới đăng ký bảng, nên fixture ở đây phải chịu được metadata rỗng).
 - Produces: fixture `engine`, `session`, `session_factory`, `db_session`, `client`, `manager_token`,
   `cashier_token`, `warehouse_token`, `active_user`, `locked_user`, `fake_llm`, `seed_views`,
-  `mysql_engine_factory`, `mysql_session_factory`, `freeze_clock` (autouse); `factories.py` (hàm tạo
-  dữ liệu dùng chung);
+  `mysql_engine_factory`, `mysql_session_factory`, `freeze_clock` (autouse); `factories.py` (kế hoạch ban
+  đầu, **không được tạo**: file placeholder rỗng đã bị xóa ngày 2026-10-13; dữ liệu dựng chung nằm ở `conftest.py`, `helpers.py` và `modules/sales_support.py`);
   `helpers.py` (`today`, `tomorrow`, `reload`, `active_recipe`, `active_price`, `counter_for`,
   `audit_count`, `latest_audit`, `monthly_cost_count`, `ingredient_total`…).
 
-**Vì sao task này đứng trước tất cả:** 272 test trong bảy phase sau đều dùng các fixture và helper ở
+**Vì sao task này đứng trước tất cả:** hơn 800 test API trong bảy phase sau (con số lúc lập kế hoạch là 272) đều dùng các fixture và helper ở
 trên. `tests/conftest.py` hiện chỉ có `client` và `token_for`, nên nếu không dựng tầng này trước thì
 bước "Chạy test cho đỏ" ở mọi task sẽ đỏ vì `fixture 'db_session' not found` chứ không phải vì thiếu
 code — vòng red→green mất giá trị ngay từ task đầu tiên.
@@ -276,7 +278,7 @@ async def test_the_two_mysql_fixtures_agree(mysql_engine_factory, mysql_session_
 Run: `cd apps/api && ./.venv/bin/pytest tests/test_conftest.py -v`
 Expected: FAIL — `fixture 'session' not found` (và `ModuleNotFoundError: tests.helpers`)
 
-- [ ] **Step 4: Viết `conftest.py` và `factories.py`**
+- [ ] **Step 4: Viết `conftest.py` và `helpers.py`** (`factories.py` lỗi thời, không tạo)
 
 `engine` dựng engine SQLite in-memory **async** (`sqlite+aiosqlite:///:memory:`) và tạo schema từ
 `Base.metadata`. Vì SQLite không có `SELECT ... FOR UPDATE` và bỏ qua nhiều `CHECK`, mọi test cần
@@ -869,7 +871,7 @@ Expected: `SELECT command denied` — chứng minh tài khoản của Thu ngân 
 ## Task 8: Kiểm chứng cách ly end-to-end và chốt gate
 
 **Files:**
-- Test: `apps/api/tests/schema/test_ai_isolation.py` (đánh dấu `integration`, cần MySQL)
+- Test: ~~`apps/api/tests/schema/test_ai_isolation.py`~~ (lỗi thời: kiểm chứng GRANT thực tế nằm ở `apps/api/tests/schema/test_ai_views.py::test_grants_per_role_on_mysql`, đánh dấu `integration`, cần MySQL)
 
 **Interfaces:**
 - Consumes: ba view và ba tài khoản ở Task 7, `app.modules.ai.accounts`.
@@ -917,7 +919,7 @@ async def test_every_role_account_can_read_its_own_view(mysql_engine_factory) ->
 
 - [ ] **Step 2: Chạy test cho đỏ**
 
-Run: `cd apps/api && ./.venv/bin/pytest tests/schema/test_ai_isolation.py -v`
+Run: `cd apps/api && ./.venv/bin/pytest tests/schema/test_ai_views.py -k grants -v`
 Expected: FAIL nếu grants chưa áp, hoặc PASS nếu Task 7 đã xong — ghi lại kết quả thực tế.
 
 - [ ] **Step 3: Áp view và grants nếu chưa**
@@ -927,7 +929,7 @@ Expected: không lỗi.
 
 - [ ] **Step 4: Chạy test cho xanh**
 
-Run: `cd apps/api && ./.venv/bin/pytest tests/schema/test_ai_isolation.py -v`
+Run: `cd apps/api && ./.venv/bin/pytest tests/schema/test_ai_views.py -k grants -v`
 Expected: PASS
 
 - [ ] **Step 5: Chạy cổng kiểm tra đầy đủ**
@@ -946,7 +948,7 @@ do chạm `GATE_BUDGET`, chạy lại bằng tay và nói rõ — không coi unf
 | Index §3.2.3 | `pytest tests/schema/test_schema_contract.py` | xanh |
 | Migration hai chiều | `alembic downgrade base && alembic upgrade head` | sạch |
 | Cách ly view | `pytest tests/schema/test_ai_views.py` | xanh |
-| Cách ly ba lớp (view · guard · GRANT) | `pytest tests/schema/test_ai_isolation.py` | xanh |
+| Cách ly ba lớp (view · guard · GRANT) | `pytest tests/schema/test_ai_views.py -k grants` | xanh |
 | Toàn bộ | `make gate` | xanh |
 
 ## Rủi ro

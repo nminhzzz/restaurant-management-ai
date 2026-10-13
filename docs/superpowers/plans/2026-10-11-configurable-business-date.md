@@ -1,5 +1,7 @@
 # Configurable Business Date Implementation Plan
 
+> **Trạng thái (2026-10-13):** đã triển khai. Đánh dấu theo bằng chứng trong mã và test hiện có (`make test-api`/`make test-web` xanh ngày 2026-10-13); bước 'Expected: FAIL' (red) không lưu bằng chứng riêng nên được đánh dấu theo kết quả cuối của task. Bước chưa có bằng chứng (chạy MySQL thật, `make gate` đầy đủ) để trống.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox syntax for tracking.
 
 **Goal:** Khớp FR-SET-04 với cấu hình Business Date có hiệu lực, ngưỡng cảnh báo hạn dùng, thời gian giữ chỗ và quota AI.
@@ -37,10 +39,10 @@
 - Giá trị mặc định: 06:00, giờ chờ/ngày hiệu lực NULL, cảnh báo 3 ngày, quota 50, giữ 5 phút.
 - Ngày hiệu lực ban đầu là Business Date kế tiếp theo giờ hiện hành. Nếu giờ mới tại ngày đó đã qua hoặc bằng thời điểm cấu hình, dời ngày hiệu lực thêm một Business Date để mốc kích hoạt luôn nằm trong tương lai.
 
-- [ ] Step 1: Cập nhật EXPECTED trong test_settings_models.py và EXPECTED_TABLES trong test_schema_contract.py; thêm test seed mặc định.
-- [ ] Step 2: Chạy cd apps/api && uv run pytest tests/schema/test_settings_models.py tests/schema/test_schema_contract.py tests/modules/test_settings_config.py -q; Expected: FAIL vì metadata/API chưa có cột.
-- [ ] Step 3: Thêm model/schema/validation/service và migration mới nối revision hiện hành `b7c9d3e1f420`; migration giữ dữ liệu cũ và đặt mặc định đã nêu. Audit `UPDATE_CONFIG` lưu đủ snapshot before/after của các giá trị cấu hình đã đổi.
-- [ ] Step 4: Chạy lại nhóm test trên; Expected: PASS.
+- [x] Step 1: Cập nhật EXPECTED trong test_settings_models.py và EXPECTED_TABLES trong test_schema_contract.py; thêm test seed mặc định.
+- [x] Step 2: Chạy cd apps/api && uv run pytest tests/schema/test_settings_models.py tests/schema/test_schema_contract.py tests/modules/test_settings_config.py -q; Expected: FAIL vì metadata/API chưa có cột.
+- [x] Step 3: Thêm model/schema/validation/service và migration mới nối revision hiện hành `b7c9d3e1f420`; migration giữ dữ liệu cũ và đặt mặc định đã nêu. Audit `UPDATE_CONFIG` lưu đủ snapshot before/after của các giá trị cấu hình đã đổi.
+- [x] Step 4: Chạy lại nhóm test trên; Expected: PASS.
 
 ### Task 2: Tính Business Date theo chính sách có hiệu lực
 
@@ -64,10 +66,10 @@
 
 **Ruling for transition semantics:** Set `NgayHieuLucGioMoi` to the next Business Date calculated under the currently active schedule. The pending time activates at `datetime.combine(NgayHieuLucGioMoi, GioBatDauBusinessDateMoi)`; before that instant use the active time, at and after it use the pending time. This follows the report's description of `NgayHieuLucGioMoi` as the Business Date that starts using the new time. Tests must cover a change to an earlier and later time, including immediately before and at the transition.
 
-- [ ] Step 1: Add tests for default 06:00, minute precision (08:30), immediately before/at/after effective instant, moving the start earlier and later, replacing a pending change, and keeping one resolved policy within a transaction. Include scheduling at 05:30 with active 06:00 and requested 04:00; the effective date must move to the following Business Date.
-- [ ] Step 2: Run cd apps/api && uv run pytest tests/core/test_business_date.py tests/modules/test_settings_config.py -q; Expected: FAIL on minute precision and missing resolver behavior.
-- [ ] Step 3: Implement resolver in settings.service; update every Business Date caller found by `rg "business_date\.(now|business_date_of)" apps/api/src/app` (including catalog price versioning, order/payment, inventory, reports and AI). Keep one resolved policy for the whole transaction; background work must receive a policy snapshot instead of silently reverting to 06:00.
-- [ ] Step 4: Run cd apps/api && uv run pytest tests/core/test_business_date.py tests/modules/test_settings_config.py tests/modules/test_catalog_dish_prices.py tests/modules/test_sales_orders.py tests/modules/test_inventory_stock_list.py tests/modules/test_reports_revenue.py tests/modules/test_ai_generator.py -q; Expected: PASS.
+- [x] Step 1: Add tests for default 06:00, minute precision (08:30), immediately before/at/after effective instant, moving the start earlier and later, replacing a pending change, and keeping one resolved policy within a transaction. Include scheduling at 05:30 with active 06:00 and requested 04:00; the effective date must move to the following Business Date.
+- [x] Step 2: Run cd apps/api && uv run pytest tests/core/test_business_date.py tests/modules/test_settings_config.py -q; Expected: FAIL on minute precision and missing resolver behavior.
+- [x] Step 3: Implement resolver in settings.service; update every Business Date caller found by `rg "business_date\.(now|business_date_of)" apps/api/src/app` (including catalog price versioning, order/payment, inventory, reports and AI). Keep one resolved policy for the whole transaction; background work must receive a policy snapshot instead of silently reverting to 06:00.
+- [x] Step 4: Run cd apps/api && uv run pytest tests/core/test_business_date.py tests/modules/test_settings_config.py tests/modules/test_catalog_dish_prices.py tests/modules/test_sales_orders.py tests/modules/test_inventory_stock_list.py tests/modules/test_reports_revenue.py tests/modules/test_ai_generator.py -q; Expected: PASS.
 
 ### Task 3: Update configuration UI
 
@@ -80,10 +82,10 @@
 - Save sends GioBatDauBusinessDateMoi, never direct writes to the currently active value.
 - The UI makes the pending effective Business Date visible and explains that an existing hold keeps its recorded expiration when hold TTL changes.
 
-- [ ] Step 1: Add component tests for rendering values, validation of positive integers and submitted payload.
-- [ ] Step 2: Run cd apps/web && pnpm test -- config-panel.test.tsx; Expected: FAIL because current UI has no fields/payload.
-- [ ] Step 3: Add form state, validation and pending-effective-date copy in Vietnamese.
-- [ ] Step 4: Run cd apps/web && pnpm test -- config-panel.test.tsx; Expected: PASS.
+- [x] Step 1: Add component tests for rendering values, validation of positive integers and submitted payload.
+- [x] Step 2: Run cd apps/web && pnpm test -- config-panel.test.tsx; Expected: FAIL because current UI has no fields/payload.
+- [x] Step 3: Add form state, validation and pending-effective-date copy in Vietnamese.
+- [x] Step 4: Run cd apps/web && pnpm test -- config-panel.test.tsx; Expected: PASS.
 
 ### Task 4: Áp dụng ngưỡng cảnh báo hạn sử dụng theo lô
 
@@ -102,8 +104,8 @@
 - Status is computed at read time so it changes when the day or configured warning threshold changes; do not depend on stale stored `IngredientLot.status` for expiry classification.
 - Add a separate inventory tab/table for lot expiry warnings so expiry warnings remain distinct from low-stock badges.
 
-- [ ] Step 1: Add API tests for each exact date boundary (yesterday, today, today + threshold, one day after threshold), missing expiry date, role protection and pagination; add UI tests for separate expiry statuses.
-- [ ] Step 2: Run `cd apps/api && uv run pytest tests/modules/test_inventory_stock_list.py -q` and `cd apps/web && pnpm test -- lot-expiry-table.test.tsx`; Expected: FAIL because no lot-status endpoint/table exists.
-- [ ] Step 3: Implement a query joining lots to ingredients, read the singleton config threshold once, compute status using one captured server date, and return stable pagination/serialization. Keep the existing low-stock status calculation separate.
-- [ ] Step 4: Add the lot-expiry table/tab with distinct labels for `Còn hạn`, `Sắp hết hạn`, and `Hết hạn`; handle loading, error, empty and pagination states.
-- [ ] Step 5: Run the focused API/UI tests and related inventory stock table tests; Expected: PASS.
+- [x] Step 1: Add API tests for each exact date boundary (yesterday, today, today + threshold, one day after threshold), missing expiry date, role protection and pagination; add UI tests for separate expiry statuses.
+- [x] Step 2: Run `cd apps/api && uv run pytest tests/modules/test_inventory_stock_list.py -q` and `cd apps/web && pnpm test -- lot-expiry-table.test.tsx`; Expected: FAIL because no lot-status endpoint/table exists.
+- [x] Step 3: Implement a query joining lots to ingredients, read the singleton config threshold once, compute status using one captured server date, and return stable pagination/serialization. Keep the existing low-stock status calculation separate.
+- [x] Step 4: Add the lot-expiry table/tab with distinct labels for `Còn hạn`, `Sắp hết hạn`, and `Hết hạn`; handle loading, error, empty and pagination states.
+- [x] Step 5: Run the focused API/UI tests and related inventory stock table tests; Expected: PASS.

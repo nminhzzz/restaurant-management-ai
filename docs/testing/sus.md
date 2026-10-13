@@ -28,13 +28,13 @@ ghi nhận có hoàn thành được không và có cần trợ giúp không.
 
 | # | Nhiệm vụ | Màn hình liên quan |
 | --- | --- | --- |
-| 1 | Tạo một order mới cho một bàn Trống, gọi 2 món, thêm ghi chú "không hành" cho một món, Submit | Bán hàng → Gọi món |
+| 1 | Tạo một order mới cho một bàn Trống, gọi 2 món, thêm ghi chú "không hành" cho một món, gửi món (món được giữ nguyên liệu trước khi gửi) | Bán hàng → Gọi món |
 | 2 | Đổi order vừa tạo sang một bàn Trống khác | Bán hàng → Gọi món |
-| 3 | Thanh toán order đó bằng hình thức QR, sau đó hủy mã QR và thanh toán lại bằng tiền mặt | Bán hàng → Thanh toán |
+| 3 | Thanh toán order đó bằng hình thức QR (order chuyển "Chờ xác nhận thanh toán" và bị khóa), sau đó hủy mã QR và thanh toán lại bằng tiền mặt | Bán hàng → Thanh toán |
 | 4 | Lên lịch một thay đổi giá bán cho một món, áp dụng từ Business Date kế tiếp | Danh mục → Món ăn → Lên lịch giá |
 | 5 | Xem báo cáo doanh thu theo tuần và báo cáo biên lợi nhuận gộp theo tháng | Báo cáo |
 | 6 | Ghi nhận một phiếu nhập kho cho một nguyên liệu | Kho → Nhập kho |
-| 7 | Đặt câu hỏi cho AI Assistant: "Món nào bán chạy nhất tuần này?" rồi mở mục "Xem chi tiết" | AI Assistant |
+| 7 | Đặt câu hỏi cho AI Assistant: "Món nào bán chạy nhất tuần này?" rồi mở tab SQL để xem câu truy vấn | AI Assistant |
 
 Sau khi hoàn thành cả 7 nhiệm vụ (hoặc dừng giữa chừng nếu không thể tiếp tục), người tham gia điền
 phiếu SUS bên dưới ngay lập tức, trước khi rời khỏi máy.

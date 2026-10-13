@@ -404,7 +404,7 @@ Xây dựng một hệ thống quản lý nhà hàng dạng web phục vụ mộ
 - MT2: Xây dựng các module nghiệp vụ theo mức ưu tiên: Must-have gồm Quản lý danh mục, Quản lý bán hàng, Quản lý kho và các chức năng cài đặt nền tảng; Should-have gồm Báo cáo thống kê và các chức năng cài đặt còn lại. Sao lưu tự động theo FR-SET-07 thuộc hướng mở rộng.
 - MT3: Bảo đảm tính đúng đắn của các nghiệp vụ trọng yếu: giữ chỗ nguyên liệu có thời hạn, chuyển giữ chỗ thành tiêu hao khi gửi món, trừ/hoàn kho theo lô FIFO, thanh toán và đối soát, tính giá vốn và lợi nhuận gộp; kiểm soát truy cập theo vai trò ở tầng backend.
 - MT4: Tích hợp AI Assistant hỗ trợ quản lý tra cứu, so sánh doanh thu, lượng bán và phân bố order bằng tiếng Việt để xem xét hoạt động kinh doanh; cung cấp hỏi đáp bán hàng và kho theo quyền của từng vai trò. Hệ thống sử dụng LLM qua API kết hợp Text-to-SQL trên các view chỉ đọc và kiểm duyệt truy vấn trước khi thực thi.
-- MT5: Đánh giá AI Assistant trên 80 câu hỏi tiếng Việt có SQL và kết quả chuẩn, đo độ đúng truy vấn, độ đúng câu trả lời, tỷ lệ lỗi, thời gian và chi phí. Mục tiêu thực nghiệm là so sánh độ đúng giữa các cấu hình A, B và C theo từng nhóm độ khó (không đặt ngưỡng độ đúng tuyệt đối) và thời gian phản hồi p95 dưới 10 giây; căn cứ, phương pháp và phạm vi diễn giải kết quả được nêu tại mục 5.2.
+- MT5: Đánh giá AI Assistant trên 95 câu hỏi tiếng Việt có SQL chuẩn (89 câu nghiệp vụ và 6 câu cố tình vượt quyền), kết quả chuẩn lấy bằng cách thực thi SQL chuẩn, đo độ đúng truy vấn, độ đúng câu trả lời, tỷ lệ lỗi, thời gian và chi phí. Mục tiêu thực nghiệm là so sánh độ đúng giữa các cấu hình A, B và C theo từng nhóm độ khó (không đặt ngưỡng độ đúng tuyệt đối) và thời gian phản hồi p95 dưới 10 giây; căn cứ, phương pháp và phạm vi diễn giải kết quả được nêu tại mục 5.2.
 - MT6: Đánh giá chất lượng toàn hệ thống qua kiểm thử chức năng (test case theo từng module, bao gồm kiểm thử phân quyền/bảo mật dữ liệu theo vai trò), khảo sát khả năng sử dụng bằng thang đo SUS (System Usability Scale) và tổ chức nghiệm thu người dùng (UAT) với người có kinh nghiệm vận hành nhà hàng.
 ### Phạm vi đề tài
 
@@ -427,6 +427,7 @@ Hệ thống áp dụng kiến trúc ba tầng, mô hình client-server, backend
 - Tầng dữ liệu: MySQL kèm tập view riêng theo vai trò để kiểm soát phân quyền, tách biệt AI Assistant khỏi nghiệp vụ lõi.
 - SQL do LLM sinh ra được kiểm duyệt bằng sqlglot trước khi thực thi.
 - AI Assistant sử dụng DeepSeek-V4.1-Flash qua API DeepSeek với định danh deepseek-flash. LLM_MODEL lưu mã gọi API; nhật ký thực nghiệm ghi tên phiên bản, thời điểm và tham số gọi. Khi dịch vụ không khả dụng, hệ thống thông báo lỗi và ghi nhận lần gọi thất bại; nghiệp vụ bán hàng và kho tiếp tục hoạt động độc lập.
+- Thanh toán QR dùng VietQR chuyển khoản qua SePay (Test mode) bằng adapter và webhook có khóa API; bộ giả lập chỉ phục vụ kiểm thử (mục 4.1, Tích hợp cổng thanh toán SePay).
 - Kiến trúc và quy trình xử lý câu hỏi AI được trình bày tại mục 4.1; phạm vi dữ liệu theo vai trò được đặc tả tại mục 4.4.1.
 Phân tích và thiết kế hệ thống sử dụng ba nhóm sơ đồ theo hướng đối tượng: Use Case mô tả chức năng và tác nhân, Class Diagram mô tả các lớp đối tượng cùng quan hệ, và Sequence Diagram mô tả tương tác trong các luồng nghiệp vụ chính, bao gồm xử lý câu hỏi của AI Assistant.
 
@@ -725,7 +726,7 @@ NFR-17 - Tương thích trình duyệt/thiết bị: Giao diện web hoạt đ�
 
 NFR-18 - Kiểm soát chỉ dẫn độc hại: Vai trò và phạm vi dữ liệu được lấy từ phiên xác thực tại backend. Câu hỏi và nội dung truy vấn trả về được coi là dữ liệu không đáng tin cậy; bộ kiểm duyệt và quyền CSDL phải chặn mọi câu lệnh ngoài phạm vi. Tiêu chí kiểm thử là không có lần truy cập trái quyền hoặc ghi dữ liệu thành công trong bộ ca an toàn tại mục 5.2.
 
-NFR-19 - Bảo vệ phiên và dữ liệu trao đổi: Kết nối triển khai sử dụng HTTPS; tài khoản khóa hoặc phiên hết hạn bị từ chối ở backend. Khóa API chỉ được lưu tại server. Dữ liệu gửi cho LLM được giới hạn vào lược đồ được cấp và kết quả cần cho câu hỏi; thông tin đăng nhập và dữ liệu cá nhân không cần thiết bị loại bỏ.
+NFR-19 - Bảo vệ phiên và dữ liệu trao đổi: Kết nối triển khai sử dụng HTTPS; tài khoản khóa hoặc phiên hết hạn bị từ chối ở backend. Token chỉ chứa mã người dùng và thời hạn; backend đọc lại tài khoản trong CSDL ở mọi yêu cầu để lấy trạng thái và vai trò hiện tại, nên khóa tài khoản, đổi vai trò hoặc xóa tài khoản có hiệu lực ngay và một vai trò giả trong token không có tác dụng. Khóa API chỉ được lưu tại server. Dữ liệu gửi cho LLM được giới hạn vào lược đồ được cấp và kết quả cần cho câu hỏi; thông tin đăng nhập và dữ liệu cá nhân không cần thiết bị loại bỏ.
 
 NFR-20 - Cô lập kiểm kê: Phiên kiểm kê được lưu trên server; các giao dịch giữ chỗ, gửi món, nhập/xuất/hoàn kho kiểm tra trạng thái phiên trong transaction. Kiểm thử phải chứng minh giao dịch cạnh tranh không thay đổi tồn giữa thời điểm chốt dữ liệu đếm và xác nhận phiếu.
 
@@ -890,9 +891,9 @@ FR-CAT-06 - Trạng thái mặc định của món mới tạo: Món ăn mới t
 
 FR-CAT-07 - Gán công thức chế biến: Mỗi món ăn gắn với một công thức chế biến, gồm danh sách nguyên liệu và định lượng tương ứng theo đúng đơn vị tính.
 
-FR-CAT-08 - Lên lịch áp dụng thay đổi công thức theo Business Date: Quản lý chọn Business Date áp dụng cho thay đổi công thức; mặc định là Business Date kế tiếp, Quản lý có thể chọn sang bất kỳ Business Date nào trong tương lai nhưng không được chọn Business Date đã bắt đầu hoặc đã kết thúc. Phiên bản mới có hiệu lực từ đúng mốc giờ bắt đầu của Business Date được chọn, áp dụng cho các dòng món được gửi từ thời điểm đó trở đi và không ảnh hưởng đến các dòng món đã ghi nhận trước thời điểm hiệu lực; hệ thống lưu lịch sử các phiên bản công thức.
+FR-CAT-08 - Lên lịch áp dụng thay đổi công thức theo Business Date: Quản lý chọn Business Date áp dụng cho thay đổi công thức; mặc định là Business Date kế tiếp, Quản lý có thể chọn sang bất kỳ Business Date nào trong tương lai nhưng không được chọn Business Date đã bắt đầu hoặc đã kết thúc. Phiên bản mới có hiệu lực từ đúng mốc giờ bắt đầu của Business Date được chọn, áp dụng cho các dòng món được gửi từ thời điểm đó trở đi và không ảnh hưởng đến các dòng món đã ghi nhận trước thời điểm hiệu lực; hệ thống lưu lịch sử các phiên bản công thức. Khi Business Date áp dụng đến hạn, phiên bản chờ được chuyển thành “Đang áp dụng” (phiên bản cũ thành “Hết hiệu lực”) ở lần đọc hoặc ghi đầu tiên cần đến nó, trong chính transaction đó; thao tác này chạy đúng một lần và ghi audit log không có người thực hiện. Giá bán FR-CAT-20 áp dụng cùng cơ chế.
 
-FR-CAT-09 - Giới hạn một thay đổi công thức đang chờ áp dụng: Mỗi món ăn chỉ có tối đa một thay đổi công thức “chờ áp dụng” tại một thời điểm; thay đổi mới ghi đè thay đổi cũ, việc ghi đè này được ghi vào audit log (FR-SET-08) tương tự thao tác hủy chủ động.
+FR-CAT-09 - Giới hạn một thay đổi công thức đang chờ áp dụng: Mỗi món ăn chỉ có tối đa một thay đổi công thức “chờ áp dụng” tại một thời điểm; thay đổi mới ghi đè thay đổi cũ: bản cũ chuyển sang “Đã hủy” (không xóa khỏi lịch sử), việc ghi đè này được ghi vào audit log (FR-SET-08) kèm dữ liệu trước/sau tương tự thao tác hủy chủ động.
 
 FR-CAT-10 - Hủy thay đổi công thức đang chờ áp dụng: Quản lý có thể hủy một thay đổi công thức đang “chờ áp dụng” trước khi có hiệu lực. Thao tác hủy được ghi vào audit log (FR-SET-08).
 
@@ -916,7 +917,7 @@ FR-CAT-19 - Điều kiện xóa bàn: Không cho xóa bàn đang Đang phục v�
 
 FR-CAT-20 - Cập nhật giá bán và lên lịch theo Business Date: Cập nhật giá bán và chọn Business Date áp dụng; mặc định là Business Date kế tiếp, Quản lý có thể chọn sang bất kỳ Business Date nào trong tương lai nhưng không được chọn Business Date đã bắt đầu hoặc đã kết thúc. Phiên bản giá mới có hiệu lực từ đúng mốc giờ bắt đầu của Business Date được chọn, áp dụng cho các dòng món được gửi từ thời điểm đó trở đi; giá của các dòng món đã ghi nhận được giữ nguyên.
 
-FR-CAT-21 - Giới hạn một thay đổi giá đang chờ áp dụng: Tối đa một thay đổi giá “chờ áp dụng” cho mỗi món tại một thời điểm; thay đổi mới ghi đè, việc ghi đè này được ghi vào audit log (FR-SET-08) tương tự thao tác hủy chủ động.
+FR-CAT-21 - Giới hạn một thay đổi giá đang chờ áp dụng: Tối đa một thay đổi giá “chờ áp dụng” cho mỗi món tại một thời điểm; thay đổi mới ghi đè: bản cũ chuyển sang “Đã hủy” (không xóa khỏi lịch sử), việc ghi đè này được ghi vào audit log (FR-SET-08) kèm dữ liệu trước/sau tương tự thao tác hủy chủ động.
 
 FR-CAT-22 - Hủy thay đổi giá đang chờ áp dụng: Quản lý có thể hủy thay đổi giá “chờ áp dụng” trước khi có hiệu lực. Thao tác hủy được ghi vào audit log (FR-SET-08).
 
@@ -928,7 +929,7 @@ FR-CAT-25 - Ghi nhận phiên bản khi sửa trực tiếp: Mỗi lần sửa t
 
 FR-CAT-26 - Tạm dừng/mở lại phục vụ món thủ công: Quản lý có thể tạm dừng phục vụ một món thủ công bằng cách bật cờ TamDungThuCong. Cờ này độc lập với HetNguyenLieu được tính từ tồn khả dụng theo công thức (FR-INV-10). Khi chỉ tạm dừng thủ công, màn hình ghi “Tạm dừng phục vụ”; khi thiếu tồn, ghi “Hết nguyên liệu”. Món bị chặn gọi trong cả hai trường hợp.
 
-FR-CAT-27 - Trạng thái phục vụ của món: ChuaCoCongThuc=true xác định món Nháp và ẩn khỏi gọi món. Khi đã có công thức, HetNguyenLieu được tính theo FR-INV-10; TamDungThuCong do Quản lý điều khiển. Món cho chọn thêm khi chưa xóa, không tạm dừng và đủ nguyên liệu khả dụng. Trường hợp thiếu nguyên liệu hiển thị “Hết nguyên liệu”; quản trị hiển thị đồng thời các lý do chặn. Dòng đã giữ được kiểm tra theo phạm vi giữ riêng khi gửi. HetNguyenLieu là thuộc tính dẫn xuất, không lưu trong MON_AN.
+FR-CAT-27 - Trạng thái phục vụ của món: ChuaCoCongThuc=true xác định món Nháp và ẩn khỏi gọi món. Khi đã có công thức, HetNguyenLieu được tính theo FR-INV-10; TamDungThuCong do Quản lý điều khiển. Món cho chọn thêm khi chưa xóa, không tạm dừng và đủ nguyên liệu khả dụng. Trường hợp thiếu nguyên liệu hiển thị “Hết nguyên liệu”; quản trị hiển thị đồng thời các lý do chặn. Dòng đã giữ được kiểm tra theo phạm vi giữ riêng khi gửi. HetNguyenLieu là thuộc tính dẫn xuất: giá trị hiển thị luôn được tính lại từ lượng khả dụng ở thời điểm đọc, không phải giá trị ai đó ghi; cột MON_AN.HetNguyenLieu chỉ là bộ nhớ đệm phục vụ cột TrangThai, được làm mới sau mỗi biến động tồn và không bao giờ được Quản lý bật tay.
 
 FR-CAT-28 - Trạng thái xóa độc lập: Xóa món (FR-CAT-04) là trạng thái riêng biệt (xóa mềm), độc lập với Hoạt động/Hết nguyên liệu/Tạm dừng phục vụ/Nháp.
 
@@ -958,13 +959,13 @@ FR-SALE-11 - Tự động đóng order khi toàn bộ món bị hủy: Nếu to�
 
 FR-SALE-12 - Đổi bàn cho order đang mở: Chuyển order từ bàn hiện tại sang bàn Trống khác, khi order ở trạng thái “Đang mở”, bàn nguồn còn Đang phục vụ và BAN.MaOrderDangPhucVu trỏ tới đúng order này; sau khi giải phóng bàn thì không được đổi bàn cho order cũ; bàn đích chuyển Đang phục vụ, bàn nguồn về Trống. Thao tác đổi bàn được ghi vào audit log (FR-SET-08).
 
-FR-SALE-13 - Chọn phương thức thanh toán: Sau khi đưa phiếu tạm tính cho khách kiểm tra theo FR-SALE-21 và chốt nội dung order, Thu ngân chọn phương thức: tiền mặt hoặc quét mã QR do hệ thống tạo cho order; hóa đơn chỉ phát hành sau khi thanh toán thành công. Với tiền mặt, Thu ngân xác nhận đã nhận đủ tiền; hệ thống tạo giao dịch tiền mặt ở trạng thái “Thành công”, phát hành hóa đơn và chuyển order sang “Đã thanh toán” trong cùng transaction, không có trạng thái chờ. Trước khi chốt thanh toán, nhân viên xử lý toàn bộ lượt chọn gọi thêm gắn order bằng gửi hoặc bỏ lượt; hệ thống kiểm tra điều kiện này tại backend.
+FR-SALE-13 - Chọn phương thức thanh toán: Sau khi đưa phiếu tạm tính cho khách kiểm tra theo FR-SALE-21 và chốt nội dung order, Thu ngân chọn phương thức: tiền mặt hoặc quét mã QR do hệ thống tạo cho order; hóa đơn chỉ phát hành sau khi thanh toán thành công. Với tiền mặt, Thu ngân xác nhận đã nhận đủ tiền; hệ thống tạo giao dịch tiền mặt ở trạng thái “Thành công”, phát hành hóa đơn và chuyển order sang “Đã thanh toán” trong cùng transaction, không có trạng thái chờ. Trước khi chốt thanh toán, nhân viên xử lý toàn bộ lượt chọn gọi thêm gắn order bằng gửi hoặc bỏ lượt; hệ thống kiểm tra điều kiện này tại backend. Khi order đang “Chờ xác nhận thanh toán” (đã có mã QR còn hiệu lực), Thu ngân phải “Hủy mã QR” theo FR-SALE-33 trước khi chọn tiền mặt; hệ thống không nhận tiền mặt song song với một mã QR còn hiệu lực, nên không thể có hai khoản thu cho cùng một order. Phiếu tạm tính hoặc hóa đơn không bao giờ làm đổi trạng thái order.
 
 FR-SALE-14 - Thanh toán QR: Khi Thu ngân chọn thanh toán QR, hệ thống tạo một giao dịch QR cho đúng order với số tiền bằng đúng số tiền phải thanh toán; giao dịch khởi tạo ở trạng thái “Chờ xác nhận” và có thời hạn 10 phút kể từ thời điểm tạo. Trong thời gian giao dịch QR hiện tại còn hiệu lực, hệ thống không tạo thêm một giao dịch QR khác cho cùng order. Khi giao dịch QR được tạo, order chuyển sang “Chờ xác nhận thanh toán”.
 
 FR-SALE-15 - Xác nhận thanh toán QR qua webhook: Backend xác thực webhook, đối chiếu mã giao dịch, order và số tiền. Xác nhận hợp lệ chuyển giao dịch sang “Thành công”, order sang “Đã thanh toán” và phát hành hóa đơn trong cùng transaction; xử lý idempotent để không tạo thêm hóa đơn hoặc cộng doanh thu lần nữa. Webhook không hợp lệ hoặc không xác định được giao dịch được ghi log để kiểm tra, không xác nhận thanh toán; webhook đúng giao dịch nhưng sai số tiền không xác nhận thanh toán và được xử lý như khoản ngoại lệ theo FR-SALE-16.
 
-FR-SALE-16 - Tiền QR đến muộn và khoản ngoại lệ: Webhook đến sau khi giao dịch đã “Hết hạn” hoặc “Đã hủy”, hoặc khi order “Chờ xác minh thanh toán”, được xác nhận tự động nếu đúng giao dịch, đủ tiền và order chưa mở lại thanh toán, chưa đóng hoặc hủy, chưa thanh toán bằng giao dịch khác. Khi đó, nếu order đang có giao dịch QR mới “Chờ xác nhận” chưa có tiền, hệ thống hủy giao dịch mới trong cùng transaction. Nếu order đã mở lại, đã đóng hoặc hủy, hoặc đã thanh toán bằng giao dịch khác, khoản nhận được đưa vào danh sách ngoại lệ theo MaGiaoDichCong duy nhất, không tự đổi order. Khoản đến muộn mà số tiền không còn khớp order (ví dụ order đã được sửa sau khi QR hết hạn) cũng vào danh sách ngoại lệ. Webhook lặp của khoản đã xác nhận thủ công được đối chiếu theo MaGiaoDichNganHang (duy nhất khi khác NULL) để ghi MaGiaoDichCong vào cùng giao dịch, không coi là khoản thu mới. Quản lý xử lý các khoản ngoại lệ theo FR-SALE-17.
+FR-SALE-16 - Tiền QR đến muộn và khoản ngoại lệ: Webhook đến sau khi giao dịch đã “Hết hạn” hoặc “Đã hủy”, hoặc khi order “Chờ xác minh thanh toán”, được xác nhận tự động nếu đúng giao dịch, đủ tiền và order chưa mở lại thanh toán, chưa đóng hoặc hủy, chưa thanh toán bằng giao dịch khác. Khi đó, nếu order đang có giao dịch QR mới “Chờ xác nhận” chưa có tiền, hệ thống hủy giao dịch mới trong cùng transaction. Nếu order đã mở lại, đã đóng hoặc hủy, hoặc đã thanh toán bằng giao dịch khác, khoản nhận được đưa vào danh sách ngoại lệ theo MaGiaoDichCong duy nhất, không tự đổi order. Khoản đến muộn mà số tiền không còn khớp order (ví dụ order đã được sửa sau khi QR hết hạn) cũng vào danh sách ngoại lệ. Webhook lặp của khoản đã xác nhận thủ công được đối chiếu theo MaGiaoDichNganHang (duy nhất khi khác NULL) để ghi MaGiaoDichCong vào cùng giao dịch, không coi là khoản thu mới. Quản lý xử lý các khoản ngoại lệ theo FR-SALE-17. Mỗi khoản ngoại lệ được ghi thành một dòng GIAO_DICH_THANH_TOAN riêng (trạng thái “Đã hủy”, MaGiaoDichCong của khoản nhận, TrangThaiNgoaiLe “Chờ xử lý”) để không làm đổi giao dịch gốc mà khách đã quét; khi Quản lý áp dụng khoản này theo FR-SALE-17 thì chính dòng đó chuyển “Thành công” và gắn với hóa đơn. Điều kiện “order đã mở lại” được xác định theo giao dịch: khoản tiền của một giao dịch đã bị Quản lý mở lại thanh toán (FR-SALE-23) luôn vào danh sách ngoại lệ, còn khoản của giao dịch hết hạn hoặc bị Thu ngân hủy (FR-SALE-33) vẫn được xác nhận tự động khi đủ điều kiện.
 
 FR-SALE-17 - Quản lý xử lý khoản QR ngoại lệ: Quản lý đối chiếu sao kê các khoản trong danh sách ngoại lệ: (a) order mở lại nhưng chưa thu lần hai: áp dụng khoản cũ và hủy lần thử QR mới chưa có tiền; (b) order “Đóng – chưa thu được tiền”: áp dụng khoản nhận, chuyển “Đã thanh toán”, loại khỏi tổng hiện tại của FR-REP-10 và chuyển giá vốn từ FR-REP-05c sang FR-REP-05a, giữ lịch sử đóng; (c) order đã thu lần hai, đã hủy, số tiền không còn khớp hoặc khoản không thể áp dụng: hoàn tiền ngoài hệ thống và lưu số tiền, mã tham chiếu, người thực hiện, thời điểm. Khi áp dụng phải khóa order và các giao dịch liên quan, kiểm tra lại chưa thanh toán, phát hành hóa đơn đúng một lần. Ngoại lệ chưa xử lý vẫn được theo dõi, không cộng vào doanh thu.
 
@@ -992,7 +993,7 @@ FR-SALE-28 - Xử lý nguyên liệu khi hủy toàn bộ order: Nguyên liệu 
 
 FR-SALE-29 - Ngoại lệ khi đang chờ xác nhận thanh toán QR: Không cho hủy toàn order khi đang “Chờ xác nhận thanh toán” (đã tạo mã QR), phải chủ động hủy mã QR (FR-SALE-33) hoặc chờ hết hạn trước; nếu khách đã báo chuyển tiền thì chuyển sang “Chờ xác minh thanh toán” theo FR-SALE-19.
 
-FR-SALE-30 - Xử lý sau khi hủy toàn bộ order: Không phát sinh hóa đơn, bàn về Trống nếu khách đã rời đi; chỉ hoàn kho cho món “Chờ làm”; ghi vào báo cáo “giá trị order bị hủy”.
+FR-SALE-30 - Xử lý sau khi hủy toàn bộ order: Không phát sinh hóa đơn, bàn về Trống nếu khách đã rời đi; chỉ hoàn kho cho món “Chờ làm”; ghi vào báo cáo “giá trị order bị hủy”. Khi Quản lý hủy toàn bộ order, thao tác ghi nhận khách đã rời đi hay chưa: nếu đã rời đi thì bàn về Trống ngay trong cùng transaction, nếu chưa thì bàn giữ nguyên “Đang phục vụ” cho đến khi Thu ngân/Nhân viên order xác nhận giải phóng theo FR-CAT-18; trường hợp order tự đóng do hủy hết món (FR-SALE-11) luôn theo cách sau.
 
 FR-SALE-31 - In phiếu bếp tự động: Khi order được submit hoặc thêm món mới, hệ thống gửi lệnh in phiếu bếp qua máy in nhiệt, gồm bàn/mã đơn, danh sách món, số lượng, ghi chú riêng.
 
@@ -1008,7 +1009,7 @@ FR-SALE-35 - Đóng order chưa thu được tiền: Khi sau xử lý bên ngoà
 
 FR-INV-01 - Ghi nhận phiếu nhập kho: Bếp ghi nhận phiếu nhập kho gắn với nhà cung cấp: nguyên liệu, số lượng, đơn giá, ngày nhập, quy đổi theo đúng đơn vị tính chuẩn hóa.
 
-FR-INV-02 - Điều kiện sửa/hủy phiếu nhập kho: Bếp được sửa hoặc hủy phiếu khi các lô liên quan chưa phát sinh giao dịch xuất và không có giữ chỗ còn hiệu lực. Các trường hợp đã sử dụng được xử lý bằng nghiệp vụ kiểm kê. Thao tác được kiểm tra trong transaction và ghi audit log.
+FR-INV-02 - Điều kiện sửa/hủy phiếu nhập kho: Bếp được sửa hoặc hủy phiếu khi các lô liên quan chưa phát sinh giao dịch xuất và không có giữ chỗ còn hiệu lực. Các trường hợp đã sử dụng được xử lý bằng nghiệp vụ kiểm kê. Thao tác được kiểm tra trong transaction và ghi audit log kèm dữ liệu trước/sau. Hủy phiếu ghi một giao dịch kho loại “Nhập” với số lượng âm trên đúng lô và dòng nhập, nên sổ cái vẫn đối chiếu được.
 
 FR-INV-03 - Ghi nhận tiêu hao khi gửi món: Hệ thống trừ tồn theo công thức lưu trên dòng món khi lượt gửi đầu tiên hoặc lượt gọi thêm thành công. Lượng giữ tương ứng được kết thúc trong cùng transaction. Tiêu hao được ghi theo từng lô còn hạn theo FIFO và từng dòng món; lượt chọn chưa gửi chỉ tác động lượng khả dụng.
 
@@ -1016,7 +1017,7 @@ FR-INV-04 - Hoàn nguyên liệu: Món đã gửi chỉ được hủy hoặc gi
 
 FR-INV-05 - Lập phiếu xuất hủy: Phiếu xuất hủy ghi người thực hiện, thời điểm, lý do và nguồn. Nguồn “Nguyên liệu” trừ các lô được chọn cho lượng hư hỏng, hết hạn hoặc hao hụt phát hiện riêng. Nguồn “Món đã chế biến” tham chiếu dòng order và số suất bị bỏ, ghi nhận lượng tiêu hao từ giao dịch gốc làm chứng từ phân loại chi phí. Nguồn “Kiểm kê” tham chiếu phiếu kiểm kê có chênh lệch âm, dùng làm chứng từ cho giao dịch điều chỉnh. Chỉ nguồn Nguyên liệu tạo giao dịch xuất thủ công; hai nguồn còn lại sử dụng giao dịch đã ghi nhận.
 
-FR-INV-06 - Kiểm soát số lượng xuất hủy: Nguồn Nguyên liệu không vượt tồn sổ sách của các lô được chọn. Nếu phần hỏng đang được giữ cho món, backend giải phóng toàn bộ lượt giữ của các dòng bị ảnh hưởng trong cùng transaction và thông báo nhân viên kiểm tra lại. Nguồn Món đã chế biến không vượt số suất đã tiêu hao chưa được ghi nhận xuất hủy; nguồn Kiểm kê được tạo duy nhất theo kết quả xác nhận phiếu.
+FR-INV-06 - Kiểm soát số lượng xuất hủy: Nguồn Nguyên liệu không vượt tồn sổ sách của các lô được chọn. Nếu phần hỏng đang được giữ cho món, backend giải phóng toàn bộ lượt giữ của các dòng bị ảnh hưởng trong cùng transaction và thông báo nhân viên kiểm tra lại. Nguồn Món đã chế biến không vượt số suất đã tiêu hao chưa được ghi nhận xuất hủy; chỉ dòng món ở trạng thái “Đã xác nhận xong” hoặc “Đã phục vụ” và còn lượng tiêu hao chưa hoàn kho mới được chọn (dòng “Chờ làm” được hoàn kho theo FR-INV-04), mỗi phiếu thành công toàn bộ hoặc bị từ chối toàn bộ, và phiếu bị chặn trong phiên kiểm kê (FR-INV-08). Lượng ghi trên từng dòng nguyên liệu bằng lượng tiêu hao ròng của giao dịch gốc nhân SoSuatHuy chia số suất của dòng món; phiếu này không tạo giao dịch kho và không đổi tồn hay lô. Nguồn Kiểm kê được tạo duy nhất theo kết quả xác nhận phiếu.
 
 FR-INV-07 - Cảnh báo tồn tối thiểu: Hệ thống có một mức tồn tối thiểu mặc định, cấu hình tại phần Cài đặt; mỗi nguyên liệu có thể dùng mức mặc định này hoặc có mức tồn tối thiểu riêng, không nhỏ hơn 0. Cảnh báo được kích hoạt khi tồn khả dụng của một nguyên liệu nhỏ hơn mức tồn tối thiểu đang áp dụng cho nguyên liệu đó.
 
@@ -1046,9 +1047,9 @@ FR-REP-04 - Lợi nhuận gộp theo chi phí nguyên liệu: Tính bằng tiề
 
 FR-REP-05 - Cấu thành giá vốn nguyên liệu tiêu hao: Giá vốn gồm ba khoản 05a, 05b và 05c dưới đây. Mỗi lượng nguyên liệu chỉ được tính một lần. Hao hụt kiểm kê lấy từ giao dịch điều chỉnh kho; phiếu xuất hủy tự sinh là chứng từ đối chiếu và không được cộng thêm vào chi phí.
 
-FR-REP-05a - Giá vốn bán hàng: Nguyên liệu tiêu hao theo công thức của order thanh toán thành công, tính theo phiên bản công thức lưu trên từng dòng món tại thời điểm gửi món. Giá vốn được tổng hợp theo ORDER.BusinessDate để đối chiếu với doanh thu và nhân đơn giá bình quân gia quyền của tháng tương ứng. Đơn giá tính trên tồn đầu kỳ và lượng nhập trong tháng; tháng không có lần nhập dùng đơn giá của kỳ gần nhất trước đó.
+FR-REP-05a - Giá vốn bán hàng: Nguyên liệu tiêu hao theo công thức của order thanh toán thành công, tính theo phiên bản công thức lưu trên từng dòng món tại thời điểm gửi món. Giá vốn được tổng hợp theo ORDER.BusinessDate để đối chiếu với doanh thu và nhân đơn giá bình quân gia quyền của tháng tương ứng. Đơn giá tính trên tồn đầu kỳ và lượng nhập trong tháng: (tồn đầu kỳ × đơn giá bình quân của kỳ gần nhất trước đó + Σ lượng nhập × đơn giá nhập) / (tồn đầu kỳ + Σ lượng nhập), trong đó tồn đầu kỳ là tồn còn lại cuối tháng trước (không âm) và không tham gia khi chưa có đơn giá kỳ trước để định giá nó; phiếu nhập đã hủy và lô điều chỉnh kiểm kê không được tính vào đơn giá nhập. Tháng không có lần nhập dùng đơn giá của kỳ gần nhất trước đó, được mang sang khi chốt tháng.
 
-FR-REP-05b - Hao hụt kho: Tổng hợp nguyên liệu hao hụt, hư hỏng, hết hạn từ nguồn Nguyên liệu và chênh lệch âm kiểm kê theo ngày biến động kho. Phiếu nguồn Món đã chế biến dùng phân tích lý do tiêu hao gắn với order; chi phí của phần này được giữ trong nhóm 05a hoặc 05c theo kết quả order, mỗi giao dịch gốc chỉ được tổng hợp một lần.
+FR-REP-05b - Hao hụt kho: Tổng hợp nguyên liệu hao hụt, hư hỏng, hết hạn từ nguồn Nguyên liệu và chênh lệch âm kiểm kê theo ngày biến động kho. Phiếu nguồn Món đã chế biến dùng phân tích lý do tiêu hao gắn với order; chi phí của phần này được giữ trong nhóm 05a hoặc 05c theo kết quả order, mỗi giao dịch gốc chỉ được tổng hợp một lần: báo cáo giá vốn hiển thị riêng giá trị các món đã chế biến bị xuất hủy (tính theo đơn giá bình quân của tháng chứa Business Date của order) như chỉ tiêu tham khảo, không cộng vào 05b hay tổng giá vốn.
 
 FR-REP-05c - Tiêu hao của order bị hủy hoặc đóng chưa thu được tiền: Nguyên liệu đã tiêu hao và không hoàn kho của order bị hủy toàn phần (FR-SALE-28) hoặc “Đóng – chưa thu được tiền” (FR-SALE-35). Phiên bản công thức, kỳ báo cáo và đơn giá bình quân được xác định như 05a. Lịch sử kho giữ nguyên thời điểm biến động thực tế.
 
@@ -1064,15 +1065,15 @@ FR-REP-10 - Báo cáo order bị hủy và order đóng chưa thu được tiề
 
 #### Module 5 - Cài đặt hệ thống
 
-FR-SET-01 - Quản lý tài khoản: Quản lý tạo/sửa/khóa tài khoản người dùng và gán một trong ba vai trò. Các thao tác này được ghi vào audit log (FR-SET-08).
+FR-SET-01 - Quản lý tài khoản: Quản lý tạo/sửa/khóa tài khoản người dùng và gán một trong ba vai trò. Quản lý không thể tự khóa hay tự đổi vai trò của chính mình, và hệ thống luôn còn ít nhất một Quản lý đang hoạt động (không khóa hoặc hạ quyền Quản lý cuối cùng). Tài khoản bị khóa hoặc đổi vai trò mất quyền ngay ở yêu cầu kế tiếp (NFR-19). Các thao tác này được ghi vào audit log (FR-SET-08).
 
 FR-SET-02 - Đăng nhập/đăng xuất/đổi mật khẩu: Người dùng tự đăng nhập/đăng xuất bằng tài khoản được cấp; tự đổi mật khẩu bất kỳ lúc nào; Quản lý đặt lại mật khẩu khi người dùng quên. Riêng thao tác Quản lý đặt lại mật khẩu hộ được ghi vào audit log (FR-SET-08); đăng nhập/đăng xuất và tự đổi mật khẩu thông thường không thuộc phạm vi audit log này.
 
 FR-SET-03 - Giới hạn theo vai trò: Hệ thống giới hạn phạm vi truy cập chức năng và dữ liệu theo vai trò đã gán. Quản lý kế thừa toàn bộ quyền của Thu ngân/Nhân viên order và Bếp.
 
-FR-SET-04 - Cấu hình thông tin chung: Quản lý cấu hình thông tin chung của nhà hàng: tên, địa chỉ, mẫu hóa đơn, mốc giờ bắt đầu Business Date, mức tồn tối thiểu mặc định, số ngày để lô nguyên liệu chuyển sang “Sắp hết hạn” (SoNgayCanhBaoHetHan, mặc định 3 ngày) và số câu hỏi AI tối đa mỗi người dùng mỗi ngày (SoCauHoiAIMoiNgay, mặc định 50). Số ngày cảnh báo và hạn mức câu hỏi AI là số nguyên dương; mức tồn tối thiểu không nhỏ hơn 0. Thay đổi mốc giờ được lưu kèm ngày hiệu lực, có hiệu lực từ Business Date kế tiếp và không ảnh hưởng đến Business Date đang diễn ra.
+FR-SET-04 - Cấu hình thông tin chung: Quản lý cấu hình thông tin chung của nhà hàng: tên, địa chỉ, mẫu hóa đơn, mốc giờ bắt đầu Business Date, mức tồn tối thiểu mặc định, số ngày để lô nguyên liệu chuyển sang “Sắp hết hạn” (SoNgayCanhBaoHetHan, mặc định 3 ngày) và số câu hỏi AI tối đa mỗi người dùng mỗi ngày (SoCauHoiAIMoiNgay, mặc định 50). Số ngày cảnh báo (từ 1 đến 365) và hạn mức câu hỏi AI (từ 1 đến 10.000) là số nguyên dương; mức tồn tối thiểu không nhỏ hơn 0 và áp dụng ngay cho mọi nguyên liệu chưa có mức riêng. Giá trị vượt cận trên bị từ chối ở backend. Thay đổi mốc giờ được lưu kèm ngày hiệu lực, có hiệu lực từ Business Date kế tiếp và không ảnh hưởng đến Business Date đang diễn ra.
 
-ThoiGianGiuChoPhut là số nguyên dương, mặc định 5 phút cho mỗi dòng chưa gửi. Giá trị mới áp dụng cho lần tạo hoặc gia hạn tiếp theo; thời điểm hết hạn đã ghi giữ nguyên. Thời gian mặc định là cấu hình thiết kế cho thử nghiệm và có thể điều chỉnh theo vận hành.
+ThoiGianGiuChoPhut là số nguyên từ 1 đến 1.440, mặc định 5 phút cho mỗi dòng chưa gửi. Giá trị mới áp dụng cho lần tạo hoặc gia hạn tiếp theo; thời điểm hết hạn đã ghi giữ nguyên. Thời gian mặc định là cấu hình thiết kế cho thử nghiệm và có thể điều chỉnh theo vận hành.
 
 FR-SET-05 - Áp dụng ngưỡng cảnh báo tồn kho: Với mỗi nguyên liệu, hệ thống ưu tiên mức tồn tối thiểu riêng nếu đã được cấu hình; nếu chưa có, áp dụng mức mặc định tại FR-SET-04. Cảnh báo được xác định theo FR-INV-07.
 
@@ -1127,15 +1128,29 @@ Backend xác thực phiên, kiểm tra tài khoản, xác định vai trò hiệ
 
 Hệ thống xác định chỉ số, khoảng thời gian và đối tượng từ câu hỏi. Thông tin thiếu hoặc tên món mơ hồ được trả về dưới dạng yêu cầu làm rõ. Với yêu cầu hợp lệ, ngữ cảnh gồm lược đồ view được phép, định nghĩa doanh thu, giá vốn, tồn khả dụng và ví dụ thuộc tập phát triển.
 
-LLM sinh một truy vấn. Bộ kiểm duyệt phân tích cây cú pháp, chỉ chấp nhận một truy vấn đọc; mọi bảng, cột, truy vấn con và nhánh UNION/CTE phải nằm trong danh sách cho phép. Các lệnh ghi, truy cập schema hệ thống, xuất tệp, hàm gây trì hoãn và câu lệnh nhiều phần bị từ chối. Hệ thống áp giới hạn dòng và thời gian ở tầng thực thi.
+LLM sinh một truy vấn. Bộ kiểm duyệt phân tích cây cú pháp, chỉ chấp nhận một truy vấn đọc; mọi bảng, cột, truy vấn con và nhánh UNION/CTE phải nằm trong danh sách cho phép của vai trò. Danh sách bảng là view duy nhất của vai trò; danh sách cột là tập cột của view đó cộng với tên bí danh do chính câu SQL đặt. CTE được phân giải theo phạm vi: chỉ đọc được CTE khai báo trước nó, không được trùng tên view được phép và không được đệ quy, nên một CTE không thể biến bảng lõi thành quan hệ hợp lệ. Các lệnh ghi, truy cập schema hệ thống, xuất tệp, hàm gây trì hoãn hoặc đọc thông tin máy chủ, khóa dòng (FOR UPDATE, LOCK IN SHARE MODE), biến người dùng/hệ thống, chú thích và gợi ý tối ưu (hint, vốn có thể nâng thời gian thực thi tối đa) và câu lệnh nhiều phần bị từ chối. Câu SQL được dựng lại từ cây cú pháp đã kiểm duyệt (không còn chú thích) và thành kiểu ValidatedSql, kiểu duy nhất mà tầng thực thi chấp nhận, nên không có đường chạy SQL bỏ qua bước kiểm duyệt. Hệ thống áp giới hạn dòng ở bộ kiểm duyệt và giới hạn thời gian ở tầng thực thi.
 
-Truy vấn hợp lệ chạy bằng tài khoản chỉ đọc theo vai trò, timeout 3 giây và tối đa 500 dòng. Lỗi cú pháp hoặc lỗi thực thi được phép sinh lại SQL một lần trong cùng phạm vi; yêu cầu trái quyền kết thúc ngay. Kết quả rỗng được diễn đạt là không có dữ liệu phù hợp; lỗi dịch vụ trả thông báo thử lại và mã truy vết.
+Truy vấn hợp lệ chạy bằng tài khoản chỉ đọc theo vai trò, timeout 3 giây và tối đa 500 dòng. Lỗi cú pháp hoặc lỗi thực thi được phép sinh lại SQL một lần trong cùng phạm vi (tổng số lần sinh tối đa 02 cho mỗi câu hỏi, gồm cả lần sinh lại sau lỗi kiểm duyệt); yêu cầu trái quyền (tham chiếu bảng hoặc cột ngoài phạm vi vai trò, câu lệnh ghi) kết thúc ngay, không sinh lại. Kết quả rỗng được diễn đạt là không có dữ liệu phù hợp; lỗi dịch vụ trả thông báo thử lại và mã truy vết (mã của lượt truy vấn trong TRUY_VAN_AI). Toàn chuỗi xử lý của một câu hỏi bị chặn ở ngân sách 8 giây của backend, chặt hơn ngưỡng p95 10 giây của NFR-02 để thời gian mạng và giao diện không đẩy tổng thời gian chờ vượt ngưỡng; quá ngân sách thì trả thông báo phản hồi quá lâu và ghi trạng thái Lỗi.
 
 Backend tính các chỉ số và chênh lệch xác định từ kết quả truy vấn; LLM diễn giải bảng số liệu. Câu trả lời nêu thời gian, đơn vị, phạm vi và thời điểm truy vấn. Nội dung văn bản từ dữ liệu được đặt trong vùng dữ liệu riêng, không được sử dụng làm chỉ dẫn hệ thống. Bảng số liệu gốc đi cùng câu trả lời để người dùng đối chiếu.
 
 Theo hướng dẫn OWASP [15], kiểm soát prompt injection kết hợp phân tách chỉ dẫn và dữ liệu, quyền tối thiểu và kiểm tra đầu ra. Thiết kế dùng backend và quyền CSDL làm ranh giới truy cập; việc bảo vệ system prompt là một lớp hỗ trợ. Bộ ca kiểm thử bao gồm yêu cầu giả mạo vai trò, lộ prompt, chỉ dẫn nhúng trong tên/ghi chú và truy vấn vượt view.
 
 Các nhóm câu hỏi kinh doanh trọng tâm gồm tổng hợp doanh thu và số order, so sánh hai khoảng thời gian, xếp hạng biến động lượng bán theo món và phân bố order theo giờ. Số liệu cung cấp căn cứ để Quản lý xem xét thực đơn và nhân sự; kết luận nguyên nhân chỉ được nêu khi có dữ liệu tương ứng.
+
+#### Tích hợp cổng thanh toán SePay
+
+Thanh toán QR dùng VietQR chuyển khoản qua SePay ở chế độ thử nghiệm (Test mode); chưa chạy SePay Live. Backend chọn cổng bằng biến cấu hình PAYMENT_GATEWAY (simulator hoặc sepay, mặc định simulator) qua một adapter chung nên phần nghiệp vụ ở mục 3.4 (FR-SALE-14 đến FR-SALE-20, FR-SALE-33 đến FR-SALE-35) không đổi giữa hai cổng. Bộ giả lập chỉ tồn tại khi ENVIRONMENT là local và dùng cho kiểm thử tự động; ở môi trường khác đường dẫn giả lập không được mở.
+
+Tạo mã QR: khi Thu ngân chọn QR, hệ thống tạo giao dịch ở trạng thái “Chờ xác nhận” và sinh mã thanh toán gồm tiền tố cấu hình và mã giao dịch (ví dụ TT388, tiền tố mặc định TT). Mã này nằm trong nội dung chuyển khoản; ảnh VietQR mang số tài khoản, ngân hàng nhận, số tiền bằng tổng order tính lại ở server và nội dung chuyển khoản. Giao diện hiển thị thêm số tài khoản, tên tài khoản và mã thanh toán để khách chuyển tay khi không quét được. Tiền tố phải khai báo giống hệt trong mục cấu trúc mã thanh toán của SePay để SePay tự tách mã. Mã QR hết hiệu lực sau 10 phút.
+
+Webhook: SePay gọi POST /sales/webhooks/sepay, đường dẫn duy nhất của cổng này không yêu cầu đăng nhập. SePay xác thực bằng khóa API trong tiêu đề Authorization (dạng “Apikey <khóa>”) chứ không ký nội dung, nên backend so sánh khóa bằng phép so sánh thời gian hằng định và chỉ nhận qua HTTPS; sai khóa trả 401 và chỉ ghi nhật ký kỹ thuật, không ghi dữ liệu nghiệp vụ. Sau khi xác thực, thân yêu cầu bị giới hạn kích thước (16 KiB) và độ dài từng trường; chỉ xử lý khoản tiền vào (transferType = in), số tài khoản nhận phải đúng tài khoản đã cấu hình và số tiền phải là số dương hợp lệ. Mã thanh toán được tách từ trường code, nếu trống thì tìm tiền tố kèm số trong nội dung chuyển khoản. Mã giao dịch của SePay được lưu thành MaGiaoDichCong (dạng sepay:<id>, UNIQUE) để chống ghi nhận lặp; mã tham chiếu ngân hàng (referenceCode) được đối chiếu với MaGiaoDichNganHang để nhận ra khoản đã được Quản lý xác nhận thủ công. Kết quả xử lý theo FR-SALE-15 đến FR-SALE-17: đúng giao dịch, đúng số tiền thì xác nhận và phát hành hóa đơn đúng một lần; sai số tiền, đến muộn sau khi order đã đổi hoặc đóng thì vào danh sách ngoại lệ. Khoản không khớp giao dịch nào vẫn được trả HTTP 200 với {"success": true} để SePay không gửi lại, đồng thời được ghi nhật ký kỹ thuật (không kèm nội dung thông báo) và audit log. Khóa API và token không được ghi vào log, thông báo lỗi hay trả về cho trình duyệt; NoiDungWebhook chỉ lưu vài trường của khoản chuyển, không lưu tiêu đề yêu cầu.
+
+Kiểm tra lại: POST /sales/payments/{id}/check (Quản lý, Thu ngân). Nếu có SEPAY_API_TOKEN, backend tra danh sách giao dịch gần nhất qua API của SePay và áp dụng khoản mang đúng mã thanh toán bằng cùng quy trình của webhook; nếu không có token, thao tác chỉ trả trạng thái hiện tại.
+
+Cấu hình: SEPAY_BANK_ACCOUNT, SEPAY_BANK_CODE, SEPAY_ACCOUNT_NAME, SEPAY_WEBHOOK_API_KEY, SEPAY_API_TOKEN (tùy chọn), SEPAY_PAYMENT_PREFIX và SEPAY_API_URL chỉ đọc từ môi trường của server, không commit. Chọn PAYMENT_GATEWAY=sepay mà thiếu tài khoản, ngân hàng hoặc khóa webhook thì ứng dụng không khởi động (không có giá trị mặc định thay thế).
+
+Kiểm thử và rủi ro: kiểm thử tự động không gọi mạng thật (API tra giao dịch dùng bộ giả lập truyền tải HTTP, payload mẫu theo tài liệu SePay). Hai điểm cần kiểm lại bằng một giao dịch mô phỏng thật trước khi nghiệm thu: tên trường của payload và việc API tra giao dịch có chạy với tài khoản Test mode hay không (nếu không, “Kiểm tra lại” chỉ đọc trạng thái và việc xác nhận dựa vào webhook cùng quy trình xác minh thủ công). Khi demo ở máy cá nhân cần một địa chỉ HTTPS công khai (đường hầm) khai báo trong SePay để webhook tới được backend.
 
 ### Thiết kế cơ sở dữ liệu
 
@@ -1173,7 +1188,7 @@ Từ các mô hình nghiệp vụ ở Chương 3, hệ thống xác định đư
 |  | CHI_TIET_PHIEU_NHAP | Chi tiết nguyên liệu, số lượng, đơn giá của phiếu nhập. |
 |  | LO_NGUYEN_LIEU | Từng lô nguyên liệu tạo ra từ một dòng nhập, theo dõi số lượng còn lại và hạn sử dụng riêng để hỗ trợ FIFO và cảnh báo hết hạn. |
 |  | PHIEU_XUAT_KHO | Phiếu xuất hủy cho hao hụt, hư hỏng, hết hạn. |
-|  | CHI_TIET_PHIEU_XUAT | Chi tiết nguyên liệu và số lượng xuất thủ công. |
+|  | CHI_TIET_PHIEU_XUAT | Chi tiết nguyên liệu và số lượng của phiếu xuất hủy: xuất thủ công, lượng tiêu hao gốc của món đã chế biến bị bỏ hoặc hao hụt kiểm kê. |
 |  | PHIEU_KIEM_KE | Phiếu kiểm kê định kỳ đối chiếu tồn thực tế với tồn hệ thống. |
 |  | CHI_TIET_KIEM_KE | Chênh lệch tồn của từng nguyên liệu trong một lần kiểm kê. |
 |  | GIAO_DICH_KHO | Sổ cái ghi mọi biến động kho (nhập, trừ tự động, hoàn kho, xuất thủ công, điều chỉnh kiểm kê). |
@@ -1184,6 +1199,8 @@ Từ các mô hình nghiệp vụ ở Chương 3, hệ thống xác định đư
 | Bán hàng và kho | CHI_TIET_GIU_CHO | Lượng nguyên liệu giữ theo lô cho mỗi dòng món. |
 
 Bảng 7. Danh sách lớp đối tượng của hệ thống
+
+Ngoài 31 lớp nghiệp vụ trên, lược đồ vật lý có thêm một bảng kỹ thuật DEM_ORDER(BusinessDate, SoDaCap) giữ số thứ tự order đã cấp trong từng Business Date để sinh mã ORD-ddMMyy-nnn theo FR-SALE-04. Bảng này không phải đối tượng nghiệp vụ nên không có trong Class Diagram và Bảng 8; tổng số bảng của CSDL là 32. Ghi chú này cũng áp dụng cho Class Diagram (docs/ClassDiagram_*.drawio): sơ đồ không vẽ DEM_ORDER.
 
 Thuộc tính và phương thức chi tiết của từng lớp được đặc tả tại mục D ở cuối báo cáo.
 
@@ -1274,9 +1291,13 @@ Liên quan các lớp HOA_DON, GIAO_DICH_THANH_TOAN, GIAO_DICH_KHO (mục D, a16
 
 Bên cạnh ThoiDiem thực (giờ hệ thống), HOA_DON và GIAO_DICH_THANH_TOAN kế thừa BusinessDate của ORDER liên quan, kể cả khi được tạo sau mốc đổi ngày kinh doanh. GIAO_DICH_KHO ghi BusinessDate theo cutoff tại thời điểm phát sinh giao dịch kho, theo thời điểm phát sinh thực tế. Doanh thu và giá vốn nguyên liệu của dòng món bán/hủy/đóng chưa thu được tiền được tổng hợp theo ORDER.BusinessDate; GIAO_DICH_KHO.BusinessDate phản ánh ngày biến động kho thực tế và dùng cho đối chiếu tồn, hao hụt độc lập. BusinessDate đã lưu không bị tính lại nếu giờ bắt đầu ngày kinh doanh thay đổi về sau.
 
+Liên quan lớp GIAO_DICH_THANH_TOAN (mục D, a17) - chống ghi nhận lặp, khoản ngoại lệ và khóa dòng:
+
+MaGiaoDichCong có ràng buộc UNIQUE ở CSDL (khi khác NULL) nên cùng một thông báo của cổng chỉ tạo được một kết quả nghiệp vụ, kể cả khi hai bản sao đến đồng thời; bản đến sau thua khóa duy nhất và được ghi nhận là trùng. MaGiaoDichNganHang cũng UNIQUE khi khác NULL. Mọi thao tác thanh toán khóa dòng ORDER trước rồi khóa các dòng GIAO_DICH_THANH_TOAN liên quan, kiểm tra lại trạng thái dưới khóa và chỉ cập nhật bằng câu lệnh có điều kiện trạng thái khi hết hạn, nên webhook, Thu ngân và Quản lý thao tác đồng thời không ghi đè lẫn nhau và không phát hành hóa đơn hai lần. Khoản tiền cần Quản lý xử lý (FR-SALE-16, FR-SALE-17) được lưu thành dòng giao dịch riêng với TrangThaiNgoaiLe, SoTienNgoaiLe, MaThamChieuHoan, ThoiDiemXuLyNgoaiLe và NguoiXuLyNgoaiLe; dòng này không cộng doanh thu cho tới khi được áp dụng. Thông báo không xác định được giao dịch hoặc trỏ tới giao dịch tiền mặt không tạo dòng nào mà chỉ được ghi nhật ký kỹ thuật và audit log (FR-SALE-15).
+
 Liên quan lớp LO_NGUYEN_LIEU (mục D, a21):
 
-BR-LOT-01 - Nhập, xuất và hoàn nguyên liệu theo lô: Mỗi dòng CHI_TIET_PHIEU_NHAP sinh một LO_NGUYEN_LIEU. NgayNhap lấy từ phiếu nhập; HanSuDung bằng NgayNhap + SoNgayBaoQuan, để trống nếu nguyên liệu không quản lý hạn dùng. Bán hàng trừ theo FIFO trên các lô còn số lượng và chưa hết hạn. Lô hết hạn còn hàng vẫn nằm trong tồn sổ sách nhưng không được tự động chọn để trừ bán hàng, chỉ xử lý qua phiếu xuất hủy, nơi Bếp chọn trực tiếp lô cần hủy. Mỗi lô bị ảnh hưởng được ghi một giao dịch kho riêng. Khi hủy/giảm món “Chờ làm”, hệ thống hoàn đúng lượng vào các lô đã bị trừ theo MaLoNguyenLieu của giao dịch gốc, kể cả lô đã hết hạn tại thời điểm hoàn, vì đây là đảo ngược đúng giao dịch đã xảy ra chứ không phải một lần nhập mới. Trạng thái lô được cập nhật theo hạn sử dụng và số lượng còn lại.
+BR-LOT-01 - Nhập, xuất và hoàn nguyên liệu theo lô: Mỗi dòng CHI_TIET_PHIEU_NHAP sinh một LO_NGUYEN_LIEU. NgayNhap lấy từ phiếu nhập; HanSuDung bằng NgayNhap + SoNgayBaoQuan, để trống nếu nguyên liệu không quản lý hạn dùng. Bán hàng trừ theo FIFO trên các lô còn số lượng và chưa hết hạn. Lô hết hạn còn hàng vẫn nằm trong tồn sổ sách nhưng không được tự động chọn để trừ bán hàng, chỉ xử lý qua phiếu xuất hủy, nơi Bếp chọn trực tiếp lô cần hủy. Mỗi lô bị ảnh hưởng được ghi một giao dịch kho riêng. Khi hủy/giảm món “Chờ làm”, hệ thống hoàn đúng lượng vào các lô đã bị trừ theo MaLoNguyenLieu của giao dịch gốc, kể cả lô đã hết hạn tại thời điểm hoàn, vì đây là đảo ngược đúng giao dịch đã xảy ra chứ không phải một lần nhập mới. Trạng thái lô được cập nhật theo hạn sử dụng và số lượng còn lại: hệ thống làm mới trong transaction ở mọi thao tác kho và khi mở màn hình tồn kho/lô, không phụ thuộc tác vụ nền; lô còn số lượng bị loại khỏi bán hàng ngay khi qua ngày hết hạn.
 
 BR-LOT-02 - Phân bổ chênh lệch kiểm kê xuống từng lô: CHI_TIET_KIEM_KE ghi ChenhLech ở mức nguyên liệu so với tồn sổ sách, gồm cả lô hết hạn. Khi xác nhận, chênh lệch âm được trừ theo FIFO vào các lô còn SoLuongConLai > 0, kể cả lô hết hạn.
 
@@ -1361,7 +1382,7 @@ Theo FR-SET-03 và NFR-05/NFR-06, phân quyền được thiết kế ở tầng
 
 Bảng 9. Ma trận quyền hạn theo dữ liệu và vai trò
 
-Các tên VW_AI_* biểu thị phạm vi view theo vai trò trong thiết kế; khi triển khai, mỗi phạm vi được tách thành các view theo chủ đề để tổng hợp trước các quan hệ một–nhiều (ví dụ doanh thu, dòng món, tồn lô), tránh nhân dòng khi join và làm sai tổng số. Mỗi view chỉ chọn cột/hàng tương ứng quyền của vai trò; PHIEN_CHAT_AI.MaVaiTro xác định tập view nào được phép dùng khi sinh câu SQL cho phiên chat đó, đáp ứng trực tiếp NFR-06 và NFR-12. Đặc tả phạm vi của từng tập view như sau: (1) VW_AI_QUANLY (vai trò Chủ nhà hàng/Quản lý) - quyền đọc các view nghiệp vụ được liệt kê cho Quản lý (danh mục, order, hóa đơn, kho, báo cáo), loại trường xác thực và thông tin cá nhân không cần cho câu hỏi, tương ứng cột “Toàn quyền” trong Bảng 9; (2) VW_AI_THUNGAN (vai trò Thu ngân/Nhân viên order) - chỉ khai thác các bảng ORDER, CHI_TIET_ORDER, HOA_DON, GIAO_DICH_THANH_TOAN, MON_AN, BAN qua các view bán hàng phù hợp; loại bỏ hoàn toàn các cột/bảng giá vốn, lợi nhuận và toàn bộ nhóm bảng kho (NGUYEN_LIEU, GIAO_DICH_KHO, GIA_BINH_QUAN_THANG...); (3) VW_AI_KHO (vai trò Bếp) - chỉ khai thác các bảng NGUYEN_LIEU, LO_NGUYEN_LIEU, PHIEU_NHAP_KHO, PHIEU_XUAT_KHO, PHIEU_KIEM_KE, GIAO_DICH_KHO và lượng giữ tổng hợp từ GIU_CHO_MON/CHI_TIET_GIU_CHO qua các view kho phù hợp; loại bỏ cột GiaVonUocTinh, GIA_BINH_QUAN_THANG và toàn bộ bảng doanh thu (HOA_DON, GIAO_DICH_THANH_TOAN), khớp với dòng “Không có doanh thu/giá vốn” trong Bảng 9. Cả ba view đều là read-only (không hỗ trợ INSERT/UPDATE/DELETE), vì AI Assistant chỉ được phép sinh câu SELECT (đã kiểm duyệt qua sqlglot, mục 5.1.1).
+Các tên VW_AI_* biểu thị phạm vi view theo vai trò trong thiết kế; khi triển khai, mỗi vai trò có đúng một view MySQL (vw_ai_quanly, vw_ai_thungan, vw_ai_kho). Mỗi view là một UNION ALL của các nhánh dữ liệu (ví dụ ORDER, DONG_MON, HOA_DON, THANH_TOAN, TON_KHO, LO_NGUYEN_LIEU) trên cùng một danh sách cột; cột LoaiBanGhi phân biệt nhánh, các cột không thuộc nhánh nhận NULL. Mỗi nhánh có một dòng cho một đối tượng (một order, một dòng món, một nguyên liệu, một lô...) và lượng giữ theo lô được tổng hợp sẵn trong nhánh tồn kho nên truy vấn trên một nhánh không bị nhân dòng; chỉ số cần hai nhánh (ví dụ lợi nhuận gộp = doanh thu và giá vốn tiêu hao) do câu SQL tự kết hợp hai nhánh của cùng view. Mỗi view chỉ chọn cột/hàng tương ứng quyền của vai trò; ánh xạ vai trò – view là cố định trong mã nguồn, PHIEN_CHAT_AI.MaVaiTro ghi vai trò tại thời điểm chat và một phiên không được dùng tiếp sau khi vai trò đổi, đáp ứng trực tiếp NFR-06 và NFR-12. Đặc tả phạm vi của từng view như sau: (1) VW_AI_QUANLY (vai trò Chủ nhà hàng/Quản lý) - kế thừa toàn bộ phạm vi của Thu ngân và Bếp (FR-SET-03: tập cột của vw_ai_kho là tập con của vw_ai_quanly), thêm lý do hủy order, giá vốn bình quân theo tháng, giao dịch kho và giá nhập từ phiếu nhập; loại trường xác thực, số điện thoại và giá vốn ước tính nội bộ của phiếu xuất, tương ứng cột “Toàn quyền” trong Bảng 9; (2) VW_AI_THUNGAN (vai trò Thu ngân/Nhân viên order) - chỉ khai thác các bảng ORDER, CHI_TIET_ORDER, HOA_DON, GIAO_DICH_THANH_TOAN, MON_AN, NHOM_MON (bàn chỉ xuất hiện dưới dạng mã bàn của order); loại bỏ hoàn toàn các cột/bảng giá vốn, giá nhập, lợi nhuận và toàn bộ nhóm bảng kho (NGUYEN_LIEU, GIAO_DICH_KHO, GIA_BINH_QUAN_THANG...); (3) VW_AI_KHO (vai trò Bếp) - chỉ khai thác các bảng NGUYEN_LIEU, LO_NGUYEN_LIEU, GIAO_DICH_KHO (lịch sử nhập, xuất, tiêu hao và điều chỉnh kiểm kê theo loại giao dịch), ngưỡng tồn mặc định trong cấu hình hệ thống và lượng giữ tổng hợp từ GIU_CHO_MON/CHI_TIET_GIU_CHO trên các lô còn dùng được; loại bỏ cột GiaVonUocTinh, GIA_BINH_QUAN_THANG, đơn giá nhập và toàn bộ bảng doanh thu (HOA_DON, GIAO_DICH_THANH_TOAN), khớp với dòng “Không có doanh thu/giá vốn” trong Bảng 9. Cả ba view đều là read-only (không hỗ trợ INSERT/UPDATE/DELETE), vì AI Assistant chỉ được phép sinh câu SELECT (đã kiểm duyệt qua sqlglot, mục 5.1.1).
 
 Do Quản lý được kế thừa quyền lập order, thanh toán, hủy món và lập phiếu xuất hủy (mục 2.5), các thao tác này khi do Quản lý thực hiện vẫn phải được ghi vào audit log đúng người thực hiện như FR-SET-08 đã quy định (hủy toàn bộ order, hủy món, lập phiếu xuất hủy).
 
@@ -1419,13 +1440,14 @@ Các thẩm quyền nhạy cảm được tách khỏi vai trò tuyến đầu �
 
 - Next.js (frontend): xây dựng giao diện web cho ba vai trò người dùng và giao diện chat AI Assistant.
 - Python/FastAPI (backend): xử lý cả nghiệp vụ quản lý và dịch vụ AI Assistant trên cùng một nền tảng, thuận tiện tích hợp các thư viện xử lý LLM/Text-to-SQL của Python.
+- SePay (VietQR chuyển khoản, Test mode): cổng thanh toán QR, tích hợp qua adapter và webhook có khóa API như mô tả tại mục 4.1 (Tích hợp cổng thanh toán SePay); bộ giả lập chỉ dành cho kiểm thử và môi trường local.
 - sqlglot: kiểm duyệt cú pháp câu lệnh SQL do LLM sinh ra trước khi thực thi, đảm bảo chỉ chấp nhận câu lệnh SELECT.
-- LLM: DeepSeek-V4.1-Flash, gọi API tại https://api.deepseek.com với model=deepseek-flash [16]. Cấu hình vận hành dự kiến dùng chế độ không suy luận (thinking.type=disabled); chế độ suy luận được đánh giá đối chứng tại mục 5.2 [17]. Mỗi đợt thử nghiệm ghi ngày chạy, phiên bản do nhà cung cấp công bố và tham số gọi để kiểm soát khả năng thay đổi của định danh API.
+- LLM: DeepSeek-V4.1-Flash, gọi API tại https://api.deepseek.com với model=deepseek-flash [16]. Cấu hình vận hành dự kiến dùng mô hình không suy luận (model=deepseek-flash, mức suy luận LLM_REASONING_EFFORT=low); backend chọn mô hình theo tên và không gửi tham số thinking.type, nên việc bật suy luận ở cấu hình C đến từ một mô hình thứ hai (AI_CONFIG_C_MODEL), được đánh giá đối chứng tại mục 5.2 [17]. Khi mô hình chính lỗi tạm thời (lỗi kết nối, quá thời gian, 429 hoặc 5xx), backend thử lại đúng một lần trên mô hình dự phòng LLM_FALLBACK_MODEL (mặc định là AI_CONFIG_C_MODEL); lỗi 4xx khác không được thử lại. Mỗi đợt thử nghiệm ghi ngày chạy, phiên bản do nhà cung cấp công bố và tham số gọi để kiểm soát khả năng thay đổi của định danh API.
 Dự toán API dùng giá DeepSeek-V4.1-Flash ngày 09/10/2026: 0,30 USD/triệu token đầu vào chưa cache và 1,20 USD/triệu token đầu ra trong giờ cao điểm [16]. Ngân sách tính theo mức giá này, chưa áp dụng ưu đãi cache hoặc giờ thấp điểm; thuế và dịch vụ ngoài mô hình được tính riêng.
 
 Với giả định mỗi câu hỏi dùng tổng cộng 4.000 token đầu vào và 800 token đầu ra cho sinh SQL và diễn giải ở chế độ không suy luận, chi phí là 0,00216 USD/câu. Kịch bản 100 câu/ngày trong 30 ngày có chi phí cơ sở 6,48 USD/tháng; dự phòng 20% thành 7,78 USD/tháng. Token và lần thử lại thực tế được ghi log để đối chiếu với dự toán.
 
-Ba cấu hình A/B/C chạy 80 câu, mỗi câu 3 lần, tạo 720 lượt đánh giá. A và B dự toán 800 token đầu ra/câu; C dự toán 2.800 token, gồm phần suy luận. Với 4.000 token đầu vào/câu, chi phí là 2,13 USD, dự phòng 20% thành 2,56 USD; chưa gồm tập phát triển và bộ an toàn. Chi phí thực tế tính theo usage của API; khóa truy cập được lưu ở backend.
+Ba cấu hình A/B/C chạy 95 câu, mỗi câu 3 lần, tạo 855 lượt đánh giá. A và B dự toán 800 token đầu ra/câu; C dự toán 2.800 token, gồm phần suy luận. Với 4.000 token đầu vào/câu, chi phí là 2,53 USD, dự phòng 20% thành 3,04 USD; chưa gồm tập phát triển và bộ an toàn. Chi phí thực tế tính theo usage của API; khóa truy cập được lưu ở backend.
 
 #### Lựa chọn hệ quản trị cơ sở dữ liệu
 
@@ -1468,21 +1490,23 @@ Các mốc đánh giá dựa trên các tham chiếu sau: (1) ISO/IEC 25010:2023
 
 Dữ liệu mô phỏng bao phủ 12 tháng, tối thiểu 20.000 order và 20–40 món; kịch bản mở rộng có 60–80 món. Dữ liệu thể hiện giờ cao điểm, biến động cuối tuần, các trạng thái thanh toán, giá/công thức có hiệu lực theo thời gian, lô hết hạn, giữ chỗ và kiểm kê. Hạt giống sinh dữ liệu, phiên bản lược đồ và bản sao dữ liệu được lưu để tái lập.
 
-Tập đánh giá chính thức gồm 80 câu: 30 đơn giản, 30 trung bình và 20 phức tạp. Nhóm đơn giản gồm tra cứu hoặc tổng hợp một chỉ số trên một view; nhóm trung bình gồm nhiều điều kiện, nhóm/xếp hạng hoặc kết hợp hai view; nhóm phức tạp gồm so sánh nhiều kỳ hoặc nhiều bước tổng hợp. Mỗi câu được xếp theo mức khó cao nhất mà truy vấn chuẩn yêu cầu.
+Tập đánh giá gồm 95 câu (data/eval/questions.jsonl): 31 đơn giản, 40 trung bình và 24 phức tạp. Nhóm đơn giản gồm tra cứu hoặc tổng hợp một chỉ số trên một view; nhóm trung bình gồm nhiều điều kiện, nhóm/xếp hạng hoặc kết hợp hai view; nhóm phức tạp gồm so sánh nhiều kỳ hoặc nhiều bước tổng hợp. Mỗi câu được xếp theo mức khó cao nhất mà truy vấn chuẩn yêu cầu.
 
-Phân bố theo vai trò gồm 60 câu Quản lý (20 đơn giản, 20 trung bình, 20 phức tạp), 10 câu Thu ngân và 10 câu Bếp (mỗi vai trò 5 đơn giản, 5 trung bình). Tập phát triển riêng gồm 30 câu, chỉ dùng xây dựng prompt và few-shot. Tập chính thức được khóa trước chạy, không dùng làm ví dụ hoặc sửa prompt theo từng đáp án.
+Phân bố theo vai trò gồm 45 câu Quản lý, 24 câu Thu ngân và 26 câu Bếp. Trong 95 câu có 6 câu cố tình vượt quyền (hỏi dữ liệu ngoài view của vai trò, kỳ vọng bị từ chối): các câu này được chấm riêng bằng độ đúng từ chối và không tính vào mẫu số độ đúng thực thi, mẫu số đó là 89 câu nghiệp vụ (28 đơn giản, 37 trung bình, 24 phức tạp; 45 Quản lý, 21 Thu ngân, 23 Bếp). Tập phát triển dùng cho prompt hiện gồm 6 ví dụ few-shot (data/eval/questions.example.jsonl, 2 ví dụ mỗi vai trò) không trùng câu nào của tập đánh giá; tập này nhỏ hơn dự kiến ban đầu 30 câu và có thể được mở rộng trước lần chạy chính thức. Tập đánh giá được khóa trước lần chạy chính thức, không dùng làm ví dụ hoặc sửa prompt theo từng đáp án; sau khi view được viết lại theo cấu trúc nhiều nhánh, SQL chuẩn của tập đã được rà soát và sửa (lịch sử chỉnh sửa nằm tại data/eval/README.md).
 
-Mỗi bản ghi gồm mã câu, vai trò, câu hỏi, thời điểm tham chiếu, định nghĩa chỉ số, SQL chuẩn, kết quả chuẩn và tiêu chí chấm diễn giải. Người viết đáp án được người khác kiểm tra chéo; 20 câu được cả ba thành viên giải độc lập, ghi mức đồng thuận và giải quyết bất đồng trước khi khóa tập. Kết quả số tiền dùng quy tắc làm tròn thống nhất; thứ tự dòng chỉ được chấm khi câu hỏi yêu cầu xếp hạng.
+Mỗi bản ghi gồm mã câu, vai trò, view, mức khó, câu hỏi, SQL chuẩn và ghi chú diễn giải; kết quả chuẩn không lưu sẵn mà được lấy khi chạy bằng cách thực thi SQL chuẩn qua cùng bộ kiểm duyệt, trần dòng và tài khoản chỉ đọc như câu SQL của mô hình. Người viết đáp án được người khác kiểm tra chéo; 20 câu được cả ba thành viên giải độc lập, ghi mức đồng thuận và giải quyết bất đồng trước khi khóa tập. Kết quả số tiền dùng quy tắc làm tròn thống nhất; thứ tự dòng không được chấm vì so khớp lấy tập hợp dòng.
 
 #### Chỉ số và cấu hình thực nghiệm
 
 Độ đúng thực thi bằng số câu có kết quả truy vấn khớp chuẩn chia tổng số câu hợp lệ được hỏi. Độ đúng câu trả lời bằng số câu có cả số liệu và toàn bộ nhận xét chính đúng chia cùng mẫu số. SQL khác câu chuẩn nhưng kết quả tương đương vẫn được tính đúng; câu lỗi, từ chối nhầm hoặc chỉ đúng một phần được tính sai.
 
-Tỷ lệ SQL lỗi, tỷ lệ từ chối nhầm, thời gian trung bình, p95 và token/chi phí mỗi câu được báo cáo riêng theo vai trò và mức khó. Thời gian đo từ backend nhận câu hỏi đến trả câu trả lời đầy đủ, bao gồm các lần thử lại. Yêu cầu làm rõ hợp lệ và từ chối ngoài quyền được đánh giá bằng bộ riêng, không trộn vào mẫu số 80 câu nghiệp vụ.
+Tỷ lệ SQL lỗi, tỷ lệ từ chối nhầm, thời gian trung bình và p95 được báo cáo riêng theo vai trò và mức khó; token và chi phí mỗi câu lấy từ thông tin usage của API khi chạy chính thức. Công cụ đánh giá (data/eval/harness.py) đo tự động độ đúng thực thi (bản chặt và bản cho phép thừa cột), tỷ lệ lỗi, tỷ lệ từ chối, thời gian trung bình và p95; độ đúng câu trả lời (số liệu và nhận xét của bước diễn giải) và token/chi phí chưa được công cụ này đo, nên được chấm thủ công theo tiêu chí của mục này trên cùng mẫu. Thời gian của công cụ đo từ lúc chuẩn hóa câu hỏi đến khi thực thi xong một lần sinh SQL; không gồm bước diễn giải, lần sinh lại và ngân sách 8 giây của backend, nên là cận dưới của thời gian toàn chuỗi theo NFR-02, còn thời gian toàn chuỗi của sản phẩm được ghi ở ThoiGianPhanHoi của TRUY_VAN_AI. Yêu cầu làm rõ hợp lệ được ghi nhận như một lần từ chối. Các câu vượt quyền được chấm riêng, không trộn vào mẫu số 89 câu nghiệp vụ.
 
-Ba cấu hình dùng DeepSeek-V4.1-Flash. A dùng lược đồ và quy tắc quyền; B thêm định nghĩa nghiệp vụ, chuẩn hóa tiếng Việt và ví dụ từ tập phát triển. A và B đặt thinking.type=disabled. C giữ prompt của B, bật thinking.type=enabled và reasoning_effort=high khi sinh SQL [17]; bước diễn giải dùng cấu hình B. Mỗi câu chạy 3 lần trên cùng dữ liệu, giới hạn truy vấn và bộ kiểm duyệt, không dùng cache kết quả. Các lượt chạy được xen kẽ trong cùng đợt; kết quả được báo cáo riêng và tổng hợp theo cấu hình.
+Ba cấu hình dùng DeepSeek qua API. A dùng lược đồ view và quy tắc quyền; B thêm chuẩn hóa tiếng Việt, mô tả cột kèm định nghĩa nghiệp vụ và các ví dụ few-shot. A và B dùng mô hình chính (deepseek-flash). C giữ nguyên prompt và chuẩn hóa của B nhưng chạy trên mô hình suy luận thứ hai (AI_CONFIG_C_MODEL, ví dụ deepseek-v4-pro) với LLM_REASONING_EFFORT=high khi sinh SQL [17]; backend không gửi tham số thinking.type nên chế độ suy luận do mô hình được chọn quyết định, và công cụ đánh giá chưa có bước diễn giải riêng cho C. Mỗi câu chạy 3 lần trên cùng dữ liệu, giới hạn truy vấn và bộ kiểm duyệt, không dùng cache kết quả; công cụ chạy một lượt cho mỗi lần gọi và ba lượt được thực hiện bằng ba lần chạy lưu ba tệp kết quả riêng. Các cấu hình chạy lần lượt trong cùng đợt, trên cùng bản dữ liệu; kết quả được báo cáo riêng và tổng hợp theo cấu hình.
 
 Độ đúng thực thi và độ đúng câu trả lời được báo cáo theo từng nhóm độ khó, vai trò và cấu hình; thời gian phản hồi được đánh giá theo p95 dưới 10 giây. Để đặt kết quả vào bối cảnh, BIRD [6] công bố độ đúng thực thi của người là 92,96% và của GPT-4 là 54,89% trên bộ dữ liệu năm 2023; do lược đồ view và dữ liệu của đề tài nhỏ và sạch hơn BIRD nên các con số này không dùng để so sánh trực tiếp. Kết quả chính của thực nghiệm là mức chênh lệch độ đúng giữa ba cấu hình A, B và C. Kết quả không được suy rộng thành độ đúng cho mọi câu hỏi hoặc mọi nhà hàng.
+
+Một lượt chạy khám phá ngày 26/09/2026 (docs/eval-results.json, một lượt, 95 câu, chưa phải thực nghiệm chính thức vì thiếu 3 lượt lặp, chưa ghi tên mô hình và chạy trước khi bộ kiểm duyệt SQL được siết) cho độ đúng thực thi trên 95 câu là 56,8% (A), 66,3% (B) và 57,9% (C); trên 89 câu nghiệp vụ là 53,9%, 64,0% và 55,1%; cả 6 câu vượt quyền được từ chối đúng ở cả ba cấu hình. Thời gian trung bình của công cụ là 5,7 giây (A), 5,1 giây (B) và 8,8 giây (C), nhưng p95 là 15,1 giây, 14,5 giây và 20,2 giây, cao hơn ngưỡng 10 giây của NFR-02 ngay cả khi chưa tính bước diễn giải (số câu chậm hơn 10 giây: 16, 10 và 31 trên 95 câu; chậm nhất 40,4 giây), nguyên nhân chủ yếu là độ trễ của API LLM. Vì vậy lượt khám phá chưa cho thấy NFR-02 đạt; kết luận về mức chênh giữa các cấu hình chỉ có thể rút ra sau lần chạy chính thức.
 
 #### Kiểm thử nghiệp vụ và an toàn
 
@@ -1496,7 +1520,7 @@ Các ca giữ chỗ được lặp tối thiểu 100 lần cho mỗi tình huố
 
 Môi trường dự kiến gồm một máy chủ 4 vCPU, RAM 8 GB, MySQL và backend cùng môi trường mạng; cấu hình thực tế, phiên bản phần mềm và độ trễ mạng được ghi khi chạy. Dữ liệu 20.000 order là kịch bản tải, không phải kết quả khảo sát sản lượng thực tế.
 
-Kiểm thử nghiệp vụ chạy các mức 5, 10 và 20 người dùng ảo, khởi động 2 phút và đo 10 phút mỗi mức, lặp 3 lần. Tỷ trọng thao tác dự kiến: 40% giữ/điều chỉnh món, 20% gửi món, 20% xem dữ liệu và 20% cập nhật nghiệp vụ. Báo cáo riêng mỗi loại thao tác, p95 không quá 1 giây và tỷ lệ lỗi kỹ thuật được ghi nhận cùng kết quả; từ chối đúng do hết nguyên liệu được thống kê riêng. Báo cáo tổng hợp được đo với 5 người dùng và mục tiêu p95 dưới 10 giây. Độ trễ tương tác của màn hình gọi món và thanh toán được đo thêm bằng chỉ số INP trên trình duyệt, mục tiêu không quá 200 ms ở phân vị 75 theo Core Web Vitals [18]; chỉ số này đo phía giao diện và tách biệt với p95 phản hồi của API.
+Phép đo chạy qua HTTP vào backend đang chạy bằng công cụ scripts/bench_reports.py (người dùng ảo đồng thời, p95 theo phương pháp nearest-rank): 5 người dùng ảo cho báo cáo doanh thu và xếp hạng món (NFR-03) và 20 người dùng ảo cho cập nhật danh mục và nhập kho (NFR-01, tùy chọn --write chỉ dùng trên CSDL thử nghiệm); kịch bản giữ chỗ và gửi món dùng bộ dữ liệu bán hàng riêng. Kiểm thử nghiệp vụ chạy các mức 5, 10 và 20 người dùng ảo, khởi động 2 phút và đo 10 phút mỗi mức, lặp 3 lần. Tỷ trọng thao tác dự kiến: 40% giữ/điều chỉnh món, 20% gửi món, 20% xem dữ liệu và 20% cập nhật nghiệp vụ. Báo cáo riêng mỗi loại thao tác, p95 không quá 1 giây và tỷ lệ lỗi kỹ thuật được ghi nhận cùng kết quả; từ chối đúng do hết nguyên liệu được thống kê riêng. Báo cáo tổng hợp được đo với 5 người dùng và mục tiêu p95 dưới 10 giây. Độ trễ tương tác của màn hình gọi món và thanh toán được đo thêm bằng chỉ số INP trên trình duyệt, mục tiêu không quá 200 ms ở phân vị 75 theo Core Web Vitals [18]; chỉ số này đo phía giao diện và tách biệt với p95 phản hồi của API.
 
 Phục hồi được kiểm tra bằng tạo bản sao, ghi nhận mốc dữ liệu, phát sinh thêm giao dịch và nạp lại bản sao trong môi trường thử. Đối chiếu các bảng và tính toàn vẹn chứng từ; ghi thời gian phục hồi cùng khoảng dữ liệu sau bản sao bị mất. Phạm vi sao lưu thủ công không cam kết một RPO cố định.
 
@@ -1522,7 +1546,7 @@ Bảng 13. Mẫu câu hỏi và tiêu chí chấm AI
 
 Báo cáo trình bày kết quả khảo sát người dùng, xác định yêu cầu và thiết kế hệ thống quản lý nhà hàng. Thiết kế bao quát năm module nghiệp vụ: danh mục, bán hàng, kho, báo cáo thống kê và cài đặt, cùng các cơ chế kiểm soát đặc thù như thanh toán QR có đối soát, quản lý lô nguyên liệu theo FIFO và phân quyền dữ liệu theo vai trò. Đây là phần đóng góp chính của đề tài, làm cơ sở cho quá trình xây dựng chương trình.
 
-AI Assistant hỗ trợ quản lý tra cứu và so sánh doanh thu, lượng bán, phân bố order bằng tiếng Việt để xem xét hoạt động kinh doanh. Thiết kế sử dụng LLM qua API kết hợp Text-to-SQL, view theo vai trò và kiểm duyệt truy vấn. Kế hoạch đánh giá gồm 80 câu hỏi có đáp án chuẩn, các cấu hình đối chứng và bộ ca an toàn; kết quả được đối chiếu theo phương pháp tại mục 5.2.
+AI Assistant hỗ trợ quản lý tra cứu và so sánh doanh thu, lượng bán, phân bố order bằng tiếng Việt để xem xét hoạt động kinh doanh. Thiết kế sử dụng LLM qua API kết hợp Text-to-SQL, view theo vai trò và kiểm duyệt truy vấn. Kế hoạch đánh giá gồm 95 câu hỏi có đáp án chuẩn (89 câu nghiệp vụ và 6 câu vượt quyền), các cấu hình đối chứng và bộ ca an toàn; kết quả được đối chiếu theo phương pháp tại mục 5.2.
 
 Tại thời điểm báo cáo, kiểm thử toàn hệ thống, thực nghiệm AI và khảo sát SUS chưa hoàn tất. Các ngưỡng tại mục 5.2 là mục tiêu đánh giá dự kiến; báo cáo chưa có kết quả để xác nhận mức độ đạt các ngưỡng này.
 
@@ -1707,8 +1731,8 @@ Lưu ba vai trò cố định: Chủ nhà hàng/Quản lý, Thu ngân/Nhân viê
 
 | Thuộc tính | Kiểu dữ liệu | Ràng buộc | Mô tả |
 | --- | --- | --- | --- |
-| MaVaiTro | int | Định danh duy nhất của đối tượng | Định danh vai trò |
-| TenVaiTro | String | Không trùng lặp | Tên vai trò |
+| MaVaiTro | String | Định danh duy nhất của đối tượng | Mã vai trò: MANAGER, CASHIER hoặc WAREHOUSE (ba giá trị cố định, cũng là giá trị Role của backend) |
+| TenVaiTro | String | Không trùng lặp (UNIQUE) | Tên vai trò |
 | MoTa | String | – | Mô tả phạm vi trách nhiệm |
 
 Bảng 15. Thuộc tính và phương thức của lớp VAI_TRO
@@ -1726,7 +1750,7 @@ Tài khoản đăng nhập của nhân sự nhà hàng.
 | MatKhauHash | String | – | Mật khẩu đã băm |
 | HoTen | String | – | Họ tên nhân sự |
 | SoDienThoai | String | – | Số liên hệ |
-| MaVaiTro | int | Tham chiếu tới đối tượng VAI_TRO | Vai trò được gán |
+| MaVaiTro | String | Tham chiếu tới đối tượng VAI_TRO | Vai trò được gán |
 | TrangThai | String | – | Hoạt động / Đã khóa |
 | NgayTao | LocalDateTime | – | Thời điểm tạo tài khoản |
 
@@ -1748,9 +1772,9 @@ Bảng tham số dùng chung, chỉ có một bản ghi hiệu lực.
 | GioBatDauBusinessDate | LocalTime | – | Mốc bắt đầu Business Date đang áp dụng, do Quản lý cấu hình tại màn hình Cài đặt (FR-SET-04) |
 | GioBatDauBusinessDateMoi | LocalTime | – | Mốc giờ mới đang chờ áp dụng, cho phép NULL; khi đến NgayHieuLucGioMoi thì được chuyển sang GioBatDauBusinessDate (FR-SET-04) |
 | NgayHieuLucGioMoi | LocalDate | – | Business Date bắt đầu áp dụng mốc giờ mới (Business Date kế tiếp tại thời điểm thay đổi), cho phép NULL |
-| SoNgayCanhBaoHetHan | int | Mặc định 3; số nguyên dương | Lô có hạn sử dụng còn không quá số ngày này được xếp “Sắp hết hạn” (FR-INV-14). |
-| SoCauHoiAIMoiNgay | int | Mặc định 50; số nguyên dương | Số câu hỏi AI tối đa của mỗi người dùng trong một ngày (FR-AI-10). |
-| ThoiGianGiuChoPhut | int | Số nguyên dương; mặc định 5 | Thời hạn dòng món chưa gửi; áp dụng ở lần tạo/gia hạn. |
+| SoNgayCanhBaoHetHan | int | Mặc định 3; số nguyên từ 1 đến 365 | Lô có hạn sử dụng còn không quá số ngày này được xếp “Sắp hết hạn” (FR-INV-14). |
+| SoCauHoiAIMoiNgay | int | Mặc định 50; số nguyên từ 1 đến 10.000 | Số câu hỏi AI tối đa của mỗi người dùng trong một ngày (FR-AI-10). |
+| ThoiGianGiuChoPhut | int | Số nguyên từ 1 đến 1.440; mặc định 5 | Thời hạn dòng món chưa gửi; áp dụng ở lần tạo/gia hạn. |
 
 Bảng 17. Thuộc tính và phương thức của lớp CAU_HINH_HE_THONG
 
@@ -1763,7 +1787,7 @@ Ghi vết thao tác rủi ro cao, chỉ ghi thêm, không sửa/xóa. Đối v�
 | Thuộc tính | Kiểu dữ liệu | Ràng buộc | Mô tả |
 | --- | --- | --- | --- |
 | MaNhatKy | Long | Định danh duy nhất của đối tượng | Định danh bản ghi nhật ký |
-| MaNguoiDung | int | Tham chiếu tới đối tượng NGUOI_DUNG | Người thực hiện |
+| MaNguoiDung | int | Tham chiếu tới đối tượng NGUOI_DUNG, cho phép NULL | Người thực hiện; NULL khi chính hệ thống thực hiện (ví dụ chuyển phiên bản giá/công thức đến hạn sang “Đang áp dụng”) |
 | ThoiDiem | LocalDateTime | – | Thời điểm thao tác |
 | LoaiThaoTac | String | – | Hủy order, hủy món, xóa danh mục, sửa/hủy phiếu nhập, đổi bàn, giải phóng bàn, quản lý tài khoản; hủy giao dịch QR chủ động, chuyển sang chờ xác minh thanh toán, bổ sung xác minh, xác nhận đã nhận tiền, mở lại thanh toán, đóng order chưa thu được tiền, áp dụng khoản đến muộn, lưu kết quả hoàn tiền. |
 | DoiTuong | String | – | Tên lớp đối tượng bị tác động |
@@ -1794,7 +1818,7 @@ Phương thức chính: themNhom(); suaNhom(); xoaMemNhom().
 
 a6. Lớp MON_AN
 
-Món ăn; giá và công thức hiện hành được suy ra từ hai bảng lịch sử tương ứng. Trạng thái phục vụ của món phụ thuộc HetNguyenLieu suy ra từ tồn khả dụng theo công thức và cờ TamDungThuCong do Quản lý bật/tắt. HetNguyenLieu không lưu trong MON_AN và không bị bật thủ công. ChuaCoCongThuc là cờ hệ thống tự đặt true khi món chưa từng được gán công thức mặc định lần nào và tự đặt false vĩnh viễn ngay khi công thức đầu tiên được gán. TrangThai chỉ là thuộc tính tổng hợp để hiển thị, không được ghi trực tiếp. Cụ thể, cách hiển thị của một món ăn trên màn hình gọi món được quyết định như sau:
+Món ăn; giá và công thức hiện hành được suy ra từ hai bảng lịch sử tương ứng. Trạng thái phục vụ của món phụ thuộc HetNguyenLieu suy ra từ tồn khả dụng theo công thức và cờ TamDungThuCong do Quản lý bật/tắt. HetNguyenLieu là giá trị dẫn xuất, không bị bật thủ công; MON_AN.HetNguyenLieu chỉ là bộ nhớ đệm, giá trị đúng được tính lại từ tồn khả dụng mỗi lần đọc. ChuaCoCongThuc là cờ hệ thống tự đặt true khi món chưa từng được gán công thức mặc định lần nào và tự đặt false vĩnh viễn ngay khi công thức đầu tiên được gán. TrangThai chỉ là thuộc tính tổng hợp để hiển thị, không được ghi trực tiếp. Cụ thể, cách hiển thị của một món ăn trên màn hình gọi món được quyết định như sau:
 
 Nếu ChuaCoCongThuc = true: Món ở trạng thái “Nháp” và bị ẩn hoàn toàn khỏi màn hình gọi món bất kể các cờ khác.
 
@@ -1806,12 +1830,12 @@ Nếu ChuaCoCongThuc = false, HetNguyenLieu = false và TamDungThuCong = true: M
 | --- | --- | --- | --- |
 | MaMon | int | Định danh duy nhất của đối tượng | Định danh món ăn |
 | TenMon | String | – | Tên món |
-| MaNhomMon | int | Tham chiếu tới đối tượng NHOM_MON | Nhóm món (đúng một nhóm) |
+| MaNhomMon | int | Tham chiếu tới đối tượng NHOM_MON, NOT NULL; ON DELETE/ON UPDATE RESTRICT | Nhóm món (đúng một nhóm); món cũ chưa có nhóm được chuyển vào nhóm “Chưa phân nhóm” khi nâng cấp CSDL |
 | HinhAnh | String | – | Đường dẫn ảnh món |
 | GiaHienTai | double | – | Giá đang áp dụng (suy ra từ phiên bản giá đang hiệu lực trong LICH_SU_GIA_MON) |
 | TrangThai | String | Giá trị suy ra tự động | Giá trị suy ra, không ghi trực tiếp: Nháp nếu ChuaCoCongThuc; nếu đã có công thức thì Hết nguyên liệu khi HetNguyenLieu; nếu kho đủ nhưng TamDungThuCong thì Tạm dừng phục vụ; còn lại Hoạt động. Món Nháp bị ẩn; hai trạng thái chặn được hiển thị mờ và không cho gọi. |
 | TamDungThuCong | boolean | – | Cờ do Quản lý bật/tắt để tạm dừng phục vụ; độc lập với kết quả kiểm tra tồn kho (FR-CAT-26/27). |
-| HetNguyenLieu (dẫn xuất) | boolean | Giá trị dẫn xuất | Suy từ tồn khả dụng của các nguyên liệu theo công thức hiện hành; true nếu không đủ làm một suất. Không lưu trong MON_AN, không bị Quản lý bật thủ công (FR-CAT-27, FR-INV-10). |
+| HetNguyenLieu (dẫn xuất) | boolean | Giá trị dẫn xuất | Suy từ tồn khả dụng của các nguyên liệu theo công thức hiện hành; true nếu không đủ làm một suất. Cột MON_AN.HetNguyenLieu chỉ là bộ nhớ đệm cho TrangThai; giá trị dùng để hiển thị và chặn gọi món luôn được tính lại từ tồn khả dụng, không bị Quản lý bật thủ công (FR-CAT-27, FR-INV-10). |
 | ChuaCoCongThuc | boolean | – | Cờ hệ thống tự đặt true khi món chưa được gán công thức |
 | DaXoa | boolean | – | Cờ xóa mềm (FR-CAT-04) |
 
@@ -1831,7 +1855,7 @@ Mỗi lần đổi giá sinh một phiên bản; order tham chiếu đúng phiê
 | BusinessDateApDung | LocalDate | – | Business Date được chọn để áp dụng |
 | ThoiDiemHieuLuc | LocalDateTime | – | Thời điểm bắt đầu hiệu lực |
 | ThoiDiemHetHieuLuc | LocalDateTime | – | Thời điểm bị phiên bản sau thay thế |
-| LoaiThayDoi | String | – | Theo lịch / Sửa trực tiếp |
+| LoaiThayDoi | String | – | Tạo mới (gán lần đầu hoặc lên lịch theo Business Date) / Cập nhật (sửa trực tiếp, FR-CAT-23) |
 | TrangThai | String | – | Chờ áp dụng / Đang áp dụng / Hết hiệu lực / Đã hủy |
 | NguoiTao | int | Tham chiếu tới đối tượng NGUOI_DUNG | Người thực hiện thay đổi |
 | ThoiDiemTao | LocalDateTime | – | Thời điểm tạo phiên bản |
@@ -1852,7 +1876,7 @@ Phiên bản công thức chế biến của món, cơ chế hiệu lực giốn
 | BusinessDateApDung | LocalDate | – | Business Date áp dụng (FR-CAT-08) |
 | ThoiDiemHieuLuc | LocalDateTime | – | Thời điểm bắt đầu hiệu lực |
 | ThoiDiemHetHieuLuc | LocalDateTime | – | Thời điểm bị thay thế |
-| LoaiThayDoi | String | – | Theo lịch / Sửa trực tiếp |
+| LoaiThayDoi | String | – | Tạo mới (gán lần đầu hoặc lên lịch theo Business Date) / Cập nhật (sửa trực tiếp, FR-CAT-23) |
 | TrangThai | String | – | Chờ áp dụng / Đang áp dụng / Hết hiệu lực / Đã hủy |
 | NguoiTao | int | Tham chiếu tới đối tượng NGUOI_DUNG | Người thực hiện |
 | ThoiDiemTao | LocalDateTime | – | Thời điểm tạo |
@@ -1885,7 +1909,7 @@ Nguyên liệu kho; SoLuongTon được cập nhật bởi mọi giao dịch kho
 | TenNguyenLieu | String | – | Tên nguyên liệu |
 | DonViTinh | String | – | Đơn vị tính chuẩn hóa |
 | DaKhoaDonVi | boolean | – | Khóa sửa đơn vị sau khi đã tham chiếu (FR-CAT-14) |
-| MucTonToiThieu | double | Không nhỏ hơn 0 | Ngưỡng cảnh báo tồn riêng của nguyên liệu; nếu để trống thì dùng mức tồn tối thiểu mặc định của CAU_HINH_HE_THONG (FR-INV-07) |
+| MucTonToiThieu | double | Không nhỏ hơn 0; cho phép NULL | Ngưỡng cảnh báo tồn riêng của nguyên liệu; NULL là chưa cấu hình (0 là một ngưỡng hợp lệ, nghĩa là không cảnh báo); nếu để trống thì dùng mức tồn tối thiểu mặc định của CAU_HINH_HE_THONG (FR-INV-07) |
 | SoNgayBaoQuan | int | – | Số ngày bảo quản chuẩn kể từ ngày nhập; để trống nếu nguyên liệu không quản lý hạn sử dụng |
 | SoLuongTon | double | Không nhỏ hơn 0 | Tổng tồn sổ sách của các lô, kể cả lô hết hạn. Lượng khả dụng được tính từ lô còn hạn sau khi trừ giữ chỗ theo FR-INV-10. |
 | Version | int | Tăng mỗi lần ghi nhận thay đổi | Số phiên bản của bản ghi (NFR-08) |
@@ -1945,7 +1969,8 @@ a13. Lớp ORDER
 | TrangThai | String | – | Đang mở / Chờ xác nhận thanh toán / Đã thanh toán / Chờ xác minh thanh toán / Đóng – chưa thu được tiền / Đã hủy / Tự động đóng |
 | TongTien | double | – | Tổng tiền order; nguồn in phiếu tạm tính trước khi thanh toán, chưa ghi nhận doanh thu |
 | NguoiTao | int | Tham chiếu tới đối tượng NGUOI_DUNG | Nhân viên tạo order |
-| ThoiDiemTao | LocalDateTime | – | Thời điểm Submit |
+| NgayTao | LocalDateTime | – | Thời điểm Submit (tên cột vật lý là NgayTao) |
+| NgayCapNhat | LocalDateTime | Cho phép NULL | Thời điểm order được cập nhật gần nhất; dùng tính thời gian đã chờ ở trạng thái “Chờ xác minh thanh toán” (FR-REP-02) |
 | ThoiDiemDong | LocalDateTime | – | Thời điểm tất toán hoặc đóng |
 | LyDoHuy | String | – | Lý do hủy toàn bộ order (FR-SALE-27) |
 
@@ -2001,12 +2026,13 @@ Hóa đơn chốt sau thanh toán thành công; order bị khóa sau khi phát s
 | MaHoaDon | Long | Định danh duy nhất của đối tượng | Định danh hóa đơn |
 | MaOrder | Long | Tham chiếu tới đối tượng ORDER, không trùng lặp | Order tương ứng |
 | MaGiaoDichThanhToan | Long | Tham chiếu tới đối tượng GIAO_DICH_THANH_TOAN | Giao dịch thanh toán thành công đã chốt hóa đơn này (truy vết khi có nhiều lần thử) |
-| SoHoaDon | String | Không trùng lặp | Số hóa đơn |
+| SoHoaDon | String | Không trùng lặp | Số hóa đơn, cấp khi phát hành theo dạng HD-ddMMyy-nnnnnn (ddMMyy là BusinessDate của order, nnnnnn là mã hóa đơn nên luôn duy nhất, không cần bộ đếm riêng) |
 | ThoiDiemXuat | LocalDateTime | – | Thời điểm xuất hóa đơn |
 | TongTien | double | – | Tổng tiền thanh toán |
 | PhuongThucThanhToan | String | – | Tiền mặt / QR |
 | NguoiLap | int | Tham chiếu tới đối tượng NGUOI_DUNG, cho phép NULL | Người xác nhận thanh toán dẫn đến hóa đơn (Thu ngân hoặc Quản lý); NULL khi hệ thống tự phát hành do webhook xác nhận |
 | SoLanIn | int | – | Số lần in (FR-SALE-26) |
+| NoiDungHoaDon | JSON | Cho phép NULL | Nội dung hóa đơn đã chốt tại thời điểm phát hành (thông tin nhà hàng, tên bàn, từng dòng món với tên, số lượng, đơn giá, thành tiền, tổng tiền); in lại (FR-SALE-26) chỉ hiển thị lại nội dung này, nên đổi tên món hay thông tin nhà hàng về sau không làm đổi hóa đơn cũ. Hóa đơn phát hành trước khi có cột này mang NULL và được dựng lại từ các dòng món của order |
 | BusinessDate | LocalDate | – | Kế thừa BusinessDate của ORDER (không tính lại theo thời điểm xuất hóa đơn), để order đặt trước mốc giờ và thanh toán sau mốc giờ vẫn thuộc cùng một ngày báo cáo |
 
 Bảng 30. Thuộc tính và phương thức của lớp HOA_DON
@@ -2024,7 +2050,7 @@ Lần thanh toán của order bằng tiền mặt hoặc QR; với QR gồm vòn
 | PhuongThuc | String | – | Tiền mặt / QR |
 | SoTien | double | – | Số tiền giao dịch |
 | TrangThai | String | – | Chờ xác nhận / Thành công / Hết hạn / Chờ xác minh thanh toán / Đóng – chưa thu được tiền / Đã hủy |
-| MaQR | String | – | Nội dung mã QR động; NULL khi thanh toán tiền mặt |
+| MaQR | String | – | Nội dung mã QR động (địa chỉ ảnh VietQR khi dùng SePay); NULL khi thanh toán tiền mặt |
 | ThoiDiemTaoQR | LocalDateTime | – | Thời điểm sinh mã QR; NULL khi thanh toán tiền mặt |
 | ThoiDiemHetHan | LocalDateTime | – | Mốc hết hạn 10 phút (FR-SALE-14); NULL khi thanh toán tiền mặt |
 | MaGiaoDichCong | String | – | Mã giao dịch phía cổng thanh toán; duy nhất khi khác NULL, dùng chống ghi nhận webhook lặp; NULL khi thanh toán tiền mặt hoặc khi chưa có webhook |
@@ -2051,7 +2077,7 @@ Các lượt in phiếu bếp, phục vụ in lại khi máy in lỗi.
 | MaPhieuBep | Long | Định danh duy nhất của đối tượng | Định danh phiếu bếp |
 | MaOrder | Long | Tham chiếu tới đối tượng ORDER | Order tương ứng |
 | ThoiDiemIn | LocalDateTime | – | Thời điểm gửi lệnh in |
-| TrangThaiIn | String | – | Thành công / Thất bại |
+| TrangThaiIn | String | – | Chờ in / Thành công / Thất bại; “Chờ in” là trạng thái lúc phiếu được tạo, trước khi giao diện báo kết quả lệnh in (FR-SALE-32) |
 | SoLanIn | int | – | Số lần in lại |
 | NoiDung | String | – | Danh sách món, số lượng, ghi chú được in |
 
@@ -2067,10 +2093,10 @@ Phiếu nhập hàng từ nhà cung cấp.
 | --- | --- | --- | --- |
 | MaPhieuNhap | Long | Định danh duy nhất của đối tượng | Định danh phiếu nhập |
 | MaNCC | int | Tham chiếu tới đối tượng NHA_CUNG_CAP | Nhà cung cấp |
-| NgayNhap | LocalDate | – | Ngày nhập hàng |
+| NgayNhap | LocalDateTime | – | Ngày giờ nhập hàng; hạn sử dụng của lô tính từ phần ngày |
 | TongTien | double | – | Tổng giá trị phiếu |
-| TrangThai | String | – | Hiệu lực / Đã hủy (FR-INV-02) |
-| NguoiLap | int | Tham chiếu tới đối tượng NGUOI_DUNG | Bếp lập phiếu |
+| TrangThai | String | – | Nháp / Đã hủy (FR-INV-02). “Nháp” là trạng thái của phiếu còn hiệu lực và còn sửa/hủy được; phiếu không có trạng thái trung gian khác |
+| NguoiTao | int | Tham chiếu tới đối tượng NGUOI_DUNG | Bếp lập phiếu (cột vật lý NguoiTao) |
 | GhiChu | String | – | Ghi chú |
 
 Bảng 33. Thuộc tính và phương thức của lớp PHIEU_NHAP_KHO
@@ -2106,7 +2132,7 @@ Từng lô nguyên liệu, tạo tự động khi ghi nhận một dòng nhập;
 | MaNguyenLieu | int | Tham chiếu tới đối tượng NGUYEN_LIEU | Nguyên liệu của lô |
 | MaChiTietNhap | Long | Tham chiếu tới đối tượng CHI_TIET_PHIEU_NHAP, không trùng lặp; NULL khi LoDieuChinhKiemKe = true (BR-LOT-02) | Dòng nhập đã tạo ra lô này |
 | LoDieuChinhKiemKe | boolean | Mặc định false | Đánh dấu lô điều chỉnh do kiểm kê phát hiện thừa, không có dòng nhập nguồn (BR-LOT-02) |
-| NgayNhap | LocalDate | – | Ngày nhập của lô - lấy tự động từ PHIEU_NHAP_KHO.NgayNhap tại thời điểm ghi nhận dòng nhập, dùng để sắp xếp thứ tự xuất theo FIFO |
+| NgayNhap | LocalDateTime | – | Ngày giờ nhập của lô - lấy tự động từ PHIEU_NHAP_KHO.NgayNhap tại thời điểm ghi nhận dòng nhập, dùng để sắp xếp thứ tự xuất theo FIFO |
 | HanSuDung | LocalDate | – | Hạn sử dụng của lô - hệ thống tự tính bằng NgayNhap cộng số ngày bảo quản của nguyên liệu; để trống nếu nguyên liệu đó không quản lý hạn dùng |
 | SoLuongNhap | double | Phải lớn hơn 0 | Số lượng ban đầu của lô |
 | SoLuongConLai | double | Không nhỏ hơn 0 | Số lượng còn lại chưa xuất dùng của lô |
@@ -2125,8 +2151,8 @@ Phiếu xuất hủy cho hao hụt, hư hỏng, hết hạn.
 | --- | --- | --- | --- |
 | MaPhieuXuat | Long | Định danh duy nhất của đối tượng | Định danh phiếu xuất |
 | MaPhieuKiemKe | Long | Tham chiếu tới đối tượng PHIEU_KIEM_KE, cho phép NULL | Phiếu kiểm kê sinh ra phiếu xuất hủy tự động (FR-INV-05); NULL với phiếu xuất hủy do Bếp tự lập |
-| LyDo | String | – | Hao hụt / Hư hỏng / Hết hạn |
-| NgayXuat | LocalDate | – | Ngày xuất |
+| LyDo | String | – | Hao hụt / Hư hỏng / Hết hạn; Bếp có thể ghi lý do ngắn khác (tối đa 50 ký tự). Phiếu tự sinh từ kiểm kê ghi “Hao hụt” |
+| NgayXuat | LocalDateTime | – | Ngày giờ xuất |
 | NguoiLap | int | Tham chiếu tới đối tượng NGUOI_DUNG | Bếp thực hiện |
 | GhiChu | String | – | Diễn giải |
 | NguonXuat | String | Nguyên liệu / Món đã chế biến / Kiểm kê | Xác định nguồn chứng từ và cách ghi nhận giao dịch. |
@@ -2137,7 +2163,7 @@ Phương thức chính: taoPhieuXuat(lyDo); xacNhanXuatKho().
 
 a23. Lớp CHI_TIET_PHIEU_XUAT
 
-Dòng nguyên liệu xuất thủ công, tính vào chi phí hao hụt.
+Dòng nguyên liệu của phiếu xuất hủy: lượng xuất thủ công hoặc hao hụt kiểm kê tính vào chi phí hao hụt (05b); với nguồn Món đã chế biến là lượng tiêu hao gốc dùng để phân loại, không tính lại vào 05b.
 
 | Thuộc tính | Kiểu dữ liệu | Ràng buộc | Mô tả |
 | --- | --- | --- | --- |
@@ -2160,11 +2186,10 @@ Phiếu kiểm kê định kỳ, cơ chế điều chỉnh sai lệch tồn chí
 | Thuộc tính | Kiểu dữ liệu | Ràng buộc | Mô tả |
 | --- | --- | --- | --- |
 | MaPhieuKiemKe | Long | Định danh duy nhất của đối tượng | Định danh phiếu kiểm kê |
-| NgayKiemKe | LocalDate | – | Ngày kiểm kê |
+| NgayKiemKe | LocalDateTime | – | Thời điểm mở phiên kiểm kê; lô điều chỉnh do kiểm kê lấy phần ngày làm NgayNhap |
 | NguoiThucHien | int | Tham chiếu tới đối tượng NGUOI_DUNG | Người kiểm kê |
-| TrangThai | String | – | Nháp / Đã xác nhận |
 | GhiChu | String | – | Ghi chú |
-| TrangThai | String | Đang kiểm kê / Đã xác nhận / Đã hủy | Chỉ một phiên Đang kiểm kê; dùng khóa nghiệp vụ trên server. |
+| TrangThai | String | Đang kiểm kê / Đã chốt / Đã hủy | Giá trị duy nhất của thuộc tính; chỉ một phiên Đang kiểm kê tồn tại, kiểm soát bằng khóa nghiệp vụ trên server. “Đã chốt” là trạng thái sau khi xác nhận phiếu |
 
 Bảng 38. Thuộc tính và phương thức của lớp PHIEU_KIEM_KE
 
@@ -2176,7 +2201,7 @@ Chênh lệch tồn của từng nguyên liệu trong một lần kiểm kê.
 
 | Thuộc tính | Kiểu dữ liệu | Ràng buộc | Mô tả |
 | --- | --- | --- | --- |
-| MaChiTietKK | Long | Định danh duy nhất của đối tượng | Định danh dòng kiểm kê |
+| MaChiTietKiemKe | Long | Định danh duy nhất của đối tượng | Định danh dòng kiểm kê |
 | MaPhieuKiemKe | Long | Tham chiếu tới đối tượng PHIEU_KIEM_KE | Phiếu kiểm kê |
 | MaNguyenLieu | int | Tham chiếu tới đối tượng NGUYEN_LIEU | Nguyên liệu đối chiếu |
 | TonHeThong | double | – | Tồn theo hệ thống |
@@ -2219,8 +2244,8 @@ a27. Lớp GIA_BINH_QUAN_THANG
 | --- | --- | --- | --- |
 | MaNguyenLieu | int | Định danh duy nhất (một phần) - Tham chiếu tới đối tượng NGUYEN_LIEU | Nguyên liệu |
 | Thang | int | Định danh duy nhất (một phần), định dạng YYYYMM (ví dụ 202609) | Tháng tính giá |
-| DonGiaBinhQuan | double | – | Đơn giá bình quân gia quyền trong tháng |
-| TongSoLuongNhap | double | – | Tổng lượng nhập trong tháng |
+| DonGiaBinhQuan | double | – | Đơn giá bình quân gia quyền trong tháng, tính trên tồn đầu kỳ và lượng nhập trong tháng (FR-REP-05a); mang đơn giá kỳ trước sang khi tháng không có lần nhập |
+| TongSoLuongNhap | double | – | Tổng lượng nhập trong tháng (0 khi đơn giá được mang sang từ kỳ trước; không gồm tồn đầu kỳ) |
 | ThoiDiemTinh | LocalDateTime | – | Thời điểm tính toán gần nhất |
 
 Bảng 41. Thuộc tính và phương thức của lớp GIA_BINH_QUAN_THANG
@@ -2235,7 +2260,7 @@ Phiên hội thoại với trợ lý AI, gắn với vai trò để giới hạn
 | --- | --- | --- | --- |
 | MaPhien | Long | Định danh duy nhất của đối tượng | Định danh phiên chat |
 | MaNguoiDung | int | Tham chiếu tới đối tượng NGUOI_DUNG | Người dùng của phiên |
-| MaVaiTro | int | Tham chiếu tới đối tượng VAI_TRO | Vai trò tại thời điểm chat (FR-AI-05) |
+| MaVaiTro | String | Tham chiếu tới đối tượng VAI_TRO | Vai trò tại thời điểm chat (FR-AI-05) |
 | ThoiDiemBatDau | LocalDateTime | – | Thời điểm mở phiên |
 | ThoiDiemKetThuc | LocalDateTime | – | Thời điểm kết thúc phiên |
 
@@ -2254,8 +2279,9 @@ Nhật ký từng lượt hỏi–đáp, phục vụ chức năng “Xem chi ti�
 | PhamViDuLieu | String | – | Danh sách view thực tế được dùng để sinh SQL, thuộc phạm vi cho phép của vai trò; phục vụ audit quyền truy cập dữ liệu (NFR-06, NFR-12). |
 | CauHoi | String | – | Câu hỏi tiếng Việt của người dùng |
 | CauSQLSinhRa | String | – | Câu SQL do LLM sinh sau kiểm duyệt |
-| TrangThai | String | – | Thành công / Yêu cầu làm rõ / Từ chối / Lỗi |
-| KetQuaTomTat | String | – | Bảng số liệu trả về (rút gọn) |
+| BusinessDate | LocalDate | – | Business Date hiệu lực khi đặt câu hỏi; tính hạn mức SoCauHoiAIMoiNgay (FR-AI-10) theo ngày này. |
+| TrangThai | String | – | Đang xử lý (đã giữ chỗ hạn mức, chưa hoàn tất; hiển thị là bị gián đoạn nếu không kết thúc) / Thành công / Yêu cầu làm rõ / Từ chối / Lỗi |
+| KetQuaTomTat | String | – | Tóm tắt câu trả lời (ý chính và nhận xét) hoặc thông báo từ chối, làm rõ, lỗi đã hiển thị; bảng số liệu gốc không lưu lại mà truy vấn lại được từ CauSQLSinhRa |
 | ThoiGianPhanHoi | int | – | Thời gian phản hồi (ms), phục vụ NFR về hiệu năng |
 | ThoiDiem | LocalDateTime | – | Thời điểm đặt câu hỏi |
 | ModelPhienBan | String | Bắt buộc khi gọi LLM | Định danh model thực tế. |

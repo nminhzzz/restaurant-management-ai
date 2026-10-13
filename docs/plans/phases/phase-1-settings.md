@@ -1,5 +1,7 @@
 # Phase 1 — Module 5: Cài đặt hệ thống
 
+> **Trạng thái (2026-10-13):** Phase 1 đã triển khai (xem `docs/plans/2026-09-24-master-roadmap.md`). Các ô `- [ ]` bên dưới là danh sách bước thực hiện lịch sử và **không còn được cập nhật theo từng bước**; trạng thái thật được xác nhận bằng mã nguồn, test và `docs/testing/test-cases.md`. Số hiệu FR/§ trong tài liệu này theo báo cáo tại thời điểm lập kế hoạch và đã lỗi thời so với báo cáo hiện hành.
+
 > **Cho người thực thi:** dùng skill `executing-plans` để chạy kế hoạch này theo từng task.
 
 **Mục tiêu:** Xác thực thật, quản lý tài khoản, phân quyền theo vai trò, cấu hình hệ thống và
@@ -13,7 +15,7 @@ nằm ở `app/shared/audit.py` vì mọi module đều ghi vào. Xác thực d�
 **Spec:** báo cáo §2.4.5 (FR-SET-01…09), §3.4.2 (ma trận quyền chức năng), §3.4.3 (trách nhiệm vai trò).
 
 **Hợp đồng với các phase khác:** phase này sở hữu hai thứ mà mọi phase sau tiêu thụ — hàm
-`seed_reference_data()` (ba vai trò + cấu hình singleton, Task 1 Step 0) và `require_any_role` (Task 2).
+`seed_reference_data()` (ba vai trò + cấu hình singleton, Task 1 Step 0) và `require_roles` (Task 2).
 Đổi chữ ký của chúng thì phải sửa cả Phase 0 Task 0 (`conftest.py`) và Phase 7 Task 1.
 
 **Phụ thuộc:** Phase 0 (bảng + lược đồ). **Lộ trình:** `docs/plans/2026-09-24-master-roadmap.md`
@@ -41,7 +43,7 @@ nằm ở `app/shared/audit.py` vì mọi module đều ghi vào. Xác thực d�
 | `apps/api/src/app/modules/settings/schemas.py` | Hợp đồng request/response của module. |
 | `apps/api/src/app/modules/settings/service.py` | Logic nghiệp vụ: đăng nhập, tài khoản, cấu hình, truy vấn audit. |
 | `apps/api/src/app/modules/settings/router.py` | Tầng HTTP, gắn `require_roles`. |
-| `apps/api/src/app/core/dependencies.py` | Bổ sung `require_any_role` cho Quản lý kế thừa quyền. |
+| `apps/api/src/app/core/dependencies.py` | `get_current_user` (đọc lại tài khoản ở mọi yêu cầu) và `require_roles`; Quản lý kế thừa quyền bằng cách được liệt kê tường minh ở từng route. |
 | `apps/web/src/features/auth/` | Form đăng nhập, lưu token, đăng xuất, đổi mật khẩu. |
 | `apps/web/src/lib/session.ts` | Đọc/ghi token, chuyển hướng khi 401. |
 | `apps/web/src/app/login/page.tsx` | Thay placeholder bằng form thật. |
@@ -190,7 +192,7 @@ Expected: xanh. Commit: `feat(settings): authenticate users and issue access tok
 
 **Interfaces:**
 - Consumes: Task 1, `audit.record`, `require_roles`.
-- Produces: `require_any_role`; `create_user`, `update_user`, `lock_user`, `reset_password`;
+- Produces: `require_roles`; `create_user`, `update_user`, `lock_user`, `reset_password`;
   `export_backup(session) -> BackupDump`
   (`BackupDump`: `created_at: datetime`, `covers_until: datetime`,
   `tables: list[str]` — lấy từ `Base.metadata.tables`, **không** hardcode 29);
@@ -292,9 +294,9 @@ async def test_a_failed_write_leaves_no_audit_row(client, manager_token, db_sess
 Run: `cd apps/api && ./.venv/bin/pytest tests/modules/test_settings_accounts.py -v`
 Expected: FAIL — route chưa tồn tại
 
-- [ ] **Step 3: Cài đặt `require_any_role` và các endpoint**
+- [ ] **Step 3: Cài đặt `require_roles` và các endpoint**
 
-`require_any_role(*allowed)` mở rộng `require_roles` để Quản lý luôn lọt qua (FR-SET-03 kế thừa).
+Kế hoạch ban đầu định thêm `require_roles`, nhưng mã nguồn **không có** hàm này: mỗi route gọi `require_roles(...)` và liệt kê tường minh `Role.MANAGER` (FR-SET-03 kế thừa).
 Mọi thao tác ghi gọi `audit.record(...)` trong **cùng transaction** với thay đổi dữ liệu, để không
 có bản ghi nhật ký mồ côi khi rollback.
 

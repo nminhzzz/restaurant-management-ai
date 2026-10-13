@@ -1,5 +1,7 @@
 # Server-Side Item Holds Implementation Plan
 
+> **Trạng thái (2026-10-13):** đã triển khai. Đánh dấu theo bằng chứng trong mã và test hiện có (`make test-api`/`make test-web` xanh ngày 2026-10-13); bước 'Expected: FAIL' (red) không lưu bằng chứng riêng nên được đánh dấu theo kết quả cuối của task. Bước chưa có bằng chứng (chạy MySQL thật, `make gate` đầy đủ) để trống.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox syntax for tracking.
 
 **Goal:** Thêm lượt chọn món server-side, giữ nguyên liệu theo lô FIFO và chuyển giữ thành tiêu hao/order nguyên tử khi gửi.
@@ -37,10 +39,10 @@
 - ItemHoldLot maps CHI_TIET_GIU_CHO, composite key (MaGiuCho, MaLoNguyenLieu), quantity held.
 - MaChiTietOrder unique when populated; (MaYeuCauGui, MaDongYeuCau) unique when populated.
 
-- [ ] Step 1: Add schema tests for table/columns/FKs/checks/unique keys and update EXPECTED_TABLES.
-- [ ] Step 2: Run cd apps/api && uv run pytest tests/schema/test_sales_models.py tests/schema/test_schema_contract.py -q; Expected: FAIL before models exist.
-- [ ] Step 3: Implement mapped models and reversible migration; register models in migration imports.
-- [ ] Step 4: Run the same schema tests; Expected: PASS.
+- [x] Step 1: Add schema tests for table/columns/FKs/checks/unique keys and update EXPECTED_TABLES.
+- [x] Step 2: Run cd apps/api && uv run pytest tests/schema/test_sales_models.py tests/schema/test_schema_contract.py -q; Expected: FAIL before models exist.
+- [x] Step 3: Implement mapped models and reversible migration; register models in migration imports.
+- [x] Step 4: Run the same schema tests; Expected: PASS.
 
 ### Task 2: Hold allocation, release and stocktake exclusion
 
@@ -64,12 +66,12 @@
 - `StocktakeStatus` gains `DANG_KIEM_KE`; `create_stocktake` locks the singleton config row, rejects an existing active session, and creates the active session. `record_counts` accepts only the active session; confirm and new cancel action transition it to terminal status.
 - Receipt, issue, write-off, stock adjustment, hold create/renew/submit/release and order reversal all lock the same config row before their stock-changing decision and reject while a stocktake is active. Read-only inventory browsing remains available.
 
-- [ ] Step 1: Write tests for FIFO across multiple lots, expiry-capped TTL, expired-line display and reallocation-at-submit, competing holds, release restoring availability, only-one-active-stocktake, and rejection of each stock-changing path during an active stocktake.
-- [ ] Step 2: Run cd apps/api && uv run pytest tests/modules/test_sales_holds.py -q; Expected: FAIL because module does not exist.
-- [ ] Step 3: Implement the shared config-row lock/check in every stock mutation service, sorted ingredient locks, FIFO lot allocation and transactional writes; keep stock ledger unchanged for holds.
-- [ ] Step 4: Change stocktake lifecycle to `Đang kiểm kê` on create; record stable system quantities while the active-session guard blocks stock writes; add authorized cancel route/UI, require active status for count/confirm, and transition to `Đã chốt` or `Đã hủy` atomically.
+- [x] Step 1: Write tests for FIFO across multiple lots, expiry-capped TTL, expired-line display and reallocation-at-submit, competing holds, release restoring availability, only-one-active-stocktake, and rejection of each stock-changing path during an active stocktake.
+- [x] Step 2: Run cd apps/api && uv run pytest tests/modules/test_sales_holds.py -q; Expected: FAIL because module does not exist.
+- [x] Step 3: Implement the shared config-row lock/check in every stock mutation service, sorted ingredient locks, FIFO lot allocation and transactional writes; keep stock ledger unchanged for holds.
+- [x] Step 4: Change stocktake lifecycle to `Đang kiểm kê` on create; record stable system quantities while the active-session guard blocks stock writes; add authorized cancel route/UI, require active status for count/confirm, and transition to `Đã chốt` or `Đã hủy` atomically.
 - [ ] Step 5: Add MySQL 8.4 integration tests proving a competing stock mutation waits for the config-row lock and then observes the active session; verify rollback releases locks and no partial stock changes remain.
-- [ ] Step 6: Run `cd apps/api && uv run pytest tests/modules/test_sales_holds.py tests/modules/test_inventory_stocktake.py -q` and `cd apps/web && pnpm test -- stocktake-panel.test.tsx`; Expected: PASS.
+- [x] Step 6: Run `cd apps/api && uv run pytest tests/modules/test_sales_holds.py tests/modules/test_inventory_stocktake.py -q` and `cd apps/web && pnpm test -- stocktake-panel.test.tsx`; Expected: PASS.
 
 ### Task 3: API send and idempotency
 
@@ -90,10 +92,10 @@
 - Submit converts held quantities to exact FIFO StockMovement rows and links each hold to one OrderLine.
 - Submit locks/checks the stocktake guard and rejects while an active stocktake exists; stale price/recipe response releases the hold atomically and asks the cashier to reconfirm.
 
-- [ ] Step 1: Write tests for cashier/manager permissions, non-owner denial, stale recipe/price, duplicate submission and rollback after a failed line.
-- [ ] Step 2: Run cd apps/api && uv run pytest tests/modules/test_sales_holds.py -q; Expected: FAIL.
-- [ ] Step 3: Add request schemas/routes; preserve existing order endpoint compatibility until all repository consumers use the selection flow; keep handlers thin and transactional orchestration in service functions.
-- [ ] Step 4: Run hold/order/locking tests; Expected: PASS.
+- [x] Step 1: Write tests for cashier/manager permissions, non-owner denial, stale recipe/price, duplicate submission and rollback after a failed line.
+- [x] Step 2: Run cd apps/api && uv run pytest tests/modules/test_sales_holds.py -q; Expected: FAIL.
+- [x] Step 3: Add request schemas/routes; preserve existing order endpoint compatibility until all repository consumers use the selection flow; keep handlers thin and transactional orchestration in service functions.
+- [x] Step 4: Run hold/order/locking tests; Expected: PASS.
 
 ### Task 4: Server-backed cart UI
 
@@ -109,7 +111,7 @@
 - UI shows expiry and requires confirmation when server reports stale price/recipe.
 - Expired rows remain visible with an expiry label; retry/submit displays per-line availability failures without discarding the rest of the user's selection.
 
-- [ ] Step 1: Add tests asserting selection and hold endpoints are called, expiry is rendered, and retry uses the same request key.
-- [ ] Step 2: Run cd apps/web && pnpm test -- order-step.test.tsx; Expected: FAIL because current cart is browser-local.
-- [ ] Step 3: Replace direct create/send flow with hold API while preserving existing error messages and navigation.
-- [ ] Step 4: Run cd apps/web && pnpm test -- order-step.test.tsx sales-workspace.test.tsx; Expected: PASS.
+- [x] Step 1: Add tests asserting selection and hold endpoints are called, expiry is rendered, and retry uses the same request key.
+- [x] Step 2: Run cd apps/web && pnpm test -- order-step.test.tsx; Expected: FAIL because current cart is browser-local.
+- [x] Step 3: Replace direct create/send flow with hold API while preserving existing error messages and navigation.
+- [x] Step 4: Run cd apps/web && pnpm test -- order-step.test.tsx sales-workspace.test.tsx; Expected: PASS.

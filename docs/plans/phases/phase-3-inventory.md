@@ -1,5 +1,7 @@
 # Phase 3 — Module 3: Quản lý kho
 
+> **Trạng thái (2026-10-13):** Phase 3 đã triển khai (xem `docs/plans/2026-09-24-master-roadmap.md`). Các ô `- [ ]` bên dưới là danh sách bước thực hiện lịch sử và **không còn được cập nhật theo từng bước**; trạng thái thật được xác nhận bằng mã nguồn, test và `docs/testing/test-cases.md`. Số hiệu FR/§ trong tài liệu này theo báo cáo tại thời điểm lập kế hoạch và đã lỗi thời so với báo cáo hiện hành.
+
 > **Cho người thực thi:** dùng skill `executing-plans` để chạy kế hoạch này theo từng task.
 
 **Mục tiêu:** Toàn bộ FR-INV-01…12: nhập kho theo lô, trừ kho FIFO có khóa dòng, hoàn kho, xuất thủ
