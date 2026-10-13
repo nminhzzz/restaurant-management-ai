@@ -11,7 +11,14 @@ from app.core.database import get_session
 from app.core.errors import BusinessRuleError
 from app.core.security import create_access_token
 from app.main import app
-from app.modules.catalog.models import Dish, DishPriceVersion, Ingredient, Recipe, RecipeItem
+from app.modules.catalog.models import (
+    Dish,
+    DishGroup,
+    DishPriceVersion,
+    Ingredient,
+    Recipe,
+    RecipeItem,
+)
 from app.modules.inventory.models import (
     GoodsReceipt,
     GoodsReceiptLine,
@@ -54,8 +61,11 @@ async def _setup(session, *, quantities=(3, 4), expiry_dates=(None, None)):
     ingredient = Ingredient(
         name="Hold ingredient", unit="kg", min_stock=0, stock_qty=sum(quantities)
     )
-    dish = Dish(name="Held dish", missing_recipe=False, out_of_stock=False)
-    session.add_all([user, ingredient, dish])
+    group = DishGroup(name="Held group", display_order=1)
+    session.add_all([user, ingredient, group])
+    await session.flush()
+    dish = Dish(name="Held dish", group_id=group.id, missing_recipe=False, out_of_stock=False)
+    session.add(dish)
     await session.flush()
     bd = date(2026, 9, 24)
     price = DishPriceVersion(dish_id=dish.id, price=10000, business_date=bd, status="Đang áp dụng")
@@ -409,7 +419,9 @@ async def test_selection_submit_reallocates_an_expired_hold_before_conversion(se
 @pytest.mark.anyio
 async def test_selection_submit_rolls_back_all_lines_when_a_later_hold_is_invalid(session):
     user, dish, ingredient, _ = await _setup(session)
-    second_dish = Dish(name="Second held dish", missing_recipe=False, out_of_stock=False)
+    second_dish = Dish(
+        name="Second held dish", group_id=dish.group_id, missing_recipe=False, out_of_stock=False
+    )
     session.add(second_dish)
     await session.flush()
     second_price = DishPriceVersion(
@@ -633,6 +645,15 @@ async def test_receipt_edit_cannot_shrink_below_held_quantity(session):
         )
 
 
+async def _open_stocktake_over_live_holds(session, user_id):
+    """create_stocktake refuses to open over live holds (FR-INV-08), so the defensive
+    confirm-time checks are exercised on a session inserted directly."""
+    stocktake = Stocktake(status="Đang kiểm kê", performed_by=user_id)
+    session.add(stocktake)
+    await session.flush()
+    return stocktake
+
+
 @pytest.mark.anyio
 async def test_active_stocktake_blocks_order_reversal(session):
     user, dish, ingredient, _ = await _setup(session)
@@ -674,7 +695,7 @@ async def test_stocktake_rejects_actual_below_active_hold_quantity(session):
     user, dish, ingredient, lots = await _setup(session)
     hold = await upsert_hold(session, user.id, "selection-a", dish.id, 5, None, None, None)
     await session.commit()
-    stocktake = await create_stocktake(session, user.id)
+    stocktake = await _open_stocktake_over_live_holds(session, user.id)
     await record_counts(session, stocktake.id, [(ingredient.id, Decimal(4))])
 
     with pytest.raises(BusinessRuleError, match="đang được giữ"):
@@ -690,7 +711,7 @@ async def test_stocktake_draws_only_unheld_lot_quantities(session):
     user, dish, ingredient, lots = await _setup(session)
     hold = await upsert_hold(session, user.id, "selection-a", dish.id, 5, None, None, None)
     await session.commit()
-    stocktake = await create_stocktake(session, user.id)
+    stocktake = await _open_stocktake_over_live_holds(session, user.id)
     await record_counts(session, stocktake.id, [(ingredient.id, Decimal(5))])
     await confirm_stocktake(session, user.id, stocktake.id)
     await session.flush()
@@ -714,7 +735,7 @@ async def test_active_stocktake_blocks_hold_creation_and_release(session):
     hold = await upsert_hold(session, user.id, "selection-a", dish.id, 2, None, None, None)
     hold_id, user_id, dish_id = hold.id, user.id, dish.id
     await session.commit()
-    await create_stocktake(session, user_id)
+    await _open_stocktake_over_live_holds(session, user_id)
     await session.commit()
 
     with pytest.raises(BusinessRuleError, match="Đang kiểm kê"):

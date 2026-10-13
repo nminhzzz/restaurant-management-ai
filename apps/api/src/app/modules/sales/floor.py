@@ -3,12 +3,20 @@
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.catalog.models import DiningTable
+from app.modules.sales.common import LINE_CANCELLED
 from app.modules.sales.models import Order, OrderLine
-from app.modules.sales.orders import LINE_CANCELLED, OPEN_ORDER_STATUSES
+from app.shared.enums import OrderStatus
+
+# Orders still being served or settled: they hold their table (or, takeaway, the counter).
+ACTIVE_ORDER_STATUSES = (
+    OrderStatus.DANG_MO.value,
+    OrderStatus.CHO_XAC_NHAN_THANH_TOAN.value,
+    OrderStatus.CHO_XAC_MINH_THANH_TOAN.value,
+)
 
 
 def _summary(order: Order, totals: dict[int, tuple[int, Decimal]]) -> dict[str, Any]:
@@ -16,6 +24,7 @@ def _summary(order: Order, totals: dict[int, tuple[int, Decimal]]) -> dict[str, 
     return {
         "MaOrder": order.id,
         "MaOrderHienThi": order.display_code,
+        "TrangThai": order.status,
         "MoLuc": order.created_at.isoformat() if order.created_at else None,
         "SoMon": quantity,
         "TamTinh": float(amount),
@@ -34,10 +43,15 @@ async def floor_board(session: AsyncSession) -> dict[str, list[dict[str, Any]]]:
         .scalars()
         .all()
     )
+    # A table shows the order it serves, whatever its payment state: paying does not free
+    # the table, the cashier does when the guests leave (FR-CAT-18).
+    serving_ids = [t.serving_order_id for t in tables if t.serving_order_id is not None]
     open_orders = (
         (
             await session.execute(
-                select(Order).where(Order.status.in_(OPEN_ORDER_STATUSES)).order_by(Order.id)
+                select(Order)
+                .where(or_(Order.status.in_(ACTIVE_ORDER_STATUSES), Order.id.in_(serving_ids)))
+                .order_by(Order.id)
             )
         )
         .scalars()
@@ -61,7 +75,15 @@ async def floor_board(session: AsyncSession) -> dict[str, list[dict[str, Any]]]:
             order_id: (int(quantity), Decimal(str(amount))) for order_id, quantity, amount in rows
         }
 
-    by_table = {o.table_id: o for o in open_orders if o.table_id is not None}
+    by_id = {o.id: o for o in open_orders}
+    by_table = {
+        o.table_id: o
+        for o in open_orders
+        if o.table_id is not None and o.status in ACTIVE_ORDER_STATUSES
+    }
+    for table in tables:
+        if table.serving_order_id in by_id:
+            by_table[table.id] = by_id[table.serving_order_id]
     return {
         "tables": [
             {
@@ -72,5 +94,9 @@ async def floor_board(session: AsyncSession) -> dict[str, list[dict[str, Any]]]:
             }
             for table in tables
         ],
-        "takeaway": [_summary(o, totals) for o in open_orders if o.table_id is None],
+        "takeaway": [
+            _summary(o, totals)
+            for o in open_orders
+            if o.table_id is None and o.status in ACTIVE_ORDER_STATUSES
+        ],
     }

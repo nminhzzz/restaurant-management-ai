@@ -15,6 +15,13 @@ import httpx
 
 QR_IMAGE_BASE = "https://qr.sepay.vn/img"
 
+# The webhook is public: every field is bounded before anything is looked up or stored.
+MAX_BODY_BYTES = 16 * 1024
+_MAX_ID = 64
+_MAX_SHORT = 100
+_MAX_CONTENT = 1000
+_MAX_AMOUNT = Decimal("1000000000000")
+
 # Tests swap this for httpx.MockTransport; production uses the default transport.
 _transport: httpx.AsyncBaseTransport | None = None
 
@@ -27,6 +34,7 @@ class Transfer:
     code: str | None
     content: str
     reference: str | None
+    account: str | None = None
 
 
 def payment_code(payment_id: int, prefix: str) -> str:
@@ -47,20 +55,45 @@ def api_key_matches(header: str | None, expected: str) -> bool:
     )
 
 
+def _bounded(value: Any, limit: int, name: str) -> str | None:
+    if value is None or value == "":
+        return None
+    if isinstance(value, bool | dict | list):
+        raise ValueError(f"{name} has an unsupported type")
+    text = str(value)
+    if len(text) > limit:
+        raise ValueError(f"{name} is too long")
+    return text
+
+
 def parse_transfer(body: dict[str, Any]) -> Transfer:
-    if body.get("id") is None or body.get("transferAmount") is None:
+    sepay_id = _bounded(body.get("id"), _MAX_ID, "id")
+    raw_amount = body.get("transferAmount")
+    if sepay_id is None or raw_amount is None or isinstance(raw_amount, bool | dict | list):
         raise ValueError("SePay payload needs id and transferAmount")
     try:
-        amount = Decimal(str(body["transferAmount"]))
+        amount = Decimal(str(raw_amount))
     except InvalidOperation as exc:
         raise ValueError("transferAmount is not a number") from exc
+    if not amount.is_finite() or amount <= 0 or amount > _MAX_AMOUNT:
+        raise ValueError("transferAmount is out of range")
     return Transfer(
-        sepay_id=str(body["id"]),
-        direction=str(body.get("transferType") or ""),
+        sepay_id=sepay_id,
+        direction=str(body.get("transferType") or "")[:_MAX_SHORT],
         amount=amount,
-        code=body.get("code") or None,
-        content=str(body.get("content") or ""),
-        reference=body.get("referenceCode") or None,
+        code=_bounded(body.get("code"), _MAX_SHORT, "code"),
+        content=_bounded(body.get("content"), _MAX_CONTENT, "content") or "",
+        reference=_bounded(body.get("referenceCode"), _MAX_SHORT, "referenceCode"),
+        account=_bounded(body.get("accountNumber"), 50, "accountNumber"),
+    )
+
+
+def account_matches(transfer: Transfer, expected: str) -> bool:
+    """The money must land on the account this restaurant configured, or it is not ours."""
+    return (
+        bool(expected)
+        and transfer.account is not None
+        and hmac.compare_digest(transfer.account.encode(), expected.encode())
     )
 
 

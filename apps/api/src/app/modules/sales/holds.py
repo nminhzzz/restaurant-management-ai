@@ -7,11 +7,17 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import BusinessRuleError, NotFoundError
-from app.modules.catalog.models import DiningTable, Dish
+from app.modules.catalog.models import DiningTable
 from app.modules.catalog.versions import active_price_version, active_recipe, recipe_items
 from app.modules.inventory.models import IngredientLot
-from app.modules.inventory.stock import lock_ingredients, lock_stocktake_gate
+from app.modules.inventory.stock import (
+    lock_ingredients,
+    lock_stocktake_gate,
+    refresh_lot_statuses,
+)
+from app.modules.sales.common import ensure_order_is_open
 from app.modules.sales.models import ItemHold, ItemHoldLot, Order
+from app.modules.sales.orders import dish_block_reason
 from app.shared import business_date
 from app.shared.enums import LotStatus
 
@@ -20,9 +26,7 @@ RELEASED = "Đã hủy"
 
 
 def _local_naive(moment: datetime) -> datetime:
-    if moment.tzinfo is None:
-        return moment
-    return moment.astimezone(business_date.VN_TZ).replace(tzinfo=None)
+    return business_date.naive_local(moment)
 
 
 async def list_holds(
@@ -130,15 +134,24 @@ async def upsert_hold(
         raise BusinessRuleError("Mã lượt chọn không hợp lệ.")
     if order_id is not None:
         order = await session.get(Order, order_id)
-        if order is None or order.status != "Đang mở" or order.table_id != table_id:
+        if order is None:
+            raise BusinessRuleError("Order không còn mở hoặc bàn không hợp lệ.")
+        ensure_order_is_open(order)
+        if order.table_id is None or order.table_id != table_id:
             raise BusinessRuleError("Order không còn mở hoặc bàn không hợp lệ.")
     elif table_id is not None:
         table = await session.get(DiningTable, table_id)
-        if table is None or table.is_deleted or table.status != "Trống":
+        if (
+            table is None
+            or table.is_deleted
+            or table.status != "Trống"
+            or table.serving_order_id is not None
+        ):
             raise BusinessRuleError("Bàn không khả dụng.")
-    dish = await session.get(Dish, dish_id)
-    if dish is None or dish.is_deleted:
-        raise BusinessRuleError("Món không tồn tại.")
+    reason = await dish_block_reason(session, dish_id)
+    if reason is not None:
+        raise BusinessRuleError(reason)
+    await refresh_lot_statuses(session, config.expiry_warning_days)
     moment = business_date.now()
     now = _local_naive(moment)
     from app.modules.settings.service import effective_business_day_start

@@ -55,7 +55,7 @@ async def _setup(session):
     g = DishGroup(name="Nhóm", display_order=1, is_deleted=False)
     session.add(g)
     await session.flush()
-    d = Dish(name="Món", group_id=g.id, is_deleted=False)
+    d = Dish(name="Món", group_id=g.id, is_deleted=False, missing_recipe=False)
     session.add(d)
     await session.flush()
     ing = Ingredient(name="NL", unit="kg", min_stock=1, stock_qty=20, is_deleted=False)
@@ -96,6 +96,12 @@ async def _setup(session):
     await session.flush()
     await session.commit()
     return d, t
+
+
+async def _release(client, h, table):
+    """The cashier confirms the guests left; paying does not free the table (FR-CAT-18)."""
+    r = await client.post(f"/api/v1/catalog/tables/{table.id}/release", headers=h)
+    assert r.status_code == 200, r.text
 
 
 async def _submit(session, client, h, d, t):
@@ -181,6 +187,7 @@ async def test_search_lists_newest_first_and_filters_by_status_and_table(session
     h, _ = await _headers(session)
     first, _ = await _submit(session, client, h, d, t)
     await client.post(f"/api/v1/sales/orders/{first}/pay/cash", headers=h)
+    await _release(client, h, t)
     second, _ = await _submit(session, client, h, d, t)
     today = business_date.business_date_of(business_date.now()).isoformat()
 
@@ -202,6 +209,7 @@ async def test_search_caps_the_number_of_rows(session):
     for _ in range(3):
         oid, _ = await _submit(session, client, h, d, t)
         await client.post(f"/api/v1/sales/orders/{oid}/pay/cash", headers=h)
+        await _release(client, h, t)
 
     r = await client.get("/api/v1/sales/orders?limit=2", headers=h)
 
@@ -217,6 +225,7 @@ async def test_search_paginates_and_reports_a_real_total(session):
     for _ in range(5):
         oid, _ = await _submit(session, client, h, d, t)
         await client.post(f"/api/v1/sales/orders/{oid}/pay/cash", headers=h)
+        await _release(client, h, t)
 
     page1 = await client.get("/api/v1/sales/orders?page=1&size=2", headers=h)
     page2 = await client.get("/api/v1/sales/orders?page=2&size=2", headers=h)

@@ -10,6 +10,7 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
+from app.core.config import get_settings
 from app.core.database import get_session
 from app.core.security import hash_password
 from app.main import app
@@ -347,7 +348,7 @@ async def scarce_dish(session, group):
     from app.shared import business_date as _bd
     from app.shared.enums import VersionStatus
 
-    dish = Dish(name="Món hiếm", group_id=group.id, is_deleted=False)
+    dish = Dish(name="Món hiếm", group_id=group.id, is_deleted=False, missing_recipe=False)
     session.add(dish)
     await session.flush()
     ing = Ingredient(name="NL hiếm", unit="kg", min_stock=1, stock_qty=1, is_deleted=False)
@@ -584,19 +585,32 @@ async def invoices_in_september(session):
 
 @pytest_asyncio.fixture
 async def order_awaiting_reconciliation(session):
-    order = await _r_order(session, bd=_sep(11), status="Chờ đối soát", order_type="Mang về")
+    order = await _r_order(
+        session, bd=_sep(11), status="Chờ xác minh thanh toán", order_type="Mang về"
+    )
     total = Decimal("120000")
-    await _r_payment(session, order, method="QR", status="Chờ đối soát", amount=total, bd=_sep(11))
+    await _r_payment(
+        session, order, method="QR", status="Chờ xác minh thanh toán", amount=total, bd=_sep(11)
+    )
     await session.commit()
     return SimpleNamespace(total=total, order_id=order.id)
 
 
 @pytest_asyncio.fixture
 async def disputed_payment(session):
-    """A transaction the manager refused to confirm — never settled into an invoice."""
-    order = await _r_order(session, bd=_sep(12), status="Tranh chấp", order_type="Mang về")
+    """An order the manager closed without collecting the money — never settled into an invoice."""
+    order = await _r_order(
+        session, bd=_sep(12), status="Đóng \u2013 chưa thu được tiền", order_type="Mang về"
+    )
     total = Decimal("90000")
-    await _r_payment(session, order, method="QR", status="Tranh chấp", amount=total, bd=_sep(12))
+    await _r_payment(
+        session,
+        order,
+        method="QR",
+        status="Đóng \u2013 chưa thu được tiền",
+        amount=total,
+        bd=_sep(12),
+    )
     await session.commit()
     return SimpleNamespace(total=total, order_id=order.id)
 
@@ -818,4 +832,17 @@ def slow_llm(monkeypatch):
     yield slow
     llm.set_client(None)
     generator.reset_state()
+    get_settings.cache_clear()
+
+
+@pytest.fixture
+def sepay_env(monkeypatch):
+    monkeypatch.setenv("PAYMENT_GATEWAY", "sepay")
+    monkeypatch.setenv("SEPAY_BANK_ACCOUNT", "0123499999")
+    monkeypatch.setenv("SEPAY_BANK_CODE", "MBBank")
+    monkeypatch.setenv("SEPAY_ACCOUNT_NAME", "NHA HANG DEMO")
+    monkeypatch.setenv("SEPAY_WEBHOOK_API_KEY", "hook-key")
+    monkeypatch.setenv("SEPAY_API_TOKEN", "api-token")
+    get_settings.cache_clear()
+    yield
     get_settings.cache_clear()
