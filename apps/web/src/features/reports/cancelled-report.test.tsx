@@ -1,10 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 vi.mock("@/lib/api-client", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api-client")>();
   return { ...actual, apiFetch: vi.fn() };
 });
+import { apiFetch } from "@/lib/api-client";
 import { CancelledReport } from "./cancelled-report";
 import { stubFetch } from "./test-helpers";
 
@@ -44,7 +45,54 @@ describe("CancelledReport", () => {
     render(<CancelledReport />);
 
     expect(
-      await screen.findByText(/Không có order nào bị hủy trong tháng/),
+      await screen.findByText(/Không có order nào bị hủy trong kỳ/),
     ).toBeInTheDocument();
+  });
+
+  it("loads the report by day, week or month", async () => {
+    stubFetch(cancelled);
+    render(<CancelledReport />);
+    await screen.findAllByText("Khách đổi ý");
+
+    expect(apiFetch).toHaveBeenLastCalledWith(
+      expect.stringMatching(/granularity=month&month=\d{4}-\d{2}$/),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Tuần" }));
+    await vi.waitFor(() =>
+      expect(apiFetch).toHaveBeenLastCalledWith(
+        expect.stringMatching(/granularity=week&anchor=\d{4}-\d{2}-\d{2}$/),
+      ),
+    );
+    expect(screen.queryByRole("button", { name: "Năm" })).toBeNull();
+  });
+
+  it("shows closed-unpaid orders as a separate group", async () => {
+    stubFetch({
+      ...cancelled,
+      DongChuaThuDuocTien: {
+        SoLuong: 1,
+        TongSoTienChuaThu: "250000",
+        TongGiaVonDaTieuHao: "90000",
+        items: [
+          {
+            MaOrder: 9,
+            MaOrderHienThi: "ORD-009",
+            SoTienChuaThu: "250000",
+            GiaVonDaTieuHao: "90000",
+            LyDo: "Khách bỏ đi",
+            NguoiDong: 1,
+            ThoiDiemDong: "2026-10-12T21:00:00",
+          },
+        ],
+      },
+    });
+    render(<CancelledReport />);
+
+    const group = await screen.findByRole("region", {
+      name: "Order đóng chưa thu được tiền",
+    });
+    expect(group).toHaveTextContent("ORD-009");
+    expect(group).toHaveTextContent("Khách bỏ đi");
+    expect(group).toHaveTextContent(/không cộng vào số order hủy/);
   });
 });

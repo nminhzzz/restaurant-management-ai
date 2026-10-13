@@ -24,14 +24,19 @@ vi.mock("./order-detail", () => ({ OrderDetail: () => <p>order-detail</p> }));
 vi.mock("./payment-panel", () => ({
   PaymentPanel: () => <p>payment-panel</p>,
 }));
+vi.mock("./payment-exceptions", () => ({
+  PaymentExceptions: () => <p>payment-exceptions</p>,
+}));
 vi.mock("./done-step", () => ({ DoneStep: () => <p>done-step</p> }));
 
+import { clearSession, saveSession } from "@/lib/session";
 import { SalesWorkspace } from "./sales-workspace";
 
 describe("SalesWorkspace", () => {
   beforeEach(() => {
     replace.mockReset();
     search = "";
+    clearSession();
   });
 
   it("starts on the floor and keeps the next step in the URL", () => {
@@ -58,5 +63,24 @@ describe("SalesWorkspace", () => {
     expect(screen.getByRole("button", { name: /Thanh toán/ })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: /Chọn bàn/ }));
     expect(replace).toHaveBeenCalledWith("/sales");
+  });
+
+  it("shows the payment exception list to a manager on the floor", () => {
+    saveSession({ token: "t", role: "MANAGER", username: "quanly" });
+    render(<SalesWorkspace />);
+    expect(screen.getByText("payment-exceptions")).toBeInTheDocument();
+  });
+
+  it("hides the payment exception list from a cashier", () => {
+    saveSession({ token: "t", role: "CASHIER", username: "thungan" });
+    render(<SalesWorkspace />);
+    expect(screen.queryByText("payment-exceptions")).not.toBeInTheDocument();
+  });
+
+  it("does not show the exception list outside the floor step", () => {
+    saveSession({ token: "t", role: "MANAGER", username: "quanly" });
+    search = "step=pay&table=4&order=142";
+    render(<SalesWorkspace />);
+    expect(screen.queryByText("payment-exceptions")).not.toBeInTheDocument();
   });
 });

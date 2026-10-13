@@ -29,7 +29,8 @@ type LotRow = {
   TenNguyenLieu: string;
   SoLuongConLai: number;
   HanSuDung: string | null;
-  TrangThaiHanSuDung: "Còn hạn" | "Sắp hết hạn" | "Hết hạn";
+  SoNgayConLai?: number | null;
+  TrangThaiHanSuDung: "Còn hạn" | "Sắp hết hạn" | "Hết hạn" | "Đã dùng hết";
 };
 
 type LotPage = {
@@ -89,7 +90,17 @@ export function LotExpiryTable() {
                   <TableCell className="text-right tabular-nums">
                     {formatNumber(lot.SoLuongConLai)}
                   </TableCell>
-                  <TableCell>{formatDate(lot.HanSuDung)}</TableCell>
+                  <TableCell>
+                    {formatDate(lot.HanSuDung)}
+                    {lot.SoNgayConLai != null &&
+                      lot.TrangThaiHanSuDung !== "Đã dùng hết" && (
+                        <span className="block text-xs text-muted">
+                          {lot.SoNgayConLai >= 0
+                            ? `Còn ${lot.SoNgayConLai} ngày`
+                            : `Quá hạn ${-lot.SoNgayConLai} ngày`}
+                        </span>
+                      )}
+                  </TableCell>
                   <TableCell>
                     <Badge
                       tone={
@@ -97,7 +108,9 @@ export function LotExpiryTable() {
                           ? "danger"
                           : lot.TrangThaiHanSuDung === "Sắp hết hạn"
                             ? "warning"
-                            : "success"
+                            : lot.TrangThaiHanSuDung === "Đã dùng hết"
+                              ? "neutral"
+                              : "success"
                       }
                     >
                       {lot.TrangThaiHanSuDung}

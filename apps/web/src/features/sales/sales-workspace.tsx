@@ -4,11 +4,13 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState } from "react";
 
 import { PageHeader } from "@/components/page-states";
+import { useRole } from "@/features/catalog/use-role";
 
 import { DoneStep } from "./done-step";
 import { FloorStep } from "./floor-step";
 import { OrderDetail } from "./order-detail";
 import { OrderStep } from "./order-step";
+import { PaymentExceptions } from "./payment-exceptions";
 import { PaymentPanel } from "./payment-panel";
 import { SalesStepper } from "./sales-stepper";
 import type { SalesStep } from "./types";
@@ -25,6 +27,8 @@ export function SalesWorkspace() {
   const router = useRouter();
   const pathname = usePathname();
   const [change, setChange] = useState<number | null>(null);
+  const [detailVersion, setDetailVersion] = useState(0);
+  const role = useRole();
 
   const tableId = numberParam(params.get("table"));
   const orderId = numberParam(params.get("order"));
@@ -64,6 +68,8 @@ export function SalesWorkspace() {
     [go, tableId, orderId],
   );
 
+  const refreshDetail = useCallback(() => setDetailVersion((v) => v + 1), []);
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -86,6 +92,7 @@ export function SalesWorkspace() {
           onPay={(order, table) => go("pay", table, order)}
         />
       )}
+      {step === "floor" && role === "MANAGER" && <PaymentExceptions />}
       {step === "order" && (
         <OrderStep
           tableId={tableId}
@@ -98,11 +105,15 @@ export function SalesWorkspace() {
       )}
       {step === "pay" && orderId !== null && (
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-          <OrderDetail key={`detail-${orderId}`} orderId={orderId} />
+          <OrderDetail
+            key={`detail-${orderId}-${detailVersion}`}
+            orderId={orderId}
+          />
           <PaymentPanel
             key={`payment-${orderId}`}
             orderId={orderId}
             onPaid={handlePaid}
+            onOrderChanged={refreshDetail}
           />
         </div>
       )}

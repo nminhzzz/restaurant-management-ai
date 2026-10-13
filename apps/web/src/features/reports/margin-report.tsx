@@ -23,7 +23,11 @@ type MarginResponse = {
 type CostBreakdownResponse = {
   NguyenLieu: string;
   HaoHut: string;
+  /** Stock consumed by orders cancelled after the kitchen started (FR-REP-05c). */
+  TieuHaoOrderHuy?: string;
   TongGiaVon: string;
+  /** Prepared dishes written off (FR-INV-06); informational, never part of TongGiaVon. */
+  MonDaCheBienBiHuy?: string;
   TamTinh: boolean;
   SoDongChuaTinhGiaVon: number;
 };
@@ -110,6 +114,11 @@ export function MarginReport() {
       value: Number(costs.NguyenLieu),
     },
     { key: "HaoHut", label: "Hao hụt", value: Number(costs.HaoHut) },
+    {
+      key: "TieuHaoOrderHuy",
+      label: "Tiêu hao order hủy",
+      value: Number(costs.TieuHaoOrderHuy ?? 0),
+    },
   ];
 
   const dishItems = [...dishCosts.items]
@@ -158,11 +167,19 @@ export function MarginReport() {
           tickFormat={(t) => `${formatNumber(t / 1_000_000)}tr`}
           tooltipFormat={(item) => `${item.label}: ${formatVnd(item.value)}`}
         />
+        {Number(costs.MonDaCheBienBiHuy ?? 0) > 0 ? (
+          <p className="text-xs text-subtle">
+            Món đã chế biến bị hủy trong tháng:{" "}
+            {formatVnd(costs.MonDaCheBienBiHuy)} (không tính vào giá vốn nguyên
+            liệu lần nữa).
+          </p>
+        ) : null}
         <ReportTable
           headers={["Khoản mục", "Giá trị"]}
           rows={[
             ["Nguyên liệu", formatVnd(costs.NguyenLieu)],
             ["Hao hụt", formatVnd(costs.HaoHut)],
+            ["Tiêu hao order hủy", formatVnd(costs.TieuHaoOrderHuy ?? 0)],
             ["Tổng giá vốn", formatVnd(costs.TongGiaVon)],
           ]}
           pageSize={10}

@@ -91,4 +91,46 @@ describe("MarginReport", () => {
       ),
     );
   });
+
+  it("lists the stock consumed by cancelled orders as its own cost line (FR-REP-05c)", async () => {
+    stubFetchByPath({
+      "/reports/margin": margin,
+      "/reports/costs/dishes": dishCosts,
+      "/reports/costs": {
+        NguyenLieu: "3000000",
+        HaoHut: "500000",
+        TieuHaoOrderHuy: "500000",
+        TongGiaVon: "4000000",
+        TamTinh: false,
+        SoDongChuaTinhGiaVon: 0,
+      },
+    });
+
+    render(<MarginReport />);
+
+    expect(
+      (await screen.findAllByText("Tiêu hao order hủy")).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("shows written-off prepared dishes as an informational line outside the cost rows", async () => {
+    stubFetchByPath({
+      "/reports/margin": margin,
+      "/reports/costs/dishes": dishCosts,
+      "/reports/costs": {
+        NguyenLieu: "3500000",
+        HaoHut: "500000",
+        MonDaCheBienBiHuy: "120000",
+        TongGiaVon: "4000000",
+        TamTinh: false,
+        SoDongChuaTinhGiaVon: 0,
+      },
+    });
+
+    render(<MarginReport />);
+
+    expect(
+      await screen.findByText(/không tính vào giá vốn nguyên liệu lần nữa/),
+    ).toBeInTheDocument();
+  });
 });

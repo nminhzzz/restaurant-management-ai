@@ -277,4 +277,47 @@ describe("ConfigPanel", () => {
       expect(request?.[1].body).not.toHaveProperty("GioBatDauBusinessDateMoi");
     });
   });
+
+  it("accepts a decimal default stock threshold", async () => {
+    fetchMock.mockImplementation(
+      (_path: string, options?: { method?: string }) =>
+        Promise.resolve(options?.method === "PUT" ? config : config),
+    );
+    render(<ConfigPanel />);
+
+    fireEvent.change(
+      await screen.findByLabelText("Ngưỡng tồn tối thiểu mặc định"),
+      { target: { value: "2.5" } },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Lưu cấu hình" }));
+
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/settings/config",
+        expect.objectContaining({
+          body: expect.objectContaining({ NguongTonMacDinh: 2.5 }),
+        }),
+      ),
+    );
+  });
+
+  it("blocks values above the API limits before saving", async () => {
+    fetchMock.mockResolvedValue(config);
+    render(<ConfigPanel />);
+
+    fireEvent.change(await screen.findByLabelText("Thời gian giữ chỗ (phút)"), {
+      target: { value: "2000" },
+    });
+    expect(screen.getByText("Giá trị tối đa là 1440.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Lưu cấu hình" })).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText("Thời gian giữ chỗ (phút)"), {
+      target: { value: "10" },
+    });
+    fireEvent.change(screen.getByLabelText("Số ngày cảnh báo sắp hết hạn"), {
+      target: { value: "400" },
+    });
+    expect(screen.getByText("Giá trị tối đa là 365.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Lưu cấu hình" })).toBeDisabled();
+  });
 });

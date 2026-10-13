@@ -24,7 +24,7 @@ import { useResource } from "@/lib/use-resource";
 
 type AuditEntry = {
   MaNhatKy: number;
-  MaNguoiDung: number;
+  MaNguoiDung: number | null;
   ThoiDiem: string;
   LoaiThaoTac: string;
   DoiTuong: string;
@@ -249,8 +249,10 @@ export function AuditPanel() {
                         </span>
                       </TableCell>
                       <TableCell className="tabular-nums">
-                        {data.data.names.get(entry.MaNguoiDung) ??
-                          `#${entry.MaNguoiDung}`}
+                        {entry.MaNguoiDung === null
+                          ? "Hệ thống"
+                          : (data.data.names.get(entry.MaNguoiDung) ??
+                            `#${entry.MaNguoiDung}`)}
                       </TableCell>
                       <TableCell className="text-muted">
                         {entry.LyDo ?? ""}

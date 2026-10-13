@@ -69,7 +69,12 @@ function expiryLabel(iso: string, now: number): string {
   })}`;
 }
 
-const UNSELLABLE = new Set(["Hết nguyên liệu", "Ẩn", "Nháp"]);
+const UNSELLABLE = new Set([
+  "Hết nguyên liệu",
+  "Tạm dừng phục vụ",
+  "Ẩn",
+  "Nháp",
+]);
 
 function messageOf(error: unknown, fallback: string): string {
   return error instanceof ApiError ? error.message : fallback;
@@ -192,7 +197,7 @@ export function OrderStep({
       MaMon: l.MaMon,
       SoLuong: l.SoLuong,
       DonGia: l.DonGia,
-      TrangThai: "Chờ",
+      TrangThai: "Chờ làm",
     })),
   ];
   const sentTotal = sentDisplay.reduce(

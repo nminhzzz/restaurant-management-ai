@@ -26,13 +26,21 @@ type Config = {
 
 const loadConfig = () => apiFetch<Config>("/settings/config");
 
-function positiveIntegerError(value: string): string | null {
+// Upper bounds mirror the API's limits so a typo is caught before the request.
+const MAX_THRESHOLD = 1_000_000;
+const MAX_EXPIRY_DAYS = 365;
+const MAX_AI_QUESTIONS = 10_000;
+const MAX_HOLD_MINUTES = 1_440;
+
+function positiveIntegerError(value: string, max: number): string | null {
   const parsed = Number(value);
-  return /^\d+$/.test(value.trim()) &&
+  if (!(
+    /^\d+$/.test(value.trim()) &&
     Number.isSafeInteger(parsed) &&
     parsed > 0
-    ? null
-    : "Nhập một số nguyên dương.";
+  ))
+    return "Nhập một số nguyên dương.";
+  return parsed > max ? `Giá trị tối đa là ${max}.` : null;
 }
 
 /** FR-SET-04/05: restaurant details and runtime settings. */
@@ -106,18 +114,26 @@ function ConfigForm({
   }, [activationMs, nowMs]);
 
   const thresholdError =
-    threshold.trim() !== "" && !/^\d+$/.test(threshold.trim())
-      ? "Nhập một số nguyên không âm."
-      : null;
+    threshold.trim() === "" || !/^\d+([.,]\d+)?$/.test(threshold.trim())
+      ? "Nhập một số không âm."
+      : Number(threshold.replace(",", ".")) > MAX_THRESHOLD
+        ? `Giá trị tối đa là ${MAX_THRESHOLD}.`
+        : null;
   const nameError = name.trim() === "" ? "Nhập tên nhà hàng." : null;
   const newBusinessDayStartError =
     newBusinessDayStart !== "" &&
     !/^([01]\d|2[0-3]):[0-5]\d$/.test(newBusinessDayStart)
       ? "Nhập giờ hợp lệ theo định dạng HH:mm."
       : null;
-  const expiryWarningDaysError = positiveIntegerError(expiryWarningDays);
-  const aiDailyQuotaError = positiveIntegerError(aiDailyQuota);
-  const holdMinutesError = positiveIntegerError(holdMinutes);
+  const expiryWarningDaysError = positiveIntegerError(
+    expiryWarningDays,
+    MAX_EXPIRY_DAYS,
+  );
+  const aiDailyQuotaError = positiveIntegerError(
+    aiDailyQuota,
+    MAX_AI_QUESTIONS,
+  );
+  const holdMinutesError = positiveIntegerError(holdMinutes, MAX_HOLD_MINUTES);
   const canSave =
     thresholdError === null &&
     nameError === null &&
@@ -136,7 +152,7 @@ function ConfigForm({
             TenNhaHang: name.trim(),
             DiaChi: address.trim() || null,
             MauHoaDon: invoiceTemplate.trim() || null,
-            NguongTonMacDinh: Number(threshold),
+            NguongTonMacDinh: Number(threshold.replace(",", ".")),
             ...(newBusinessDayStart
               ? { GioBatDauBusinessDateMoi: newBusinessDayStart }
               : {}),
@@ -184,7 +200,7 @@ function ConfigForm({
       >
         <Input
           id="cfg-threshold"
-          inputMode="numeric"
+          inputMode="decimal"
           value={threshold}
           onChange={(e) => setThreshold(e.target.value)}
         />

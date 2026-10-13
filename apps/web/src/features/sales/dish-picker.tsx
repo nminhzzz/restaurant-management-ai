@@ -21,7 +21,7 @@ export type PickableDish = {
   GiaHienTai?: number | null;
 };
 
-const UNSELLABLE = new Set(["Hết nguyên liệu", "Nháp"]);
+const UNSELLABLE = new Set(["Hết nguyên liệu", "Tạm dừng phục vụ", "Nháp"]);
 
 /**
  * Reusable dish grid — shared by OrderScreen (new order) and OrderDetail (FR-SALE-06/09,

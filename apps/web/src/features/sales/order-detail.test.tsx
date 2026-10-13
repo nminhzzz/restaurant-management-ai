@@ -5,7 +5,7 @@ vi.mock("@/lib/api-client", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api-client")>();
   return { ...actual, apiFetch: vi.fn() };
 });
-import { apiFetch } from "@/lib/api-client";
+import { ApiError, apiFetch } from "@/lib/api-client";
 import { OrderDetail } from "./order-detail";
 
 const fetchMock = apiFetch as unknown as ReturnType<typeof vi.fn>;
@@ -34,14 +34,16 @@ function openOrder(overrides: Record<string, unknown> = {}) {
     MaOrderHienThi: "ORD-1",
     MaBan: 1,
     TrangThai: "Đang mở",
+    DaKhoa: false,
     lines: [
       {
         MaChiTietOrder: 10,
         MaMon: 5,
+        TenMon: "Phở bò",
         SoLuong: 2,
         DonGia: 65000,
         GhiChu: null,
-        TrangThai: "Chờ",
+        TrangThai: "Chờ làm",
       },
     ],
     ...overrides,
@@ -81,7 +83,10 @@ describe("OrderDetail", () => {
   it("disables line actions once the order is locked", async () => {
     stubByPath({
       "/sales/orders/1/tickets": { items: [] },
-      "/sales/orders/1": openOrder({ TrangThai: "Đã thanh toán" }),
+      "/sales/orders/1": openOrder({
+        TrangThai: "Đã thanh toán",
+        DaKhoa: true,
+      }),
       "/catalog/dishes": dishes,
       "/catalog/tables": tables,
     });
@@ -111,7 +116,78 @@ describe("OrderDetail", () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       "/sales/orders/1/move",
-      expect.objectContaining({ body: { to_table_id: 2 } }),
+      expect.objectContaining({ body: { MaBanDich: 2 } }),
+    );
+  });
+
+  it("sends the cancel reason under the contract key", async () => {
+    stubByPath({
+      "/sales/orders/1/tickets": { items: [] },
+      "/sales/orders/1/lines/10/cancel": {},
+      "/sales/orders/1": openOrder(),
+      "/catalog/dishes": dishes,
+      "/catalog/tables": tables,
+    });
+    render(<OrderDetail orderId={1} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Hủy món" }));
+    fireEvent.change(await screen.findByLabelText("Lý do"), {
+      target: { value: "khách đổi ý" },
+    });
+    fireEvent.click(screen.getAllByRole("button", { name: "Hủy món" }).at(-1)!);
+
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/sales/orders/1/lines/10/cancel",
+        expect.objectContaining({ body: { LyDo: "khách đổi ý" } }),
+      ),
+    );
+  });
+
+  it("locks add, edit, cancel and move while a QR is live", async () => {
+    stubByPath({
+      "/sales/orders/1/tickets": { items: [] },
+      "/sales/orders/1": openOrder({
+        TrangThai: "Chờ xác nhận thanh toán",
+        DaKhoa: true,
+      }),
+      "/catalog/dishes": dishes,
+      "/catalog/tables": tables,
+    });
+    render(<OrderDetail orderId={1} />);
+
+    expect(await screen.findByText(/Hủy QR để sửa order/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Thêm món/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Chuyển bàn/ })).toBeDisabled();
+    expect(
+      screen.queryByRole("button", { name: "Hủy món" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "× 2" })).toBeDisabled();
+  });
+
+  it("shows the server message when a line change is refused", async () => {
+    fetchMock.mockImplementation((path: string) => {
+      if (path === "/sales/orders/1/lines/10")
+        return Promise.reject(
+          new ApiError(409, "BUSINESS_RULE", "Order đang chờ thanh toán."),
+        );
+      if (path.startsWith("/sales/orders/1/tickets"))
+        return Promise.resolve({ items: [] });
+      if (path.startsWith("/sales/orders/1"))
+        return Promise.resolve(openOrder());
+      if (path.startsWith("/catalog/dishes")) return Promise.resolve(dishes);
+      return Promise.resolve(tables);
+    });
+    render(<OrderDetail orderId={1} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "× 2" }));
+    fireEvent.change(screen.getByLabelText("Số lượng Phở bò"), {
+      target: { value: "3" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Lưu" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Order đang chờ thanh toán.",
     );
   });
 });

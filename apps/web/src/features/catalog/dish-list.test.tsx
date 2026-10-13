@@ -238,4 +238,68 @@ describe("catalog screens", () => {
       screen.queryByRole("button", { name: "Xóa món" }),
     ).not.toBeInTheDocument();
   });
+
+  it("lets a manager pause and resume a dish independently of stock", async () => {
+    mockFetch.mockImplementation((path: string) => {
+      if (path.startsWith("/catalog/dishes?"))
+        return Promise.resolve({
+          items: [
+            {
+              MaMon: 1,
+              TenMon: "Phở bò",
+              TrangThai: "Hết nguyên liệu",
+              TamDungThuCong: true,
+            },
+            { MaMon: 2, TenMon: "Bún chả", TrangThai: "Hoạt động" },
+          ],
+        });
+      if (path.startsWith("/catalog/groups")) return Promise.resolve([]);
+      return Promise.resolve({});
+    });
+    render(<DishList />);
+
+    expect(
+      await screen.findByText("Đang tạm dừng thủ công"),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Tạm dừng phục vụ Bún chả" }),
+    );
+    await waitFor(() =>
+      expect(mockFetch).toHaveBeenCalledWith(
+        "/catalog/dishes/2/visibility",
+        expect.objectContaining({
+          method: "PATCH",
+          body: { TamDungThuCong: true },
+        }),
+      ),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Cho phép phục vụ lại Phở bò",
+      }),
+    );
+    await waitFor(() =>
+      expect(mockFetch).toHaveBeenCalledWith(
+        "/catalog/dishes/1/visibility",
+        expect.objectContaining({ body: { TamDungThuCong: false } }),
+      ),
+    );
+  });
+
+  it("hides the pause control from a cashier", async () => {
+    saveSession({ token: "t", role: "CASHIER", username: "thungan" });
+    mockFetch.mockImplementation((path: string) =>
+      Promise.resolve(
+        path.startsWith("/catalog/dishes?")
+          ? { items: [{ MaMon: 1, TenMon: "Phở bò", TrangThai: "Hoạt động" }] }
+          : [],
+      ),
+    );
+    render(<DishList />);
+
+    await screen.findByText("Phở bò");
+    expect(
+      screen.queryByRole("button", { name: /Tạm dừng phục vụ/ }),
+    ).toBeNull();
+  });
 });

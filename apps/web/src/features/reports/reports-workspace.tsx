@@ -7,6 +7,7 @@ import { DishRanking } from "@/features/reports/dish-ranking";
 import { HourlyReport } from "@/features/reports/hourly-report";
 import { MarginReport } from "@/features/reports/margin-report";
 import { RevenueChart } from "@/features/reports/revenue-chart";
+import { UnsettledReport } from "@/features/reports/unsettled-report";
 
 const TABS = [
   { value: "revenue", label: "Doanh thu" },
@@ -15,6 +16,7 @@ const TABS = [
   { value: "margin", label: "Lợi nhuận" },
   { value: "comparison", label: "So sánh" },
   { value: "cancelled", label: "Order hủy" },
+  { value: "unsettled", label: "Chờ xác minh" },
 ];
 
 export function ReportsWorkspace() {
@@ -44,6 +46,9 @@ export function ReportsWorkspace() {
       </TabsContent>
       <TabsContent value="cancelled">
         <CancelledReport />
+      </TabsContent>
+      <TabsContent value="unsettled">
+        <UnsettledReport />
       </TabsContent>
     </Tabs>
   );

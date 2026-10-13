@@ -62,4 +62,47 @@ describe("SupplierList", () => {
     fireEvent.click(screen.getByRole("button", { name: "Xóa bộ lọc" }));
     expect(await screen.findByText("Vissan")).toBeInTheDocument();
   });
+
+  it("creates a supplier with contact person, email and address", async () => {
+    mockFetch.mockImplementation((path: string) =>
+      Promise.resolve(path === "/catalog/suppliers" ? { items: [] } : {}),
+    );
+    mockFetch.mockResolvedValueOnce({
+      items: [{ MaNhaCungCap: 1, TenNhaCungCap: "Vissan" }],
+    });
+    render(<SupplierList />);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Thêm nhà cung cấp" }),
+    );
+    fireEvent.change(screen.getByLabelText("Tên nhà cung cấp"), {
+      target: { value: "An Phát" },
+    });
+    fireEvent.change(screen.getByLabelText("Người liên hệ"), {
+      target: { value: "Chị Lan" },
+    });
+    fireEvent.change(screen.getByLabelText("Email"), {
+      target: { value: "lan@anphat.vn" },
+    });
+    fireEvent.change(screen.getByLabelText("Địa chỉ"), {
+      target: { value: "12 Lê Lợi" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Lưu" }));
+
+    await vi.waitFor(() =>
+      expect(mockFetch).toHaveBeenCalledWith(
+        "/catalog/suppliers",
+        expect.objectContaining({
+          method: "POST",
+          body: {
+            TenNhaCungCap: "An Phát",
+            SoDienThoai: undefined,
+            NguoiLienHe: "Chị Lan",
+            Email: "lan@anphat.vn",
+            DiaChi: "12 Lê Lợi",
+          },
+        }),
+      ),
+    );
+  });
 });

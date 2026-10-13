@@ -299,6 +299,7 @@ export function IssueList() {
             <TableHeader>
               <TableRow>
                 <TableHead>Mã phiếu</TableHead>
+                <TableHead>Nguồn</TableHead>
                 <TableHead>Lý do</TableHead>
                 <TableHead>Trạng thái</TableHead>
               </TableRow>
@@ -309,6 +310,7 @@ export function IssueList() {
                   <TableCell className="font-medium tabular-nums">
                     #{it.MaPhieuXuat}
                   </TableCell>
+                  <TableCell>{it.NguonXuat ?? "Nguyên liệu"}</TableCell>
                   <TableCell>{it.LyDo}</TableCell>
                   <TableCell>
                     <StatusBadge status={it.TrangThai} />
@@ -318,7 +320,7 @@ export function IssueList() {
               {items.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={3}
+                    colSpan={4}
                     className="py-8 text-center text-muted"
                   >
                     Không có phiếu xuất nào khớp bộ lọc.

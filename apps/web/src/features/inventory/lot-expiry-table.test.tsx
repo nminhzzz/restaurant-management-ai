@@ -140,4 +140,29 @@ describe("lot expiry table", () => {
       await screen.findByRole("table", { name: "Hạn sử dụng theo lô" }),
     ).toBeInTheDocument();
   });
+
+  it("shows days left and the used-up status", async () => {
+    fetchMock.mockResolvedValue({
+      items: [
+        { ...lots[1], SoNgayConLai: 2 },
+        { ...lots[0], SoNgayConLai: -3 },
+        {
+          ...lots[2],
+          MaLoNguyenLieu: 4,
+          SoLuongConLai: 0,
+          SoNgayConLai: 40,
+          TrangThaiHanSuDung: "Đã dùng hết",
+        },
+      ],
+      total: 3,
+      page: 1,
+      page_size: 20,
+    });
+    render(<LotExpiryTable />);
+
+    expect(await screen.findByText("Còn 2 ngày")).toBeInTheDocument();
+    expect(screen.getByText("Quá hạn 3 ngày")).toBeInTheDocument();
+    expect(screen.getByText("Đã dùng hết")).toBeInTheDocument();
+    expect(screen.queryByText("Còn 40 ngày")).not.toBeInTheDocument();
+  });
 });
