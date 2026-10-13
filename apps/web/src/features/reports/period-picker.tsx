@@ -25,9 +25,11 @@ export function previousMonth(month: string): string {
 export function GranularityPicker({
   value,
   onChange,
+  options = GRANULARITIES,
 }: {
   value: string;
   onChange: (value: string) => void;
+  options?: { value: string; label: string }[];
 }) {
   return (
     <div
@@ -35,7 +37,7 @@ export function GranularityPicker({
       aria-label="Kỳ báo cáo"
       className="inline-flex gap-0.5 rounded-control border border-border-strong bg-surface p-[3px]"
     >
-      {GRANULARITIES.map((option) => (
+      {options.map((option) => (
         <button
           key={option.value}
           type="button"
@@ -52,6 +54,35 @@ export function GranularityPicker({
         </button>
       ))}
     </div>
+  );
+}
+
+/** `2026-09-30` for today, the format `/reports/*?anchor=` expects. */
+export function today(): string {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
+export function DayPicker({
+  value,
+  onChange,
+  label = "Ngày báo cáo",
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  label?: string;
+}) {
+  return (
+    <label className="grid gap-1 text-xs text-subtle">
+      <span>{label}</span>
+      <input
+        type="date"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="h-9 rounded-control border border-border-strong bg-surface px-3 text-sm text-ink hover:border-ink focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary focus-visible:outline-none"
+      />
+    </label>
   );
 }
 

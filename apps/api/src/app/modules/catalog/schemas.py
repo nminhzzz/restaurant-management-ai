@@ -50,7 +50,7 @@ class GroupReorderRequest(BaseModel):
 
 class DishCreate(BaseModel):
     TenMon: Name
-    MaNhomMon: int | None = None
+    MaNhomMon: int  # FR-CAT-02: every dish belongs to exactly one group
     HinhAnh: str | None = Field(default=None, max_length=500)
     GiaHienTai: float | None = Field(default=None, ge=0)
 
@@ -68,10 +68,13 @@ class DishUpdate(BaseModel):
 class DishOut(BaseModel):
     MaMon: int = Field(validation_alias="id")
     TenMon: str = Field(validation_alias="name")
-    MaNhomMon: int | None = Field(default=None, validation_alias="group_id")
+    MaNhomMon: int = Field(validation_alias="group_id")
     HinhAnh: str | None = None
     GiaHienTai: float | None = None
     TrangThai: str
+    # Every reason that blocks ordering, so the manager sees "out of stock" and "paused" together.
+    LyDoChan: list[str] = Field(default_factory=list)
+    TamDungThuCong: bool = False
     DaXoa: bool = Field(validation_alias="is_deleted")
 
     model_config = {"from_attributes": True, "populate_by_name": True}
@@ -143,20 +146,22 @@ class RecipeVersionOut(BaseModel):
 class IngredientCreate(BaseModel):
     TenNguyenLieu: Name
     DonViTinh: str | None = Field(default="kg", max_length=20)
-    MucTonToiThieu: float | None = Field(default=None, ge=0)
+    MucTonToiThieu: float | None = Field(default=None, ge=0, le=1_000_000)
 
 
 class IngredientUpdate(BaseModel):
     TenNguyenLieu: Name | None = None
     DonViTinh: str | None = Field(default=None, max_length=20)
-    MucTonToiThieu: float | None = Field(default=None, ge=0)
+    # An explicit null puts the ingredient back on the system default threshold.
+    MucTonToiThieu: float | None = Field(default=None, ge=0, le=1_000_000)
 
 
 class IngredientOut(BaseModel):
     MaNguyenLieu: int = Field(validation_alias="id")
     TenNguyenLieu: str = Field(validation_alias="name")
     DonViTinh: str = Field(validation_alias="unit")
-    MucTonToiThieu: float = Field(validation_alias="min_stock")
+    MucTonToiThieu: float | None = Field(default=None, validation_alias="min_stock")
+    MucTonToiThieuApDung: float | None = None
     DaXoa: bool = Field(validation_alias="is_deleted")
 
     model_config = {"from_attributes": True, "populate_by_name": True}
@@ -165,17 +170,26 @@ class IngredientOut(BaseModel):
 class SupplierCreate(BaseModel):
     TenNhaCungCap: Name
     SoDienThoai: str | None = Field(default=None, max_length=20)
+    NguoiLienHe: str | None = Field(default=None, max_length=100)
+    Email: str | None = Field(default=None, max_length=255)
+    DiaChi: str | None = Field(default=None, max_length=255)
 
 
 class SupplierUpdate(BaseModel):
     TenNhaCungCap: Name | None = None
     SoDienThoai: str | None = Field(default=None, max_length=20)
+    NguoiLienHe: str | None = Field(default=None, max_length=100)
+    Email: str | None = Field(default=None, max_length=255)
+    DiaChi: str | None = Field(default=None, max_length=255)
 
 
 class SupplierOut(BaseModel):
     MaNhaCungCap: int = Field(validation_alias="id")
     TenNhaCungCap: str = Field(validation_alias="name")
     SoDienThoai: str | None = Field(default=None, validation_alias="phone")
+    NguoiLienHe: str | None = Field(default=None, validation_alias="contact_name")
+    Email: str | None = Field(default=None, validation_alias="email")
+    DiaChi: str | None = Field(default=None, validation_alias="address")
     DaXoa: bool = Field(validation_alias="is_deleted")
     PhieuNhap: list[dict] = Field(default_factory=list)
 
@@ -184,18 +198,32 @@ class SupplierOut(BaseModel):
 
 class TableCreate(BaseModel):
     TenBan: Name
+    SoChoNgoi: int | None = Field(default=None, ge=1, le=1000)
+
+
+class TableUpdate(BaseModel):
+    TenBan: Name | None = None
+    SoChoNgoi: int | None = Field(default=None, ge=1, le=1000)
 
 
 class TableOut(BaseModel):
     MaBan: int = Field(validation_alias="id")
     TenBan: str = Field(validation_alias="name")
     TrangThai: str = Field(validation_alias="status")
+    SoChoNgoi: int | None = Field(default=None, validation_alias="capacity")
+    MaOrderDangPhucVu: int | None = Field(default=None, validation_alias="serving_order_id")
     DaXoa: bool = Field(validation_alias="is_deleted")
 
     model_config = {"from_attributes": True, "populate_by_name": True}
 
 
+class TableReleaseRequest(BaseModel):
+    # The order the cashier is releasing the table for; guards against freeing a new order's table.
+    MaOrder: int | None = None
+
+
 class VisibilityUpdate(BaseModel):
-    HetNguyenLieu: bool | None = None
+    # FR-CAT-26: the manager's pause flag. HetNguyenLieu is derived from stock and cannot be set.
+    TamDungThuCong: bool
 
     model_config = {"extra": "forbid"}

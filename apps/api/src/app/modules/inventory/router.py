@@ -8,7 +8,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_session
 from app.core.dependencies import Principal, require_roles
 from app.modules.inventory import service as svc
-from app.modules.inventory.schemas import CountIn, IssueCreate, ReceiptCreate, ReceiptUpdate
+from app.modules.inventory.schemas import (
+    CountIn,
+    DishIssueCreate,
+    IssueCreate,
+    LotExpiryPageOut,
+    ReceiptCreate,
+    ReceiptUpdate,
+)
 from app.shared.audit import SystemAuditLog
 from app.shared.roles import Role
 
@@ -108,6 +115,37 @@ async def create_issue(
     return {"MaPhieuXuat": iss.id}
 
 
+@router.post("/issues/dishes", status_code=201)
+async def create_dish_issue(
+    payload: DishIssueCreate,
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    session: AsyncSession = Depends(get_session),
+):
+    issue, lines = await svc.create_dish_issue(
+        session,
+        user.user_id,
+        payload.reason,
+        payload.note,
+        [ln.model_dump() for ln in payload.lines],
+    )
+    await session.commit()
+    return {"MaPhieuXuat": issue.id, "NguonXuat": issue.source, "DongMon": lines}
+
+
+@router.get("/issues/dish-lines")
+async def list_writable_dish_lines(
+    business_date: date | None = None,
+    page: int = 1,
+    page_size: int = 50,
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    session: AsyncSession = Depends(get_session),
+):
+    page = max(1, page)
+    page_size = min(max(1, page_size), 100)
+    items, total = await svc.list_writable_dish_lines(session, business_date, page, page_size)
+    return {"items": items, "total": total, "page": page, "page_size": page_size}
+
+
 @router.post("/stocktakes", status_code=201)
 async def create_stocktake(
     user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
@@ -141,6 +179,17 @@ async def confirm_stocktake(
     session: AsyncSession = Depends(get_session),
 ):
     await svc.confirm_stocktake(session, user.user_id, sid)
+    await session.commit()
+    return {"ok": True}
+
+
+@router.post("/stocktakes/{sid}/cancel")
+async def cancel_stocktake(
+    sid: int,
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    session: AsyncSession = Depends(get_session),
+):
+    await svc.cancel_stocktake(session, user.user_id, sid)
     await session.commit()
     return {"ok": True}
 
@@ -198,6 +247,19 @@ async def list_stock(
     return {"items": items, "total": total, "page": page, "page_size": page_size}
 
 
+@router.get("/lots", response_model=LotExpiryPageOut)
+async def list_lots(
+    page: int = 1,
+    page_size: int = 20,
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    session: AsyncSession = Depends(get_session),
+):
+    page = max(1, page)
+    page_size = min(max(1, page_size), 100)
+    items, total = await svc.list_lot_expiry(session, page=page, page_size=page_size)
+    return {"items": items, "total": total, "page": page, "page_size": page_size}
+
+
 @router.get("/issues")
 async def list_issues(
     page: int = 1,
@@ -219,7 +281,10 @@ async def list_issues(
         date_to=date_to,
     )
     return {
-        "items": [{"MaPhieuXuat": r.id, "LyDo": r.reason, "TrangThai": r.status} for r in items],
+        "items": [
+            {"MaPhieuXuat": r.id, "LyDo": r.reason, "TrangThai": r.status, "NguonXuat": r.source}
+            for r in items
+        ],
         "total": total,
         "page": page,
         "page_size": page_size,

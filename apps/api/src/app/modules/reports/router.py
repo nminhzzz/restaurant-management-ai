@@ -22,18 +22,20 @@ from app.modules.reports.schemas import (
     HourlyOut,
     MarginOut,
     RevenueOut,
+    UnsettledListOut,
 )
 from app.shared.roles import Role
 
 router = APIRouter(prefix="/reports", tags=["Module 4 — Reports"])
 
 
-def report_period(
+async def report_period(
     granularity: str = Query("month"),
     anchor: date | None = Query(None),
     month: str | None = Query(None),
+    session: AsyncSession = Depends(get_session),
 ) -> BusinessPeriod:
-    return service.period_for(granularity, anchor, month)
+    return await service.period_for(session, granularity, anchor, month)
 
 
 @router.get("/revenue", response_model=RevenueOut)
@@ -104,8 +106,16 @@ async def comparison(
 
 @router.get("/cancelled-orders", response_model=CancelledReportOut)
 async def cancelled_orders(
-    month: str = Query(...),
+    period: BusinessPeriod = Depends(report_period),
     user: Principal = Depends(require_roles(Role.MANAGER)),
     session: AsyncSession = Depends(get_session),
 ) -> CancelledReportOut:
-    return await service.cancelled(session, month)
+    return await service.cancelled(session, period)
+
+
+@router.get("/unsettled", response_model=UnsettledListOut)
+async def unsettled_orders(
+    user: Principal = Depends(require_roles(Role.MANAGER)),
+    session: AsyncSession = Depends(get_session),
+) -> UnsettledListOut:
+    return await service.unsettled(session)

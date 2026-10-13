@@ -307,7 +307,12 @@ export function IngredientList() {
                   </TableCell>
                   <TableCell className="text-muted">{i.DonViTinh}</TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {formatNumber(i.MucTonToiThieu)}
+                    {formatNumber(i.MucTonToiThieuApDung ?? i.MucTonToiThieu)}
+                    {i.MucTonToiThieu == null && (
+                      <span className="block text-xs text-muted">
+                        Mặc định hệ thống
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell>
                     {canWrite && (

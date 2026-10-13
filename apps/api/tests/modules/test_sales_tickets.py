@@ -56,7 +56,7 @@ async def _setup(session):
     g = DishGroup(name="Nhóm", display_order=1, is_deleted=False)
     session.add(g)
     await session.flush()
-    d = Dish(name="Món", group_id=g.id, is_deleted=False)
+    d = Dish(name="Món", group_id=g.id, is_deleted=False, missing_recipe=False)
     session.add(d)
     await session.flush()
     ing = Ingredient(name="NL", unit="kg", min_stock=1, stock_qty=20, is_deleted=False)

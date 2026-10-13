@@ -43,8 +43,9 @@ type StockRow = {
 const HISTORY_PAGE_SIZE = 20;
 
 const STOCKTAKE_STATUSES = [
-  { value: "Nháp", label: "Nháp" },
-  { value: "Đã xác nhận", label: "Đã xác nhận" },
+  { value: "Đang kiểm kê", label: "Đang kiểm kê" },
+  { value: "Đã chốt", label: "Đã chốt" },
+  { value: "Đã hủy", label: "Đã hủy" },
 ];
 
 type HistoryFilters = { status: string; dateFrom: string; dateTo: string };
@@ -212,7 +213,14 @@ export function StocktakePanel() {
   );
   const stocktakes = useResource(fetchStocktakes);
   const createAction = useAction();
+  const cancelAction = useAction();
   const [draftId, setDraftId] = useState<number | null>(null);
+  const activeId =
+    draftId ??
+    (stocktakes.status === "ready"
+      ? (stocktakes.data.items.find((item) => item.TrangThai === "Đang kiểm kê")
+          ?.MaPhieuKiemKe ?? null)
+      : null);
 
   function updateHistoryFilters(patch: Partial<HistoryFilters>) {
     setHistoryFilters((previous) => ({ ...previous, ...patch }));
@@ -233,9 +241,25 @@ export function StocktakePanel() {
     if (st) setDraftId(st.MaPhieuKiemKe);
   }
 
+  async function cancelStocktake() {
+    if (activeId === null) return;
+    const cancelled = await cancelAction.run(
+      () =>
+        apiFetch(`/inventory/stocktakes/${activeId}/cancel`, {
+          method: "POST",
+        }),
+      "Đã hủy kiểm kê.",
+    );
+    if (cancelled !== undefined) {
+      setDraftId(null);
+      stock.reload();
+      stocktakes.reload();
+    }
+  }
+
   const pastStocktakes =
     stocktakes.status === "ready"
-      ? stocktakes.data.items.filter((s) => s.MaPhieuKiemKe !== draftId)
+      ? stocktakes.data.items.filter((s) => s.MaPhieuKiemKe !== activeId)
       : [];
   const historyTotal =
     stocktakes.status === "ready" ? stocktakes.data.total : 0;
@@ -246,16 +270,24 @@ export function StocktakePanel() {
         title="Kiểm kê"
         description="Đối chiếu tồn thực tế với hệ thống theo định kỳ."
         actions={
-          draftId === null ? (
+          activeId === null ? (
             <Button onClick={createStocktake} disabled={createAction.pending}>
               <ClipboardCheck aria-hidden />
               Tạo phiếu kiểm kê
             </Button>
-          ) : null
+          ) : (
+            <Button
+              variant="outlineDanger"
+              onClick={cancelStocktake}
+              disabled={cancelAction.pending}
+            >
+              Hủy kiểm kê
+            </Button>
+          )
         }
       />
 
-      {draftId !== null ? (
+      {activeId !== null ? (
         stock.status === "loading" ? (
           <LoadingState rows={5} />
         ) : stock.status === "error" ? (
@@ -268,7 +300,7 @@ export function StocktakePanel() {
           />
         ) : (
           <DraftStocktake
-            stocktakeId={draftId}
+            stocktakeId={activeId}
             ingredients={stock.data}
             onDone={() => {
               setDraftId(null);
@@ -313,7 +345,7 @@ export function StocktakePanel() {
           <EmptyState
             icon={ClipboardList}
             title="Chưa có phiếu kiểm kê"
-            description="Phiếu kiểm kê đã xác nhận sẽ hiện tại đây."
+            description="Phiếu kiểm kê đã chốt hoặc hủy sẽ hiện tại đây."
           />
         ) : (
           <>

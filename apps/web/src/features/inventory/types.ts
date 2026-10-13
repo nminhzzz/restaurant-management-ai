@@ -20,6 +20,29 @@ export type StockIssue = {
   MaPhieuXuat: number;
   LyDo: string;
   TrangThai: string;
+  NguonXuat?: string;
+};
+
+export type DishLine = {
+  MaChiTietOrder: number;
+  MaOrder: number;
+  MaOrderHienThi: string | null;
+  TenMon: string;
+  TrangThai: string;
+  BusinessDate: string;
+  SoLuong: number;
+  SoSuatDaHuy: number;
+  SoSuatConLai: number;
+};
+
+export type DishIssueResult = {
+  MaPhieuXuat: number;
+  NguonXuat: string;
+  DongMon: {
+    MaChiTietOrder: number;
+    SoSuatHuy: number;
+    SoSuatConLai: number;
+  }[];
 };
 
 export type Stocktake = {

@@ -1,5 +1,7 @@
 # Sales Steps, SePay QR and Assistant Redesign — Implementation Plan
 
+> **Trạng thái (2026-10-13):** Task 1–18 đã triển khai (bằng chứng: các file `floor-step`, `order-step`, `payment-panel`, `assistant-*` và test tương ứng; `gateways/sepay.py`; phần SePay trong báo cáo). Các bước 'Commit' để trống vì lịch sử commit thuộc người dùng. Task 19 (gate đầy đủ, kiểm tra sống, spike SePay với tài khoản Test mode) chưa có bằng chứng nên để trống; ràng buộc 'No schema change' đã lỗi thời vì các vòng sau thêm migration. Kiểm thử webhook SePay bằng payload thật chờ tên miền triển khai.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Fix the missing dish prices, turn the Sales screen into a three-step table-centric flow with SePay VietQR payments, and rebuild the AI assistant (history, structured answers, floating widget).
@@ -51,7 +53,7 @@
 **Interfaces:**
 - Produces: `async def active_prices(session: AsyncSession, dish_ids: Sequence[int], bd: date) -> dict[int, Decimal]` in `app.modules.catalog.versions`. `GET /catalog/dishes` items carry `GiaHienTai: float | None`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 """Dish prices on the catalogue API match the price an order would snapshot."""
@@ -141,12 +143,12 @@ async def test_a_price_given_on_create_is_persisted(session, group):
     assert item["GiaHienTai"] == 60000
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `cd apps/api && uv run pytest tests/modules/test_catalog_dish_prices.py -q`
 Expected: FAIL — `ImportError: cannot import name 'active_prices'`.
 
-- [ ] **Step 3: Add `active_prices` to `catalog/versions.py`** (below `active_price`)
+- [x] **Step 3: Add `active_prices` to `catalog/versions.py`** (below `active_price`)
 
 ```python
 async def active_prices(
@@ -176,7 +178,7 @@ async def active_prices(
 
 Add `from collections.abc import Sequence` to the imports.
 
-- [ ] **Step 4: Use it in the router**
+- [x] **Step 4: Use it in the router**
 
 In `catalog/router.py` add imports `from app.modules.catalog.versions import active_price, active_prices` and `from app.shared import business_date` (skip any already present), then add below the router declaration:
 
@@ -193,7 +195,7 @@ def _money(value) -> float | None:
 
 `update_dish` and the visibility handler: replace `GiaHienTai=None,` with `GiaHienTai=_money(await active_price(session, d.id, _today())),`.
 
-- [ ] **Step 5: Persist the price in `create_dish`** (`catalog/service.py`)
+- [x] **Step 5: Persist the price in `create_dish`** (`catalog/service.py`)
 
 Replace the placeholder comment line with:
 
@@ -205,12 +207,12 @@ Replace the placeholder comment line with:
 
 `apply_price_directly` and `_Decimal` are already defined in this module.
 
-- [ ] **Step 6: Run the new and existing catalogue tests**
+- [x] **Step 6: Run the new and existing catalogue tests**
 
 Run: `cd apps/api && uv run pytest tests/modules/test_catalog_dish_prices.py tests/modules/test_catalog_dishes.py tests/modules/test_catalog_prices.py -q`
 Expected: all PASS.
 
-- [ ] **Step 7: Lint and type-check**
+- [x] **Step 7: Lint and type-check**
 
 Run: `cd apps/api && uv run ruff check src/app/modules/catalog tests/modules/test_catalog_dish_prices.py && uv run mypy src`
 Expected: no errors.
@@ -240,7 +242,7 @@ The spec names `service.py`; that file is only a re-export, and the module alrea
   `{"tables": [{"MaBan", "TenBan", "TrangThai", "order": FloorOrder | None}], "takeaway": [FloorOrder]}`,
   `FloorOrder = {"MaOrder": int, "MaOrderHienThi": str | None, "MoLuc": str | None, "SoMon": int, "TamTinh": float}`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 """GET /sales/floor — tables with their open order, plus open takeaway orders."""
@@ -341,12 +343,12 @@ async def test_the_warehouse_role_cannot_read_the_floor(session):
     assert resp.status_code == 403
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `cd apps/api && uv run pytest tests/modules/test_sales_floor.py -q`
 Expected: FAIL — 404 for `/api/v1/sales/floor`.
 
-- [ ] **Step 3: Implement `sales/floor.py`**
+- [x] **Step 3: Implement `sales/floor.py`**
 
 ```python
 """Floor board for the POS: every table with its open order, plus open takeaway orders."""
@@ -427,7 +429,7 @@ async def floor_board(session: AsyncSession) -> dict[str, list[dict[str, Any]]]:
     }
 ```
 
-- [ ] **Step 4: Add the route** in `sales/router.py` (change the import to `from app.modules.sales import floor, orders, payments`) and add above `@router.post("/orders", ...)`:
+- [x] **Step 4: Add the route** in `sales/router.py` (change the import to `from app.modules.sales import floor, orders, payments`) and add above `@router.post("/orders", ...)`:
 
 ```python
 @router.get("/floor")
@@ -438,12 +440,12 @@ async def get_floor(
     return await floor.floor_board(session)
 ```
 
-- [ ] **Step 5: Run the tests**
+- [x] **Step 5: Run the tests**
 
 Run: `cd apps/api && uv run pytest tests/modules/test_sales_floor.py -q`
 Expected: PASS.
 
-- [ ] **Step 6: Lint, type-check, commit**
+- [x] **Step 6: Lint, type-check, commit**
 
 ```bash
 cd apps/api && uv run ruff check src/app/modules/sales tests/modules/test_sales_floor.py && uv run mypy src
@@ -466,7 +468,7 @@ git commit -m "feat(sales): add a floor board endpoint for the step-based POS"
   - `async def to_reconciliation(session, payment: PaymentTransaction, *, bank_ref: str | None, action: str) -> None`
   - `async def order_total(session, order: Order) -> Decimal` (renamed from `_order_total`, excludes cancelled lines)
 
-- [ ] **Step 1: Write the failing regression test** (append to `test_sales_payments.py`)
+- [x] **Step 1: Write the failing regression test** (append to `test_sales_payments.py`)
 
 ```python
 @pytest.mark.anyio
@@ -496,12 +498,12 @@ async def test_a_cancelled_line_is_not_charged(session):
 
 If the cancel endpoint's body key differs, read `router.py:191-204` and use its key; the assertion stays.
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `cd apps/api && uv run pytest tests/modules/test_sales_payments.py::test_a_cancelled_line_is_not_charged -q`
 Expected: FAIL — `assert 100000.0 == 50000`.
 
-- [ ] **Step 3: Create the simulator gateway**
+- [x] **Step 3: Create the simulator gateway**
 
 `gateways/__init__.py`:
 
@@ -532,7 +534,7 @@ def verify(payload: str, signature: str) -> bool:
     return hmac.compare_digest(sign(payload), signature)
 ```
 
-- [ ] **Step 4: Refactor `payments.py`**
+- [x] **Step 4: Refactor `payments.py`**
 
 1. Replace the module docstring's second paragraph with: `Gateway specifics live in app.modules.sales.gateways; this module owns the business flow shared by every gateway.`
 2. Delete `_require_webhook_secret`, `_gateway_sign`, `_verify_signature`; remove the now-unused `hashlib`/`hmac` imports; add `from app.modules.sales.gateways import simulator` and `from app.modules.sales.orders import LINE_CANCELLED` (inside functions if an import cycle appears, as the module already does for `ensure_order_is_open`).
@@ -603,12 +605,12 @@ async def to_reconciliation(
 
 6. In `handle_webhook`, replace `_verify_signature(...)` with `simulator.verify(...)`, and replace everything after the amount check (`now = ...` through the final `return`) with `return await confirm_payment(session, payment)`. Keep the existing amount check (`total = await order_total(session, order)` … `raise BusinessRuleError("Số tiền không khớp.")`) before it.
 
-- [ ] **Step 5: Run every payment test**
+- [x] **Step 5: Run every payment test**
 
 Run: `cd apps/api && uv run pytest tests/modules/test_sales_payments.py tests/modules/test_sales_reconciliation.py tests/seed -q`
 Expected: all PASS, including the new regression test.
 
-- [ ] **Step 6: Lint, type-check, commit**
+- [x] **Step 6: Lint, type-check, commit**
 
 ```bash
 cd apps/api && uv run ruff check src/app/modules/sales tests/modules/test_sales_payments.py && uv run mypy src
@@ -636,7 +638,7 @@ git commit -m "fix(sales): stop charging cancelled lines and move gateway signin
   - `async def recent_transfers(*, api_url: str, token: str, account: str) -> list[dict[str, Any]]`; module attribute `_transport: httpx.AsyncBaseTransport | None = None` for tests.
 - Settings fields: `payment_gateway: Literal["simulator", "sepay"] = "simulator"`, `sepay_bank_account: str = ""`, `sepay_bank_code: str = ""`, `sepay_account_name: str = ""`, `sepay_webhook_api_key: str = ""`, `sepay_api_token: str = ""`, `sepay_payment_prefix: str = "TT"`, `sepay_api_url: str = "https://my.sepay.vn/userapi"`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 """SePay adapter: QR URL, webhook parsing and API-key check (no network)."""
@@ -737,12 +739,12 @@ async def test_recent_transfers_reads_the_listing(monkeypatch):
                     "code": "TT388", "content": "TT388", "referenceCode": "FT1"}
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `cd apps/api && uv run pytest tests/modules/test_sales_sepay_adapter.py -q`
 Expected: FAIL — `ImportError: cannot import name 'sepay'`.
 
-- [ ] **Step 3: Add settings** in `core/config.py` below `payment_webhook_secret` (add `from typing import Literal` if missing):
+- [x] **Step 3: Add settings** in `core/config.py` below `payment_webhook_secret` (add `from typing import Literal` if missing):
 
 ```python
     # PAYMENT_GATEWAY picks the QR adapter; the simulator stays the default for tests.
@@ -768,7 +770,7 @@ and in `get_settings()` before `return settings`:
         )
 ```
 
-- [ ] **Step 4: Implement `gateways/sepay.py`**
+- [x] **Step 4: Implement `gateways/sepay.py`**
 
 ```python
 """SePay (VietQR bank transfer) adapter — pure helpers plus one read-only HTTP call.
@@ -868,7 +870,7 @@ async def recent_transfers(*, api_url: str, token: str, account: str) -> list[di
     return [row for row in rows if isinstance(row, dict)]
 ```
 
-- [ ] **Step 5: Update `.env.example`** — read it first, then append (keep the user's existing edits):
+- [x] **Step 5: Update `.env.example`** — read it first, then append (keep the user's existing edits):
 
 ```
 # QR payments: simulator (default, tests) or sepay (VietQR via SePay Test mode)
@@ -881,7 +883,7 @@ SEPAY_API_TOKEN=
 SEPAY_PAYMENT_PREFIX=TT
 ```
 
-- [ ] **Step 6: Run the tests, lint, type-check**
+- [x] **Step 6: Run the tests, lint, type-check**
 
 Run: `cd apps/api && uv run pytest tests/modules/test_sales_sepay_adapter.py -q && uv run ruff check src tests/modules/test_sales_sepay_adapter.py && uv run mypy src`
 Expected: PASS, no lint or type errors.
@@ -908,7 +910,7 @@ git commit -m "feat(sales): add the SePay VietQR adapter and its configuration"
   - `async def check_payment(session, payment_id: int) -> PaymentTransaction`.
   - HTTP: `POST /api/v1/sales/webhooks/sepay` → `{"success": true}`; `POST /api/v1/sales/payments/{id}/check` → `{"MaGiaoDich", "TrangThai"}`; QR responses gain the `qr_fields` keys.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 """SePay webhook and QR details (FR-SALE-15/16 with the SePay adapter)."""
@@ -1070,12 +1072,12 @@ async def test_the_sepay_hook_is_absent_under_the_simulator(session):
     assert resp.status_code == 404
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `cd apps/api && uv run pytest tests/modules/test_sales_sepay_webhook.py -q`
 Expected: FAIL — 404/`KeyError: 'payment_code'`.
 
-- [ ] **Step 3: Add the service functions to `payments.py`**
+- [x] **Step 3: Add the service functions to `payments.py`**
 
 Add imports `from typing import Any`, `from app.modules.sales.gateways import sepay`.
 
@@ -1192,7 +1194,7 @@ async def check_payment(session: AsyncSession, payment_id: int) -> PaymentTransa
     return payment
 ```
 
-- [ ] **Step 4: Wire the router**
+- [x] **Step 4: Wire the router**
 
 Add `Request` to the FastAPI import, `from app.core.config import get_settings`, `from app.core.errors import NotFoundError, UnauthenticatedError`, `from app.modules.sales.gateways import sepay`, `from app.shared.audit import SystemAuditLog` (skip duplicates).
 
@@ -1238,12 +1240,12 @@ async def check_payment(
     return {"MaGiaoDich": payment.id, "TrangThai": payment.status}
 ```
 
-- [ ] **Step 5: Run all sales tests**
+- [x] **Step 5: Run all sales tests**
 
 Run: `cd apps/api && uv run pytest tests/modules -k "sales" -q`
 Expected: all PASS.
 
-- [ ] **Step 6: Lint, type-check, commit**
+- [x] **Step 6: Lint, type-check, commit**
 
 ```bash
 cd apps/api && uv run ruff check src tests/modules/test_sales_sepay_webhook.py && uv run mypy src
@@ -1288,7 +1290,7 @@ export type FloorBoard = { tables: FloorTable[]; takeaway: FloorOrder[] };
 **Interfaces:**
 - Produces: `FloorStep({ onNewOrder(tableId: number | null): void; onAddMore(orderId: number, tableId: number | null): void; onPay(orderId: number, tableId: number | null): void })`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```tsx
 import { fireEvent, render, screen, within } from "@testing-library/react";
@@ -1379,12 +1381,12 @@ describe("FloorStep", () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `cd apps/web && pnpm vitest run src/features/sales/floor-step.test.tsx`
 Expected: FAIL — cannot resolve `./floor-step`.
 
-- [ ] **Step 3: Implement `floor-step.tsx`**
+- [x] **Step 3: Implement `floor-step.tsx`**
 
 ```tsx
 "use client";
@@ -1597,9 +1599,9 @@ export function FloorStep({
 
 `active.order!` is safe because `active` is only set for tables whose `order` is non-null; if the lint config forbids non-null assertions, bind `const order = active?.order` before the JSX and use `order` instead.
 
-- [ ] **Step 4: Retone "Đã đặt"** — in `lib/status.ts` change `"Đã đặt": "primary",` to `"Đã đặt": "neutral",`; in `docs/design/tokens.md` §2.3 move "bàn `Đã đặt`" from the `primary` row to the `neutral` row.
+- [x] **Step 4: Retone "Đã đặt"** — in `lib/status.ts` change `"Đã đặt": "primary",` to `"Đã đặt": "neutral",`; in `docs/design/tokens.md` §2.3 move "bàn `Đã đặt`" from the `primary` row to the `neutral` row.
 
-- [ ] **Step 5: Run, lint, type-check**
+- [x] **Step 5: Run, lint, type-check**
 
 Run: `cd apps/web && pnpm vitest run src/features/sales/floor-step.test.tsx && pnpm lint && pnpm typecheck`
 Expected: PASS, no errors.
@@ -1621,7 +1623,7 @@ git commit -m "feat(sales): add the floor step with table status and takeaway or
 - Consumes: Task 6 nothing directly.
 - Produces: `OrderStep({ tableId: number | null; orderId: number | null; onBack(): void; onSent(orderId: number, next: "floor" | "pay"): void })`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```tsx
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -1728,12 +1730,12 @@ describe("OrderStep", () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `cd apps/web && git mv src/features/sales/order-screen.tsx src/features/sales/order-step.tsx && pnpm vitest run src/features/sales/order-step.test.tsx`
 Expected: FAIL — `OrderStep` is not exported.
 
-- [ ] **Step 3: Rewrite the component contract in `order-step.tsx`**
+- [x] **Step 3: Rewrite the component contract in `order-step.tsx`**
 
 Keep the existing imports, `Dish`, `Group`, `CartLine`, `CreatedOrder`, `UNSELLABLE`, `messageOf`, the dish grid JSX and the cart line JSX. Make these changes:
 
@@ -1915,9 +1917,9 @@ Add `useCallback` to the React import and `import { ArrowLeft, ChefHat } from "l
 
 Remove imports that become unused (`CircleCheck`, `Badge`, `cn` if unused).
 
-- [ ] **Step 4: Remove the old OrderScreen tests** from `payment-panel.test.tsx` (the whole `describe("OrderScreen", …)` block and `import { OrderScreen } from "./order-screen";`).
+- [x] **Step 4: Remove the old OrderScreen tests** from `payment-panel.test.tsx` (the whole `describe("OrderScreen", …)` block and `import { OrderScreen } from "./order-screen";`).
 
-- [ ] **Step 5: Run, lint, type-check**
+- [x] **Step 5: Run, lint, type-check**
 
 Run: `cd apps/web && pnpm vitest run src/features/sales && pnpm lint && pnpm typecheck`
 Expected: PASS (the workspace still imports `OrderScreen`; Task 9 replaces it — until then fix the import in `sales-workspace.tsx` to `import { OrderStep } from "@/features/sales/order-step";` and render `<OrderStep tableId={null} orderId={null} onBack={() => {}} onSent={(id) => payNow(id)} />` so typecheck passes).
@@ -1943,7 +1945,7 @@ git commit -m "feat(sales): show dish prices and add dishes to open orders in th
   - `DoneStep({ orderId: number; change: number | null; onFinish(): void })`
   - `export function quickAmounts(total: number): number[]` from `payment-panel.tsx`
 
-- [ ] **Step 1: Update the existing QR tests and add new ones** (`payment-panel.test.tsx`)
+- [x] **Step 1: Update the existing QR tests and add new ones** (`payment-panel.test.tsx`)
 
 Add a helper after `openOrder`:
 
@@ -2069,12 +2071,12 @@ describe("DoneStep", () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `cd apps/web && pnpm vitest run src/features/sales/payment-panel.test.tsx src/features/sales/done-step.test.tsx`
 Expected: FAIL — no "QR chuyển khoản" radio, no `DoneStep`.
 
-- [ ] **Step 3: Change `payment-panel.tsx`**
+- [x] **Step 3: Change `payment-panel.tsx`**
 
 1. Extend `Payment` with `qr_image_url?: string; payment_code?: string; bank_code?: string; bank_account?: string; account_name?: string;`.
 2. Add, above the component:
@@ -2209,7 +2211,7 @@ and wrap the existing QR box in `{method === "qr" && qr && qr.TrangThai !== "Đ�
 and a `Kiểm tra lại` button (`<Button variant="secondary" size="sm" onClick={checkQr} disabled={!live}><RefreshCw />Kiểm tra lại</Button>`) next to "Hủy QR". Import `RefreshCw` from lucide and `cn` from `@/lib/utils`.
 7. `export` the `InvoicePreview` function.
 
-- [ ] **Step 4: Create `done-step.tsx`**
+- [x] **Step 4: Create `done-step.tsx`**
 
 ```tsx
 "use client";
@@ -2266,7 +2268,7 @@ export function DoneStep({ orderId, change, onFinish }: { orderId: number; chang
 
 If `InvoicePreview`'s `invoice` prop type is not reachable through `Parameters`, export the `InvoiceDetail` type from `payment-panel.tsx` and import it instead.
 
-- [ ] **Step 5: Run, lint, type-check**
+- [x] **Step 5: Run, lint, type-check**
 
 Run: `cd apps/web && pnpm vitest run src/features/sales && pnpm lint && pnpm typecheck`
 Expected: PASS.
@@ -2290,7 +2292,7 @@ git commit -m "feat(sales): add cash change, SePay VietQR and a done step to pay
 - Consumes: `FloorStep` (Task 6), `OrderStep` (Task 7), `PaymentPanel`/`DoneStep` (Task 8), `OrderDetail` (existing, `orderId` prop).
 - Produces: URL contract `/sales?step=order|pay|done&table=<MaBan>&order=<MaOrder>`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```tsx
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -2349,12 +2351,12 @@ describe("SalesWorkspace", () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `cd apps/web && pnpm vitest run src/features/sales/sales-workspace.test.tsx`
 Expected: FAIL.
 
-- [ ] **Step 3: Create `sales-stepper.tsx`**
+- [x] **Step 3: Create `sales-stepper.tsx`**
 
 ```tsx
 import { Check } from "lucide-react";
@@ -2416,7 +2418,7 @@ export function SalesStepper({
 }
 ```
 
-- [ ] **Step 4: Rewrite `sales-workspace.tsx`**
+- [x] **Step 4: Rewrite `sales-workspace.tsx`**
 
 ```tsx
 "use client";
@@ -2516,7 +2518,7 @@ export function SalesWorkspace() {
 
 Remove `onPayNow`/`payNow` leftovers from Task 7.
 
-- [ ] **Step 5: Wrap the page in Suspense** (`app/(app)/sales/page.tsx`)
+- [x] **Step 5: Wrap the page in Suspense** (`app/(app)/sales/page.tsx`)
 
 ```tsx
 import { Suspense } from "react";
@@ -2533,9 +2535,9 @@ export default function SalesPage() {
 }
 ```
 
-- [ ] **Step 6: Delete the old lookup** — `git rm apps/web/src/features/sales/order-lookup.tsx apps/web/src/features/sales/order-lookup.test.tsx` (read both first; confirm nothing else imports `OrderLookup` with `grep -rn "order-lookup" apps/web/src`).
+- [x] **Step 6: Delete the old lookup** — `git rm apps/web/src/features/sales/order-lookup.tsx apps/web/src/features/sales/order-lookup.test.tsx` (read both first; confirm nothing else imports `OrderLookup` with `grep -rn "order-lookup" apps/web/src`).
 
-- [ ] **Step 7: Run everything for the web**
+- [x] **Step 7: Run everything for the web**
 
 Run: `cd apps/web && pnpm vitest run && pnpm lint && pnpm typecheck && pnpm build`
 Expected: all PASS; `/sales` still listed as prerendered (○).
@@ -2565,7 +2567,7 @@ git commit -m "feat(sales): split the sales screen into floor, order and payment
   - `split_answer(text: str) -> tuple[str, list[str]]`
   - constants `SCOPE_PREFIX = "Phạm vi dữ liệu:"`, `MAX_HIGHLIGHTS = 4`, `MAX_FOLLOW_UPS = 3`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 """Structured answers: parse the model's JSON, fall back to text, and round-trip the stored form."""
@@ -2641,12 +2643,12 @@ def test_an_old_free_form_record_splits_into_a_headline():
     assert split_answer(old) == ("Hôm qua có 42 đơn hàng, nhiều hơn hôm kia.", [])
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `cd apps/api && uv run pytest tests/modules/test_ai_answer_format.py -q`
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Implement `answer_format.py`**
+- [x] **Step 3: Implement `answer_format.py`**
 
 ```python
 """Structured assistant answers.
@@ -2737,7 +2739,7 @@ def split_answer(text: str) -> tuple[str, list[str]]:
     return head, bullets
 ```
 
-- [ ] **Step 4: Run, lint, type-check, commit**
+- [x] **Step 4: Run, lint, type-check, commit**
 
 ```bash
 cd apps/api && uv run pytest tests/modules/test_ai_answer_format.py -q && uv run ruff check src/app/modules/ai tests/modules/test_ai_answer_format.py && uv run mypy src
@@ -2754,7 +2756,7 @@ git commit -m "feat(ai): parse structured answers from the model with a plain-te
 **Interfaces:**
 - Produces: `Kind = Literal["text", "money", "number", "date", "datetime", "percent"]`; `def describe_columns(columns: list[str], rows: list[dict[str, Any]]) -> list[dict[str, str]]` returning `[{"key", "label", "kind"}]` in column order.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 from app.modules.ai.labels import describe_columns
@@ -2793,12 +2795,12 @@ def test_unknown_numeric_values_are_numbers_and_labels_split_camel_case():
     assert _one("GhiChuKhac", [{"GhiChuKhac": "x"}])["kind"] == "text"
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `cd apps/api && uv run pytest tests/modules/test_ai_labels.py -q`
 Expected: FAIL — module not found.
 
-- [ ] **Step 3: Implement `labels.py`**
+- [x] **Step 3: Implement `labels.py`**
 
 ```python
 """Human labels and value kinds for the assistant's result columns.
@@ -2932,7 +2934,7 @@ def describe_columns(columns: list[str], rows: list[dict[str, Any]]) -> list[dic
 
 Note: `"TongSoDonMoi"` must resolve to `number` — its name contains no money hint (`"thu"` is not in `tongsodonmoi`). `"SoDon"` hits `KNOWN` first.
 
-- [ ] **Step 4: Run, lint, type-check, commit**
+- [x] **Step 4: Run, lint, type-check, commit**
 
 ```bash
 cd apps/api && uv run pytest tests/modules/test_ai_labels.py -q && uv run ruff check src/app/modules/ai tests/modules/test_ai_labels.py && uv run mypy src
@@ -2952,7 +2954,7 @@ git commit -m "feat(ai): label result columns in Vietnamese with a value kind"
   - `@dataclass(frozen=True) class Interpretation: answer: StructuredAnswer; text: str; scope_note: str` and `async def interpret(...) -> Interpretation`
   - `ChatResponse` fields `headline: str`, `highlights: list[str]`, `follow_ups: list[str]`, `scope_note: str | None`, `columns: list[ColumnMeta]`, `kind: Literal["answer", "clarify", "refused", "error"]` (all defaulted), existing fields unchanged.
 
-- [ ] **Step 1: Update and add tests**
+- [x] **Step 1: Update and add tests**
 
 In `test_ai_interpreter.py` replace the two interpret tests with:
 
@@ -3019,12 +3021,12 @@ async def test_a_refused_turn_says_so_in_kind(
     assert body["scope_note"] is None
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `cd apps/api && uv run pytest tests/modules/test_ai_interpreter.py tests/modules/test_ai_service.py -q`
 Expected: FAIL — `AttributeError: 'str' object has no attribute 'answer'`, missing `kind`.
 
-- [ ] **Step 3: Rewrite `interpreter.py`'s `interpret`**
+- [x] **Step 3: Rewrite `interpreter.py`'s `interpret`**
 
 ```python
 @dataclass(frozen=True)
@@ -3070,7 +3072,7 @@ async def interpret(
 
 Add imports `from dataclasses import dataclass` and `from app.modules.ai.pipeline.answer_format import StructuredAnswer, compose_answer, parse_model_answer`.
 
-- [ ] **Step 4: Extend `schemas.py`**
+- [x] **Step 4: Extend `schemas.py`**
 
 ```python
 from typing import Any, Literal
@@ -3099,7 +3101,7 @@ class ChatResponse(BaseModel):
     session_id: int | None = None
 ```
 
-- [ ] **Step 5: Update `service.answer`**
+- [x] **Step 5: Update `service.answer`**
 
 1. Replace `answer_text = await interpreter.interpret(...)` with `interpretation = await interpreter.interpret(...)` and add `columns_meta = labels.describe_columns(columns, rows)` next to the chart choice (import `from app.modules.ai import charts, labels`).
 2. In each error branch set `headline=` and `kind=` on the returned `ChatResponse`: clarification → `ChatResponse(answer=exc.message, headline=exc.message, kind="clarify", session_id=...)`; quota → `kind="refused"`; `BusinessRuleError` → `answer=REFUSED_ANSWER, headline=REFUSED_ANSWER, kind="refused"`; timeout → `answer=TIMEOUT_ANSWER, headline=TIMEOUT_ANSWER, kind="error"`.
@@ -3123,12 +3125,12 @@ class ChatResponse(BaseModel):
 
 Import `ColumnMeta` from `schemas`.
 
-- [ ] **Step 6: Run the AI suite and the eval harness tests**
+- [x] **Step 6: Run the AI suite and the eval harness tests**
 
 Run: `cd apps/api && uv run pytest tests/modules -k "ai" tests/eval -q`
 Expected: all PASS. If a harness test reads `answer` as free text, it still works (the text starts with the headline).
 
-- [ ] **Step 7: Lint, type-check, commit**
+- [x] **Step 7: Lint, type-check, commit**
 
 ```bash
 cd apps/api && uv run ruff check src/app/modules/ai tests/modules && uv run mypy src
@@ -3148,7 +3150,7 @@ git commit -m "feat(ai): return structured answers, column labels and an answer 
   - Schemas `SessionSummary{id, title, turn_count, created_at: datetime, last_at: datetime}`, `TurnOut{id, question, headline, highlights: list[str], status, occurred_at: datetime}`, `SessionDetail{id, title, turns: list[TurnOut]}`.
   - `GET /api/v1/assistant/sessions?page=1&size=30` → `Page[SessionSummary]` (`size` ≤ 100); `GET /api/v1/assistant/sessions/{id}` → `SessionDetail`; foreign or missing → 404 `NOT_FOUND`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 """Chat history: each user sees only their own sessions (AuthZ, not just AuthN)."""
@@ -3234,12 +3236,12 @@ async def test_history_needs_a_login(api_client):
     assert (await api_client.get("/api/v1/assistant/sessions")).status_code == 401
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `cd apps/api && uv run pytest tests/modules/test_ai_history.py -q`
 Expected: FAIL — 404/405 on `/assistant/sessions`.
 
-- [ ] **Step 3: Add schemas** (`schemas.py`)
+- [x] **Step 3: Add schemas** (`schemas.py`)
 
 ```python
 class SessionSummary(BaseModel):
@@ -3267,7 +3269,7 @@ class SessionDetail(BaseModel):
 
 (`from datetime import datetime`.)
 
-- [ ] **Step 4: Add service functions** (`service.py`)
+- [x] **Step 4: Add service functions** (`service.py`)
 
 ```python
 TITLE_LIMIT = 120
@@ -3360,7 +3362,7 @@ async def session_detail(session: AsyncSession, user_id: int, session_id: int) -
 
 Imports: `from sqlalchemy import func, select`, `from app.core.errors import BusinessRuleError, NotFoundError`, `from app.modules.ai.pipeline.answer_format import split_answer`, the new schemas.
 
-- [ ] **Step 5: Add routes** (`router.py`)
+- [x] **Step 5: Add routes** (`router.py`)
 
 ```python
 @router.get("/sessions", response_model=Page[SessionSummary])
@@ -3383,7 +3385,7 @@ async def get_session_detail(
 
 Imports: `Query`, `from app.shared.pagination import Page`, the two schemas. Update the module docstring: "`POST /assistant/chat` answers one turn; `GET /assistant/sessions[/{id}]` reads the caller's own history."
 
-- [ ] **Step 6: Run, lint, type-check, commit**
+- [x] **Step 6: Run, lint, type-check, commit**
 
 ```bash
 cd apps/api && uv run pytest tests/modules/test_ai_history.py tests/modules -k ai -q && uv run ruff check src/app/modules/ai tests/modules/test_ai_history.py && uv run mypy src
@@ -3409,7 +3411,7 @@ git commit -m "feat(ai): let each user list and reopen their own chat sessions"
   - `ChartView({ spec, rows, columns? })`
   - `type Suggestion = { topic: string; module: ModuleKey; text: string }`, `suggestionsFor(role: string | undefined, module?: ModuleKey): Suggestion[]`
 
-- [ ] **Step 1: Write the failing test** (`format-cell.test.ts`)
+- [x] **Step 1: Write the failing test** (`format-cell.test.ts`)
 
 ```ts
 import { describe, expect, it } from "vitest";
@@ -3451,9 +3453,9 @@ describe("suggestionsFor", () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify failure** — `cd apps/web && pnpm vitest run src/features/assistant/format-cell.test.ts` → FAIL (module not found).
+- [x] **Step 2: Run to verify failure** — `cd apps/web && pnpm vitest run src/features/assistant/format-cell.test.ts` → FAIL (module not found).
 
-- [ ] **Step 3: Extend `types/api.ts`** (replace `ChatResponse`, append the rest)
+- [x] **Step 3: Extend `types/api.ts`** (replace `ChatResponse`, append the rest)
 
 ```ts
 export type ColumnKind = "text" | "money" | "number" | "date" | "datetime" | "percent";
@@ -3504,7 +3506,7 @@ export interface SessionDetail {
 }
 ```
 
-- [ ] **Step 4: Create `format-cell.ts`**
+- [x] **Step 4: Create `format-cell.ts`**
 
 ```ts
 import { formatDate, formatDateTime, formatNumber, formatVnd } from "@/lib/format";
@@ -3541,7 +3543,7 @@ export function columnsFor(rows: Record<string, unknown>[], columns?: ColumnMeta
 }
 ```
 
-- [ ] **Step 5: Create `suggestions.ts`** (moves the list out of `chat-panel.tsx`)
+- [x] **Step 5: Create `suggestions.ts`** (moves the list out of `chat-panel.tsx`)
 
 ```ts
 import type { ModuleKey } from "@/lib/modules";
@@ -3579,11 +3581,11 @@ export function suggestionsFor(role: string | undefined, module?: ModuleKey): Su
 }
 ```
 
-- [ ] **Step 6: Label the chart** (`chart-view.tsx`)
+- [x] **Step 6: Label the chart** (`chart-view.tsx`)
 
 Add `columns?: ColumnMeta[]` to the props (import `ColumnMeta` and `columnsFor`, `formatCell`). At the top of the body: `const meta = columnsFor(rows, columns); const kindOf = (key: string) => meta.find((c) => c.key === key)?.kind ?? "text";`. Change `labelOf` calls to `formatCell(row[spec.x], kindOf(spec.x))`; in the doughnut legend replace `formatNumber(series[index])` with `formatCell(series[index], kindOf(spec.y[0]))`; inside each bar `<rect>` and at each line point add `<title>{`${formatCell(rows[index][spec.x], kindOf(spec.x))}: ${formatCell(value, kindOf(spec.y[0]))}`}</title>`; change `rx={3}` to `rx={2}`. Remove the `formatNumber` import if unused.
 
-- [ ] **Step 7: Run, lint, type-check, commit**
+- [x] **Step 7: Run, lint, type-check, commit**
 
 ```bash
 cd apps/web && pnpm vitest run src/features/assistant && pnpm lint && pnpm typecheck
@@ -3608,7 +3610,7 @@ git commit -m "feat(assistant): add column-aware formatting, labelled charts and
   - `ResultTabs({ result: ChatResponse })`
   - `AssistantMessage({ turn: Turn; compact?: boolean; onAsk(text: string): void })`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `use-conversation.test.tsx`:
 
@@ -3730,9 +3732,9 @@ describe("AssistantMessage", () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify failure** — `cd apps/web && pnpm vitest run src/features/assistant` → FAIL (modules missing).
+- [x] **Step 2: Run to verify failure** — `cd apps/web && pnpm vitest run src/features/assistant` → FAIL (modules missing).
 
-- [ ] **Step 3: Create `use-conversation.ts`**
+- [x] **Step 3: Create `use-conversation.ts`**
 
 ```ts
 "use client";
@@ -3809,7 +3811,7 @@ export function useConversation(options: { onSessionCreated?: (id: number) => vo
 }
 ```
 
-- [ ] **Step 4: Create `composer.tsx`**
+- [x] **Step 4: Create `composer.tsx`**
 
 ```tsx
 "use client";
@@ -3905,7 +3907,7 @@ export function Composer({
 }
 ```
 
-- [ ] **Step 5: Create `result-tabs.tsx`**
+- [x] **Step 5: Create `result-tabs.tsx`**
 
 ```tsx
 "use client";
@@ -4011,7 +4013,7 @@ export function ResultTabs({ result }: { result: ChatResponse }) {
 
 The table tab has no padding so the `Table` border sits flush; `Table` already renders its own border — override with `className` only if a double border appears.
 
-- [ ] **Step 6: Create `assistant-message.tsx`**
+- [x] **Step 6: Create `assistant-message.tsx`**
 
 ```tsx
 "use client";
@@ -4161,7 +4163,7 @@ export function AssistantMessage({ turn, compact = false, onAsk }: { turn: Turn;
 
 Note: follow-up chips' accessible name equals the question text (the icon is `aria-hidden`), which the test relies on.
 
-- [ ] **Step 7: Run, lint, type-check, commit**
+- [x] **Step 7: Run, lint, type-check, commit**
 
 ```bash
 cd apps/web && pnpm vitest run src/features/assistant && pnpm lint && pnpm typecheck
@@ -4181,7 +4183,7 @@ git commit -m "feat(assistant): render structured answers with result tabs and f
 - Consumes: Task 15 hook/components; Task 13 endpoints.
 - Produces: `HistoryPanel({ activeId: number | null; refreshKey: number; onSelect(id: number): void; onNew(): void })`, `groupLabel(iso: string, now: Date): string`, `Welcome({ username: string | undefined; role: string | undefined; onAsk(text: string): void })`, `AssistantScreen()`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `history-panel.test.tsx`:
 
@@ -4295,9 +4297,9 @@ describe("AssistantScreen", () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify failure** — `cd apps/web && pnpm vitest run src/features/assistant` → FAIL.
+- [x] **Step 2: Run to verify failure** — `cd apps/web && pnpm vitest run src/features/assistant` → FAIL.
 
-- [ ] **Step 3: Create `history-panel.tsx`**
+- [x] **Step 3: Create `history-panel.tsx`**
 
 ```tsx
 "use client";
@@ -4393,7 +4395,7 @@ export function HistoryPanel({ activeId, refreshKey, onSelect, onNew }: {
 
 The active row changes only its background (user decision, spec §4.2).
 
-- [ ] **Step 4: Create `welcome.tsx`**
+- [x] **Step 4: Create `welcome.tsx`**
 
 ```tsx
 import { roleLabel } from "@/lib/roles";
@@ -4432,7 +4434,7 @@ export function Welcome({ username, role, onAsk, composer }: {
 }
 ```
 
-- [ ] **Step 5: Create `assistant-screen.tsx`**
+- [x] **Step 5: Create `assistant-screen.tsx`**
 
 ```tsx
 "use client";
@@ -4568,7 +4570,7 @@ export function AssistantScreen() {
 
 Remove the `eslint-disable-next-line` if lint does not flag the dependency list; if it does and the project forbids disables, wrap `open` in `useCallback` with `[load, reset, router, pathname]` and list it in the effect dependencies instead.
 
-- [ ] **Step 6: Update the page**
+- [x] **Step 6: Update the page**
 
 ```tsx
 import { Suspense } from "react";
@@ -4585,9 +4587,9 @@ export default function AssistantPage() {
 }
 ```
 
-- [ ] **Step 7: Retire `chat-panel`** — read `chat-panel.test.tsx`, move its `describe("ChartView", …)` block into a new `chart-view.test.tsx` (same imports minus `ChatPanel`), then `git rm apps/web/src/features/assistant/chat-panel.tsx apps/web/src/features/assistant/chat-panel.test.tsx` and confirm `grep -rn "chat-panel" apps/web/src` is empty.
+- [x] **Step 7: Retire `chat-panel`** — read `chat-panel.test.tsx`, move its `describe("ChartView", …)` block into a new `chart-view.test.tsx` (same imports minus `ChatPanel`), then `git rm apps/web/src/features/assistant/chat-panel.tsx apps/web/src/features/assistant/chat-panel.test.tsx` and confirm `grep -rn "chat-panel" apps/web/src` is empty.
 
-- [ ] **Step 8: Run, lint, type-check, build, commit**
+- [x] **Step 8: Run, lint, type-check, build, commit**
 
 ```bash
 cd apps/web && pnpm vitest run && pnpm lint && pnpm typecheck && pnpm build
@@ -4606,7 +4608,7 @@ git commit -m "feat(assistant): add history, a welcome screen and a full-height 
 - Consumes: Task 15 hook/components, Task 14 `suggestionsFor`, `MODULE_LIST` from `lib/modules`.
 - Produces: `AssistantWidget()` (no props; reads pathname and session).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```tsx
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -4669,9 +4671,9 @@ describe("AssistantWidget", () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify failure** — `cd apps/web && pnpm vitest run src/features/assistant/assistant-widget.test.tsx` → FAIL.
+- [x] **Step 2: Run to verify failure** — `cd apps/web && pnpm vitest run src/features/assistant/assistant-widget.test.tsx` → FAIL.
 
-- [ ] **Step 3: Create `assistant-widget.tsx`**
+- [x] **Step 3: Create `assistant-widget.tsx`**
 
 ```tsx
 "use client";
@@ -4799,9 +4801,9 @@ export function AssistantWidget() {
 
 The widget stays mounted inside `AppShell` across route changes, so `useConversation` state survives navigation (spec §4.3). `user` is non-null past the `allowed` guard; if TypeScript does not narrow it, read `const role = user?.role ?? ""` before the guards and use `role`.
 
-- [ ] **Step 4: Mount it and move toasts** — in `app-shell.tsx` import `AssistantWidget` and render `<AssistantWidget />` right after `<ChangePasswordDialog … />`; in `app/layout.tsx` change the `Toaster` to `<Toaster position="bottom-right" richColors closeButton offset={{ bottom: 88, right: 20 }} />` (sonner 2 accepts an offset object; if the type rejects it, use `offset={88}` and note that it also moves the side offset).
+- [x] **Step 4: Mount it and move toasts** — in `app-shell.tsx` import `AssistantWidget` and render `<AssistantWidget />` right after `<ChangePasswordDialog … />`; in `app/layout.tsx` change the `Toaster` to `<Toaster position="bottom-right" richColors closeButton offset={{ bottom: 88, right: 20 }} />` (sonner 2 accepts an offset object; if the type rejects it, use `offset={88}` and note that it also moves the side offset).
 
-- [ ] **Step 5: Run everything, commit**
+- [x] **Step 5: Run everything, commit**
 
 ```bash
 cd apps/web && pnpm vitest run && pnpm lint && pnpm typecheck && pnpm build
@@ -4819,13 +4821,13 @@ git commit -m "feat(assistant): add a floating assistant widget outside the POS"
 - Modify: `docs/BaoCao_HeThongQuanLyNhaHang.md` (§1.4.3, FR-SALE summary row ~1837, limitation 6 ~1954, and every mention of "chữ ký webhook" for the QR gateway)
 - Modify: `docs/design/tokens.md` (§6 components list: add `SalesStepper`, assistant components; widget position note)
 
-- [ ] **Step 1: Find every place to change**
+- [x] **Step 1: Find every place to change**
 
 Run: `grep -n "cổng thanh toán QR thật\|ngoài phạm vi\|bộ giả lập\|chữ ký webhook\|chuyển khoản thủ công" docs/BaoCao_HeThongQuanLyNhaHang.md`
 
-- [ ] **Step 2: Edit the report** — for each hit that describes the QR gateway, replace the out-of-scope wording with: "Thanh toán QR dùng VietQR chuyển khoản qua cổng SePay (môi trường Test mode) thông qua một adapter; xác nhận bằng webhook có API key và API tra cứu giao dịch. Bộ giả lập có chữ ký HMAC được giữ cho kiểm thử tự động." Keep the limitation list numbered; limitation 6 becomes: "Không tích hợp thanh toán thẻ ngân hàng; QR ở trạng thái 'Chờ xác nhận thanh toán' cho đến khi webhook SePay xác nhận hoặc hết 10 phút thì chuyển 'Chờ đối soát'." Keep MySQL, `Images/` paths and all other sections untouched.
+- [x] **Step 2: Edit the report** — for each hit that describes the QR gateway, replace the out-of-scope wording with: "Thanh toán QR dùng VietQR chuyển khoản qua cổng SePay (môi trường Test mode) thông qua một adapter; xác nhận bằng webhook có API key và API tra cứu giao dịch. Bộ giả lập có chữ ký HMAC được giữ cho kiểm thử tự động." Keep the limitation list numbered; limitation 6 becomes: "Không tích hợp thanh toán thẻ ngân hàng; QR ở trạng thái 'Chờ xác nhận thanh toán' cho đến khi webhook SePay xác nhận hoặc hết 10 phút thì chuyển 'Chờ đối soát'." Keep MySQL, `Images/` paths and all other sections untouched.
 
-- [ ] **Step 3: Update `tokens.md` §6** — add to the shared components paragraph: "Bán hàng: `SalesStepper` (3 bước, mục hiện tại nền `surface-sunken`, số bước nền `primary`). Trợ lý: `AssistantMessage`, `Composer`, `ResultTabs`, `HistoryPanel` (mục đang mở chỉ đổi nền `primary-subtle`, không viền), `AssistantWidget` (góc dưới phải, ẩn ở `/sales` và `/assistant`; toast dời lên 88px)."
+- [x] **Step 3: Update `tokens.md` §6** — add to the shared components paragraph: "Bán hàng: `SalesStepper` (3 bước, mục hiện tại nền `surface-sunken`, số bước nền `primary`). Trợ lý: `AssistantMessage`, `Composer`, `ResultTabs`, `HistoryPanel` (mục đang mở chỉ đổi nền `primary-subtle`, không viền), `AssistantWidget` (góc dưới phải, ẩn ở `/sales` và `/assistant`; toast dời lên 88px)."
 
 - [ ] **Step 4: Commit**
 

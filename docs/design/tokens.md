@@ -44,7 +44,7 @@ Tên token trùng tên lớp Tailwind: `--color-primary` → `bg-primary`, `text
 | `sidebar` · `sidebar-fg` · `sidebar-muted` | `#15171B` · `#C8CBD1` · `#8A8F98` | Nền sidebar tối, chữ mục nav, chữ phụ |
 | `sidebar-border` · `sidebar-hover` | `#272A30` · `#1F2227` | Đường chia và hover trong sidebar |
 | `success` · `success-subtle` · `success-fg` | `#15803D` · `#E1F0E5` · `#14532D` | Đã thanh toán, đang bán, còn hạn |
-| `warning` · `warning-subtle` · `warning-fg` | `#D97706` · `#FAEBD2` · `#843A0C` | Sắp hết, chờ đối soát, tạm tính |
+| `warning` · `warning-subtle` · `warning-fg` | `#D97706` · `#FAEBD2` · `#843A0C` | Sắp hết, chờ xác minh thanh toán, khoản ngoại lệ chờ xử lý, tạm tính |
 | `danger` · `danger-hover` · `danger-subtle` · `danger-fg` | `#C62828` · `#A51F1F` · `#F9E1DF` · `#8C1B16` | Hết nguyên liệu, đã hủy, lỗi, thao tác phá hủy |
 
 Biểu đồ dùng thang xám `chart-1` … `chart-6` (`#15171B`, `#A9ADB4`, `#5F6570`, `#D2D5DA`, `#7C818A`, `#C0C4CA`),
@@ -63,12 +63,14 @@ Quy tắc:
 
 ### 2.3 Ánh xạ trạng thái nghiệp vụ → badge
 
+Nguồn thực tế là bảng `TONES` trong `apps/web/src/lib/status.ts`; bảng dưới đây tóm tắt các nhóm chính.
+
 | Trạng thái (giá trị trong CSDL) | Tone |
 | --- | --- |
 | Món `Hoạt động` · bàn `Trống` · Order `Đã thanh toán` · Lô `Còn hạn` · Giá `Hiệu lực` | `success` |
-| Tồn kho sắp chạm mức tối thiểu · Order `Chờ đối soát` · Giá vốn `Tạm tính` | `warning` |
-| Món `Hết nguyên liệu` · Order/dòng `Đã hủy` · Lô `Hết hạn` | `danger` |
-| Order `Đang mở` · dòng `Chờ` · phiếu `Chờ in` · bàn `Đang phục vụ` | `primary` (nền đặc) |
+| Tồn kho sắp chạm mức tối thiểu · Order `Chờ xác minh thanh toán` · Khoản ngoại lệ `Chờ xử lý` · Món `Tạm dừng phục vụ` · Giá vốn `Tạm tính` | `warning` |
+| Món `Hết nguyên liệu` · Order/dòng `Đã hủy` · Order `Đóng – chưa thu được tiền` · Lô `Hết hạn` | `danger` |
+| Order `Đang mở` · Order `Chờ xác nhận thanh toán` · dòng `Chờ` · phiếu `Chờ in` · bàn `Đang phục vụ` | `primary` (nền đặc) |
 | Món `Ẩn` · tài khoản `Đã khóa` · dòng `Đã phục vụ` · bàn `Đã đặt` | `neutral` |
 | Món `Nháp` | `muted` (viền nét đứt) |
 
@@ -79,16 +81,21 @@ Quy tắc:
   `--font-sans`, mọi phần tử nhận mặc định.
 - **Chữ đơn cách** (mã order `ORD-250926-042`, SQL, mã lô): `JetBrains Mono` (`@fontsource/jetbrains-mono`,
   lớp `font-mono`), rơi về `ui-monospace`.
-- **Thang cỡ chữ** (chỉ dùng các bậc này):
+- **Thang cỡ chữ** (các bậc thực tế đang dùng trong `apps/web/src`; cỡ mặc định của `body` là `text-sm`):
 
 | Bậc | Cỡ / dòng | Weight | Dùng cho |
 | --- | --- | --- | --- |
 | `text-[11px]` | 11 / 16 | 700, viết hoa, `tracking-wider` | Header bảng, nhãn KPI, nhãn nhóm |
 | `text-xs` | 12 / 16 | 600 | Caption, badge |
+| `text-[13px]` | 13 | 600 | Nhãn form (`Label`), ghi chú trong kết quả AI |
 | `text-sm` | 14 / 20 | 400 | Nội dung bảng, form, mô tả. **Cỡ mặc định của app** |
+| `text-[15px]` | 15 (23 trong tin nhắn AI) | 700 hoặc 400 | Tên thương hiệu ở màn hình đăng nhập, tiêu đề widget AI, nội dung trả lời của AI |
 | `text-base` | 16 / 24 | 700 | Tiêu đề card, tiêu đề khối |
-| `text-2xl` | 24 / 32 | 700, `tracking-tight` | Tiêu đề trang |
-| `text-[28px]` | 28 / 36 | 700, `tracking-tight` | Số liệu trên thẻ KPI, tổng tiền |
+| `text-lg` | 18 / 28 | 700, `tracking-tight` | Tiêu đề hộp thoại (`DialogTitle`), tổng tiền ở sơ đồ bàn |
+| `text-xl` | 20 / 28 | 700, `tabular-nums` | Ô nhập số tiền khách đưa (thu tiền mặt) |
+| `text-2xl` | 24 / 32 | 700, `tracking-tight` | Tiêu đề trang, tổng tiền cần thu, màn hình "Đã thanh toán" |
+| `text-3xl` | 30 / 38 | 700, `tracking-tight` | Lời chào ở màn hình mở đầu của trợ lý AI |
+| `text-[28px]` | 28 / 36 | 700, `tracking-tight` | Số liệu trên thẻ KPI (`StatCard`) |
 
 - Mọi con số tiền, số lượng, thời gian: `tabular-nums`. Tiền định dạng `185.000 ₫` (`toLocaleString("vi-VN")`).
 - Chữ hoa chỉ dùng cho nhãn ngắn: header bảng, nhãn KPI, nhãn nhóm. Badge, nút và tiêu đề viết thường.
@@ -137,7 +144,7 @@ Có sẵn ở `src/components/ui/`, không tự viết lại bằng thẻ HTML t
 
 Bán hàng: `SalesStepper` (3 bước, mục hiện tại nền `surface-sunken`, số bước nền `primary`). Trợ lý:
 `AssistantMessage`, `Composer`, `ResultTabs`, `HistoryPanel` (mục đang mở chỉ đổi nền `primary-subtle`, không
-viền), `AssistantWidget` (góc dưới phải, ẩn ở `/sales` và `/assistant`; toast dời lên 88px).
+viền), `AssistantWidget` (góc dưới phải, ẩn ở `/sales` và `/assistant`).
 
 Mẫu cấp trang ở `src/components/page-states.tsx`: `PageHeader`, `EmptyState`, `LoadingState` (skeleton có
 chữ "Đang tải…" cho trình đọc màn hình), `ErrorState` (có nút Thử lại), `StatCard`, `StatusBadge` (tự chọn tone
@@ -165,8 +172,9 @@ theo §2.3 qua `lib/status.ts`). Tải dữ liệu qua hook `lib/use-resource.ts
 - **Rỗng:** `EmptyState` gồm icon, một câu nói vì sao rỗng, một nút để lấp đầy (ví dụ "Tạo phiếu nhập").
 - **Lỗi:** lỗi của form nằm ngay dưới field. Lỗi của thao tác đi qua toast `danger`. Lỗi tải trang nằm trong
   vùng nội dung, có nút "Thử lại".
-- Toast `bottom-right`, 3 giây, bo `radius-container`, màu lấy từ token trạng thái (ghi đè biến của sonner trong
-  `globals.css`), chữ tiếng Việt nói rõ đã xảy ra gì ("Đã gửi order ORD-250926-042 xuống bếp").
+- Toast `bottom-right` (lệch 88px so với đáy và 20px so với cạnh phải để không đè widget AI), `richColors` và
+  `closeButton`, **không đặt `duration` nên dùng mặc định của sonner (4 giây)**; bo `radius-container`, màu lấy từ
+  token trạng thái (ghi đè biến của sonner trong `globals.css`), chữ tiếng Việt nói rõ đã xảy ra gì ("Đã gửi order ORD-250926-042 xuống bếp").
 
 ## 8. Nội dung hiển thị
 

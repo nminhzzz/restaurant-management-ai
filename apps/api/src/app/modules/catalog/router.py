@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
-from app.core.dependencies import Principal, get_current_user, require_roles
+from app.core.dependencies import Principal, require_roles
 from app.core.errors import NotFoundError
 from app.modules.catalog import service as svc
 from app.modules.catalog import versions as catalog_versions
@@ -33,28 +33,63 @@ from app.modules.catalog.schemas import (
     SupplierUpdate,
     TableCreate,
     TableOut,
+    TableReleaseRequest,
+    TableUpdate,
     VisibilityUpdate,
 )
 from app.modules.catalog.versions import active_price, active_prices
+from app.modules.settings.service import effective_business_day_start
 from app.shared import business_date
 from app.shared.pagination import Page
 from app.shared.roles import Role
 
 router = APIRouter(prefix="/catalog", tags=["Module 1 — Catalogue"])
 
+# Tables 9 and 10 of the report: the catalogue of dishes is read by the manager and the
+# cashier; ingredients and suppliers by the manager and the kitchen; the floor plan by
+# the manager and the cashier. No catalogue read is open to every signed-in role.
+_DISH_READERS = require_roles(Role.MANAGER, Role.CASHIER)
+_STOCK_READERS = require_roles(Role.MANAGER, Role.WAREHOUSE)
+_STOCK_WRITERS = require_roles(Role.MANAGER, Role.WAREHOUSE)
+_MANAGER = require_roles(Role.MANAGER)
 
-def _today():
-    return business_date.business_date_of(business_date.now())
+
+async def _today(session: AsyncSession):
+    moment = business_date.now()
+    start = await effective_business_day_start(session, moment)
+    return business_date.business_date_of(moment, start)
 
 
 def _money(value) -> float | None:
     return float(value) if value is not None else None
 
 
+async def _dish_out(session: AsyncSession, dish, price: float | None) -> DishOut:
+    return DishOut(
+        MaMon=dish.id,
+        TenMon=dish.name,
+        MaNhomMon=dish.group_id,
+        HinhAnh=dish.image_url,
+        GiaHienTai=price,
+        TrangThai=await svc.display_status_for(session, dish),
+        LyDoChan=await svc.blocking_reasons(session, dish),
+        TamDungThuCong=dish.manually_paused,
+        DaXoa=dish.is_deleted,
+    )
+
+
+def _ingredient_out(ingredient, default_threshold: float) -> IngredientOut:
+    out = IngredientOut.model_validate(ingredient)
+    out.MucTonToiThieuApDung = (
+        float(ingredient.min_stock) if ingredient.min_stock is not None else default_threshold
+    )
+    return out
+
+
 # Groups
 @router.get("/groups", response_model=list[GroupOut])
 async def list_groups(
-    user: Principal = Depends(get_current_user),
+    user: Principal = Depends(_DISH_READERS),
     session: AsyncSession = Depends(get_session),
 ) -> list[GroupOut]:
     items = await svc.list_groups(session)
@@ -111,28 +146,16 @@ async def list_dishes(
     search: str | None = Query(None),
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=200),
-    user: Principal = Depends(get_current_user),
+    user: Principal = Depends(_DISH_READERS),
     session: AsyncSession = Depends(get_session),
 ) -> Page[DishOut]:
+    await svc.promote_and_commit(session)
     items, total = await svc.list_dishes(session, search)
     # paginate in memory (small dataset for Task 1)
     start = (page - 1) * size
     sliced = items[start : start + size]
-    prices = await active_prices(session, [d.id for d in sliced], _today())
-    out: list[DishOut] = []
-    for d in sliced:
-        status = await svc.display_status_for(session, d)
-        out.append(
-            DishOut(
-                MaMon=d.id,
-                TenMon=d.name,
-                MaNhomMon=d.group_id,
-                HinhAnh=d.image_url,
-                GiaHienTai=_money(prices.get(d.id)),
-                TrangThai=status,
-                DaXoa=d.is_deleted,
-            )
-        )
+    prices = await active_prices(session, [d.id for d in sliced], await _today(session))
+    out = [await _dish_out(session, d, _money(prices.get(d.id))) for d in sliced]
     return Page[DishOut](items=out, total=total, page=page, size=size)
 
 
@@ -151,18 +174,8 @@ async def create_dish(
         payload.GiaHienTai,
     )
     await session.commit()
-    # reload to get DB defaults
     await session.refresh(d)
-    status = await svc.display_status_for(session, d)
-    return DishOut(
-        MaMon=d.id,
-        TenMon=d.name,
-        MaNhomMon=d.group_id,
-        HinhAnh=d.image_url,
-        GiaHienTai=payload.GiaHienTai,
-        TrangThai=status,
-        DaXoa=d.is_deleted,
-    )
+    return await _dish_out(session, d, payload.GiaHienTai)
 
 
 @router.patch("/dishes/{dish_id}", response_model=DishOut)
@@ -183,16 +196,8 @@ async def update_dish(
     )
     await session.commit()
     await session.refresh(d)
-    status = await svc.display_status_for(session, d)
-    return DishOut(
-        MaMon=d.id,
-        TenMon=d.name,
-        MaNhomMon=d.group_id,
-        HinhAnh=d.image_url,
-        GiaHienTai=_money(await active_price(session, d.id, _today())),
-        TrangThai=status,
-        DaXoa=d.is_deleted,
-    )
+    price = _money(await active_price(session, d.id, await _today(session)))
+    return await _dish_out(session, d, price)
 
 
 @router.delete("/dishes/{dish_id}", status_code=204)
@@ -215,6 +220,7 @@ async def list_dish_prices(
     d = await svc.get_dish(session, dish_id)
     if d is None or d.is_deleted:
         raise NotFoundError("Không tìm thấy món ăn.")
+    await svc.promote_and_commit(session)
     items = await catalog_versions.list_price_versions(session, dish_id)
     return [PriceVersionOut.model_validate(v) for v in items]
 
@@ -265,6 +271,7 @@ async def list_dish_recipes(
     d = await svc.get_dish(session, dish_id)
     if d is None or d.is_deleted:
         raise NotFoundError("Không tìm thấy món ăn.")
+    await svc.promote_and_commit(session)
     recipes = await catalog_versions.list_recipe_versions(session, dish_id)
     out: list[RecipeVersionOut] = []
     for r in recipes:
@@ -337,19 +344,20 @@ async def cancel_recipe(
 @router.get("/ingredients", response_model=Page[IngredientOut])
 async def list_ingredients(
     search: str | None = Query(None),
-    user: Principal = Depends(get_current_user),
+    user: Principal = Depends(_STOCK_READERS),
     session: AsyncSession = Depends(get_session),
 ) -> Page[IngredientOut]:
     items, total = await svc.list_ingredients(session, search)
+    default = await svc.default_stock_threshold(session)
     return Page[IngredientOut](
-        items=[IngredientOut.model_validate(x) for x in items], total=total, page=1, size=200
+        items=[_ingredient_out(x, default) for x in items], total=total, page=1, size=200
     )
 
 
 @router.post("/ingredients", response_model=IngredientOut, status_code=201)
 async def create_ingredient(
     payload: IngredientCreate,
-    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    user: Principal = Depends(_STOCK_WRITERS),
     session: AsyncSession = Depends(get_session),
 ) -> IngredientOut:
     ing = await svc.create_ingredient(
@@ -360,14 +368,14 @@ async def create_ingredient(
         payload.MucTonToiThieu,
     )
     await session.commit()
-    return IngredientOut.model_validate(ing)
+    return _ingredient_out(ing, await svc.default_stock_threshold(session))
 
 
 @router.patch("/ingredients/{ingredient_id}", response_model=IngredientOut)
 async def update_ingredient(
     ingredient_id: int,
     payload: IngredientUpdate,
-    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    user: Principal = Depends(_STOCK_WRITERS),
     session: AsyncSession = Depends(get_session),
 ) -> IngredientOut:
     ing = await svc.update_ingredient(
@@ -377,15 +385,16 @@ async def update_ingredient(
         payload.TenNguyenLieu,
         payload.DonViTinh,
         payload.MucTonToiThieu,
+        min_stock_provided="MucTonToiThieu" in payload.model_fields_set,
     )
     await session.commit()
-    return IngredientOut.model_validate(ing)
+    return _ingredient_out(ing, await svc.default_stock_threshold(session))
 
 
 @router.delete("/ingredients/{ingredient_id}", status_code=204)
 async def delete_ingredient(
     ingredient_id: int,
-    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    user: Principal = Depends(_STOCK_WRITERS),
     session: AsyncSession = Depends(get_session),
 ) -> None:
     await svc.delete_ingredient(session, user.user_id, ingredient_id)
@@ -395,7 +404,7 @@ async def delete_ingredient(
 # Suppliers
 @router.get("/suppliers", response_model=list[SupplierOut])
 async def list_suppliers(
-    user: Principal = Depends(get_current_user),
+    user: Principal = Depends(_STOCK_READERS),
     session: AsyncSession = Depends(get_session),
 ) -> list[SupplierOut]:
     items = await svc.list_suppliers(session)
@@ -405,10 +414,18 @@ async def list_suppliers(
 @router.post("/suppliers", response_model=SupplierOut, status_code=201)
 async def create_supplier(
     payload: SupplierCreate,
-    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    user: Principal = Depends(_STOCK_WRITERS),
     session: AsyncSession = Depends(get_session),
 ) -> SupplierOut:
-    s = await svc.create_supplier(session, user.user_id, payload.TenNhaCungCap, payload.SoDienThoai)
+    s = await svc.create_supplier(
+        session,
+        user.user_id,
+        payload.TenNhaCungCap,
+        payload.SoDienThoai,
+        payload.NguoiLienHe,
+        payload.Email,
+        payload.DiaChi,
+    )
     await session.commit()
     return SupplierOut.model_validate(s)
 
@@ -416,14 +433,12 @@ async def create_supplier(
 @router.get("/suppliers/{supplier_id}", response_model=SupplierOut)
 async def get_supplier(
     supplier_id: int,
-    user: Principal = Depends(get_current_user),
+    user: Principal = Depends(_STOCK_READERS),
     session: AsyncSession = Depends(get_session),
 ) -> SupplierOut:
     s = await svc.get_supplier(session, supplier_id)
     if s is None or s.is_deleted:
-        from fastapi import HTTPException
-
-        raise HTTPException(status_code=404, detail="Không tìm thấy nhà cung cấp.")
+        raise NotFoundError("Không tìm thấy nhà cung cấp.")
     # load receipts
     from sqlalchemy import select as _sel
 
@@ -440,11 +455,18 @@ async def get_supplier(
 async def update_supplier(
     supplier_id: int,
     payload: SupplierUpdate,
-    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    user: Principal = Depends(_STOCK_WRITERS),
     session: AsyncSession = Depends(get_session),
 ) -> SupplierOut:
     s = await svc.update_supplier(
-        session, user.user_id, supplier_id, payload.TenNhaCungCap, payload.SoDienThoai
+        session,
+        user.user_id,
+        supplier_id,
+        payload.TenNhaCungCap,
+        payload.SoDienThoai,
+        payload.NguoiLienHe,
+        payload.Email,
+        payload.DiaChi,
     )
     await session.commit()
     return SupplierOut.model_validate(s)
@@ -453,7 +475,7 @@ async def update_supplier(
 @router.delete("/suppliers/{supplier_id}", status_code=204)
 async def delete_supplier(
     supplier_id: int,
-    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    user: Principal = Depends(_STOCK_WRITERS),
     session: AsyncSession = Depends(get_session),
 ) -> None:
     await svc.delete_supplier(session, user.user_id, supplier_id)
@@ -463,7 +485,7 @@ async def delete_supplier(
 # Tables
 @router.get("/tables", response_model=list[TableOut])
 async def list_tables(
-    user: Principal = Depends(get_current_user),
+    user: Principal = Depends(_DISH_READERS),
     session: AsyncSession = Depends(get_session),
 ) -> list[TableOut]:
     items = await svc.list_tables(session)
@@ -473,18 +495,46 @@ async def list_tables(
 @router.post("/tables", response_model=TableOut, status_code=201)
 async def create_table(
     payload: TableCreate,
-    user: Principal = Depends(require_roles(Role.MANAGER)),
+    user: Principal = Depends(_MANAGER),
     session: AsyncSession = Depends(get_session),
 ) -> TableOut:
-    t2 = await svc.create_table(session, user.user_id, payload.TenBan)
+    table = await svc.create_table(session, user.user_id, payload.TenBan, payload.SoChoNgoi)
     await session.commit()
-    return TableOut.model_validate(t2)
+    return TableOut.model_validate(table)
+
+
+@router.patch("/tables/{table_id}", response_model=TableOut)
+async def update_table(
+    table_id: int,
+    payload: TableUpdate,
+    user: Principal = Depends(_MANAGER),
+    session: AsyncSession = Depends(get_session),
+) -> TableOut:
+    table = await svc.update_table(
+        session, user.user_id, table_id, payload.TenBan, payload.SoChoNgoi
+    )
+    await session.commit()
+    return TableOut.model_validate(table)
+
+
+@router.post("/tables/{table_id}/release", response_model=TableOut)
+async def release_table(
+    table_id: int,
+    payload: TableReleaseRequest | None = None,
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
+    session: AsyncSession = Depends(get_session),
+) -> TableOut:
+    table = await svc.release_table(
+        session, user.user_id, table_id, payload.MaOrder if payload else None
+    )
+    await session.commit()
+    return TableOut.model_validate(table)
 
 
 @router.delete("/tables/{table_id}", status_code=204)
 async def delete_table(
     table_id: int,
-    user: Principal = Depends(require_roles(Role.MANAGER)),
+    user: Principal = Depends(_MANAGER),
     session: AsyncSession = Depends(get_session),
 ) -> None:
     await svc.delete_table(session, user.user_id, table_id)
@@ -496,21 +546,12 @@ async def delete_table(
 async def update_visibility(
     dish_id: int,
     payload: VisibilityUpdate,
-    user: Principal = Depends(require_roles(Role.MANAGER)),
+    user: Principal = Depends(_MANAGER),
     session: AsyncSession = Depends(get_session),
 ) -> DishOut:
-    if payload.HetNguyenLieu is not None:
-        await svc.set_manual_out_of_stock(session, user.user_id, dish_id, payload.HetNguyenLieu)
+    await svc.set_manual_pause(session, user.user_id, dish_id, payload.TamDungThuCong)
     await session.commit()
     d = await svc.get_dish(session, dish_id)
     assert d is not None
-    status = await svc.display_status_for(session, d)
-    return DishOut(
-        MaMon=d.id,
-        TenMon=d.name,
-        MaNhomMon=d.group_id,
-        HinhAnh=d.image_url,
-        GiaHienTai=_money(await active_price(session, d.id, _today())),
-        TrangThai=status,
-        DaXoa=d.is_deleted,
-    )
+    price = _money(await active_price(session, d.id, await _today(session)))
+    return await _dish_out(session, d, price)

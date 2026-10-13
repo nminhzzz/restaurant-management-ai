@@ -8,6 +8,12 @@ bán, biên lợi nhuận, giá nhập nguyên liệu và order bị hủy đư�
 CASHIER (FR-AI-03, gồm doanh thu theo món), 26 WAREHOUSE (FR-AI-04, gồm cảnh báo tồn tối thiểu và
 lô sắp hết hạn). Phân tầng độ khó: 31 easy, 40 medium, 24 hard.
 
+Trong 95 câu có **6 câu cố tình vượt quyền** (`notes` chứa "vượt quyền": `Q017`, `Q019`, `Q020`, `Q047`,
+`Q052`, `Q054`), kỳ vọng là bị từ chối. Harness chấm riêng: `business_accuracy` chỉ tính trên 89 câu
+nghiệp vụ (28 easy, 37 medium, 24 hard; 45 MANAGER, 21 CASHIER, 23 WAREHOUSE) và `refusal_accuracy`
+chỉ tính trên 6 câu vượt quyền; `execution_accuracy` (95 câu) vẫn được ghi để đối chiếu với các lần
+chạy trước.
+
 ## Định dạng
 
 Mỗi dòng trong `questions.jsonl` là một bản ghi JSON độc lập:
@@ -32,7 +38,11 @@ vượt quyền và kỳ vọng là bị từ chối.
 - Trên 15–20 câu ngẫu nhiên, cả ba thành viên độc lập soạn SQL và đối chiếu; tỷ lệ đồng thuận là
   căn cứ đánh giá độ rõ ràng của câu hỏi.
 
-`questions.example.jsonl` chỉ là mẫu định dạng để viết harness, **không** phải bộ đánh giá chính thức.
+`questions.example.jsonl` **không** phải bộ đánh giá: đó là 6 ví dụ few-shot (2 mỗi vai trò) được
+`prompt.py` chèn vào prompt của cấu hình B/C và của trợ lý trong sản phẩm. Quy tắc: không câu hỏi nào
+trùng với `questions.jsonl`; SQL chỉ dùng cột có thật của view (`validate_for_role` chạy trên từng ví dụ
+trong `tests/eval/test_questions.py`); ngày tương đối viết bằng `DATE_SUB(CURRENT_DATE, INTERVAL n DAY)`
+để `prompt.py` neo vào Business Date hiệu lực.
 
 ## Lịch sử chỉnh sửa bộ đề
 
@@ -78,8 +88,8 @@ không bị ảnh hưởng.
 
 **Hạn chế đã biết, ngoài phạm vi sửa (không chạm vào seed/migrations)**: `Q092` ("lô nào sắp hết
 hạn") luôn trả về rỗng trên dữ liệu mô phỏng hiện tại vì `NGUYEN_LIEU.SoNgayBaoQuan` là `NULL`
-cho toàn bộ 68 nguyên liệu, nên `HanSuDungLo` không bao giờ có giá trị; SQL đúng theo đặc tả,
-chỉ là dữ liệu seed chưa phủ trường hạn sử dụng.
+cho toàn bộ 68 nguyên liệu, nên lô nhập không có `LO_NGUYEN_LIEU.HanSuDung` và `HanSuDungLo` không bao
+giờ có giá trị; SQL đúng theo đặc tả, chỉ là dữ liệu seed chưa phủ trường hạn sử dụng.
 
 ## Ba cấu hình đối chứng
 
@@ -87,22 +97,33 @@ chỉ là dữ liệu seed chưa phủ trường hạn sử dụng.
 | --- | --- |
 | `A` | Chỉ lược đồ view (đường cơ sở) |
 | `B` | Lược đồ + chuẩn hóa câu hỏi tiếng Việt + few-shot |
-| `C` | Cấu hình B chạy trên mô hình thứ hai (`AI_CONFIG_C_MODEL`) |
+| `C` | Cùng prompt và chuẩn hóa như B, nhưng chạy trên mô hình thứ hai (`AI_CONFIG_C_MODEL`) |
 
-Chỉ số đo theo Phụ lục 4: **độ chính xác thực thi** (chạy cả câu SQL của mô hình lẫn SQL chuẩn
-rồi so **kết quả**, không so chuỗi SQL), **tỷ lệ SQL lỗi**, **tỷ lệ từ chối**, **thời gian phản hồi
-trung bình**. Câu hỏi vượt quyền được tính đúng khi trợ lý từ chối trả dữ liệu.
+Chỉ số harness đo tự động (Phụ lục 4): **độ chính xác thực thi** (chạy cả câu SQL của mô hình lẫn SQL
+chuẩn rồi so **kết quả**, không so chuỗi SQL; có bản chặt và bản "nới lỏng" cho phép thừa cột), **tỷ lệ
+SQL lỗi**, **tỷ lệ từ chối**, **thời gian phản hồi trung bình và p95** (nearest-rank). Câu hỏi vượt quyền
+được tính đúng khi trợ lý từ chối trả dữ liệu. **Chưa đo tự động**: độ đúng câu trả lời (số liệu và
+nhận xét của bước diễn giải) và token/chi phí mỗi câu — hai chỉ số này cần chấm tay hoặc đọc `usage` của
+API.
 
-Với DeepSeek, cấu hình `C` chạy trên một mô hình suy luận (reasoning) thứ hai qua
-`AI_CONFIG_C_MODEL` (ví dụ `deepseek-v4-pro` với `thinking` bật) — mô hình này có thể vượt ngân
-sách phản hồi 8 giây của NFR-02 vì phải sinh chuỗi suy luận trước câu trả lời. Harness không áp
-ngân sách đó (nó không đi qua `ai_response_budget_seconds` của pipeline sản phẩm), nên
-`mean_latency_ms` của cấu hình `C` được **ghi nhận nguyên trạng**, không bị cắt hay loại trừ,
-để phản ánh đúng chi phí thời gian thật của mô hình suy luận.
+Phạm vi đo của harness (khác sản phẩm): chuẩn hóa → prompt → **một lần** sinh SQL → `validate_for_role`
+→ thực thi trên tài khoản chỉ-đọc của vai trò. Không có bước diễn giải, không sinh lại khi lỗi, không
+cache và không áp ngân sách phản hồi 8 giây của sản phẩm (`ai_response_budget_seconds`). Vì vậy
+`mean_latency_ms`/`p95_latency_ms` là **cận dưới** của thời gian toàn chuỗi NFR-02. SQL chuẩn cũng phải đi
+qua `validate_for_role` (cùng trần 500 dòng) trước khi chạy: executor chỉ nhận `ValidatedSql`, harness
+không có đường tắt.
+
+Với DeepSeek, cấu hình `C` chạy trên một mô hình suy luận (reasoning) thứ hai qua `AI_CONFIG_C_MODEL`
+(ví dụ `deepseek-v4-pro`). Harness chỉ đổi **tên mô hình**; mức suy luận lấy từ `LLM_REASONING_EFFORT`
+của lần chạy đó (đặt `high` khi chạy `C` nếu muốn khớp mô tả trong báo cáo) và không gửi tham số
+`thinking`. Mô hình suy luận phải sinh chuỗi suy luận trước câu trả lời nên chậm hơn; `mean_latency_ms`
+của `C` được **ghi nhận nguyên trạng**, không bị cắt hay loại trừ.
 
 ## Cách chạy
 
-Harness chạy qua đúng pipeline của Phase 6, nên cần CSDL đã seed và tài khoản chỉ-đọc của từng vai trò:
+Harness dùng cùng prompt builder, guard và executor của sản phẩm (xem phạm vi đo ở trên), nên cần CSDL
+đã seed, các view `vw_ai_*` đã áp dụng và ba biến `AI_READONLY_URL_*` (để trống sẽ báo lỗi, không có
+đường lui sang tài khoản chính):
 
 ```bash
 make db-up && make migrate && make seed     # dữ liệu 12 tháng
@@ -130,22 +151,48 @@ Các bước cụ thể để chạy trên CSDL MySQL đã seed, dùng DeepSeek 
    LLM_MODEL=deepseek-flash
    LLM_BASE_URL=https://api.deepseek.com
    AI_CONFIG_C_MODEL=deepseek-v4-pro
+   LLM_REASONING_EFFORT=low        # đặt high khi chạy riêng cấu hình C
+   AI_READONLY_URL_MANAGER=...     # ba tài khoản chỉ-đọc, xem db/views/README.md
+   AI_READONLY_URL_CASHIER=...
+   AI_READONLY_URL_WAREHOUSE=...
    ```
 2. Chuẩn bị CSDL: `make db-up && make migrate && make seed && ./scripts/apply_grants.sh`.
 3. Chạy cả ba cấu hình:
    ```bash
    cd apps/api && uv run python ../../data/eval/harness.py --configs A,B,C --out ../../docs/eval-results.json
    ```
-4. Kết quả tổng hợp (bảng so sánh 3 cấu hình) được ghi vào `docs/eval-results.json`; harness cũng in
-   ra bảng tóm tắt trên terminal.
+4. Kết quả tổng hợp (bảng so sánh 3 cấu hình, kèm khối `meta` ghi thời điểm chạy, nhà cung cấp, tên mô
+   hình từng cấu hình và phạm vi đo) được ghi vào `docs/eval-results.json`; harness cũng in ra bảng tóm
+   tắt trên terminal. Báo cáo yêu cầu 3 lượt lặp mỗi cấu hình: harness chạy một lượt mỗi lần gọi, nên
+   chạy ba lần với ba tên `--out` khác nhau rồi gộp.
 
-Chi phí và thời gian ước tính cho 95 câu hỏi (`data/eval/questions.jsonl`), mỗi câu tối đa
-`AI_MAX_SQL_ATTEMPTS` (2) lần sinh SQL: cấu hình `A`/`B` trên `deepseek-flash` mất khoảng vài giây
+Chi phí và thời gian ước tính cho 95 câu hỏi (`data/eval/questions.jsonl`), mỗi câu một lần sinh SQL
+trong harness: cấu hình `A`/`B` trên `deepseek-flash` mất khoảng vài giây
 mỗi câu và tổng chi phí API ở mức dưới một đô la cho cả 95 câu; cấu hình `C` trên mô hình suy luận
-(`deepseek-v4-pro`) chậm hơn đáng kể trên mỗi câu (xem lưu ý ở trên về ngân sách 8 giây) nên tổng
+(`deepseek-v4-pro`) chậm hơn đáng kể trên mỗi câu (xem lưu ý ở trên về mô hình suy luận) nên tổng
 thời gian chạy `C` có thể dài hơn `A`+`B` cộng lại. Đây là ước tính để lập kế hoạch, không phải cam
 kết; giá và tốc độ thực tế phụ thuộc vào bảng giá DeepSeek tại thời điểm chạy.
 
 **Lưu ý**: không chạy lệnh trên trong môi trường không có `AI_API_KEY` thật — harness sẽ gọi API
 DeepSeek thật và tính phí theo số token.
 
+
+## Kết quả chạy thử ngày 26/09/2026
+
+`docs/eval-results.json` là **một lượt chạy khám phá** trên 95 câu với bản guard/prompt lúc đó (trước đợt
+siết bộ kiểm duyệt SQL, trước khi tách chấm câu vượt quyền), file không ghi tên mô hình, nên **không phải
+kết quả thực nghiệm chính thức** và không thay cho 3 lượt lặp của báo cáo. Các con số dưới đây được tính
+lại từ chính file đó (p95 và chia nhóm lấy từ `detail.*.outcomes`):
+
+| Cấu hình | Chính xác (95 câu) | Chính xác (89 câu nghiệp vụ) | Trung bình | p95 | Lỗi | Từ chối |
+| --- | --- | --- | --- | --- | --- | --- |
+| A | 56,8% | 53,9% | 5,7 s | 15,1 s | 1,1% | 6,3% |
+| B | 66,3% | 64,0% | 5,1 s | 14,5 s | 0,0% | 8,4% |
+| C | 57,9% | 55,1% | 8,8 s | 20,2 s | 7,4% | 11,6% |
+
+Cả 6 câu vượt quyền được từ chối đúng ở cả ba cấu hình. Theo độ khó (89 câu nghiệp vụ, đúng/tổng):
+B đạt 25/28 easy, 25/37 medium, 7/24 hard. p95 của cả ba cấu hình **vượt ngưỡng 10 giây của NFR-02**
+ngay cả khi chưa tính bước diễn giải (A: 16/95 câu quá 10 giây, B: 10/95, C: 31/95; chậm nhất 40,4 s) —
+đuôi chậm đến từ độ trễ của API LLM; trung bình vẫn dưới 10 giây. Chênh lệch A→B (+9,5 điểm trên 95 câu)
+phù hợp với giả thuyết rằng chuẩn hóa và few-shot giúp, nhưng một lượt chạy trên một bộ đề không đủ để
+kết luận; C (mô hình suy luận) không tốt hơn B trong lượt này.

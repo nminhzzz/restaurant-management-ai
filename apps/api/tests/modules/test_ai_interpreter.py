@@ -1,5 +1,7 @@
 """Phase 6 Task 4 — chart choice and result interpretation (FR-AI-07, FR-AI-08, FR-AI-09)."""
 
+from datetime import date
+
 import pytest
 
 from app.modules.ai.charts import choose_chart
@@ -63,7 +65,13 @@ async def test_the_answer_is_vietnamese_and_carries_the_scope_note(session, fake
     fake_llm.reply('{"headline": "Hôm qua có 42 đơn hàng.", "highlights": [], "follow_ups": []}')
 
     result = await interpret(
-        session, "hôm qua bao nhiêu đơn?", "SELECT 1", [{"SoDon": 42}], Role.CASHIER
+        session,
+        "hôm qua bao nhiêu đơn?",
+        "SELECT 1",
+        [{"SoDon": 42}],
+        Role.CASHIER,
+        user_id=1,
+        effective_business_date=date(2026, 9, 24),
     )
 
     assert result.answer.headline == "Hôm qua có 42 đơn hàng."
@@ -74,7 +82,15 @@ async def test_the_answer_is_vietnamese_and_carries_the_scope_note(session, fake
 @pytest.mark.anyio
 async def test_the_scope_note_survives_a_model_that_ignores_the_format(session, fake_llm):
     fake_llm.reply("Có 42 đơn. Phạm vi: tất cả dữ liệu.")
-    result = await interpret(session, "q", "SELECT 1", [{"SoDon": 42}], Role.CASHIER)
+    result = await interpret(
+        session,
+        "q",
+        "SELECT 1",
+        [{"SoDon": 42}],
+        Role.CASHIER,
+        user_id=1,
+        effective_business_date=date(2026, 9, 24),
+    )
     assert result.answer.headline == "Có 42 đơn. Phạm vi: tất cả dữ liệu."
     assert result.text.endswith(scope_note(Role.CASHIER))
 
@@ -88,6 +104,71 @@ async def test_the_scope_note_differs_per_role(session):
 @pytest.mark.anyio
 async def test_an_empty_result_is_explained_not_left_blank(session, fake_llm):
     """FR-AI-09."""
-    result = await interpret(session, "hôm qua bao nhiêu đơn?", "SELECT 1", [], Role.CASHIER)
+    result = await interpret(
+        session,
+        "hôm qua bao nhiêu đơn?",
+        "SELECT 1",
+        [],
+        Role.CASHIER,
+        user_id=1,
+        effective_business_date=date(2026, 9, 24),
+    )
     assert "không có" in result.answer.headline.lower()
     assert fake_llm.calls == 0
+
+
+@pytest.mark.anyio
+async def test_interpretation_cache_expires_after_its_ttl(session, fake_llm, monkeypatch):
+    from app.modules.ai.pipeline import interpreter
+
+    now = 100.0
+    monkeypatch.setattr(interpreter, "monotonic", lambda: now)
+    args = (
+        session,
+        "hôm qua bao nhiêu đơn?",
+        "SELECT 1",
+        [{"SoDon": 42}],
+        Role.CASHIER,
+        1,
+        date(2026, 9, 24),
+    )
+
+    await interpret(*args)
+    assert fake_llm.calls == 1
+
+    now += interpreter.INTERPRETATION_CACHE_TTL_SECONDS + 0.1
+    await interpret(*args)
+
+    assert fake_llm.calls == 2
+
+
+@pytest.mark.anyio
+async def test_interpretation_cache_evicts_the_least_recently_used_entry(
+    session, fake_llm, monkeypatch
+):
+    from app.modules.ai.pipeline import interpreter
+
+    monkeypatch.setattr(interpreter, "INTERPRETATION_CACHE_MAX_ENTRIES", 2)
+
+    async def ask(question: str) -> None:
+        await interpret(
+            session,
+            question,
+            "SELECT 1",
+            [{"SoDon": 42}],
+            Role.CASHIER,
+            user_id=1,
+            effective_business_date=date(2026, 9, 24),
+        )
+
+    await ask("question one")
+    await ask("question two")
+    await ask("question one")  # Refresh the first entry; second is now least recent.
+    await ask("question three")
+    assert fake_llm.calls == 3
+
+    await ask("question one")  # Still cached.
+    assert fake_llm.calls == 3
+
+    await ask("question two")  # Evicted entry must be interpreted again.
+    assert fake_llm.calls == 4

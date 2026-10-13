@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutGrid, Plus, Trash2 } from "lucide-react";
+import { DoorOpen, LayoutGrid, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -28,6 +28,8 @@ import { useAction } from "@/lib/use-action";
 import { useResource } from "@/lib/use-resource";
 
 const WRITE_ROLES = ["MANAGER"];
+const RELEASE_ROLES = ["MANAGER", "CASHIER"];
+const OCCUPIED = "Đang phục vụ";
 
 const loadTables = () =>
   apiFetch<DiningTable[]>("/catalog/tables").then((t) =>
@@ -37,12 +39,17 @@ const loadTables = () =>
 export function TableList() {
   const res = useResource(loadTables);
   const canWrite = useCanWrite(WRITE_ROLES);
+  const canRelease = useCanWrite(RELEASE_ROLES);
   const [createOpen, setCreateOpen] = useState(false);
+  const [editTable, setEditTable] = useState<DiningTable | null>(null);
   const [name, setName] = useState("");
+  const [seats, setSeats] = useState("");
   const [deleteTable, setDeleteTable] = useState<DiningTable | null>(null);
   const [statusFilter, setStatusFilter] = useState("");
   const create = useAction();
   const del = useAction();
+  const edit = useAction();
+  const release = useAction();
 
   const tables = res.status === "ready" ? res.data : [];
   const statusOptions = [
@@ -56,13 +63,53 @@ export function TableList() {
     void create.run(async () => {
       await apiFetch("/catalog/tables", {
         method: "POST",
-        body: { TenBan: name.trim() },
+        body: {
+          TenBan: name.trim(),
+          ...(seats.trim() ? { SoChoNgoi: Number(seats) } : {}),
+        },
       });
       setCreateOpen(false);
       setName("");
+      setSeats("");
       res.reload();
     }, "Đã thêm bàn.");
   }
+
+  function handleEdit() {
+    if (!editTable) return;
+    void edit.run(async () => {
+      await apiFetch(`/catalog/tables/${editTable.MaBan}`, {
+        method: "PATCH",
+        body: {
+          TenBan: name.trim(),
+          ...(seats.trim() ? { SoChoNgoi: Number(seats) } : {}),
+        },
+      });
+      setEditTable(null);
+      res.reload();
+    }, "Đã cập nhật bàn.");
+  }
+
+  function handleRelease(table: DiningTable) {
+    void release.run(async () => {
+      await apiFetch(`/catalog/tables/${table.MaBan}/release`, {
+        method: "POST",
+        body:
+          table.MaOrderDangPhucVu != null
+            ? { MaOrder: table.MaOrderDangPhucVu }
+            : {},
+      });
+      res.reload();
+    }, `Đã trả ${table.TenBan}.`);
+  }
+
+  const seatsInvalid =
+    seats.trim() !== "" &&
+    !(
+      Number.isInteger(Number(seats)) &&
+      Number(seats) >= 1 &&
+      Number(seats) <= 1000
+    );
 
   function handleDelete() {
     if (!deleteTable) return;
@@ -79,6 +126,7 @@ export function TableList() {
     <Button
       onClick={() => {
         setName("");
+        setSeats("");
         setCreateOpen(true);
       }}
     >
@@ -129,17 +177,50 @@ export function TableList() {
                 className="flex min-w-32 flex-col gap-2 rounded-container border border-border bg-surface px-4 py-3"
               >
                 <span className="font-medium">{t.TenBan}</span>
+                {t.SoChoNgoi != null && (
+                  <span className="text-xs text-muted">
+                    {t.SoChoNgoi} chỗ ngồi
+                  </span>
+                )}
                 {t.TrangThai ? <StatusBadge status={t.TrangThai} /> : null}
-                {canWrite && (
+                {canRelease && t.TrangThai === OCCUPIED && (
                   <Button
-                    variant="ghost"
+                    variant="secondary"
                     size="sm"
-                    className="self-end text-danger-fg"
-                    aria-label={`Xóa bàn ${t.TenBan}`}
-                    onClick={() => setDeleteTable(t)}
+                    disabled={release.pending}
+                    aria-label={`Trả bàn ${t.TenBan}`}
+                    onClick={() => handleRelease(t)}
                   >
-                    <Trash2 />
+                    <DoorOpen />
+                    Trả bàn
                   </Button>
+                )}
+                {canWrite && (
+                  <div className="flex justify-end gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      aria-label={`Sửa bàn ${t.TenBan}`}
+                      onClick={() => {
+                        setName(t.TenBan);
+                        setSeats(
+                          t.SoChoNgoi != null ? String(t.SoChoNgoi) : "",
+                        );
+                        setEditTable(t);
+                      }}
+                    >
+                      <Pencil />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-danger-fg"
+                      aria-label={`Xóa bàn ${t.TenBan}`}
+                      onClick={() => setDeleteTable(t)}
+                    >
+                      <Trash2 />
+                    </Button>
+                  </div>
                 )}
               </div>
             ))}
@@ -147,10 +228,18 @@ export function TableList() {
         </>
       )}
 
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+      <Dialog
+        open={createOpen || editTable !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCreateOpen(false);
+            setEditTable(null);
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Thêm bàn</DialogTitle>
+            <DialogTitle>{editTable ? "Sửa bàn" : "Thêm bàn"}</DialogTitle>
           </DialogHeader>
           <FormField id="table-name" label="Tên bàn">
             <Input
@@ -159,13 +248,37 @@ export function TableList() {
               onChange={(e) => setName(e.target.value)}
             />
           </FormField>
+          <FormField
+            id="table-seats"
+            label="Số chỗ ngồi"
+            help="Không bắt buộc."
+            error={seatsInvalid ? "Nhập số nguyên từ 1 đến 1000." : null}
+          >
+            <Input
+              id="table-seats"
+              inputMode="numeric"
+              value={seats}
+              onChange={(e) => setSeats(e.target.value)}
+            />
+          </FormField>
           <DialogFooter>
-            <Button variant="secondary" onClick={() => setCreateOpen(false)}>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setCreateOpen(false);
+                setEditTable(null);
+              }}
+            >
               Quay lại
             </Button>
             <Button
-              disabled={create.pending || name.trim() === ""}
-              onClick={handleCreate}
+              disabled={
+                create.pending ||
+                edit.pending ||
+                name.trim() === "" ||
+                seatsInvalid
+              }
+              onClick={editTable ? handleEdit : handleCreate}
             >
               Lưu
             </Button>

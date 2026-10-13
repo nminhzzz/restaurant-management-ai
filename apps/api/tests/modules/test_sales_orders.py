@@ -20,7 +20,7 @@ from app.modules.settings.models import User
 from app.modules.settings.service import seed_reference_data
 from app.shared import business_date
 from app.shared.enums import VersionStatus
-from tests.helpers import ingredient_total, order_count
+from tests.helpers import ingredient_total, order_count, table_status
 
 
 async def _make_client(session):
@@ -60,7 +60,7 @@ async def _setup_dish_with_stock(
     g = DishGroup(name="Nhóm A", display_order=1, is_deleted=False)
     session.add(g)
     await session.flush()
-    d = Dish(name=dish_name, group_id=g.id, is_deleted=False)
+    d = Dish(name=dish_name, group_id=g.id, is_deleted=False, missing_recipe=False)
     session.add(d)
     await session.flush()
     ing = Ingredient(
@@ -175,7 +175,7 @@ async def test_rejected_when_out_of_stock(session):
     ing2 = Ingredient(name="NL hiếm", unit="kg", min_stock=1, stock_qty=1, is_deleted=False)
     session.add(ing2)
     await session.flush()
-    d2 = Dish(name="Món hiếm", group_id=g.id, is_deleted=False)
+    d2 = Dish(name="Món hiếm", group_id=g.id, is_deleted=False, missing_recipe=False)
     session.add(d2)
     await session.flush()
     bd2 = business_date.business_date_of(business_date.now())
@@ -222,9 +222,11 @@ async def test_rejected_when_out_of_stock(session):
         },
         headers=headers,
     )
-    assert r.status_code == 201
-    assert [x["MaMon"] for x in r.json()["lines"]] == [d.id]
-    assert r.json()["rejected"] == [{"MaMon": d2.id, "reason": "không đủ tồn kho"}]
+    # FR-SALE-05/08: one line that cannot be served refuses the whole order, nothing is written.
+    assert r.status_code == 422
+    assert await order_count(session) == 0
+    assert await ingredient_total(session, d) == 1
+    assert await table_status(session, t.id) == "Trống"
 
 
 @pytest.mark.anyio
@@ -235,7 +237,7 @@ async def test_all_fail_returns_422(session):
     ing = Ingredient(name="NL", unit="kg", min_stock=1, stock_qty=1, is_deleted=False)
     session.add(ing)
     await session.flush()
-    d = Dish(name="Món", group_id=g.id, is_deleted=False)
+    d = Dish(name="Món", group_id=g.id, is_deleted=False, missing_recipe=False)
     session.add(d)
     await session.flush()
     bd = business_date.business_date_of(business_date.now())
@@ -318,7 +320,7 @@ async def test_submit_draws_stock(session):
 
 async def _setup_unpriced_dish(session, group_id):
     """A dish with stock and a recipe but no active price version (review #6)."""
-    d = Dish(name="Món chưa định giá", group_id=group_id, is_deleted=False)
+    d = Dish(name="Món chưa định giá", group_id=group_id, is_deleted=False, missing_recipe=False)
     session.add(d)
     await session.flush()
     ing = Ingredient(
@@ -370,9 +372,10 @@ async def test_rejected_when_no_active_price(session):
         headers=headers,
     )
 
-    assert r.status_code == 201, r.text
-    assert [x["MaMon"] for x in r.json()["lines"]] == [d.id]
-    assert r.json()["rejected"] == [{"MaMon": unpriced.id, "reason": "Món chưa có giá"}]
+    assert r.status_code == 422, r.text
+    assert "chưa có giá" in r.json()["error"]["message"]
+    assert await order_count(session) == 0
+    assert await table_status(session, t.id) == "Trống"
 
 
 @pytest.mark.anyio

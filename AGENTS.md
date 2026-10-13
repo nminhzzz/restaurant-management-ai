@@ -21,9 +21,9 @@ apps/api/src/app/
 └── modules/       # catalog · sales · inventory · reports · settings · ai
 apps/web/src/
 ├── app/           # routes: (app)/<module> + /login
-├── components/    # app shell, module placeholder
-├── features/      # theo module, ví dụ features/assistant
-├── lib/           # api-client, env, modules (registry 6 module)
+├── components/    # app-shell, confirm-dialog, data-pagination, filter-bar, form-field, page-states, ui/ (Radix)
+├── features/      # theo module: assistant, auth, catalog, inventory, reports, sales, settings
+├── lib/           # api-client, env, session, roles, status, format, modules (registry 6 module)
 └── types/
 db/views/          # DDL view phân quyền cho trợ lý AI
 data/eval/         # bộ câu hỏi – SQL chuẩn phục vụ đánh giá
@@ -37,8 +37,11 @@ make setup      # cài dependencies
 make gate       # bắt buộc xanh trước khi kết thúc công việc
 make api / make web
 make db-up / make migrate
-make test / make lint / make fmt / make typecheck
+make test / make lint / make fmt / make fmt-check / make typecheck
+make gate-full  # gate + test tích hợp MySQL thật (bỏ qua nếu máy thiếu tài nguyên)
 ```
+
+`make gate` = fmt-check · lint · typecheck · test · build.
 
 Chạy riêng: `cd apps/api && uv run pytest`, `cd apps/web && pnpm test`.
 
@@ -55,12 +58,19 @@ Chạy riêng: `cd apps/api && uv run pytest`, `cd apps/web && pnpm test`.
   sửa ở đó, đừng chép tay vào từng trang.
 - Truy vấn SQL chỉ được dựng qua SQLAlchemy; không nối chuỗi SQL.
 - Mọi thao tác ghi đều phải kiểm tra quyền ở tầng API. Ẩn nút trên giao diện không phải là phân quyền.
-- Tuân thủ `Business Date` (06:00 → 06:00 hôm sau) qua `app.shared.business_date`; không tự tính lại.
+- Tính `Business Date` qua `app.shared.business_date`; lấy mốc bắt đầu hiệu lực từ cấu hình đã lưu bằng
+  `app.modules.settings.service.effective_business_day_start`, không tự tính lại hoặc giả định giờ cố định.
+  Khi thay đổi mốc giờ, áp dụng mốc mới từ Business Date kế tiếp theo `GioBatDauBusinessDateMoi` và
+  `NgayHieuLucGioMoi`; không làm thay đổi Business Date đang diễn ra.
 
 ## Trợ lý AI
 
 - Sinh SQL rồi **bắt buộc** đi qua `app.modules.ai.guard.validate_sql` trước khi thực thi.
-  Không có đường tắt nào bỏ qua bước này.
+  Không có đường tắt nào bỏ qua bước này. Quy tắc này nằm ở kiểu dữ liệu: `validate_sql` trả về
+  `ValidatedSql` và `pipeline.executor` chỉ nhận kiểu đó; không tự dựng `ValidatedSql` ngoài `guard.py`,
+  và harness đánh giá (`data/eval/harness.py`) cũng phải kiểm duyệt SQL chuẩn trước khi chạy.
+- Bộ kiểm duyệt từ chối chú thích/gợi ý tối ưu, khóa dòng, biến, CTE che tên bảng, quan hệ hoặc cột ngoài
+  view của vai trò; nới lỏng bất kỳ luật nào phải kèm test trong `tests/modules/test_ai_guard.py`.
 - Mỗi vai trò chỉ đọc đúng một view (`app.modules.ai.scope`). Prompt chỉ được chứa view đó.
 - Truy vấn chạy bằng tài khoản CSDL chỉ-đọc **riêng cho từng vai trò** (`app.modules.ai.accounts`),
   mỗi tài khoản chỉ được `GRANT SELECT` trên đúng view của vai trò đó — không dùng chung.
@@ -72,13 +82,14 @@ Chạy riêng: `cd apps/api && uv run pytest`, `cd apps/web && pnpm test`.
 - DBMS đã chốt là **MySQL 8.4** và báo cáo cũng ghi MySQL — giữ nhất quán khi thêm nội dung CSDL,
   đừng đưa vào cú pháp PostgreSQL. Định danh giữ tiếng Việt theo lược đồ quan hệ (`NGUYEN_LIEU`,
   `MaNguyenLieu`, `DaXoa`).
-- §3.2.1 của báo cáo cố ý dùng **kiểu của ngôn ngữ lập trình** (`String`, `int`, `Long`, `double`,
-  `boolean`, `LocalDate`, `LocalDateTime`, `LocalTime`), không dùng kiểu vật lý của MySQL. Quy ước
-  vật lý (NOT NULL, `ON DELETE`/`ON UPDATE`, CHECK, cột GENERATED, `BusinessDate` denormalize) nằm ở
-  §3.2.2 — đọc kỹ trước khi viết DDL, đừng suy ra kiểu cột từ bảng ở §3.2.1.
+- Phụ lục D của báo cáo (đặc tả thuộc tính và phương thức của 31 lớp) cố ý dùng **kiểu của ngôn ngữ lập
+  trình** (`String`, `int`, `Long`, `double`, `boolean`, `LocalDate`, `LocalDateTime`, `LocalTime`), không
+  dùng kiểu vật lý của MySQL. Quy ước vật lý (NOT NULL, `ON DELETE`/`ON UPDATE`, CHECK, cột GENERATED,
+  `BusinessDate` denormalize) nằm ở mục 4.2.2, phần "Ràng buộc và quy ước triển khai cơ sở dữ liệu" (tiêu đề
+  không đánh số) — đọc kỹ trước khi viết DDL, đừng suy ra kiểu cột từ bảng ở Phụ lục D.
 - `next-env.d.ts` bị gitignore; `pnpm typecheck` trên bản clone mới không có file này vẫn phải xanh —
   đừng dùng `LayoutProps`/`PageProps` sinh tự động trong code.
 - `apps/web/AGENTS.md` do chính `next dev` sinh và ghi lại; không sửa file đó.
 - Báo cáo dùng **Class Diagram** (`docs/ClassDiagram_*.drawio`) và ánh xạ sang lược đồ quan hệ ở
-  §3.2.2; BFD/DFD đã bị bỏ khỏi báo cáo nên đừng viện dẫn lại.
+  mục 4.2.2; BFD/DFD đã bị bỏ khỏi báo cáo nên đừng viện dẫn lại.
 - Đường dẫn ảnh trong báo cáo là `Images/` (chữ hoa) — Linux phân biệt hoa/thường, đổi lại là vỡ ảnh.

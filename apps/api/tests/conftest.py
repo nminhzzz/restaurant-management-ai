@@ -1,6 +1,7 @@
 """Shared pytest fixtures - Phase 0 foundation."""
 
 from collections.abc import AsyncIterator, Callable, Iterator
+from unittest.mock import patch
 
 import pytest
 import pytest_asyncio
@@ -21,11 +22,22 @@ import app.modules.settings.models
 import app.shared.audit  # noqa: F401
 from app.core.config import get_settings
 from app.core.security import create_access_token
-from app.main import app as fastapi_app
 from app.shared import business_date
 from app.shared.base import Base
 from app.shared.roles import Role
 from tests.helpers import FIXED_NOW
+
+# app.main builds the FastAPI app at import time and validates payment settings.
+# Keep that one import independent of developer credentials, then restore the
+# process environment so tests can choose their own gateway.
+_payment_env_defaults = {
+    "PAYMENT_GATEWAY": "simulator",
+    "SEPAY_BANK_ACCOUNT": "",
+    "SEPAY_BANK_CODE": "",
+    "SEPAY_WEBHOOK_API_KEY": "",
+}
+with patch.dict("os.environ", _payment_env_defaults):
+    from app.main import app as fastapi_app
 
 
 def _require_resources_for_integration() -> None:
@@ -80,6 +92,30 @@ def _clear_settings_cache() -> Iterator[None]:
 
 
 @pytest.fixture(autouse=True)
+def _isolate_payment_gateway_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep payment tests independent of developer-specific SePay settings."""
+    monkeypatch.setenv("PAYMENT_GATEWAY", "simulator")
+    monkeypatch.setenv("SEPAY_BANK_ACCOUNT", "")
+    monkeypatch.setenv("SEPAY_BANK_CODE", "")
+    monkeypatch.setenv("SEPAY_WEBHOOK_API_KEY", "")
+
+
+@pytest.fixture(autouse=True)
+def _isolate_ai_readonly_accounts(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """Give every test the same per-role account URLs, whatever the developer shell exports.
+
+    A blank URL fails closed (there is no fallback to the application account), so a CI runner
+    without these variables must not behave differently from a machine that has them.
+    """
+    monkeypatch.setenv("AI_READONLY_URL_MANAGER", "mysql+asyncmy://ai_manager@db/restaurant")
+    monkeypatch.setenv("AI_READONLY_URL_CASHIER", "mysql+asyncmy://ai_cashier@db/restaurant")
+    monkeypatch.setenv("AI_READONLY_URL_WAREHOUSE", "mysql+asyncmy://ai_warehouse@db/restaurant")
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
+
+
+@pytest.fixture(autouse=True)
 def freeze_clock(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(business_date, "now", lambda: FIXED_NOW)
 
@@ -93,23 +129,54 @@ def client() -> Iterator[TestClient]:
 @pytest.fixture
 def token_for() -> Callable[..., str]:
     def _make(role: Role, user_id: int = 1) -> str:
-        return create_access_token(str(user_id), {"role": role.value, "username": "tester"})
+        # Tokens carry no role: the account's role is read from the database per request.
+        return create_access_token(str(user_id))
 
     return _make
 
 
+_SEEDED_ACCOUNTS = (
+    (1, "quanly", Role.MANAGER),
+    (2, "thungan", Role.CASHIER),
+    (3, "kho", Role.WAREHOUSE),
+)
+
+
+@pytest_asyncio.fixture
+async def seeded_accounts(session: AsyncSession) -> None:
+    """One active account per role with the ids the shared token fixtures sign."""
+    from app.core.security import hash_password
+    from app.modules.settings.models import User
+    from app.modules.settings.service import seed_reference_data
+
+    await seed_reference_data(session)
+    for user_id, username, role in _SEEDED_ACCOUNTS:
+        if await session.get(User, user_id) is None:
+            session.add(
+                User(
+                    id=user_id,
+                    username=username,
+                    password_hash=hash_password("pass123"),
+                    full_name=username,
+                    role_id=role.value,
+                    status="Hoạt động",
+                )
+            )
+    await session.commit()
+
+
 @pytest.fixture
-def manager_token(token_for: Callable[..., str]) -> str:
+def manager_token(token_for: Callable[..., str], seeded_accounts: None) -> str:
     return token_for(Role.MANAGER, user_id=1)
 
 
 @pytest.fixture
-def cashier_token(token_for: Callable[..., str]) -> str:
+def cashier_token(token_for: Callable[..., str], seeded_accounts: None) -> str:
     return token_for(Role.CASHIER, user_id=2)
 
 
 @pytest.fixture
-def warehouse_token(token_for: Callable[..., str]) -> str:
+def warehouse_token(token_for: Callable[..., str], seeded_accounts: None) -> str:
     return token_for(Role.WAREHOUSE, user_id=3)
 
 
@@ -124,8 +191,12 @@ async def engine() -> AsyncIterator[AsyncEngine]:
 
 @pytest_asyncio.fixture
 async def session(engine: AsyncEngine) -> AsyncIterator[AsyncSession]:
+    from app.modules.settings.models import SystemConfig
+
     factory = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
     async with factory() as sess:
+        sess.add(SystemConfig(default_stock_threshold=5))
+        await sess.flush()
         yield sess
         await sess.rollback()
 
@@ -170,14 +241,16 @@ class FakeLlm:
 @pytest.fixture
 def fake_llm() -> Iterator[FakeLlm]:
     from app.modules.ai import llm
-    from app.modules.ai.pipeline import generator
+    from app.modules.ai.pipeline import generator, interpreter
 
     fake = FakeLlm()
     llm.set_client(fake)
     generator.reset_state()
+    interpreter.reset_state()
     yield fake
     llm.set_client(None)
     generator.reset_state()
+    interpreter.reset_state()
 
 
 class _FakeResult:
@@ -199,6 +272,8 @@ class _FakeConnection:
         self._factory.executed.append(str(statement))
         if self._factory.error is not None:
             raise self._factory.error
+        if self._factory.errors and "MAX_EXECUTION_TIME" not in str(statement):
+            raise self._factory.errors.pop(0)
         return _FakeResult(self._factory)
 
     async def __aenter__(self):
@@ -230,6 +305,8 @@ class FakeEngineFactory:
         self.columns: list[str] = ["MaNguyenLieu", "TenNguyenLieu"]
         self.disposed = 0
         self.error: Exception | None = None
+        # Errors raised once each, in order, by the main query (not the timeout SET).
+        self.errors: list[Exception] = []
 
     def __call__(self, url: str) -> _FakeEngine:
         self.urls.append(url)
@@ -284,6 +361,14 @@ _QUANLY_COLUMNS = [
     "TenNhaCungCap",
     "DonGiaNhap",
     "SoLuongNhap",
+    "SoLuongGiu",
+    "SoLuongKhaDung",
+    "CanhBaoTonThap",
+    "MaLo",
+    "SoLuongConLai",
+    "TrangThaiLo",
+    "NgayNhapLo",
+    "HanSuDungLo",
 ]
 _THUNGAN_COLUMNS = [
     "LoaiBanGhi",
@@ -310,6 +395,8 @@ _KHO_COLUMNS = [
     "TenNguyenLieu",
     "DonViTinh",
     "SoLuongTon",
+    "SoLuongGiu",
+    "SoLuongKhaDung",
     "MucTonToiThieu",
     "CanhBaoTonThap",
     "MaGiaoDichKho",
@@ -388,6 +475,22 @@ async def seed_views(engine: AsyncEngine) -> None:
             "DonViTinh": "n.DonViTinh",
             "SoLuongTon": "n.SoLuongTon",
             "MucTonToiThieu": "n.MucTonToiThieu",
+            "SoLuongGiu": "0",
+            "SoLuongKhaDung": "n.SoLuongTon",
+            "CanhBaoTonThap": "CASE WHEN n.SoLuongTon < n.MucTonToiThieu THEN 1 ELSE 0 END",
+        },
+    )
+    quanly_lo = _branch(
+        _QUANLY_COLUMNS,
+        {
+            "LoaiBanGhi": "'LO_NGUYEN_LIEU'",
+            "MaNguyenLieu": "l.MaNguyenLieu",
+            "TenNguyenLieu": "n.TenNguyenLieu",
+            "DonViTinh": "n.DonViTinh",
+            "MaLo": "l.MaLoNguyenLieu",
+            "SoLuongConLai": "l.SoLuongConLai",
+            "TrangThaiLo": "l.TrangThai",
+            "NgayNhapLo": "l.NgayNhap",
         },
     )
     quanly_gia_von = _branch(
@@ -536,7 +639,9 @@ async def seed_views(engine: AsyncEngine) -> None:
                 f"UNION ALL SELECT {quanly_phieu_nhap} FROM CHI_TIET_PHIEU_NHAP ct "
                 "JOIN PHIEU_NHAP_KHO pn ON pn.MaPhieuNhap = ct.MaPhieuNhap "
                 "JOIN NGUYEN_LIEU n ON n.MaNguyenLieu = ct.MaNguyenLieu "
-                "LEFT JOIN NHA_CUNG_CAP ncc ON ncc.MaNCC = pn.MaNCC"
+                "LEFT JOIN NHA_CUNG_CAP ncc ON ncc.MaNCC = pn.MaNCC "
+                f"UNION ALL SELECT {quanly_lo} FROM LO_NGUYEN_LIEU l "
+                "JOIN NGUYEN_LIEU n ON n.MaNguyenLieu = l.MaNguyenLieu"
             )
         )
         await conn.execute(

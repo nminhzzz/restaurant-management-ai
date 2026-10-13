@@ -14,7 +14,14 @@ const ingredients = [
   { MaNguyenLieu: 1, TenNguyenLieu: "Gạo", DonViTinh: "kg" },
 ];
 
-const issues = [{ MaPhieuXuat: 1, LyDo: "Hao hụt", TrangThai: "Nháp" }];
+const issues = [
+  {
+    MaPhieuXuat: 1,
+    LyDo: "Hao hụt",
+    TrangThai: "Nháp",
+    NguonXuat: "Món đã chế biến",
+  },
+];
 
 describe("IssueList", () => {
   beforeEach(() => {
@@ -123,5 +130,21 @@ describe("IssueList", () => {
         "/inventory/issues?reason=Hao+h%E1%BB%A5t&date_from=2026-09-01&date_to=2026-09-25&page=1&page_size=20",
       ),
     );
+  });
+
+  it("shows the source of each issue", async () => {
+    fetchMock.mockImplementation((path: string) => {
+      if (path.startsWith("/inventory/issues")) {
+        return Promise.resolve({ items: issues, total: 1 });
+      }
+      return Promise.resolve({ items: ingredients });
+    });
+
+    render(<IssueList />);
+
+    expect(
+      await screen.findByRole("columnheader", { name: "Nguồn" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Món đã chế biến")).toBeInTheDocument();
   });
 });

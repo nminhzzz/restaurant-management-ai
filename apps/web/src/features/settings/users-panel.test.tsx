@@ -5,7 +5,8 @@ vi.mock("@/lib/api-client", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api-client")>();
   return { ...actual, apiFetch: vi.fn() };
 });
-import { apiFetch } from "@/lib/api-client";
+import { ApiError, apiFetch } from "@/lib/api-client";
+import { clearSession, saveSession } from "@/lib/session";
 import { UsersPanel } from "./users-panel";
 
 const fetchMock = apiFetch as unknown as ReturnType<typeof vi.fn>;
@@ -52,7 +53,10 @@ const twoUsers = {
 };
 
 describe("UsersPanel", () => {
-  beforeEach(() => vi.resetAllMocks());
+  beforeEach(() => {
+    vi.resetAllMocks();
+    clearSession();
+  });
   afterEach(cleanup);
 
   it("posts the new-account form to POST /settings/users", async () => {
@@ -169,5 +173,91 @@ describe("UsersPanel", () => {
 
     expect(screen.queryByText("Phạm Thu Hà")).not.toBeInTheDocument();
     expect(screen.getByText("Trần Văn Quản")).toBeInTheDocument();
+  });
+
+  it("changes a role and details through PATCH /settings/users/{id}", async () => {
+    saveSession({ token: "t", role: "MANAGER", username: "quanly01" });
+    stubByPath({ "/settings/users": oneUser });
+    render(<UsersPanel />);
+
+    await screen.findByText("Phạm Thu Hà");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Sửa tài khoản Phạm Thu Hà" }),
+    );
+    fireEvent.change(
+      screen.getByLabelText("Vai trò", { selector: "select#edit-user-role" }),
+      {
+        target: { value: "WAREHOUSE" },
+      },
+    );
+    fireEvent.change(
+      screen.getByLabelText("Số điện thoại", { selector: "#edit-user-phone" }),
+      {
+        target: { value: "0901234567" },
+      },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Lưu" }));
+
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/settings/users/2",
+        expect.objectContaining({
+          method: "PATCH",
+          body: {
+            full_name: "Phạm Thu Hà",
+            phone: "0901234567",
+            role: "WAREHOUSE",
+          },
+        }),
+      ),
+    );
+  });
+
+  it("does not let managers change their own role", async () => {
+    saveSession({ token: "t", role: "MANAGER", username: "thungan01" });
+    stubByPath({ "/settings/users": oneUser });
+    render(<UsersPanel />);
+
+    await screen.findByText("Phạm Thu Hà");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Sửa tài khoản Phạm Thu Hà" }),
+    );
+
+    expect(
+      screen.getByLabelText("Vai trò", { selector: "select#edit-user-role" }),
+    ).toBeDisabled();
+  });
+
+  it("shows the server's refusal to demote the last manager", async () => {
+    saveSession({ token: "t", role: "MANAGER", username: "khac" });
+    fetchMock.mockImplementation(
+      (path: string, options?: { method?: string }) =>
+        options?.method === "PATCH"
+          ? Promise.reject(
+              new ApiError(
+                409,
+                "BUSINESS_RULE",
+                "Không thể hạ quyền Quản lý cuối cùng của hệ thống.",
+              ),
+            )
+          : Promise.resolve(path.startsWith("/settings/users") ? twoUsers : {}),
+    );
+    render(<UsersPanel />);
+
+    await screen.findByText("Trần Văn Quản");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Sửa tài khoản Trần Văn Quản" }),
+    );
+    fireEvent.change(
+      screen.getByLabelText("Vai trò", { selector: "select#edit-user-role" }),
+      {
+        target: { value: "CASHIER" },
+      },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Lưu" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Không thể hạ quyền Quản lý cuối cùng của hệ thống.",
+    );
   });
 });

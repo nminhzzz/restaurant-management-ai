@@ -137,6 +137,58 @@ async def test_confirm_overwrites_stock_and_records_difference(session):
 
 
 @pytest.mark.anyio
+async def test_repeated_count_replaces_actual_without_reapplying_adjustment(session):
+    from sqlalchemy import select
+
+    from app.modules.inventory.models import StockMovement, StocktakeLine
+
+    ing = await _ingredient(session, "Repeated count ingredient", 10)
+    client = await _make_client(session)
+    headers, _ = await _headers(session)
+    stocktake = await client.post("/api/v1/inventory/stocktakes", headers=headers)
+    stocktake_id = stocktake.json()["MaPhieuKiemKe"]
+
+    for actual in (8, 7):
+        response = await client.post(
+            f"/api/v1/inventory/stocktakes/{stocktake_id}/counts",
+            json=[{"ingredient_id": ing.id, "actual_qty": actual}],
+            headers=headers,
+        )
+        assert response.status_code == 200, response.text
+
+    lines = (
+        (
+            await session.execute(
+                select(StocktakeLine).where(StocktakeLine.stocktake_id == stocktake_id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert len(lines) == 1
+    assert float(lines[0].system_qty) == 10
+    assert float(lines[0].actual_qty) == 7
+
+    confirmed = await client.post(
+        f"/api/v1/inventory/stocktakes/{stocktake_id}/confirm", headers=headers
+    )
+    assert confirmed.status_code == 200, confirmed.text
+    await session.refresh(ing)
+    assert float(ing.stock_qty) == 7
+    assert await lot_total(session, ing.id) == 7
+    movements = (
+        (
+            await session.execute(
+                select(StockMovement).where(StockMovement.stocktake_line_id == lines[0].id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert sum((movement.qty for movement in movements), 0) == -3
+
+
+@pytest.mark.anyio
 async def test_confirm_with_surplus_creates_adjustment_lot(session):
     ing = await _ingredient(session, "NL", 10)
     client = await _make_client(session)
@@ -201,7 +253,7 @@ async def test_list_stocktakes(session):
     body = r.json()
     assert body["total"] == 1
     assert len(body["items"]) == 1
-    assert body["items"][0]["TrangThai"] == "Nháp"
+    assert body["items"][0]["TrangThai"] == "Đang kiểm kê"
 
 
 @pytest.mark.anyio
@@ -213,12 +265,12 @@ async def test_list_stocktakes_filters_by_status_and_date_range(session):
     st = await client.post("/api/v1/inventory/stocktakes", headers=h)
     sid = st.json()["MaPhieuKiemKe"]
 
-    by_status = await client.get("/api/v1/inventory/stocktakes?status=Nháp", headers=h)
+    by_status = await client.get("/api/v1/inventory/stocktakes?status=Đang kiểm kê", headers=h)
     assert by_status.status_code == 200
     assert by_status.json()["total"] == 1
     assert by_status.json()["items"][0]["MaPhieuKiemKe"] == sid
 
-    confirmed = await client.get("/api/v1/inventory/stocktakes?status=Đã xác nhận", headers=h)
+    confirmed = await client.get("/api/v1/inventory/stocktakes?status=Đã chốt", headers=h)
     assert confirmed.json()["total"] == 0
 
     today = business_date.now().date()
@@ -243,8 +295,69 @@ async def test_list_stocktakes_total_reflects_all_rows_across_pages(session):
     client = await _make_client(session)
     h, _ = await _headers(session)
     for _ in range(3):
-        await client.post("/api/v1/inventory/stocktakes", headers=h)
+        created = await client.post("/api/v1/inventory/stocktakes", headers=h)
+        await client.post(
+            f"/api/v1/inventory/stocktakes/{created.json()['MaPhieuKiemKe']}/cancel",
+            headers=h,
+        )
     r = await client.get("/api/v1/inventory/stocktakes?page=1&page_size=2", headers=h)
     body = r.json()
     assert body["total"] == 3
     assert len(body["items"]) == 2
+
+
+@pytest.mark.anyio
+async def test_only_one_active_stocktake_and_cancel_releases_session(session):
+    client = await _make_client(session)
+    headers, _ = await _headers(session)
+    first = await client.post("/api/v1/inventory/stocktakes", headers=headers)
+    assert first.status_code == 201, first.text
+    first_id = first.json()["MaPhieuKiemKe"]
+    duplicate = await client.post("/api/v1/inventory/stocktakes", headers=headers)
+    assert duplicate.status_code == 422
+
+    cancelled = await client.post(
+        f"/api/v1/inventory/stocktakes/{first_id}/cancel", headers=headers
+    )
+    assert cancelled.status_code == 200, cancelled.text
+    history = await client.get("/api/v1/inventory/stocktakes", headers=headers)
+    assert history.json()["items"][0]["TrangThai"] == "Đã hủy"
+    rejected = await client.post(
+        f"/api/v1/inventory/stocktakes/{first_id}/counts",
+        json=[{"ingredient_id": 1, "actual_qty": 1}],
+        headers=headers,
+    )
+    assert rejected.status_code == 422
+    second = await client.post("/api/v1/inventory/stocktakes", headers=headers)
+    assert second.status_code == 201, second.text
+
+
+@pytest.mark.anyio
+async def test_active_stocktake_blocks_receipt_and_issue_without_partial_writes(session):
+    from sqlalchemy import select
+
+    from app.modules.inventory.models import StockIssue
+
+    ingredient = await _ingredient(session, "Blocked ingredient", 10)
+    client = await _make_client(session)
+    headers, _ = await _headers(session)
+    created = await client.post("/api/v1/inventory/stocktakes", headers=headers)
+    assert created.status_code == 201
+
+    receipt = await client.post(
+        "/api/v1/inventory/receipts",
+        json={"lines": [{"ingredient_id": ingredient.id, "quantity": 2, "unit_price": 1000}]},
+        headers=headers,
+    )
+    issue = await client.post(
+        "/api/v1/inventory/issues",
+        json={"reason": "Hao hụt", "lines": [{"ingredient_id": ingredient.id, "quantity": 2}]},
+        headers=headers,
+    )
+    assert receipt.status_code == 422
+    assert issue.status_code == 422
+    browse = await client.get("/api/v1/inventory/stock", headers=headers)
+    assert browse.status_code == 200
+    await session.refresh(ingredient)
+    assert ingredient.stock_qty == 10
+    assert (await session.execute(select(StockIssue))).scalars().all() == []

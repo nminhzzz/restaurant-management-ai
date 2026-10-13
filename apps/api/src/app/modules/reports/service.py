@@ -1,14 +1,24 @@
 """Orchestration for the reporting module (read-only)."""
 
 from datetime import date
+from decimal import Decimal
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.reports import queries
-from app.modules.reports.periods import BusinessPeriod, month_period, resolve_period
+from app.modules.reports.periods import (
+    BusinessPeriod,
+    month_period,
+    parse_period,
+    resolve_period,
+)
 from app.modules.reports.schemas import (
+    NO_PERCENTAGE,
     CancelledOrderOut,
     CancelledReportOut,
+    ChangeOut,
+    ClosedUnpaidOrderOut,
+    ClosedUnpaidReportOut,
     ComparisonOut,
     CostBreakdownOut,
     DishCostListOut,
@@ -18,23 +28,29 @@ from app.modules.reports.schemas import (
     HourBucketOut,
     HourlyOut,
     MarginOut,
+    PeriodFiguresOut,
     PeriodOut,
     RevenueBucketOut,
     RevenueOut,
-    RevenueSummaryOut,
+    UnsettledListOut,
+    UnsettledOrderOut,
     WeekdayBucketOut,
 )
+from app.modules.settings.service import effective_business_day_start
 from app.shared import business_date
 
 
-def period_for(
-    granularity: str, anchor: date | None = None, month: str | None = None
+async def period_for(
+    session: AsyncSession, granularity: str, anchor: date | None = None, month: str | None = None
 ) -> BusinessPeriod:
     """A report period comes from either an explicit `month` or an anchor day."""
     if month:
         return month_period(month)
-    default_anchor = anchor or business_date.business_date_of(business_date.now())
-    return resolve_period(granularity, default_anchor)
+    if anchor is None:
+        moment = business_date.now()
+        start = await effective_business_day_start(session, moment)
+        anchor = business_date.business_date_of(moment, start)
+    return resolve_period(granularity, anchor)
 
 
 def period_out(period: BusinessPeriod) -> PeriodOut:
@@ -104,9 +120,11 @@ async def costs(session: AsyncSession, month: str) -> CostBreakdownOut:
     return CostBreakdownOut(
         NguyenLieu=result.NguyenLieu,
         HaoHut=result.HaoHut,
+        TieuHaoOrderHuy=result.TieuHaoOrderHuy,
         TongGiaVon=result.TongGiaVon,
         TamTinh=result.TamTinh,
         SoDongChuaTinhGiaVon=result.SoDongChuaTinhGiaVon,
+        MonDaCheBienBiHuy=result.MonDaCheBienBiHuy,
     )
 
 
@@ -117,17 +135,32 @@ async def dish_costs(session: AsyncSession, month: str) -> DishCostListOut:
     )
 
 
+def _change_out(change: queries.Change) -> ChangeOut:
+    return ChangeOut(
+        ChenhLechTuyetDoi=change.tuyet_doi,
+        PhanTramChenhLech=change.phan_tram,
+        GhiChu=NO_PERCENTAGE if change.phan_tram is None else None,
+    )
+
+
+def _figures_out(figures: queries.PeriodFigures) -> PeriodFiguresOut:
+    return PeriodFiguresOut(DoanhThu=figures.DoanhThu, SoDon=figures.SoDon, GiaVon=figures.GiaVon)
+
+
 async def comparison(session: AsyncSession, left: str, right: str) -> ComparisonOut:
-    result = await queries.compare_periods(session, month_period(left), month_period(right))
+    result = await queries.compare_periods(session, parse_period(left), parse_period(right))
     return ComparisonOut(
-        left=RevenueSummaryOut(DoanhThu=result.left.DoanhThu, SoDon=result.left.SoDon),
-        right=RevenueSummaryOut(DoanhThu=result.right.DoanhThu, SoDon=result.right.SoDon),
+        left=_figures_out(result.left),
+        right=_figures_out(result.right),
+        doanh_thu=_change_out(result.revenue),
+        chi_phi=_change_out(result.cost),
         change_percent=result.change_percent,
     )
 
 
-async def cancelled(session: AsyncSession, month: str) -> CancelledReportOut:
-    result = await queries.cancelled_orders(session, month_period(month))
+async def cancelled(session: AsyncSession, period: BusinessPeriod) -> CancelledReportOut:
+    result = await queries.cancelled_orders(session, period)
+    closed = await queries.closed_unpaid_orders(session, period)
     return CancelledReportOut(
         SoLuong=result.SoLuong,
         TongGiaTri=result.TongGiaTri,
@@ -140,4 +173,20 @@ async def cancelled(session: AsyncSession, month: str) -> CancelledReportOut:
             )
             for item in result.items
         ],
+        period=period_out(period),
+        DongChuaThuDuocTien=ClosedUnpaidReportOut(
+            SoLuong=closed.SoLuong,
+            TongSoTienChuaThu=closed.TongSoTienChuaThu,
+            TongGiaVonDaTieuHao=closed.TongGiaVonDaTieuHao,
+            items=[ClosedUnpaidOrderOut(**vars(item)) for item in closed.items],
+        ),
+    )
+
+
+async def unsettled(session: AsyncSession) -> UnsettledListOut:
+    items = await queries.unsettled_orders(session, business_date.now())
+    return UnsettledListOut(
+        SoLuong=len(items),
+        TongGiaTri=sum((item.GiaTriOrder for item in items), Decimal(0)),
+        items=[UnsettledOrderOut(**vars(item)) for item in items],
     )

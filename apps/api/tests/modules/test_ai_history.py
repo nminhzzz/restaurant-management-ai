@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import pytest
 
 from app.modules.ai.models import AssistantQuery, ChatSession
+from app.shared import business_date
 
 BASE = datetime(2026, 9, 24, 9, 0)
 
@@ -12,7 +13,7 @@ BASE = datetime(2026, 9, 24, 9, 0)
 async def _session_with(
     session, user_id: int, questions: list[str], start: datetime
 ) -> ChatSession:
-    chat = ChatSession(user_id=user_id, created_at=start)
+    chat = ChatSession(user_id=user_id, role_id="CASHIER", created_at=start)
     session.add(chat)
     await session.flush()
     for i, question in enumerate(questions):
@@ -22,6 +23,7 @@ async def _session_with(
                 scope="vw_ai_thungan",
                 question=question,
                 sql_text=None,
+                business_date=business_date.business_date_of(start),
                 status="Thành công",
                 summary=f"Trả lời {i}.\n- ý {i}\n\nPhạm vi dữ liệu: vw_ai_thungan — x.",
                 latency_ms=5,
@@ -43,7 +45,7 @@ async def test_the_list_holds_only_my_non_empty_sessions_newest_first(
     old = await _session_with(session, 2, ["Câu cũ"], BASE)
     new = await _session_with(session, 2, ["Câu mới", "Câu tiếp"], BASE + timedelta(hours=1))
     await _session_with(session, 1, ["Của quản lý"], BASE + timedelta(hours=2))
-    session.add(ChatSession(user_id=2, created_at=BASE + timedelta(hours=3)))
+    session.add(ChatSession(user_id=2, role_id="CASHIER", created_at=BASE + timedelta(hours=3)))
     await session.commit()
 
     resp = await api_client.get("/api/v1/assistant/sessions", headers=_auth(cashier_token))

@@ -36,6 +36,7 @@ type RevenueResponse = {
 const GROUP_BY_OPTIONS = [
   { value: "period", label: "Mốc thời gian" },
   { value: "table", label: "Bàn" },
+  { value: "order_type", label: "Loại đơn" },
   { value: "payment_method", label: "Phương thức thanh toán" },
 ];
 
@@ -43,7 +44,7 @@ const GROUP_BY_OPTIONS = [
 function bucketLabel(key: string | number | null, groupBy: string): string {
   if (groupBy === "table") return key === null ? "Không có bàn" : `Bàn ${key}`;
   const text = String(key ?? "");
-  if (groupBy === "payment_method") return text;
+  if (groupBy === "payment_method" || groupBy === "order_type") return text;
   const match = /^\d{4}-(\d{2})-(\d{2})$/.exec(text);
   return match ? `${match[2]}/${match[1]}` : text;
 }
@@ -136,8 +137,8 @@ export function RevenueChart() {
           }
           hint={
             provisional > 0
-              ? `Trong đó ${formatVnd(provisional)} là số tạm tính, đang chờ đối soát.`
-              : "Đã đối soát đầy đủ"
+              ? `Trong đó ${formatVnd(provisional)} là số tạm tính, chưa chốt.`
+              : "Chỉ tính hóa đơn đã thanh toán, không gồm khoản chờ xác minh."
           }
         />
         <StatCard label="Số đơn" value={formatNumber(data.SoDon ?? 0)} />

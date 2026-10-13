@@ -16,12 +16,14 @@ Run against a seeded database with that database's read-only accounts in place:
 import argparse
 import asyncio
 import json
+import math
 from decimal import Decimal, InvalidOperation
 from itertools import product
 import sys
 import time
 from contextlib import asynccontextmanager
 from dataclasses import asdict, dataclass, field
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any, AsyncIterator
@@ -36,7 +38,6 @@ from app.modules.ai import guard, llm
 from app.modules.ai.errors import ClarificationNeeded, QuotaExceeded
 from app.modules.ai.pipeline import executor, normalize
 from app.modules.ai.pipeline.prompt import build_prompt
-from app.modules.ai.scope import views_for
 from app.shared.roles import Role
 
 QUESTIONS_PATH = Path(__file__).with_name("questions.jsonl")
@@ -82,6 +83,7 @@ class Outcome:
     latency_ms: float
     sql: str = ""
     relaxed: bool = False
+    expected_refusal: bool = False
 
 
 @dataclass(frozen=True)
@@ -92,8 +94,23 @@ class ConfigResult:
     refusal_rate: float
     mean_latency_ms: float
     relaxed_accuracy: float = 0.0
+    p95_latency_ms: float = 0.0
+    # Cross-role questions (expected to be refused) are scored apart from the business
+    # questions: `business_accuracy` is over the latter only, `refusal_accuracy` over the former.
+    business_accuracy: float = 0.0
+    business_count: int = 0
+    refusal_accuracy: float = 0.0
+    refusal_count: int = 0
     failures: list[Failure] = field(default_factory=list)
     outcomes: list[Outcome] = field(default_factory=list)
+
+
+def percentile_95(values: list[float]) -> float:
+    """Nearest-rank 95th percentile (0.0 for an empty run)."""
+    if not values:
+        return 0.0
+    ordered = sorted(values)
+    return ordered[math.ceil(0.95 * len(ordered)) - 1]
 
 
 def accuracy_by(result: ConfigResult, key: str, relaxed: bool = False) -> dict[str, float]:
@@ -181,7 +198,9 @@ def relaxed_match(produced: list[dict[str, Any]], gold: list[dict[str, Any]]) ->
     return False
 
 
-async def _generate(session: AsyncSession, config: Config, question: str, role: Role) -> str:
+async def _generate(
+    session: AsyncSession, config: Config, question: str, role: Role
+) -> guard.ValidatedSql:
     settings = get_settings()
     examples: list[object] | None = None if uses_examples(config) else []
     prompt = await build_prompt(session, question, role, examples)
@@ -191,7 +210,7 @@ async def _generate(session: AsyncSession, config: Config, question: str, role: 
     text = raw.strip()
     if text.upper().startswith("CLARIFY:"):
         raise ClarificationNeeded(text[len("CLARIFY:") :].strip())
-    return guard.validate_sql(text, allowed_views=views_for(role), max_rows=settings.ai_max_rows)
+    return guard.validate_for_role(text, role, max_rows=settings.ai_max_rows)
 
 
 async def run_configuration(
@@ -235,6 +254,7 @@ async def _run(config: Config, questions: list[Any], session: AsyncSession) -> C
                 round(elapsed, 1),
                 sql,
                 status == "đúng" if relaxed is None else relaxed,
+                bool(question.get("notes") and "vượt quyền" in question["notes"]),
             )
         )
 
@@ -272,8 +292,10 @@ async def _run(config: Config, questions: list[Any], session: AsyncSession) -> C
             produced = await executor.execute(
                 sql, role=role, timeout_seconds=settings.ai_sql_timeout_seconds
             )
+            # The reference SQL is held to the same guard and row cap as the model's, so
+            # the harness has no way to reach the database around `validate_sql`.
             reference = await executor.execute(
-                question["sql"],
+                guard.validate_for_role(question["sql"], role, max_rows=settings.ai_max_rows),
                 role=role,
                 timeout_seconds=settings.ai_sql_timeout_seconds,
             )
@@ -294,6 +316,8 @@ async def _run(config: Config, questions: list[Any], session: AsyncSession) -> C
             record(question, "sai", started, sql, relaxed_match(produced, reference))
 
     total = len(questions) or 1
+    business = [outcome for outcome in outcomes if not outcome.expected_refusal]
+    refusal = [outcome for outcome in outcomes if outcome.expected_refusal]
     return ConfigResult(
         config=config.value,
         execution_accuracy=correct / total,
@@ -301,6 +325,11 @@ async def _run(config: Config, questions: list[Any], session: AsyncSession) -> C
         refusal_rate=refusals / total,
         mean_latency_ms=sum(latencies) / len(latencies) if latencies else 0.0,
         relaxed_accuracy=sum(outcome.relaxed for outcome in outcomes) / total,
+        p95_latency_ms=percentile_95(latencies),
+        business_accuracy=sum(o.status == "đúng" for o in business) / (len(business) or 1),
+        business_count=len(business),
+        refusal_accuracy=sum(o.status == "đúng" for o in refusal) / (len(refusal) or 1),
+        refusal_count=len(refusal),
         failures=failures,
         outcomes=outcomes,
     )
@@ -315,6 +344,11 @@ def compare(results: list[ConfigResult]) -> ComparisonTable:
             "error_rate": round(result.error_rate, 4),
             "refusal_rate": round(result.refusal_rate, 4),
             "mean_latency_ms": round(result.mean_latency_ms, 1),
+            "p95_latency_ms": round(result.p95_latency_ms, 1),
+            "business_accuracy": round(result.business_accuracy, 4),
+            "business_count": result.business_count,
+            "refusal_accuracy": round(result.refusal_accuracy, 4),
+            "refusal_count": result.refusal_count,
             "failures": len(result.failures),
             "relaxed_accuracy": round(result.relaxed_accuracy, 4),
             "by_difficulty": accuracy_by(result, "difficulty"),
@@ -358,15 +392,31 @@ async def _main(configs: list[Config], out: Path) -> int:
         }
         for result in results
     }
+    settings = get_settings()
+    # Without these a result file cannot be read back honestly (which model? when?).
+    meta = {
+        "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "questions": len(questions),
+        "provider": settings.ai_provider,
+        "reasoning_effort": settings.llm_reasoning_effort,
+        "models": {config.value: await model_for(config) for config in configs},
+        "scope": "first-attempt SQL generation + guard + execution; no interpretation step, "
+        "no regeneration, no response budget",
+    }
     out.write_text(
-        json.dumps({"rows": table.rows, "detail": detail}, ensure_ascii=False, indent=2),
+        json.dumps(
+            {"meta": meta, "rows": table.rows, "detail": detail}, ensure_ascii=False, indent=2
+        ),
         encoding="utf-8",
     )
     for row in table.rows:
         print(
             f"{row['config']}: chính xác {row['execution_accuracy']:.2%} · "
             f"lỗi {row['error_rate']:.2%} · từ chối {row['refusal_rate']:.2%} · "
-            f"{row['mean_latency_ms']:.0f} ms · theo độ khó {row['by_difficulty']} · "
+            f"{row['mean_latency_ms']:.0f} ms (p95 {row['p95_latency_ms']:.0f} ms) · "
+            f"câu nghiệp vụ {row['business_accuracy']:.2%} ({row['business_count']}) · "
+            f"câu vượt quyền {row['refusal_accuracy']:.2%} ({row['refusal_count']}) · "
+            f"theo độ khó {row['by_difficulty']} · "
             f"nới lỏng {row['relaxed_accuracy']:.2%} {row['by_difficulty_relaxed']}"
         )
     print(f"Đã ghi {out}")

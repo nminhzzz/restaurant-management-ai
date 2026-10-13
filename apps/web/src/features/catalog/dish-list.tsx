@@ -1,6 +1,14 @@
 "use client";
 
-import { ImageOff, Pencil, Plus, Trash2, UtensilsCrossed } from "lucide-react";
+import {
+  ImageOff,
+  Pause,
+  Pencil,
+  Play,
+  Plus,
+  Trash2,
+  UtensilsCrossed,
+} from "lucide-react";
 import { useState } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -222,6 +230,7 @@ export function DishList() {
   const create = useAction();
   const edit = useAction();
   const del = useAction();
+  const pause = useAction();
 
   const dishes = catalog.status === "ready" ? catalog.data.dishes : null;
   const groups = catalog.status === "ready" ? catalog.data.groups : [];
@@ -290,6 +299,22 @@ export function DishList() {
       setDeleteDish(null);
       catalog.reload();
     }, "Đã xóa món.");
+  }
+
+  function handleTogglePause(dish: Dish) {
+    const pausing = !dish.TamDungThuCong;
+    void pause.run(
+      async () => {
+        await apiFetch(`/catalog/dishes/${dish.MaMon}/visibility`, {
+          method: "PATCH",
+          body: { TamDungThuCong: pausing },
+        });
+        catalog.reload();
+      },
+      pausing
+        ? `Đã tạm dừng phục vụ ${dish.TenMon}.`
+        : `Đã cho phép phục vụ lại ${dish.TenMon}.`,
+    );
   }
 
   const addButton = canWrite ? (
@@ -366,10 +391,28 @@ export function DishList() {
                   </TableCell>
                   <TableCell>
                     <StatusBadge status={d.TrangThai} />
+                    {d.TamDungThuCong && d.TrangThai !== "Tạm dừng phục vụ" && (
+                      <span className="mt-1 block text-xs text-muted">
+                        Đang tạm dừng thủ công
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     {canWrite && (
                       <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          disabled={pause.pending}
+                          aria-label={
+                            d.TamDungThuCong
+                              ? `Cho phép phục vụ lại ${d.TenMon}`
+                              : `Tạm dừng phục vụ ${d.TenMon}`
+                          }
+                          onClick={() => handleTogglePause(d)}
+                        >
+                          {d.TamDungThuCong ? <Play /> : <Pause />}
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"

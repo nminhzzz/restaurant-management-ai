@@ -29,22 +29,31 @@ Mật khẩu không được commit — `grants.sql.template` chỉ chứa place
 
 Mỗi view là một `UNION ALL` NULL-padded trên một danh sách cột dùng chung; cột `LoaiBanGhi`
 phân biệt các nhánh để LLM lọc bằng `WHERE LoaiBanGhi = '...'` thay vì đoán cột nào có dữ liệu.
-Bám sát phạm vi FR-AI-02/03/04 (đặc tả §2.4.6) và nguyên tắc kế thừa FR-SET-03 (Quản lý kế thừa
-toàn bộ phạm vi Thu ngân + Nhân viên kho).
+Bám sát phạm vi FR-AI-02/03/04 (đặc tả chức năng Module 6 - AI Assistant, mục 3.4) và nguyên tắc kế thừa FR-SET-03 (Quản lý kế thừa
+toàn bộ phạm vi Thu ngân + Bếp).
 
 ### `vw_ai_quanly` — FR-AI-02 (Quản lý; đầy đủ phạm vi của cả ba vai trò)
 
-8 nhánh `LoaiBanGhi`: `ORDER`, `DONG_MON`, `HOA_DON`, `THANH_TOAN`, `TON_KHO`, `GIA_VON_THANG`,
-`GIAO_DICH_KHO`, `PHIEU_NHAP`.
+9 nhánh `LoaiBanGhi`: `ORDER`, `DONG_MON`, `HOA_DON`, `THANH_TOAN`, `TON_KHO`, `GIA_VON_THANG`,
+`GIAO_DICH_KHO`, `PHIEU_NHAP`, `LO_NGUYEN_LIEU`.
+
+Quản lý kế thừa toàn bộ phạm vi kho của Bếp (FR-SET-03): tập cột của `vw_ai_kho` là tập con
+của `vw_ai_quanly`, và nhánh `TON_KHO`/`LO_NGUYEN_LIEU` dùng cùng quy tắc lô đủ điều kiện, giữ chỗ còn
+hiệu lực như `vw_ai_kho` (xem bên dưới). Chênh lệch duy nhất là Quản lý còn thêm các nhánh doanh thu và
+giá vốn.
 
 Cột: `LoaiBanGhi`, `MaOrder`, `BusinessDate`, `LoaiDon`, `TrangThaiOrder`, `MaBan`,
 `LyDoHuyOrder` (lý do hủy order — FR-REP-10), `MaHoaDon`, `ThoiDiemXuat`, `TongTien`,
 `MaGiaoDich`, `PhuongThuc`, `SoTien`, `TenMon`, `TenNhom`, `SoLuongMon`, `DonGiaMon`,
 `ThanhTienMon` (dòng bán món — FR-REP-03/06), `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`,
-`SoLuongTon`, `MucTonToiThieu` (ngưỡng hiệu lực — cột nếu > 0, ngược lại `NguongTonMacDinh`),
+`SoLuongTon`, `MucTonToiThieu` (ngưỡng hiệu lực — `COALESCE(NGUYEN_LIEU.MucTonToiThieu, NguongTonMacDinh)`:
+NULL là chưa đặt riêng nên dùng mặc định hệ thống, còn 0 là ngưỡng 0 do người dùng đặt),
 `Thang`, `GiaBinhQuanThang`, `TongSoLuongNhapThang` (giá vốn bình quân tháng — FR-REP-04/05),
 `MaGiaoDichKho`, `SoLuong`, `LoaiGiaoDich` (giao dịch kho), `MaPhieuNhap`, `TenNhaCungCap`,
-`DonGiaNhap`, `SoLuongNhap` (giá nhập nguyên liệu — FR-AI-02).
+`DonGiaNhap`, `SoLuongNhap` (giá nhập nguyên liệu — FR-AI-02), `SoLuongGiu`, `SoLuongKhaDung`,
+`CanhBaoTonThap` (lượng giữ, tồn khả dụng và cờ tồn thấp của nhánh `TON_KHO` — như `vw_ai_kho`),
+`MaLo`, `SoLuongConLai`, `TrangThaiLo`, `NgayNhapLo`, `HanSuDungLo` (nhánh `LO_NGUYEN_LIEU` — như
+`vw_ai_kho`).
 
 Biên lợi nhuận gộp/tháng (FR-REP-04) và chi phí tiêu hao (FR-REP-05) không phải là một cột có sẵn
 (view không tự JOIN xuyên nhánh) — trợ lý tính bằng cách tự JOIN hai nhánh của cùng view: doanh
@@ -60,21 +69,38 @@ Cột: `LoaiBanGhi`, `MaOrder`, `BusinessDate`, `LoaiDon`, `TrangThaiOrder`, `Ma
 `SoLuongMon`, `DonGiaMon` (giá bán), `ThanhTienMon`. **Không có** `MaNguyenLieu`,
 `GiaBinhQuanThang`, `DonGiaNhap`, hay bất kỳ cột giá vốn/giá nhập nào.
 
-### `vw_ai_kho` — FR-AI-04 (Nhân viên kho; không doanh thu/hóa đơn/lợi nhuận)
+### `vw_ai_kho` — FR-AI-04 (Bếp; không doanh thu/hóa đơn/lợi nhuận)
 
 3 nhánh: `TON_KHO`, `GIAO_DICH_KHO`, `LO_NGUYEN_LIEU`.
 
-Cột: `LoaiBanGhi`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `SoLuongTon`, `MucTonToiThieu`
-(ngưỡng hiệu lực), `CanhBaoTonThap` (cờ cảnh báo tồn thấp — FR-AI-04), `MaGiaoDichKho`,
-`BusinessDate`, `SoLuong`, `LoaiGiaoDich`, `MaLo`, `SoLuongConLai`, `TrangThaiLo`, `NgayNhapLo`,
-`HanSuDungLo` (hạn sử dụng tính từ `NgayNhap + SoNgayBaoQuan`). **Không có** `TongTien`, `SoTien`,
-`DonGia`/`DonGiaNhap`, hay bất kỳ cột doanh thu/hóa đơn/giá nào.
+Cột: `LoaiBanGhi`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `SoLuongTon`,
+`SoLuongGiu` (tổng lượng đang giữ trên các lô đủ điều kiện),
+`SoLuongKhaDung` (tồn còn dùng được sau khi trừ lượng giữ), `MucTonToiThieu` (ngưỡng hiệu lực —
+`COALESCE(NGUYEN_LIEU.MucTonToiThieu, NguongTonMacDinh)`, xem `vw_ai_quanly`),
+`CanhBaoTonThap` (cờ cảnh báo tồn thấp — FR-AI-04), `MaGiaoDichKho`, `BusinessDate`, `SoLuong`,
+`LoaiGiaoDich`, `MaLo`, `SoLuongConLai`, `TrangThaiLo`, `NgayNhapLo`, `HanSuDungLo` (hạn sử dụng của lô,
+lấy nguyên cột `LO_NGUYEN_LIEU.HanSuDung`; `NULL` nếu lô không có hạn).
+
+Ở nhánh `TON_KHO`, `SoLuongGiu` chỉ cộng giữ chỗ có trạng thái `Đang giữ` và
+`ThoiDiemHetHan > CURRENT_TIMESTAMP`, trên lô có tồn dương, trạng thái khác `Hết hạn` và còn trong
+ngày sử dụng (`HanSuDung` cộng một ngày lớn hơn thời điểm hiện tại). `SoLuongKhaDung` là tổng
+`GREATEST(0, SoLuongConLai - lượng giữ)` trên chính các lô đủ điều kiện. Hai cột được NULL-pad ở
+nhánh giao dịch và nhánh lô. **Không có** `TongTien`, `SoTien`, `DonGia`/`DonGiaNhap`, hay bất kỳ
+cột doanh thu/hóa đơn/giá nào.
 
 ### Cột cấm (không bao giờ lộ ở bất kỳ view nào)
 
 `NGUOI_DUNG.MatKhauHash`, `NGUOI_DUNG.SoDienThoai`, mọi token JWT/session, và cột
 `CHI_TIET_PHIEU_XUAT.GiaVonUocTinh` (giá vốn xuất kho ước tính nội bộ).
 
-Test: `apps/api/tests/schema/test_ai_views.py` assert `set(view_columns) == expected` trên MySQL
+### Danh sách cột được phép trong bộ kiểm duyệt SQL
+
+`apps/api/src/app/modules/ai/scope.py` (`VIEW_COLUMNS`) liệt kê lại các cột trên; bộ kiểm duyệt
+`validate_sql` từ chối câu SQL tham chiếu cột ngoài danh sách này (trừ tên bí danh do chính câu SQL
+đặt) — lớp kiểm tra thứ tư sau view, `GRANT` và prompt. Cột của view vai trò khác bị coi là vượt quyền
+(kết thúc ngay, không sinh lại); cột không tồn tại ở view nào là lỗi truy vấn và được sinh lại một lần.
+
+Test: `apps/api/tests/schema/test_ai_views.py` đối chiếu `VIEW_COLUMNS` và danh sách nhánh trong prompt
+với DDL trong `db/views/*.sql` (offline), assert `set(view_columns) == expected` trên MySQL
 (integration) và assert `vw_ai_thungan`/`vw_ai_kho` không lẫn cột bị cấm (NFR-06/12, FR-AI-03/04).
 

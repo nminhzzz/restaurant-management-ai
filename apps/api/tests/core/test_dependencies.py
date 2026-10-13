@@ -3,7 +3,9 @@ from typing import Annotated
 import pytest
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
+from httpx import ASGITransport, AsyncClient
 
+from app.core.database import get_session
 from app.core.dependencies import Principal, require_roles
 from app.main import create_app
 from app.shared.roles import Role
@@ -45,19 +47,33 @@ def test_a_malformed_token_is_rejected(guarded_client: TestClient) -> None:
     assert response.json()["error"]["code"] == "UNAUTHENTICATED"
 
 
-def test_role_outside_the_allow_list_is_forbidden(guarded_client: TestClient, token_for) -> None:
-    response = guarded_client.get(
-        "/manager-only", headers={"Authorization": f"Bearer {token_for(Role.WAREHOUSE)}"}
-    )
+def _db_client(session) -> AsyncClient:
+    app = _build_app()
+
+    async def _get_session():
+        yield session
+
+    app.dependency_overrides[get_session] = _get_session
+    return AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
+
+
+async def test_role_outside_the_allow_list_is_forbidden(
+    session, seeded_accounts, token_for
+) -> None:
+    async with _db_client(session) as client:
+        response = await client.get(
+            "/manager-only", headers={"Authorization": f"Bearer {token_for(Role.WAREHOUSE, 3)}"}
+        )
 
     assert response.status_code == 403
     assert response.json()["error"]["code"] == "FORBIDDEN"
 
 
-def test_allowed_role_reaches_the_handler(guarded_client: TestClient, token_for) -> None:
-    response = guarded_client.get(
-        "/manager-only", headers={"Authorization": f"Bearer {token_for(Role.MANAGER)}"}
-    )
+async def test_allowed_role_reaches_the_handler(session, seeded_accounts, token_for) -> None:
+    async with _db_client(session) as client:
+        response = await client.get(
+            "/manager-only", headers={"Authorization": f"Bearer {token_for(Role.MANAGER, 1)}"}
+        )
 
     assert response.status_code == 200
-    assert response.json() == {"username": "tester"}
+    assert response.json() == {"username": "quanly"}

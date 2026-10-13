@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Any
 
 from sqlalchemy import JSON, DateTime, ForeignKey, Index, String, func
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from app.shared.base import Base, BigInteger
@@ -17,7 +18,10 @@ class SystemAuditLog(Base):
 
     id: Mapped[int] = mapped_column("MaNhatKy", BigInteger, primary_key=True)
     user_id: Mapped[int | None] = mapped_column(
-        "MaNguoiDung", BigInteger, ForeignKey("NGUOI_DUNG.MaNguoiDung"), nullable=True
+        "MaNguoiDung",
+        BigInteger,
+        ForeignKey("NGUOI_DUNG.MaNguoiDung", ondelete="RESTRICT", onupdate="RESTRICT"),
+        nullable=True,
     )
     occurred_at: Mapped[datetime] = mapped_column(
         "ThoiDiem", DateTime, server_default=func.now(), nullable=False
@@ -33,7 +37,7 @@ class SystemAuditLog(Base):
 
 
 def record(
-    session: Session,
+    session: Session | AsyncSession,
     *,
     user_id: int | None,
     action: str,

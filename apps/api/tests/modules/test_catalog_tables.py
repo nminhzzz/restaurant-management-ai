@@ -57,10 +57,10 @@ async def set_manual_hidden(client, headers, dish_id, value=True):
     )
 
 
-async def set_manual_out_of_stock(client, headers, dish_id, value=True):
+async def set_manual_pause(client, headers, dish_id, value=True):
     return await client.patch(
         f"/api/v1/catalog/dishes/{dish_id}/visibility",
-        json={"HetNguyenLieu": value},
+        json={"TamDungThuCong": value},
         headers=headers,
     )
 
@@ -108,23 +108,59 @@ async def test_a_soft_deleted_table_frees_its_name(session, free_table):
 
 
 @pytest.mark.asyncio
-async def test_the_manager_can_toggle_the_single_stock_flag(session, dish_with_recipe):
+async def test_the_manager_pauses_and_resumes_a_dish_independently_of_stock(
+    session, dish_with_recipe, flour
+):
+    """FR-CAT-26/27: TamDungThuCong is its own flag; HetNguyenLieu is never set by hand."""
+    from decimal import Decimal
+
+    from app.modules.inventory.models import IngredientLot
+
+    session.add(IngredientLot(ingredient_id=flour.id, quantity_remaining=Decimal(10)))
+    await session.commit()
     dish = dish_with_recipe
     h = await _headers(session, "MANAGER")
     async with await _make_client(session) as c:
-        response = await set_manual_out_of_stock(c, h, dish.id, value=True)
+        paused = await set_manual_pause(c, h, dish.id, value=True)
+        forged = await c.patch(
+            f"/api/v1/catalog/dishes/{dish.id}/visibility",
+            json={"HetNguyenLieu": True},
+            headers=h,
+        )
     app.dependency_overrides.clear()
     row = await get_dish(session, dish.id)
-    assert response.status_code == 200
-    assert row.out_of_stock is True
-    assert await display_status(session, row) == "Hết nguyên liệu"
-    h2 = await _headers(session, "MANAGER")
+    assert paused.status_code == 200
+    assert paused.json()["TrangThai"] == "Tạm dừng phục vụ"
+    assert row.manually_paused is True
+    assert row.out_of_stock is False
+    assert forged.status_code == 422
     async with await _make_client(session) as c:
-        await set_manual_out_of_stock(c, h2, dish.id, value=False)
+        resumed = await set_manual_pause(c, h, dish.id, value=False)
     app.dependency_overrides.clear()
-    row2 = await get_dish(session, dish.id)
-    assert row2.out_of_stock is False
-    assert await display_status(session, row2) == "Hoạt động"
+    assert resumed.json()["TrangThai"] == "Hoạt động"
+    assert (await get_dish(session, dish.id)).manually_paused is False
+
+
+@pytest.mark.asyncio
+async def test_a_paused_dish_without_stock_shows_both_reasons(session, dish_with_recipe):
+    dish = dish_with_recipe  # its recipe needs an ingredient that has no stock
+    h = await _headers(session, "MANAGER")
+    async with await _make_client(session) as c:
+        paused = await set_manual_pause(c, h, dish.id, value=True)
+    app.dependency_overrides.clear()
+    body = paused.json()
+    assert body["TrangThai"] == "Hết nguyên liệu"
+    assert body["LyDoChan"] == ["Hết nguyên liệu", "Tạm dừng phục vụ"]
+    assert body["TamDungThuCong"] is True
+
+
+@pytest.mark.asyncio
+async def test_only_the_manager_may_pause_a_dish(session, dish_with_recipe):
+    hc = await _headers(session, "CASHIER")
+    async with await _make_client(session) as c:
+        response = await set_manual_pause(c, hc, dish_with_recipe.id, value=True)
+    app.dependency_overrides.clear()
+    assert response.status_code == 403
 
 
 @pytest.mark.asyncio

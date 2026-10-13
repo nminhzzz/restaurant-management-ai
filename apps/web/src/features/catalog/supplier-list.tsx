@@ -39,7 +39,13 @@ const loadSuppliers = () =>
     (r) => (Array.isArray(r) ? r : r.items),
   );
 
-type FormValues = { TenNhaCungCap: string; SoDienThoai: string };
+type FormValues = {
+  TenNhaCungCap: string;
+  SoDienThoai: string;
+  NguoiLienHe: string;
+  Email: string;
+  DiaChi: string;
+};
 
 function SupplierFormDialog({
   open,
@@ -86,6 +92,34 @@ function SupplierFormDialog({
               value={values.SoDienThoai}
               onChange={(e) =>
                 setValues((v) => ({ ...v, SoDienThoai: e.target.value }))
+              }
+            />
+          </FormField>
+          <FormField id="supplier-contact" label="Người liên hệ">
+            <Input
+              id="supplier-contact"
+              value={values.NguoiLienHe}
+              onChange={(e) =>
+                setValues((v) => ({ ...v, NguoiLienHe: e.target.value }))
+              }
+            />
+          </FormField>
+          <FormField id="supplier-email" label="Email">
+            <Input
+              id="supplier-email"
+              type="email"
+              value={values.Email}
+              onChange={(e) =>
+                setValues((v) => ({ ...v, Email: e.target.value }))
+              }
+            />
+          </FormField>
+          <FormField id="supplier-address" label="Địa chỉ">
+            <Input
+              id="supplier-address"
+              value={values.DiaChi}
+              onChange={(e) =>
+                setValues((v) => ({ ...v, DiaChi: e.target.value }))
               }
             />
           </FormField>
@@ -150,7 +184,23 @@ function SupplierDetailDialog({
   );
 }
 
-const EMPTY_FORM: FormValues = { TenNhaCungCap: "", SoDienThoai: "" };
+const EMPTY_FORM: FormValues = {
+  TenNhaCungCap: "",
+  SoDienThoai: "",
+  NguoiLienHe: "",
+  Email: "",
+  DiaChi: "",
+};
+
+function toBody(values: FormValues) {
+  return {
+    TenNhaCungCap: values.TenNhaCungCap.trim(),
+    SoDienThoai: values.SoDienThoai.trim() || undefined,
+    NguoiLienHe: values.NguoiLienHe.trim() || undefined,
+    Email: values.Email.trim() || undefined,
+    DiaChi: values.DiaChi.trim() || undefined,
+  };
+}
 
 export function SupplierList() {
   const res = useResource(loadSuppliers);
@@ -177,10 +227,7 @@ export function SupplierList() {
     void create.run(async () => {
       await apiFetch("/catalog/suppliers", {
         method: "POST",
-        body: {
-          TenNhaCungCap: values.TenNhaCungCap.trim(),
-          SoDienThoai: values.SoDienThoai.trim() || undefined,
-        },
+        body: toBody(values),
       });
       setCreateOpen(false);
       res.reload();
@@ -192,10 +239,7 @@ export function SupplierList() {
     void edit.run(async () => {
       await apiFetch(`/catalog/suppliers/${editSupplier.MaNhaCungCap}`, {
         method: "PATCH",
-        body: {
-          TenNhaCungCap: values.TenNhaCungCap.trim(),
-          SoDienThoai: values.SoDienThoai.trim() || undefined,
-        },
+        body: toBody(values),
       });
       setEditSupplier(null);
       res.reload();
@@ -254,6 +298,7 @@ export function SupplierList() {
               <TableRow>
                 <TableHead>Tên nhà cung cấp</TableHead>
                 <TableHead>Số điện thoại</TableHead>
+                <TableHead>Người liên hệ</TableHead>
                 <TableHead className="sr-only">Thao tác</TableHead>
               </TableRow>
             </TableHeader>
@@ -265,6 +310,9 @@ export function SupplierList() {
                   </TableCell>
                   <TableCell className="text-muted">
                     {s.SoDienThoai || ""}
+                  </TableCell>
+                  <TableCell className="text-muted">
+                    {s.NguoiLienHe || ""}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end gap-1">
@@ -303,7 +351,7 @@ export function SupplierList() {
               {visible.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={3}
+                    colSpan={4}
                     className="py-8 text-center text-muted"
                   >
                     Không có nhà cung cấp nào khớp bộ lọc.
@@ -341,6 +389,9 @@ export function SupplierList() {
           initial={{
             TenNhaCungCap: editSupplier.TenNhaCungCap,
             SoDienThoai: editSupplier.SoDienThoai ?? "",
+            NguoiLienHe: editSupplier.NguoiLienHe ?? "",
+            Email: editSupplier.Email ?? "",
+            DiaChi: editSupplier.DiaChi ?? "",
           }}
           pending={edit.pending}
           onSubmit={handleEdit}

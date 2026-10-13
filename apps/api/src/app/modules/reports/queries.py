@@ -1,13 +1,13 @@
 """Read-only aggregate queries for the reporting module.
 
-Revenue is `SUM(HOA_DON.TongTien)` plus transactions still awaiting reconciliation
-(counted provisionally, FR-REP-02) minus disputed transactions (deducted, FR-REP-02).
-Every grouping keys on the denormalised `BusinessDate`, never on the calendar date of
-the timestamp column.
+Revenue is `SUM(HOA_DON.TongTien)`: an invoice exists only once a payment succeeded, so an
+order still waiting for verification, or closed unpaid, adds nothing (FR-REP-02). Every
+grouping keys on the denormalised `BusinessDate`, never on the calendar date of the
+timestamp column.
 """
 
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -16,16 +16,23 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import BusinessRuleError
 from app.modules.catalog.models import Dish, RecipeItem
-from app.modules.inventory.models import MonthlyAverageCost, StockIssue, StockIssueLine
+from app.modules.inventory.models import (
+    MonthlyAverageCost,
+    StockIssue,
+    StockIssueLine,
+    StockMovement,
+)
 from app.modules.reports.periods import BusinessPeriod, resolve_period
 from app.modules.sales.models import Invoice, Order, OrderLine, PaymentTransaction
+from app.shared.audit import SystemAuditLog
+from app.shared.enums import OrderStatus, StockIssueSource, StockMovementType
 
-STATUS_PENDING = "Chờ đối soát"
-STATUS_DISPUTED = "Tranh chấp"
 STATUS_PAID = "Thành công"
 UNKNOWN_METHOD = "Chưa xác định"
-GROUP_BY_VALUES = ("period", "table", "payment_method")
-CANCELLED_ORDER_STATUSES = ("Đã hủy", "Tự động đóng")
+GROUP_BY_VALUES = ("period", "table", "order_type", "payment_method")
+CANCELLED_ORDER_STATUSES = (OrderStatus.DA_HUY.value, OrderStatus.TU_DONG_DONG.value)
+# Orders that were closed without a settled invoice: their ingredients are a loss (FR-REP-05c).
+LOSS_ORDER_STATUSES = (*CANCELLED_ORDER_STATUSES, OrderStatus.DONG_CHUA_THU_DUOC_TIEN.value)
 LINE_CANCELLED = "Đã hủy"
 
 
@@ -50,13 +57,13 @@ def _tuples(rows) -> list[tuple[Any, Any, Any]]:
 
 def _check_group_by(group_by: str) -> None:
     if group_by not in GROUP_BY_VALUES:
-        raise BusinessRuleError("group_by phải là period/table/payment_method.")
+        raise BusinessRuleError("group_by phải là period/table/order_type/payment_method.")
 
 
 def _normalise_key(key: object, group_by: str) -> str | int | None:
     if group_by == "period":
         return key.isoformat() if isinstance(key, date) else str(key)
-    if group_by == "payment_method":
+    if group_by in ("payment_method", "order_type"):
         return UNKNOWN_METHOD if key is None else str(key)
     return key if key is None else int(str(key))
 
@@ -86,6 +93,14 @@ async def _invoice_groups(
             .group_by(Order.table_id)
         )
         return _tuples((await session.execute(table_stmt)).all())
+    if group_by == "order_type":
+        type_stmt = (
+            select(Order.order_type, func.sum(Invoice.total), func.count(Invoice.id))
+            .join(Order, Order.id == Invoice.order_id)
+            .where(*window)
+            .group_by(Order.order_type)
+        )
+        return _tuples((await session.execute(type_stmt)).all())
     method_stmt = (
         select(PaymentTransaction.method, func.sum(Invoice.total), func.count(Invoice.id))
         .outerjoin(
@@ -101,73 +116,18 @@ async def _invoice_groups(
     return _tuples((await session.execute(method_stmt)).all())
 
 
-async def _payment_groups(
-    session: AsyncSession, period: BusinessPeriod, status: str, group_by: str
-) -> list[tuple[Any, Any, Any]]:
-    window = (
-        PaymentTransaction.status == status,
-        PaymentTransaction.business_date >= period.start,
-        PaymentTransaction.business_date <= period.end,
-    )
-    if group_by == "period":
-        period_stmt = (
-            select(
-                PaymentTransaction.business_date,
-                func.sum(PaymentTransaction.amount),
-                func.count(PaymentTransaction.id),
-            )
-            .where(*window)
-            .group_by(PaymentTransaction.business_date)
-        )
-        return _tuples((await session.execute(period_stmt)).all())
-    if group_by == "table":
-        table_stmt = (
-            select(
-                Order.table_id,
-                func.sum(PaymentTransaction.amount),
-                func.count(PaymentTransaction.id),
-            )
-            .join(Order, Order.id == PaymentTransaction.order_id)
-            .where(*window)
-            .group_by(Order.table_id)
-        )
-        return _tuples((await session.execute(table_stmt)).all())
-    method_stmt = (
-        select(
-            PaymentTransaction.method,
-            func.sum(PaymentTransaction.amount),
-            func.count(PaymentTransaction.id),
-        )
-        .where(*window)
-        .group_by(PaymentTransaction.method)
-    )
-    return _tuples((await session.execute(method_stmt)).all())
-
-
 async def revenue_by_period(
     session: AsyncSession, period: BusinessPeriod, group_by: str = "period"
 ) -> list[RevenueBucket]:
-    """Revenue split by business date, table or payment method (FR-REP-01)."""
+    """Revenue split by business date, table, order type or payment method (FR-REP-01)."""
     _check_group_by(group_by)
-    totals: dict[str | int | None, list[Decimal | int]] = {}
-
-    def add(key: object, amount: object, count: object) -> None:
-        normalised = _normalise_key(key, group_by)
-        bucket = totals.setdefault(normalised, [Decimal(0), 0])
-        bucket[0] = bucket[0] + Decimal(str(amount or 0))
-        bucket[1] = bucket[1] + int(str(count or 0))
-
-    for key, amount, count in await _invoice_groups(session, period, group_by):
-        add(key, amount, count)
-    for key, amount, count in await _payment_groups(session, period, STATUS_PENDING, group_by):
-        add(key, amount, count)
-    # A dispute is deducted retroactively; it carries no order of its own here.
-    for key, amount, _ in await _payment_groups(session, period, STATUS_DISPUTED, group_by):
-        add(key, -Decimal(str(amount or 0)), 0)
-
     buckets = [
-        RevenueBucket(key=key, DoanhThu=Decimal(str(values[0])), SoDon=int(str(values[1])))
-        for key, values in totals.items()
+        RevenueBucket(
+            key=_normalise_key(key, group_by),
+            DoanhThu=Decimal(str(amount or 0)),
+            SoDon=int(str(count or 0)),
+        )
+        for key, amount, count in await _invoice_groups(session, period, group_by)
     ]
     return _sort_buckets(buckets, group_by)
 
@@ -183,41 +143,11 @@ async def _scalar_count(session: AsyncSession, stmt) -> int:
 
 
 async def revenue_summary(session: AsyncSession, period: BusinessPeriod) -> RevenueSummary:
-    def scope(column):
-        return (column >= period.start, column <= period.end)
-
-    invoices_total = await _scalar_sum(
-        session, select(func.sum(Invoice.total)).where(*scope(Invoice.business_date))
-    )
-    pending = await _scalar_sum(
-        session,
-        select(func.sum(PaymentTransaction.amount)).where(
-            PaymentTransaction.status == STATUS_PENDING,
-            *scope(PaymentTransaction.business_date),
-        ),
-    )
-    disputed = await _scalar_sum(
-        session,
-        select(func.sum(PaymentTransaction.amount)).where(
-            PaymentTransaction.status == STATUS_DISPUTED,
-            *scope(PaymentTransaction.business_date),
-        ),
-    )
-    invoice_count = await _scalar_count(
-        session, select(func.count(Invoice.id)).where(*scope(Invoice.business_date))
-    )
-    pending_count = await _scalar_count(
-        session,
-        select(func.count(PaymentTransaction.id)).where(
-            PaymentTransaction.status == STATUS_PENDING,
-            *scope(PaymentTransaction.business_date),
-        ),
-    )
-    return RevenueSummary(
-        total=invoices_total + pending - disputed,
-        provisional=pending,
-        SoDon=invoice_count + pending_count,
-    )
+    window = (Invoice.business_date >= period.start, Invoice.business_date <= period.end)
+    total = await _scalar_sum(session, select(func.sum(Invoice.total)).where(*window))
+    count = await _scalar_count(session, select(func.count(Invoice.id)).where(*window))
+    # Nothing is "provisional" any more: revenue is only ever settled money.
+    return RevenueSummary(total=total, provisional=Decimal(0), SoDon=count)
 
 
 # --- Task 2: dish ranking and hourly distribution (FR-REP-03, FR-REP-07) ---
@@ -269,10 +199,12 @@ def _weekday_iso(session: AsyncSession):
 
 
 def _sold_orders_window(period: BusinessPeriod):
+    """Orders whose dishes count as sold: not cancelled, not closed unpaid, not still waiting
+    for a payment to be verified (FR-REP-02, FR-REP-05a)."""
     return (
         Order.business_date >= period.start,
         Order.business_date <= period.end,
-        Order.status.notin_(CANCELLED_ORDER_STATUSES),
+        Order.status.notin_([*LOSS_ORDER_STATUSES, OrderStatus.CHO_XAC_MINH_THANH_TOAN.value]),
     )
 
 
@@ -350,9 +282,11 @@ async def hourly_distribution(session: AsyncSession, period: BusinessPeriod) -> 
 class CostBreakdown:
     NguyenLieu: Decimal
     HaoHut: Decimal
+    TieuHaoOrderHuy: Decimal
     TongGiaVon: Decimal
     TamTinh: bool
     SoDongChuaTinhGiaVon: int
+    MonDaCheBienBiHuy: Decimal = Decimal(0)
 
 
 @dataclass(frozen=True)
@@ -373,11 +307,9 @@ def _month_period(month: int) -> BusinessPeriod:
     return resolve_period("month", date(month // 100, month % 100, 1))
 
 
-def _month_bounds(month: int) -> tuple[datetime, datetime]:
-    year, mon = month // 100, month % 100
-    start = datetime(year, mon, 1)
-    end = datetime(year + 1, 1, 1) if mon == 12 else datetime(year, mon + 1, 1)
-    return start, end
+def _order_month(column):
+    """`YYYYMM` of a Business Date column, the key of GIA_BINH_QUAN_THANG."""
+    return func.extract("year", column) * 100 + func.extract("month", column)
 
 
 def _consumed_amount():
@@ -385,25 +317,25 @@ def _consumed_amount():
     return OrderLine.quantity * RecipeItem.quantity * MonthlyAverageCost.avg_cost
 
 
-def _join_recipe_cost(stmt, month: int):
+def _join_recipe_cost(stmt):
+    """Cost each line with the average cost of the month its order belongs to."""
     return stmt.join(RecipeItem, RecipeItem.recipe_id == OrderLine.recipe_id).join(
         MonthlyAverageCost,
         and_(
             RecipeItem.ingredient_id == MonthlyAverageCost.ingredient_id,
-            MonthlyAverageCost.month == month,
+            MonthlyAverageCost.month == _order_month(Order.business_date),
         ),
     )
 
 
-async def ingredient_cost(session: AsyncSession, month: int) -> Decimal:
+async def ingredient_cost(session: AsyncSession, period: BusinessPeriod) -> Decimal:
     """FR-REP-05a: each line is costed from the recipe version pinned on it."""
-    period = _month_period(month)
     stmt = (
         select(func.coalesce(func.sum(_consumed_amount()), 0))
         .select_from(OrderLine)
         .join(Order, Order.id == OrderLine.order_id)
     )
-    stmt = _join_recipe_cost(stmt, month).where(
+    stmt = _join_recipe_cost(stmt).where(
         *_sold_orders_window(period), OrderLine.status != LINE_CANCELLED
     )
     return await _scalar_sum(session, stmt)
@@ -419,7 +351,7 @@ async def dish_ingredient_cost(session: AsyncSession, month: int) -> list[DishCo
         .join(Dish, Dish.id == OrderLine.dish_id)
     )
     stmt = (
-        _join_recipe_cost(stmt, month)
+        _join_recipe_cost(stmt)
         .where(*_sold_orders_window(period), OrderLine.status != LINE_CANCELLED)
         .group_by(OrderLine.dish_id, Dish.name)
         .order_by(OrderLine.dish_id.asc())
@@ -431,10 +363,23 @@ async def dish_ingredient_cost(session: AsyncSession, month: int) -> list[DishCo
     ]
 
 
-async def waste_cost(session: AsyncSession, month: int) -> tuple[Decimal, int]:
-    """Manual write-offs of the month, plus how many still lack a costed value."""
-    start, end = _month_bounds(month)
-    window = (StockIssue.created_at >= start, StockIssue.created_at < end)
+def _datetime_window(period: BusinessPeriod) -> tuple[datetime, datetime]:
+    start = datetime.combine(period.start, datetime.min.time())
+    return start, datetime.combine(period.end, datetime.min.time()) + timedelta(days=1)
+
+
+async def waste_cost(session: AsyncSession, period: BusinessPeriod) -> tuple[Decimal, int]:
+    """FR-REP-05b: write-offs of the period (manual ones and the stocktake shortfalls, whose
+    voucher mirrors the adjustment movement and is counted once), plus how many lines still
+    lack a costed value. Prepared-dish vouchers are left out: what they classify is already
+    counted in 05a or 05c through the order, and every consumption is counted once."""
+    start, end = _datetime_window(period)
+    issued_at = func.coalesce(StockIssue.issue_date, StockIssue.created_at)
+    window = (
+        issued_at >= start,
+        issued_at < end,
+        StockIssue.source != StockIssueSource.MON_DA_CHE_BIEN.value,
+    )
     waste = await _scalar_sum(
         session,
         select(func.coalesce(func.sum(StockIssueLine.estimated_cost), 0))
@@ -450,16 +395,79 @@ async def waste_cost(session: AsyncSession, month: int) -> tuple[Decimal, int]:
     return waste, uncosted
 
 
-async def cost_of_goods(session: AsyncSession, month: int) -> CostBreakdown:
-    ingredients = await ingredient_cost(session, month)
-    waste, uncosted = await waste_cost(session, month)
+async def dish_writeoff_cost(session: AsyncSession, period: BusinessPeriod) -> Decimal:
+    """Value of the prepared dishes written off, by the Business Date of their orders.
+
+    Informational (FR-REP-05b): it explains part of 05a/05c and is never added to the total.
+    """
+    return await _scalar_sum(
+        session,
+        select(func.coalesce(func.sum(StockIssueLine.estimated_cost), 0))
+        .join(StockIssue, StockIssue.id == StockIssueLine.issue_id)
+        .join(OrderLine, OrderLine.id == StockIssueLine.order_line_id)
+        .join(Order, Order.id == OrderLine.order_id)
+        .where(
+            StockIssue.source == StockIssueSource.MON_DA_CHE_BIEN.value,
+            Order.business_date >= period.start,
+            Order.business_date <= period.end,
+        ),
+    )
+
+
+def _lost_consumption():
+    """Net ingredients drawn for an order and never returned, valued at the monthly average."""
+    return -func.sum(StockMovement.qty * MonthlyAverageCost.avg_cost)
+
+
+def _lost_consumption_stmt(*columns):
+    return (
+        select(*columns)
+        .select_from(StockMovement)
+        .join(OrderLine, OrderLine.id == StockMovement.order_line_id)
+        .join(Order, Order.id == OrderLine.order_id)
+        .join(
+            MonthlyAverageCost,
+            and_(
+                MonthlyAverageCost.ingredient_id == StockMovement.ingredient_id,
+                MonthlyAverageCost.month == _order_month(Order.business_date),
+            ),
+        )
+        .where(
+            StockMovement.kind.in_(
+                [StockMovementType.TRU_TU_DONG.value, StockMovementType.HOAN_KHO.value]
+            )
+        )
+    )
+
+
+async def lost_order_cost(session: AsyncSession, period: BusinessPeriod) -> Decimal:
+    """FR-REP-05c: what cancelled or closed-unpaid orders consumed and did not give back."""
+    stmt = _lost_consumption_stmt(func.coalesce(_lost_consumption(), 0)).where(
+        Order.status.in_(LOSS_ORDER_STATUSES),
+        Order.business_date >= period.start,
+        Order.business_date <= period.end,
+    )
+    return await _scalar_sum(session, stmt)
+
+
+async def cost_of_goods_for(session: AsyncSession, period: BusinessPeriod) -> CostBreakdown:
+    ingredients = await ingredient_cost(session, period)
+    waste, uncosted = await waste_cost(session, period)
+    lost = await lost_order_cost(session, period)
+    written_off = await dish_writeoff_cost(session, period)
     return CostBreakdown(
         NguyenLieu=ingredients,
         HaoHut=waste,
-        TongGiaVon=ingredients + waste,
+        TieuHaoOrderHuy=lost,
+        TongGiaVon=ingredients + waste + lost,
         TamTinh=uncosted > 0,
         SoDongChuaTinhGiaVon=uncosted,
+        MonDaCheBienBiHuy=written_off,
     )
+
+
+async def cost_of_goods(session: AsyncSession, month: int) -> CostBreakdown:
+    return await cost_of_goods_for(session, _month_period(month))
 
 
 async def gross_margin(session: AsyncSession, month: int) -> Margin:
@@ -470,20 +478,34 @@ async def gross_margin(session: AsyncSession, month: int) -> Margin:
     return Margin(DoanhThu=revenue, GiaVon=cost, BienLoiNhuanGop=revenue - cost)
 
 
-# --- Task 4: period comparison and cancelled orders (FR-REP-08, FR-REP-10) ---
+# --- Task 4: period comparison, cancelled and unpaid orders (FR-REP-02, 08, 10) ---
 
 
 @dataclass(frozen=True)
-class PeriodRevenue:
+class PeriodFigures:
     DoanhThu: Decimal
     SoDon: int
+    GiaVon: Decimal
+
+
+@dataclass(frozen=True)
+class Change:
+    """Absolute difference plus the percentage, which is undefined when the base is 0."""
+
+    tuyet_doi: Decimal
+    phan_tram: Decimal | None
 
 
 @dataclass(frozen=True)
 class Comparison:
-    left: PeriodRevenue
-    right: PeriodRevenue
-    change_percent: Decimal | None
+    left: PeriodFigures
+    right: PeriodFigures
+    revenue: Change
+    cost: Change
+
+    @property
+    def change_percent(self) -> Decimal | None:
+        return self.revenue.phan_tram
 
 
 @dataclass(frozen=True)
@@ -501,33 +523,73 @@ class CancelledReport:
     items: list[CancelledOrder]
 
 
-async def compare_periods(
-    session: AsyncSession, left: BusinessPeriod, right: BusinessPeriod
-) -> Comparison:
-    """FR-REP-08: percentage change; `None` when the baseline is empty."""
-    left_summary = await revenue_summary(session, left)
-    right_summary = await revenue_summary(session, right)
-    change: Decimal | None = None
-    if left_summary.total != 0:
-        change = ((right_summary.total - left_summary.total) / left_summary.total * 100).quantize(
-            Decimal("0.01")
-        )
-    return Comparison(
-        left=PeriodRevenue(DoanhThu=left_summary.total, SoDon=left_summary.SoDon),
-        right=PeriodRevenue(DoanhThu=right_summary.total, SoDon=right_summary.SoDon),
-        change_percent=change,
+@dataclass(frozen=True)
+class ClosedUnpaidOrder:
+    MaOrder: int
+    MaOrderHienThi: str | None
+    SoTienChuaThu: Decimal
+    GiaVonDaTieuHao: Decimal
+    LyDo: str | None
+    NguoiDong: int | None
+    ThoiDiemDong: datetime | None
+
+
+@dataclass(frozen=True)
+class ClosedUnpaidReport:
+    SoLuong: int
+    TongSoTienChuaThu: Decimal
+    TongGiaVonDaTieuHao: Decimal
+    items: list[ClosedUnpaidOrder]
+
+
+@dataclass(frozen=True)
+class UnsettledOrder:
+    MaOrder: int
+    MaOrderHienThi: str | None
+    GiaTriOrder: Decimal
+    ThoiDiemBatDauCho: datetime | None
+    SoPhutDaCho: int | None
+    KetQuaXuLyGanNhat: str | None
+
+
+def _change(base: Decimal, other: Decimal) -> Change:
+    """(other - base) / base x 100, or only the absolute difference when base is 0."""
+    difference = other - base
+    if base == 0:
+        return Change(tuyet_doi=difference, phan_tram=None)
+    return Change(
+        tuyet_doi=difference, phan_tram=(difference / base * 100).quantize(Decimal("0.01"))
     )
 
 
+async def _figures(session: AsyncSession, period: BusinessPeriod) -> PeriodFigures:
+    summary = await revenue_summary(session, period)
+    cost = await cost_of_goods_for(session, period)
+    return PeriodFigures(DoanhThu=summary.total, SoDon=summary.SoDon, GiaVon=cost.TongGiaVon)
+
+
+async def compare_periods(
+    session: AsyncSession, left: BusinessPeriod, right: BusinessPeriod
+) -> Comparison:
+    """FR-REP-08: revenue and cost of two periods, left being the baseline."""
+    base = await _figures(session, left)
+    other = await _figures(session, right)
+    return Comparison(
+        left=base,
+        right=other,
+        revenue=_change(base.DoanhThu, other.DoanhThu),
+        cost=_change(base.GiaVon, other.GiaVon),
+    )
+
+
+def _line_total():
+    return func.coalesce(func.sum(OrderLine.quantity * OrderLine.unit_price), 0)
+
+
 async def cancelled_orders(session: AsyncSession, period: BusinessPeriod) -> CancelledReport:
-    """FR-REP-10: both `Đã hủy` and `Tự động đóng` never produced an invoice."""
+    """FR-REP-10, first group: orders cancelled whole; none of them produced an invoice."""
     stmt = (
-        select(
-            Order.id,
-            Order.display_code,
-            func.coalesce(func.sum(OrderLine.quantity * OrderLine.unit_price), 0),
-            Order.cancel_reason,
-        )
+        select(Order.id, Order.display_code, _line_total(), Order.cancel_reason)
         .outerjoin(OrderLine, OrderLine.order_id == Order.id)
         .where(
             Order.status.in_(CANCELLED_ORDER_STATUSES),
@@ -549,3 +611,114 @@ async def cancelled_orders(session: AsyncSession, period: BusinessPeriod) -> Can
     ]
     total = sum((item.TongTien for item in items), Decimal(0))
     return CancelledReport(SoLuong=len(items), TongGiaTri=total, items=items)
+
+
+async def _latest_audit(session: AsyncSession, order_ids: list[int]) -> dict[int, SystemAuditLog]:
+    """The most recent audit entry about each order (DoiTuong = ORDER, FR-SET-08)."""
+    if not order_ids:
+        return {}
+    rows = (
+        (
+            await session.execute(
+                select(SystemAuditLog)
+                .where(
+                    SystemAuditLog.target_entity == "ORDER",
+                    SystemAuditLog.target_id.in_([str(order_id) for order_id in order_ids]),
+                )
+                .order_by(SystemAuditLog.id.asc())
+            )
+        )
+        .scalars()
+        .all()
+    )
+    return {int(row.target_id): row for row in rows}  # later rows overwrite earlier ones
+
+
+async def closed_unpaid_orders(session: AsyncSession, period: BusinessPeriod) -> ClosedUnpaidReport:
+    """FR-REP-10, second group: orders closed without collecting the money. They are never
+    added to revenue, nor summed with the ingredients they consumed."""
+    window = (
+        Order.status == OrderStatus.DONG_CHUA_THU_DUOC_TIEN.value,
+        Order.business_date >= period.start,
+        Order.business_date <= period.end,
+    )
+    orders = (
+        await session.execute(
+            select(Order.id, Order.display_code, Order.closed_at, _line_total())
+            .outerjoin(
+                OrderLine,
+                and_(OrderLine.order_id == Order.id, OrderLine.status != LINE_CANCELLED),
+            )
+            .where(*window)
+            .group_by(Order.id, Order.display_code, Order.closed_at)
+            .order_by(Order.id.asc())
+        )
+    ).all()
+    costs = {
+        int(order_id): Decimal(str(cost or 0))
+        for order_id, cost in (
+            await session.execute(
+                _lost_consumption_stmt(Order.id, _lost_consumption())
+                .where(*window)
+                .group_by(Order.id)
+            )
+        ).all()
+    }
+    audit = await _latest_audit(session, [int(row[0]) for row in orders])
+    items = []
+    for order_id, display_code, closed_at, amount in orders:
+        entry = audit.get(int(order_id))
+        items.append(
+            ClosedUnpaidOrder(
+                MaOrder=int(order_id),
+                MaOrderHienThi=display_code,
+                SoTienChuaThu=Decimal(str(amount or 0)),
+                GiaVonDaTieuHao=costs.get(int(order_id), Decimal(0)),
+                LyDo=entry.reason if entry else None,
+                NguoiDong=entry.user_id if entry else None,
+                ThoiDiemDong=closed_at,
+            )
+        )
+    return ClosedUnpaidReport(
+        SoLuong=len(items),
+        TongSoTienChuaThu=sum((item.SoTienChuaThu for item in items), Decimal(0)),
+        TongGiaVonDaTieuHao=sum((item.GiaVonDaTieuHao for item in items), Decimal(0)),
+        items=items,
+    )
+
+
+async def unsettled_orders(session: AsyncSession, now: datetime) -> list[UnsettledOrder]:
+    """FR-REP-02: orders waiting for payment verification, shown apart from revenue."""
+    rows = (
+        await session.execute(
+            select(Order.id, Order.display_code, Order.updated_at, Order.created_at, _line_total())
+            .outerjoin(
+                OrderLine,
+                and_(OrderLine.order_id == Order.id, OrderLine.status != LINE_CANCELLED),
+            )
+            .where(Order.status == OrderStatus.CHO_XAC_MINH_THANH_TOAN.value)
+            .group_by(Order.id, Order.display_code, Order.updated_at, Order.created_at)
+            .order_by(Order.id.asc())
+        )
+    ).all()
+    audit = await _latest_audit(session, [int(row[0]) for row in rows])
+    items = []
+    for order_id, display_code, updated_at, created_at, value in rows:
+        waiting_since = updated_at or created_at
+        entry = audit.get(int(order_id))
+        minutes = (
+            int((now.replace(tzinfo=None) - waiting_since).total_seconds() // 60)
+            if waiting_since
+            else None
+        )
+        items.append(
+            UnsettledOrder(
+                MaOrder=int(order_id),
+                MaOrderHienThi=display_code,
+                GiaTriOrder=Decimal(str(value or 0)),
+                ThoiDiemBatDauCho=waiting_since,
+                SoPhutDaCho=minutes,
+                KetQuaXuLyGanNhat=(entry.reason or entry.action) if entry else None,
+            )
+        )
+    return items

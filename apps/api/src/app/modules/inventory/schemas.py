@@ -1,7 +1,7 @@
 """Schemas for inventory."""
 
-from datetime import datetime
-from typing import Annotated
+from datetime import date, datetime
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
@@ -44,8 +44,20 @@ class IssueLineIn(BaseModel):
 
 
 class IssueCreate(BaseModel):
-    reason: str = Field(default="Hao hụt")
+    reason: str = Field(default="Hao hụt", min_length=1, max_length=50)
     lines: list[IssueLineIn] = Field(min_length=1, max_length=100)
+
+
+class DishIssueLineIn(BaseModel):
+    order_line_id: int
+    servings: int = Field(gt=0, le=100_000)
+
+
+class DishIssueCreate(BaseModel):
+    # LyDo is a 50-character column (appendix D, a22).
+    reason: str = Field(min_length=1, max_length=50)
+    note: str | None = Field(default=None, max_length=500)
+    lines: list[DishIssueLineIn] = Field(min_length=1, max_length=100)
 
 
 class StocktakeCreate(BaseModel):
@@ -72,3 +84,20 @@ class StockRowOut(BaseModel):
     SoLuongTon: float
     MucTonToiThieuApDung: float
     CanhBaoTonThap: bool
+
+
+class LotExpiryRowOut(BaseModel):
+    MaLoNguyenLieu: int
+    MaNguyenLieu: int
+    TenNguyenLieu: str
+    SoLuongConLai: float
+    HanSuDung: date | None
+    SoNgayConLai: int | None = None
+    TrangThaiHanSuDung: Literal["Còn hạn", "Sắp hết hạn", "Hết hạn", "Đã dùng hết"]
+
+
+class LotExpiryPageOut(BaseModel):
+    items: list[LotExpiryRowOut]
+    total: int
+    page: int
+    page_size: int

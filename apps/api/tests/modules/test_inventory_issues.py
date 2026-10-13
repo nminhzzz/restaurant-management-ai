@@ -210,3 +210,22 @@ async def test_list_issues_total_reflects_all_rows_across_pages(session):
     body = r.json()
     assert body["total"] == 3
     assert len(body["items"]) == 2
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("reason", ["", "x" * 51])
+async def test_manual_issue_rejects_an_empty_or_over_long_reason(session, reason):
+    ing = await _ingredient(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    await _receipt(session, client, h, ing, 10)
+
+    r = await client.post(
+        "/api/v1/inventory/issues",
+        json={"reason": reason, "lines": [{"ingredient_id": ing.id, "quantity": 1}]},
+        headers=h,
+    )
+
+    assert r.status_code == 422, r.text
+    await session.refresh(ing)
+    assert float(ing.stock_qty) == 10

@@ -1,5 +1,7 @@
 # Phase 2 — Module 1: Quản lý danh mục
 
+> **Trạng thái (2026-10-13):** Phase 2 đã triển khai (xem `docs/plans/2026-09-24-master-roadmap.md`). Các ô `- [ ]` bên dưới là danh sách bước thực hiện lịch sử và **không còn được cập nhật theo từng bước**; trạng thái thật được xác nhận bằng mã nguồn, test và `docs/testing/test-cases.md`. Số hiệu FR/§ trong tài liệu này theo báo cáo tại thời điểm lập kế hoạch và đã lỗi thời so với báo cáo hiện hành.
+
 > **Cho người thực thi:** dùng skill `executing-plans` để chạy kế hoạch này theo từng task.
 
 **Mục tiêu:** Toàn bộ FR-CAT-01…28: nhóm món, món ăn, phiên bản giá và công thức theo Business Date,
@@ -70,7 +72,7 @@ chứ không chôn trong phần thân.
 | `apps/api/src/app/modules/catalog/schemas.py` | Hợp đồng request/response. |
 | `apps/api/src/app/modules/catalog/service.py` | Logic nghiệp vụ, gồm cả xóa mềm và phiên bản hóa. |
 | `apps/api/src/app/modules/catalog/versions.py` | Tra cứu phiên bản hiệu lực — dùng chung với Phase 4. |
-| `apps/api/src/app/modules/catalog/router.py` | Tầng HTTP, gắn `require_any_role`. |
+| `apps/api/src/app/modules/catalog/router.py` | Tầng HTTP, gắn `require_roles`. |
 | `apps/web/src/features/catalog/` | Màn hình nhóm món, món ăn, công thức, giá, nguyên liệu, NCC, bàn. |
 | `apps/api/tests/modules/test_catalog_*.py` | Test theo từng nhóm chức năng. |
 | `apps/api/tests/modules/conftest.py` | Fixture của module danh mục (danh sách bên dưới). |
@@ -95,7 +97,7 @@ gốc — chỉ fixture dùng từ ba phase trở lên mới thuộc file gốc 
 - Test: `apps/api/tests/modules/test_catalog_dishes.py`
 
 **Interfaces:**
-- Consumes: `DishGroup`, `Dish`, `audit.record`, `require_any_role`.
+- Consumes: `DishGroup`, `Dish`, `audit.record`, `require_roles`.
 - Produces: `create_group`, `update_group`, `delete_group`, `reorder_groups`, `create_dish`,
   `update_dish`, `delete_dish`, `list_dishes`; `GET/POST/PATCH/DELETE /catalog/groups`,
   `PUT /catalog/groups/order`, `/catalog/dishes`.

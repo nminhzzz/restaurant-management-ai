@@ -20,6 +20,11 @@ EXPECTED = {
         "MauHoaDon",
         "NguongTonMacDinh",
         "GioBatDauBusinessDate",
+        "GioBatDauBusinessDateMoi",
+        "NgayHieuLucGioMoi",
+        "SoNgayCanhBaoHetHan",
+        "SoCauHoiAIMoiNgay",
+        "ThoiGianGiuChoPhut",
     },
 }
 

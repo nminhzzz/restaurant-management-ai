@@ -14,7 +14,7 @@ async def _dish(session) -> Dish:
     group = DishGroup(name="Nhóm", display_order=1, is_deleted=False)
     session.add(group)
     await session.flush()
-    dish = Dish(name="Phở bò", group_id=group.id, is_deleted=False)
+    dish = Dish(name="Phở bò", group_id=group.id, is_deleted=False, missing_recipe=False)
     session.add(dish)
     await session.flush()
     return dish

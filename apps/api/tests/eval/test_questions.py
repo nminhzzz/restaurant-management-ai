@@ -1,12 +1,15 @@
 """Phase 7 Task 3 — the Vietnamese Text-to-SQL benchmark set (Appendix 4)."""
 
+import json
+import re
 import unicodedata
 from collections import Counter
 
 import sqlglot
 
+from app.core.config import REPO_ROOT
 from app.modules.ai import guard
-from app.modules.ai.scope import ROLE_VIEWS, views_for
+from app.modules.ai.scope import ROLE_VIEWS
 from app.shared.roles import Role
 
 
@@ -36,11 +39,7 @@ def test_each_question_names_the_view_its_sql_must_use(questions):
 def test_every_reference_sql_passes_the_guard(questions):
     """If the reference SQL cannot run, it is not a valid reference."""
     for question in questions:
-        guard.validate_sql(
-            question["sql"],
-            allowed_views=views_for(Role(question["role"])),
-            max_rows=500,
-        )
+        guard.validate_for_role(question["sql"], Role(question["role"]), max_rows=500)
 
 
 def test_no_reference_sql_touches_a_core_table(questions):
@@ -71,3 +70,34 @@ def test_vietnamese_diacritics_are_kept_intact(questions):
     """A normaliser that strips diacritics would lose meaning on food names."""
     for question in questions:
         assert question["question"] == unicodedata.normalize("NFC", question["question"])
+
+
+EXAMPLES_PATH = REPO_ROOT / "data" / "eval" / "questions.example.jsonl"
+
+
+def _examples() -> list[dict]:
+    lines = EXAMPLES_PATH.read_text(encoding="utf-8").splitlines()
+    return [json.loads(line) for line in lines if line.strip()]
+
+
+def test_every_few_shot_example_passes_the_guard_with_real_view_columns():
+    """Examples reach the prompt; one that invents a column teaches the model to do so."""
+    for example in _examples():
+        guard.validate_for_role(example["sql"], Role(example["role"]), max_rows=500)
+
+
+def test_few_shot_examples_do_not_leak_the_official_set(questions):
+    """Report §5.2: the locked evaluation set is never used as a prompt example."""
+    official = {question["question"] for question in questions}
+
+    assert not official & {example["question"] for example in _examples()}
+
+
+def test_every_role_has_a_few_shot_example():
+    assert {example["role"] for example in _examples()} == {"MANAGER", "CASHIER", "WAREHOUSE"}
+
+
+def test_few_shot_examples_do_not_do_date_arithmetic_on_a_bare_integer():
+    """`CURRENT_DATE - 1` is a number in MySQL, not yesterday."""
+    for example in _examples():
+        assert not re.search(r"CURRENT_DATE\s*-\s*\d", example["sql"])

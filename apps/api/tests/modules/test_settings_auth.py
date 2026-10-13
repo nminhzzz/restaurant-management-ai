@@ -2,9 +2,11 @@
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import delete, select
 
 from app.core.database import get_session
 from app.main import app
+from app.modules.settings.models import SystemConfig
 
 
 def _client(session):
@@ -62,9 +64,36 @@ async def test_reference_data_can_be_seeded_twice(session):
     from app.modules.settings.service import seed_reference_data
     from tests.helpers import config_count, role_count
 
+    await session.execute(delete(SystemConfig))
+    assert await config_count(session) == 0
     await seed_reference_data(session)
     await session.commit()
+    first_id = (await session.execute(select(SystemConfig.id))).scalar_one()
     await seed_reference_data(session)
     await session.commit()
     assert await role_count(session) == 3
     assert await config_count(session) == 1
+    assert (await session.execute(select(SystemConfig.id))).scalar_one() == first_id
+
+
+@pytest.mark.anyio
+async def test_login_spends_a_password_check_even_for_unknown_or_locked_accounts(
+    session, locked_user, monkeypatch
+):
+    from app.core.errors import UnauthenticatedError
+    from app.modules.settings import service
+
+    checks: list[str] = []
+    real = service.verify_password
+
+    def counting(plain: str, hashed: str) -> bool:
+        checks.append(hashed)
+        return real(plain, hashed)
+
+    monkeypatch.setattr(service, "verify_password", counting)
+
+    for username in ("nobody-here", locked_user.username):
+        with pytest.raises(UnauthenticatedError):
+            await service.authenticate(session, username, "Whatever-123")
+
+    assert len(checks) == 2

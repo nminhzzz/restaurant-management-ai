@@ -34,18 +34,21 @@ Ghi chú: trên iOS, mọi trình duyệt đều dùng chung engine WebKit của
 | Đăng nhập (`/login`) | ☐ | — | ☐ | ☐ | ☐ | ☐ | ☐ | |
 | Bán hàng → Gọi món (chọn món, số lượng, ghi chú) | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | Màn hình dùng nhiều nhất giờ cao điểm — ưu tiên kiểm tra kỹ nhất |
 | Bán hàng → Sơ đồ bàn / đổi bàn | ☐ | — | ☐ | ☐ | ☐ | ☐ | ☐ | |
-| Bán hàng → Thanh toán (chọn phương thức, mã QR, đối soát) | ☐ | ☐ (mã giao dịch) | ☐ | ☐ | ☐ | ☐ | ☐ | Mã QR phải đọc được rõ trên màn hình tablet |
+| Bán hàng → Thanh toán (phiếu tạm tính, tiền mặt, mã QR, hủy mã QR) | ☐ | ☐ (tiền nhận, mã giao dịch) | ☐ | ☐ | ☐ | ☐ | ☐ | Mã QR phải đọc được rõ trên màn hình tablet; đồng hồ đếm ngược 10 phút và tab tiền mặt bị khóa khi QR còn hiệu lực |
+| Bán hàng → Xác minh thanh toán (yêu cầu xác minh, mở lại, đóng chưa thu được tiền) | ☐ | ☐ (mã giao dịch ngân hàng) | ☐ | ☐ | ☐ | ☐ | ☐ | Hộp thoại nhiều trường — kiểm tra bàn phím ảo không che nút xác nhận |
+| Bán hàng → Khoản QR ngoại lệ (Quản lý) | ☐ | ☐ (số tiền hoàn) | ☐ | ☐ | ☐ | ☐ | ☐ | Chủ yếu desktop |
 | Bán hàng → Tra cứu order | ☐ | — | ☐ | ☐ | ☐ | ☐ | ☐ | |
 | Danh mục → Món ăn/Công thức/Giá | ☐ | ☐ (giá, định lượng) | ☐ | ☐ | ☐ | ☐ | ☐ | Chủ yếu dùng trên desktop, vẫn kiểm tra tablet vì Quản lý có thể sửa gấp tại quầy |
 | Danh mục → Nguyên liệu/Nhà cung cấp | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
 | Kho → Nhập kho | ☐ | ☐ (số lượng, đơn giá) | ☐ | ☐ | ☐ | ☐ | ☐ | |
 | Kho → Xuất kho thủ công | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | |
 | Kho → Kiểm kê định kỳ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | Danh sách dài — kiểm tra hiệu năng cuộn trên tablet |
+| Kho → Lô và hạn sử dụng | ☐ | — | ☐ | ☐ | ☐ | ☐ | ☐ | Ba trạng thái Còn hạn/Sắp hết hạn/Hết hạn phải phân biệt được cả khi không dựa vào màu |
 | Kho → Danh sách tồn kho | ☐ | — | ☐ | ☐ | ☐ | ☐ | ☐ | |
-| Báo cáo (doanh thu/xếp hạng/biên lợi nhuận/khung giờ) | ☐ | — | ☐ | ☐ | ☐ | ☐ | ☐ | Chủ yếu desktop; kiểm tra biểu đồ không vỡ khi thu nhỏ |
+| Báo cáo (doanh thu/xếp hạng/biên lợi nhuận/khung giờ/chưa hoàn tất/order hủy và đóng chưa thu) | ☐ | — | ☐ | ☐ | ☐ | ☐ | ☐ | Chủ yếu desktop; kiểm tra biểu đồ không vỡ khi thu nhỏ |
 | Cài đặt → Tài khoản/Phân quyền | ☐ | — | ☐ | ☐ | ☐ | ☐ | ☐ | |
 | Cài đặt → Cấu hình chung/Audit log | ☐ | — | ☐ | ☐ | ☐ | ☐ | ☐ | |
-| AI Assistant (chat, mở "Xem chi tiết") | ☐ | — | ☐ | ☐ | ☐ | ☐ | ☐ | Kiểm tra bàn phím ảo không che ô nhập câu hỏi |
+| AI Assistant (chat, các tab Bảng/Biểu đồ/SQL) | ☐ | — | ☐ | ☐ | ☐ | ☐ | ☐ | Kiểm tra bàn phím ảo không che ô nhập câu hỏi |
 
 ## 4. Quy trình chạy checklist
 

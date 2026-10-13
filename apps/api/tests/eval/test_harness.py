@@ -127,6 +127,20 @@ async def test_an_llm_outage_is_measured_as_an_error_not_a_crash(
     assert [outcome.status for outcome in result.outcomes] == ["lỗi"]
 
 
+@pytest.mark.anyio
+async def test_the_reference_sql_is_guarded_too_so_the_harness_cannot_bypass_the_guard(
+    fake_llm, one_question, benchmark_environment
+):
+    """Gold SQL goes through `validate_sql`; an unsafe one is a measured error, never run."""
+    unsafe = type(one_question)(one_question, sql="SELECT * FROM nguoi_dung")
+    fake_llm.reply(f"SELECT COUNT(MaOrder) AS so_don FROM {one_question['view']}")
+
+    result = await run_configuration(Config.A, [unsafe])
+
+    assert [outcome.status for outcome in result.outcomes] == ["lỗi"]
+    assert not any("nguoi_dung" in statement for statement in benchmark_environment.executed)
+
+
 def test_relaxed_match_ignores_extra_columns_but_not_wrong_values():
     """Returning the unit next to the stock is still the right answer; a wrong number is not."""
     from data.eval.harness import relaxed_match
@@ -156,3 +170,28 @@ async def test_both_accuracies_are_reported(fake_llm, one_question):
     assert row["execution_accuracy"] == 1.0
     assert row["relaxed_accuracy"] == 1.0
     assert row["by_difficulty_relaxed"] == {one_question["difficulty"]: 1.0}
+
+
+@pytest.mark.anyio
+async def test_cross_role_questions_are_scored_apart_from_business_questions(
+    fake_llm, one_question, refusal_question
+):
+    """Report §5.2: refusals are not mixed into the business-question denominator."""
+    fake_llm.reply("CLARIFY: ngoài phạm vi")
+
+    result = await run_configuration(Config.B, [one_question, refusal_question])
+    (row,) = compare([result]).rows
+
+    assert (row["business_count"], row["refusal_count"]) == (1, 1)
+    assert row["business_accuracy"] == 0.0  # the business question was refused wrongly
+    assert row["refusal_accuracy"] == 1.0
+    assert row["p95_latency_ms"] > 0
+
+
+def test_p95_uses_nearest_rank():
+    from data.eval.harness import percentile_95
+
+    assert percentile_95([]) == 0.0
+    assert percentile_95([5.0]) == 5.0
+    assert percentile_95([float(i) for i in range(1, 101)]) == 95.0
+    assert percentile_95([float(i) for i in range(1, 21)]) == 19.0

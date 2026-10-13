@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_ttl_minutes: int = 480
 
-    # AI Assistant (NFR-02 response budget, NFR-16 cost control).
+    # AI Assistant (NFR-02 response time, NFR-16 cost control).
     # DeepSeek's OpenAI-compatible API is the default commercial provider.
     ai_provider: str = "deepseek"
     ai_api_key: str = ""
@@ -38,8 +38,9 @@ class Settings(BaseSettings):
     # Runtime fallback (report §1.4.2, §4.1.1): used only when the primary model call
     # fails (transport error, timeout, 429 or 5xx); empty falls back to `ai_config_c_model`.
     llm_fallback_model: str = ""
-    # DeepSeek thinks at "high" by default; two LLM calls per question then overrun
-    # the 8s budget (NFR-02). Only sent when AI_PROVIDER=deepseek; empty = send nothing.
+    # DeepSeek thinks at "high" by default; two LLM calls per question then overrun the 8s
+    # pipeline budget (itself under NFR-02's 10s p95). Only sent when AI_PROVIDER=deepseek;
+    # empty = send nothing.
     llm_reasoning_effort: str = "low"
     # Configuration C of the A/B/C experiment runs configuration B on a second model
     # (master-roadmap Q5); empty means the harness falls back to a suffixed name.
@@ -47,7 +48,6 @@ class Settings(BaseSettings):
     ai_ollama_base_url: str = "http://localhost:11434"
     ai_max_rows: int = 500
     ai_response_budget_seconds: float = 8.0
-    ai_daily_question_quota: int = 500
 
     # NFR-06 execution limits: a query runs at most `ai_sql_timeout_seconds` on the
     # database, and the model gets at most `ai_max_sql_attempts` tries per question.

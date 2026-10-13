@@ -98,4 +98,24 @@ describe("stock table", () => {
       ),
     );
   });
+
+  it("shows held quantity and the sellable stock separately", async () => {
+    fetchMock.mockResolvedValue({
+      items: [
+        {
+          MaNguyenLieu: 3,
+          TenNguyenLieu: "Hành",
+          SoLuongTon: 10,
+          SoLuongGiu: 4,
+          SoLuongKhaDung: 6,
+          CanhBaoTonThap: false,
+        },
+      ],
+      total: 1,
+    });
+    render(<StockTable />);
+
+    expect(await screen.findByText("Đang giữ chỗ 4")).toBeInTheDocument();
+    expect(screen.getByText("6")).toBeInTheDocument();
+  });
 });

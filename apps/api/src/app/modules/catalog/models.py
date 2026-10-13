@@ -13,6 +13,7 @@ from sqlalchemy import (
     Integer,
     String,
     func,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -40,14 +41,17 @@ class Ingredient(Base):
     )
     version: Mapped[int] = mapped_column("Version", Integer, nullable=False, default=1)
     unit_locked: Mapped[bool] = mapped_column("DaKhoaDonVi", default=False, nullable=False)
-    min_stock: Mapped[Decimal] = mapped_column(
-        "MucTonToiThieu", DECIMAL(18, 4), nullable=False, default=Decimal("0")
+    # NULL means "use the system default" (FR-CAT-12, FR-SET-05); 0 is an explicit threshold.
+    min_stock: Mapped[Decimal | None] = mapped_column(
+        "MucTonToiThieu", DECIMAL(18, 4), nullable=True
     )
     shelf_days: Mapped[int | None] = mapped_column("SoNgayBaoQuan", Integer, nullable=True)
     is_deleted: Mapped[bool] = mapped_column("DaXoa", default=False, nullable=False)
     __table_args__ = (
         CheckConstraint("SoLuongTon >= 0", name="stock_non_negative"),
-        CheckConstraint("MucTonToiThieu >= 0", name="min_stock_non_negative"),
+        CheckConstraint(
+            "MucTonToiThieu IS NULL OR MucTonToiThieu >= 0", name="min_stock_non_negative"
+        ),
     )
 
 
@@ -71,6 +75,19 @@ class DiningTable(Base):
     )
     area: Mapped[str | None] = mapped_column("KhuVuc", String(100), nullable=True)
     capacity: Mapped[int | None] = mapped_column("SoChoNgoi", Integer, nullable=True)
+    # The one order occupying the table; NULL when the table is free (FR-CAT-18).
+    serving_order_id: Mapped[int | None] = mapped_column(
+        "MaOrderDangPhucVu",
+        BigInteger,
+        ForeignKey(
+            "ORDER.MaOrder",
+            ondelete="RESTRICT",
+            onupdate="RESTRICT",
+            use_alter=True,
+            name="fk_BAN_MaOrderDangPhucVu",
+        ),
+        nullable=True,
+    )
     is_deleted: Mapped[bool] = mapped_column("DaXoa", default=False, nullable=False)
     active_name: Mapped[str | None] = mapped_column(
         "TenBan_Active",
@@ -85,22 +102,28 @@ class Dish(Base):
     __tablename__ = "MON_AN"
     id: Mapped[int] = mapped_column("MaMon", BigInteger, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column("TenMon", String(100), nullable=False)
-    group_id: Mapped[int | None] = mapped_column(
+    group_id: Mapped[int] = mapped_column(
         "MaNhomMon",
         BigInteger,
         ForeignKey("NHOM_MON.MaNhomMon", ondelete="RESTRICT", onupdate="RESTRICT"),
-        nullable=True,
+        nullable=False,
     )
     image_url: Mapped[str | None] = mapped_column("HinhAnh", String(500), nullable=True)
     missing_recipe: Mapped[bool] = mapped_column("ChuaCoCongThuc", default=True, nullable=False)
+    # Cache of the derived "out of ingredients" flag (FR-CAT-27); the live value comes
+    # from `inventory.stock.dish_is_out_of_stock`, this column only feeds `TrangThai`.
     out_of_stock: Mapped[bool] = mapped_column("HetNguyenLieu", default=False, nullable=False)
+    manually_paused: Mapped[bool] = mapped_column(
+        "TamDungThuCong", default=False, nullable=False, server_default=text("0")
+    )
     status: Mapped[str | None] = mapped_column(
         "TrangThai",
         String(20),
         Computed(
             (
                 "CASE WHEN ChuaCoCongThuc=1 THEN 'Nháp' WHEN HetNguyenLieu=1 "
-                "THEN 'Hết nguyên liệu' ELSE 'Hoạt động' END"
+                "THEN 'Hết nguyên liệu' WHEN TamDungThuCong=1 THEN 'Tạm dừng phục vụ' "
+                "ELSE 'Hoạt động' END"
             ),
             persisted=True,
         ),
@@ -143,6 +166,7 @@ class DishPriceVersion(Base):
         ForeignKey("NGUOI_DUNG.MaNguoiDung", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=True,
     )
+    __table_args__ = (CheckConstraint("GiaBan > 0", name="price_positive"),)
 
 
 class Recipe(Base):
@@ -194,3 +218,4 @@ class RecipeItem(Base):
         primary_key=True,
     )
     quantity: Mapped[Decimal] = mapped_column("DinhLuong", DECIMAL(18, 4), nullable=False)
+    __table_args__ = (CheckConstraint("DinhLuong > 0", name="quantity_positive"),)

@@ -68,4 +68,68 @@ describe("IngredientList", () => {
     fireEvent.click(screen.getByRole("button", { name: "Xóa bộ lọc" }));
     expect(await screen.findByText("Thịt bò")).toBeInTheDocument();
   });
+
+  it("shows the effective threshold and marks a default-following ingredient", async () => {
+    mockFetch.mockResolvedValue({
+      items: [
+        {
+          MaNguyenLieu: 1,
+          TenNguyenLieu: "Muối",
+          DonViTinh: "kg",
+          MucTonToiThieu: null,
+          MucTonToiThieuApDung: 7,
+        },
+        {
+          MaNguyenLieu: 2,
+          TenNguyenLieu: "Thịt bò",
+          DonViTinh: "kg",
+          MucTonToiThieu: 3,
+          MucTonToiThieuApDung: 3,
+        },
+      ],
+    });
+    render(<IngredientList />);
+
+    await screen.findByText("Muối");
+    expect(screen.getAllByText("Mặc định hệ thống")).toHaveLength(1);
+    expect(screen.getByText("7")).toBeInTheDocument();
+  });
+
+  it("sends null to return an ingredient to the default threshold", async () => {
+    mockFetch.mockImplementation((path: string) =>
+      Promise.resolve(
+        path.startsWith("/catalog/ingredients?")
+          ? {
+              items: [
+                {
+                  MaNguyenLieu: 2,
+                  TenNguyenLieu: "Thịt bò",
+                  DonViTinh: "kg",
+                  MucTonToiThieu: 3,
+                  MucTonToiThieuApDung: 3,
+                },
+              ],
+            }
+          : {},
+      ),
+    );
+    render(<IngredientList />);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Sửa nguyên liệu" }),
+    );
+    fireEvent.change(screen.getByLabelText("Mức tồn tối thiểu"), {
+      target: { value: "" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Lưu" }));
+
+    await vi.waitFor(() =>
+      expect(mockFetch).toHaveBeenCalledWith(
+        "/catalog/ingredients/2",
+        expect.objectContaining({
+          body: { TenNguyenLieu: "Thịt bò", MucTonToiThieu: null },
+        }),
+      ),
+    );
+  });
 });

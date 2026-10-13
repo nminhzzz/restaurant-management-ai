@@ -13,14 +13,17 @@ business dates instead of today's.
 import random
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
+from decimal import Decimal
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.errors import BusinessRuleError
+from app.core.errors import BusinessRuleError, ConflictError
 from app.modules.inventory import service as inventory_service
 from app.modules.inventory.costing import backfill_issue_costs, close_month
+from app.modules.catalog.service import release_table
 from app.modules.sales import orders as orders_service
 from app.modules.sales import payments as payments_service
+from app.modules.sales import webhooks as webhooks_service
 from app.shared import business_date
 from scripts.seed.catalog import CatalogIds, build_catalogue
 from scripts.seed.config import (
@@ -122,27 +125,41 @@ async def _write_off(session: AsyncSession, ids: CatalogIds, rng: random.Random)
     return True
 
 
-async def _settle_qr(session: AsyncSession, order_id: int, rng: random.Random) -> None:
-    payment = await payments_service.start_qr(session, order_id, actor_id=None)
+async def _settle_qr(
+    session: AsyncSession, order_id: int, rng: random.Random, manager_id: int
+) -> None:
+    payment = await payments_service.start_qr(session, order_id, actor_id=manager_id)
     roll = rng.random()
     if roll < 1 - RECONCILE_RATIO - DISPUTE_RATIO:
-        signature = payments_service.sign_payload(f"{payment.id}:{payment.amount}")
-        await payments_service.handle_webhook(
+        amount = Decimal(str(payment.amount))
+        await webhooks_service.handle_simulator_webhook(
             session,
-            {
-                "payment_id": payment.id,
-                "amount": payment.amount,
-                "signature": signature,
-            },
+            payment_id=payment.id,
+            amount=amount,
+            signature=payments_service.sign_payload(f"{payment.id}:{amount}"),
         )
         return
 
-    payment.status = "Hết hạn"
-    await session.flush()
-    await payments_service.mark_for_reconciliation(session, payment.id, actor_id=None)
+    # The guest says they paid but nothing arrived: a manager verifies by hand (FR-SALE-19/20).
+    await payments_service.request_verification(
+        session,
+        payment.id,
+        reference=f"FT{payment.id}",
+        evidence=None,
+        note="Khách báo đã chuyển khoản",
+        actor_id=manager_id,
+    )
     if roll >= 1 - DISPUTE_RATIO:
-        await payments_service.resolve_reconciliation(
-            session, payment.id, "not_received", actor_id=None
+        await payments_service.close_unpaid(
+            session,
+            payment.id,
+            reason="Không tìm thấy khoản nhận",
+            outcome="Đã tra soát với ngân hàng",
+            actor_id=manager_id,
+        )
+    else:
+        await payments_service.confirm_received(
+            session, payment.id, note="Đã đối chiếu sao kê", reference=None, actor_id=manager_id
         )
 
 
@@ -183,7 +200,7 @@ async def _place_order(
             elif roll < CANCELLED_ORDER_RATIO + CASH_PAYMENT_RATIO:
                 await payments_service.pay_cash(session, order.id, actor_id=ids.manager_id)
             else:
-                await _settle_qr(session, order.id, rng)
+                await _settle_qr(session, order.id, rng, ids.manager_id)
         except BusinessRuleError:
             # Never leave an order open: the dataset must only contain final states.
             try:
@@ -192,6 +209,11 @@ async def _place_order(
                 )
             except BusinessRuleError:
                 pass
+        # The guests leave: paying does not free the table, the cashier does (FR-CAT-18).
+        try:
+            await release_table(session, ids.manager_id, order.table_id, order.id)
+        except (BusinessRuleError, ConflictError):
+            pass
         return True
 
 

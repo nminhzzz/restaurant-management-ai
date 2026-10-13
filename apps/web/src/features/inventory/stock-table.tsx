@@ -29,6 +29,9 @@ type StockRow = {
   MaNguyenLieu: number;
   TenNguyenLieu: string;
   SoLuongTon?: number;
+  /** Quantity reserved by selections that are not yet sent to the kitchen. */
+  SoLuongGiu?: number;
+  SoLuongKhaDung?: number;
   MucTonToiThieuApDung?: number;
   CanhBaoTonThap: boolean;
 };
@@ -150,6 +153,7 @@ export function StockTable({
               <TableRow>
                 <TableHead>Nguyên liệu</TableHead>
                 <TableHead className="text-right">Tồn hiện tại</TableHead>
+                <TableHead className="text-right">Khả dụng</TableHead>
                 <TableHead className="text-right">Mức tối thiểu</TableHead>
                 <TableHead>Trạng thái</TableHead>
                 {onRestock ? (
@@ -173,6 +177,14 @@ export function StockTable({
                     )}
                   >
                     {formatNumber(it.SoLuongTon)}
+                    {(it.SoLuongGiu ?? 0) > 0 && (
+                      <span className="block text-xs font-normal text-muted">
+                        Đang giữ chỗ {formatNumber(it.SoLuongGiu)}
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatNumber(it.SoLuongKhaDung ?? it.SoLuongTon)}
                   </TableCell>
                   <TableCell className="text-right text-muted tabular-nums">
                     {formatNumber(it.MucTonToiThieuApDung)}
@@ -201,7 +213,7 @@ export function StockTable({
               {items.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={onRestock ? 5 : 4}
+                    colSpan={onRestock ? 6 : 5}
                     className="py-8 text-center text-muted"
                   >
                     Không có nguyên liệu nào khớp bộ lọc.

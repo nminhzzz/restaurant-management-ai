@@ -44,6 +44,7 @@ import { useResource } from "@/lib/use-resource";
 type OrderLine = {
   MaChiTietOrder: number;
   MaMon: number;
+  TenMon?: string | null;
   SoLuong: number;
   DonGia: number;
   GhiChu: string | null;
@@ -54,7 +55,9 @@ type Order = {
   MaOrder: number;
   MaOrderHienThi: string;
   MaBan: number | null;
+  TenBan?: string | null;
   TrangThai: string;
+  DaKhoa?: boolean;
   lines?: OrderLine[];
 };
 
@@ -68,8 +71,10 @@ type Ticket = {
 
 type DiningTable = { MaBan: number; TenBan: string; TrangThai?: string };
 
+const WAITING = "Chờ làm";
+
 const NEXT_STATUS: Record<string, string> = {
-  Chờ: "Đã xác nhận xong",
+  [WAITING]: "Đã xác nhận xong",
   "Đã xác nhận xong": "Đã phục vụ",
 };
 
@@ -87,7 +92,6 @@ async function loadDetail(orderId: number) {
   return {
     order,
     dishes: dishPage.items ?? [],
-    names: new Map((dishPage.items ?? []).map((d) => [d.MaMon, d.TenMon])),
     tickets: tickets.items,
     tables: Array.isArray(tables) ? tables : [],
   };
@@ -109,9 +113,10 @@ export function OrderDetail({ orderId }: { orderId: number }) {
   if (detail.status === "error")
     return <ErrorState message={detail.message} onRetry={detail.reload} />;
 
-  const { order, names, dishes, tickets, tables } = detail.data;
+  const { order, dishes, tickets, tables } = detail.data;
   const lines = order.lines ?? [];
-  const locked = order.TrangThai !== "Đang mở";
+  const locked = order.DaKhoa ?? order.TrangThai !== "Đang mở";
+  const lineName = (line: OrderLine) => line.TenMon ?? `Món #${line.MaMon}`;
   const freeTables = tables.filter(
     (t) => t.MaBan !== order.MaBan && (t.TrangThai ?? "Trống") === "Trống",
   );
@@ -120,7 +125,7 @@ export function OrderDetail({ orderId }: { orderId: number }) {
     await action.run(async () => {
       await apiFetch(`/sales/orders/${orderId}/lines`, {
         method: "POST",
-        body: { dish_id: dish.MaMon, quantity: 1 },
+        body: { MaMon: dish.MaMon, SoLuong: 1 },
       });
       detail.reload();
     }, `Đã thêm ${dish.TenMon}.`);
@@ -131,7 +136,7 @@ export function OrderDetail({ orderId }: { orderId: number }) {
     await action.run(async () => {
       await apiFetch(`/sales/orders/${orderId}/lines/${line.MaChiTietOrder}`, {
         method: "PATCH",
-        body: { quantity },
+        body: { SoLuong: quantity },
       });
       setEditingLine(null);
       detail.reload();
@@ -146,7 +151,7 @@ export function OrderDetail({ orderId }: { orderId: number }) {
         `/sales/orders/${orderId}/lines/${line.MaChiTietOrder}/status`,
         {
           method: "PATCH",
-          body: { to },
+          body: { TrangThai: to },
         },
       );
       detail.reload();
@@ -160,7 +165,7 @@ export function OrderDetail({ orderId }: { orderId: number }) {
         `/sales/orders/${orderId}/lines/${cancelLine.MaChiTietOrder}/cancel`,
         {
           method: "POST",
-          body: { reason },
+          body: { LyDo: reason },
         },
       );
       setCancelLine(null);
@@ -173,7 +178,7 @@ export function OrderDetail({ orderId }: { orderId: number }) {
     await action.run(async () => {
       await apiFetch(`/sales/orders/${orderId}/move`, {
         method: "POST",
-        body: { to_table_id: Number(moveTarget) },
+        body: { MaBanDich: Number(moveTarget) },
       });
       setMoveOpen(false);
       setMoveTarget("");
@@ -212,13 +217,16 @@ export function OrderDetail({ orderId }: { orderId: number }) {
             <p className="text-xs text-subtle">Order</p>
             <p className="font-mono text-base font-medium">
               {order.MaOrderHienThi}
+              {order.TenBan ? ` · ${order.TenBan}` : ""}
             </p>
           </div>
           <StatusBadge status={order.TrangThai} />
           {locked && (
             <span className="flex items-center gap-1 text-xs text-subtle">
               <Lock className="size-3.5" aria-hidden />
-              Order đã khóa, không thể sửa
+              {order.TrangThai === "Chờ xác nhận thanh toán"
+                ? "Đang có mã QR chờ thanh toán. Hủy QR để sửa order."
+                : "Order đã khóa, không thể sửa"}
             </span>
           )}
         </div>
@@ -252,7 +260,7 @@ export function OrderDetail({ orderId }: { orderId: number }) {
 
       <ul className="divide-y divide-border rounded-container border border-border bg-surface">
         {lines.map((line) => {
-          const canEdit = !locked && line.TrangThai === "Chờ";
+          const canEdit = !locked && line.TrangThai === WAITING;
           const nextStatus = NEXT_STATUS[line.TrangThai];
           return (
             <li
@@ -260,9 +268,7 @@ export function OrderDetail({ orderId }: { orderId: number }) {
               className="flex flex-wrap items-center gap-3 px-4 py-3"
             >
               <div className="min-w-0 flex-1">
-                <p className="font-medium">
-                  {names.get(line.MaMon) ?? `Món #${line.MaMon}`}
-                </p>
+                <p className="font-medium">{lineName(line)}</p>
                 {line.GhiChu && (
                   <p className="text-xs text-muted">{line.GhiChu}</p>
                 )}
@@ -271,7 +277,7 @@ export function OrderDetail({ orderId }: { orderId: number }) {
               {editingLine === line.MaChiTietOrder ? (
                 <div className="flex items-center gap-1.5">
                   <Input
-                    aria-label={`Số lượng ${names.get(line.MaMon) ?? line.MaMon}`}
+                    aria-label={`Số lượng ${lineName(line)}`}
                     type="number"
                     min={1}
                     className="h-9 w-16"
@@ -417,7 +423,7 @@ export function OrderDetail({ orderId }: { orderId: number }) {
       <ConfirmDialog
         open={cancelLine !== null}
         onOpenChange={(open) => !open && setCancelLine(null)}
-        title={`Hủy ${cancelLine ? (names.get(cancelLine.MaMon) ?? `món #${cancelLine.MaMon}`) : ""}?`}
+        title={`Hủy ${cancelLine ? lineName(cancelLine) : ""}?`}
         confirmLabel="Hủy món"
         danger
         requireReason

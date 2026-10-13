@@ -15,19 +15,6 @@ from tests.modules.test_sales_payments import _headers, _make_client, _setup, _s
 HOOK = "/api/v1/sales/webhooks/sepay"
 
 
-@pytest.fixture
-def sepay_env(monkeypatch):
-    monkeypatch.setenv("PAYMENT_GATEWAY", "sepay")
-    monkeypatch.setenv("SEPAY_BANK_ACCOUNT", "0123499999")
-    monkeypatch.setenv("SEPAY_BANK_CODE", "MBBank")
-    monkeypatch.setenv("SEPAY_ACCOUNT_NAME", "NHA HANG DEMO")
-    monkeypatch.setenv("SEPAY_WEBHOOK_API_KEY", "hook-key")
-    monkeypatch.setenv("SEPAY_API_TOKEN", "api-token")
-    get_settings.cache_clear()
-    yield
-    get_settings.cache_clear()
-
-
 def _body(payment_id: int, amount: int, sepay_id: int = 1, direction: str = "in") -> dict:
     return {
         "id": sepay_id,
@@ -36,6 +23,7 @@ def _body(payment_id: int, amount: int, sepay_id: int = 1, direction: str = "in"
         "code": None,
         "content": f"chuyen khoan TT{payment_id}",
         "referenceCode": "FT1",
+        "accountNumber": "0123499999",
     }
 
 
@@ -83,7 +71,7 @@ async def test_a_wrong_api_key_is_rejected(session, sepay_env):
         HOOK, json=_body(r.json()["MaGiaoDich"], 50000), headers={"Authorization": "Apikey nope"}
     )
     assert resp.status_code == 401
-    assert await order_status(session, oid) == "Đang mở"
+    assert await order_status(session, oid) == "Chờ xác nhận thanh toán"
 
 
 @pytest.mark.anyio
@@ -102,7 +90,7 @@ async def test_an_outgoing_transfer_is_ignored(session, sepay_env):
     await client.post(
         HOOK, json=_body(r.json()["MaGiaoDich"], 50000, direction="out"), headers=AUTH
     )
-    assert await order_status(session, oid) == "Đang mở"
+    assert await order_status(session, oid) == "Chờ xác nhận thanh toán"
 
 
 @pytest.mark.anyio
@@ -111,23 +99,36 @@ async def test_a_transfer_without_our_code_is_acknowledged_but_not_applied(sessi
     body = {**_body(0, 50000), "content": "tien an trua"}
     resp = await client.post(HOOK, json=body, headers=AUTH)
     assert resp.json() == {"success": True}
-    assert await order_status(session, oid) == "Đang mở"
+    assert await order_status(session, oid) == "Chờ xác nhận thanh toán"
+    audit = await latest_audit(session)
+    assert audit is not None and audit["LoaiThaoTac"] == "WEBHOOK_UNMATCHED"
 
 
 @pytest.mark.anyio
-async def test_a_wrong_amount_goes_to_reconciliation(session, sepay_env):
+async def test_a_wrong_amount_is_recorded_as_an_exception_not_settled(session, sepay_env):
+    """FR-SALE-15: the right transaction with the wrong amount never confirms the payment."""
     client, _, oid, r = await _qr(session)
     await client.post(HOOK, json=_body(r.json()["MaGiaoDich"], 40000), headers=AUTH)
-    assert await order_status(session, oid) == "Chờ đối soát"
+    assert await order_status(session, oid) == "Chờ xác nhận thanh toán"
     assert await _invoices(session, oid) == 0
+    row = await session.execute(
+        text(
+            "SELECT TrangThaiNgoaiLe, SoTienNgoaiLe, MaGiaoDichCong FROM GIAO_DICH_THANH_TOAN "
+            "WHERE MaOrder=:id AND TrangThaiNgoaiLe IS NOT NULL"
+        ),
+        {"id": oid},
+    )
+    assert tuple(row.one()) == ("Chờ xử lý", 40000, "sepay:1")
 
 
 @pytest.mark.anyio
-async def test_a_transfer_after_expiry_goes_to_reconciliation(session, sepay_env, monkeypatch):
+async def test_a_full_transfer_after_expiry_is_still_confirmed(session, sepay_env, monkeypatch):
+    """FR-SALE-16: late money for the right transaction and amount settles the order."""
     client, _, oid, r = await _qr(session)
     monkeypatch.setattr(business_date, "now", lambda: FIXED_NOW + timedelta(minutes=11))
     await client.post(HOOK, json=_body(r.json()["MaGiaoDich"], 50000), headers=AUTH)
-    assert await order_status(session, oid) == "Chờ đối soát"
+    assert await order_status(session, oid) == "Đã thanh toán"
+    assert await _invoices(session, oid) == 1
 
 
 @pytest.mark.anyio
@@ -195,7 +196,7 @@ async def test_the_simulator_hook_is_absent_when_sepay_is_active(session, sepay_
     )
 
     assert resp.status_code == 404
-    assert await order_status(session, oid) == "Đang mở"
+    assert await order_status(session, oid) == "Chờ xác nhận thanh toán"
 
 
 @pytest.mark.anyio
@@ -215,7 +216,7 @@ async def test_the_simulator_hook_refuses_a_signed_body_without_an_amount(sessio
     )
 
     assert resp.status_code == 422
-    assert await order_status(session, oid) == "Đang mở"
+    assert await order_status(session, oid) == "Chờ xác nhận thanh toán"
 
 
 @pytest.mark.anyio
@@ -230,7 +231,7 @@ async def test_a_second_transfer_on_an_already_confirmed_qr_is_recorded_not_reap
     assert resp.json() == {"success": True}
     assert await _invoices(session, oid) == 1
     audit = await latest_audit(session)
-    assert audit is not None and audit["LoaiThaoTac"] == "WEBHOOK_UNMATCHED"
+    assert audit is not None and audit["LoaiThaoTac"] == "QR_EXCEPTION_RECORDED"
 
 
 @pytest.mark.anyio
@@ -266,7 +267,7 @@ async def test_check_tolerates_a_sepay_api_failure(session, sepay_env, monkeypat
 
     assert resp.status_code == 200
     assert resp.json()["TrangThai"] == "Chờ xác nhận"
-    assert await order_status(session, oid) == "Đang mở"
+    assert await order_status(session, oid) == "Chờ xác nhận thanh toán"
 
 
 @pytest.mark.anyio

@@ -1,7 +1,10 @@
 """Phase 4 Task 2 — line status, cancel, move, cancel order."""
 
+from datetime import date, datetime, time
+
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import select
 
 from app.core.database import get_session
 from app.core.security import create_access_token, hash_password
@@ -15,8 +18,13 @@ from app.modules.catalog.models import (
     Recipe,
     RecipeItem,
 )
-from app.modules.inventory.models import GoodsReceipt, GoodsReceiptLine, IngredientLot
-from app.modules.settings.models import User
+from app.modules.inventory.models import (
+    GoodsReceipt,
+    GoodsReceiptLine,
+    IngredientLot,
+    StockMovement,
+)
+from app.modules.settings.models import SystemConfig, User
 from app.modules.settings.service import seed_reference_data
 from app.shared import business_date
 from app.shared.enums import VersionStatus
@@ -56,7 +64,7 @@ async def _setup_dish_with_stock(session, qty=10, need=1, dish_name="Món"):
     g = DishGroup(name="Nhóm", display_order=1, is_deleted=False)
     session.add(g)
     await session.flush()
-    d = Dish(name=dish_name, group_id=g.id, is_deleted=False)
+    d = Dish(name=dish_name, group_id=g.id, is_deleted=False, missing_recipe=False)
     session.add(d)
     await session.flush()
     ing = Ingredient(
@@ -222,6 +230,52 @@ async def test_only_manager_cancel_whole(session):
 
 
 @pytest.mark.anyio
+async def test_cancel_whole_uses_one_business_date_across_transition(session, monkeypatch):
+    first, _ = await _setup_dish_with_stock(session, dish_name="First")
+    second, _ = await _setup_dish_with_stock(session, dish_name="Second")
+    table = await _table(session)
+    client = await _make_client(session)
+    cashier, _ = await _headers(session, role="CASHIER", username="cashier01")
+    manager, _ = await _headers(session, role="MANAGER", username="manager01")
+    created = await client.post(
+        "/api/v1/sales/orders",
+        json={
+            "MaBan": table.id,
+            "lines": [
+                {"MaMon": first.id, "SoLuong": 1},
+                {"MaMon": second.id, "SoLuong": 1},
+            ],
+        },
+        headers=cashier,
+    )
+    assert created.status_code == 201, created.text
+    order_id = created.json()["MaOrder"]
+    cfg = (await session.execute(select(SystemConfig))).scalar_one()
+    cfg.pending_business_day_start = time(4)
+    cfg.pending_business_day_effective_date = date(2026, 9, 25)
+    await session.commit()
+    # The clock crosses the 04:00 boundary right after the request starts; the number of
+    # clock reads inside the service must not matter.
+    reads = iter([datetime(2026, 9, 25, 3, 59)])
+    monkeypatch.setattr(business_date, "now", lambda: next(reads, datetime(2026, 9, 25, 4)))
+
+    cancelled = await client.post(
+        f"/api/v1/sales/orders/{order_id}/cancel",
+        json={"reason": "khách bỏ về"},
+        headers=manager,
+    )
+
+    assert cancelled.status_code == 200, cancelled.text
+    returned = (
+        await session.scalars(
+            select(StockMovement).where(StockMovement.qty > 0).order_by(StockMovement.id)
+        )
+    ).all()
+    assert len(returned) == 2
+    assert len({movement.business_date for movement in returned}) == 1
+
+
+@pytest.mark.anyio
 async def test_cancel_whole_requires_reason(session):
     d, ing = await _setup_dish_with_stock(session)
     t = await _table(session)
@@ -234,7 +288,7 @@ async def test_cancel_whole_requires_reason(session):
 
 @pytest.mark.anyio
 async def test_cancel_order_refused_while_qr_pending(session):
-    """FR-SALE-25: a live QR transaction must be cancelled/expired before the order can be."""
+    """FR-SALE-29: a live QR must be cancelled or expire before the order can be cancelled."""
     d, ing = await _setup_dish_with_stock(session)
     t = await _table(session)
     client = await _make_client(session)
@@ -246,7 +300,7 @@ async def test_cancel_order_refused_while_qr_pending(session):
         f"/api/v1/sales/orders/{oid}/cancel", json={"reason": "khách đổi ý"}, headers=h_mgr
     )
     assert r.status_code == 422
-    assert await order_status(session, oid) == "Đang mở"
+    assert await order_status(session, oid) == "Chờ xác nhận thanh toán"
 
 
 @pytest.mark.anyio
@@ -291,7 +345,8 @@ async def test_cancel_order_allowed_after_qr_cancelled(session):
 
 @pytest.mark.anyio
 async def test_cancelling_last_live_line_auto_closes_order(session):
-    """FR-SALE-12: cancelling the last live line closes the order and frees the table."""
+    """FR-SALE-11: cancelling the last live line closes the order; the table waits for the
+    cashier to confirm the guests left (FR-CAT-18)."""
     d, ing = await _setup_dish_with_stock(session, qty=10)
     t = await _table(session)
     client = await _make_client(session)
@@ -305,7 +360,7 @@ async def test_cancelling_last_live_line_auto_closes_order(session):
     assert r.status_code == 200
     assert await ingredient_total(session, d) == before + 1
     assert await order_status(session, oid) == "Tự động đóng"
-    assert await table_status(session, t.id) == "Trống"
+    assert await table_status(session, t.id) == "Đang phục vụ"
 
 
 @pytest.mark.anyio

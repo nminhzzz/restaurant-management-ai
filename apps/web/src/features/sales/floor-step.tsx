@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Search, ShoppingBag } from "lucide-react";
+import { DoorOpen, Plus, Search, ShoppingBag } from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -12,10 +12,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import { formatVnd } from "@/lib/format";
+import { useAction } from "@/lib/use-action";
 import { useResource } from "@/lib/use-resource";
 import { cn } from "@/lib/utils";
 
-import type { FloorBoard, FloorOrder, FloorTable } from "./types";
+import {
+  FINISHED_ORDER_STATUSES,
+  type FloorBoard,
+  type FloorOrder,
+  type FloorTable,
+} from "./types";
 
 const FILTERS = [
   { key: "all", label: "Tất cả" },
@@ -54,6 +60,7 @@ export function FloorStep({
   const [selected, setSelected] = useState<number | null>(null);
   const [code, setCode] = useState("");
   const [lookupError, setLookupError] = useState<string | null>(null);
+  const release = useAction();
 
   if (board.status === "loading") return <LoadingState rows={6} />;
   if (board.status === "error")
@@ -67,6 +74,24 @@ export function FloorStep({
   );
   const active = tables.find((t) => t.MaBan === selected && t.order) ?? null;
   const activeOrder = active?.order;
+  const orderStatus = activeOrder?.TrangThai ?? "Đang mở";
+  const orderLocked = orderStatus !== "Đang mở";
+  const orderFinished = FINISHED_ORDER_STATUSES.includes(orderStatus);
+
+  async function releaseTable(table: FloorTable, order: FloorOrder) {
+    const result = await release.run(
+      () =>
+        apiFetch(`/catalog/tables/${table.MaBan}/release`, {
+          method: "POST",
+          body: { MaOrder: order.MaOrder },
+        }),
+      `Đã trả ${table.TenBan}.`,
+    );
+    if (result !== undefined) {
+      setSelected(null);
+      board.reload();
+    }
+  }
 
   async function lookup(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -171,6 +196,10 @@ export function FloorStep({
                     <span className="text-[15px] font-bold text-ink tabular-nums">
                       {formatVnd(table.order.TamTinh)}
                     </span>
+                    {table.order.TrangThai &&
+                      table.order.TrangThai !== "Đang mở" && (
+                        <StatusBadge status={table.order.TrangThai} />
+                      )}
                     <span>
                       {table.order.SoMon} món · từ {openedAt(table.order)}
                     </span>
@@ -192,7 +221,7 @@ export function FloorStep({
           >
             <header className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
               <h2 className="text-base font-bold">{active.TenBan}</h2>
-              <StatusBadge status="Đang phục vụ" />
+              <StatusBadge status={activeOrder.TrangThai ?? "Đang phục vụ"} />
             </header>
             <div className="space-y-3 p-4">
               <p className="font-mono text-xs text-subtle">
@@ -209,6 +238,7 @@ export function FloorStep({
                 <Button
                   variant="secondary"
                   size="pos"
+                  disabled={orderLocked}
                   onClick={() => onAddMore(activeOrder.MaOrder, active.MaBan)}
                 >
                   <Plus />
@@ -218,9 +248,27 @@ export function FloorStep({
                   size="pos"
                   onClick={() => onPay(activeOrder.MaOrder, active.MaBan)}
                 >
-                  Thanh toán
+                  {orderFinished ? "Xem order" : "Thanh toán"}
                 </Button>
               </div>
+              {orderLocked && !orderFinished && (
+                <p className="text-xs text-subtle">
+                  Order đang khóa vì đang chờ thanh toán; không gọi thêm món
+                  được.
+                </p>
+              )}
+              {orderFinished && (
+                <Button
+                  variant="secondary"
+                  size="pos"
+                  className="w-full"
+                  disabled={release.pending}
+                  onClick={() => releaseTable(active, activeOrder)}
+                >
+                  <DoorOpen />
+                  Trả bàn
+                </Button>
+              )}
             </div>
           </section>
         )}
@@ -257,6 +305,9 @@ export function FloorStep({
                     <span className="block font-mono font-semibold">
                       {order.MaOrderHienThi}
                     </span>
+                    {order.TrangThai && order.TrangThai !== "Đang mở" && (
+                      <StatusBadge status={order.TrangThai} />
+                    )}
                     <span className="text-xs text-subtle">
                       {order.SoMon} món · {openedAt(order)}
                     </span>

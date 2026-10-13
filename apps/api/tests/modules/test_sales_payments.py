@@ -61,7 +61,7 @@ async def _setup(session):
     g = DishGroup(name="Nhóm", display_order=1, is_deleted=False)
     session.add(g)
     await session.flush()
-    d = Dish(name="Món", group_id=g.id, is_deleted=False)
+    d = Dish(name="Món", group_id=g.id, is_deleted=False, missing_recipe=False)
     session.add(d)
     await session.flush()
     ing = Ingredient(name="NL", unit="kg", min_stock=1, stock_qty=20, is_deleted=False)
@@ -265,26 +265,6 @@ async def test_new_qr_allowed_after_expiry(session, monkeypatch):
 
 
 @pytest.mark.anyio
-async def test_expired_qr_can_move_order_to_reconciliation(session, monkeypatch):
-    """FR-SALE-17: an order with an expired QR can be flagged for reconciliation."""
-    d, t = await _setup(session)
-    client = await _make_client(session)
-    h, _ = await _headers(session)
-    oid = await _submit(session, client, h, d, t)
-    r = await client.post(f"/api/v1/sales/orders/{oid}/pay/qr", headers=h)
-    pid = r.json()["MaGiaoDich"]
-    created = datetime.fromisoformat(r.json()["ThoiDiemTaoQR"])
-
-    monkeypatch.setattr(business_date, "now", lambda: created + timedelta(minutes=11))
-    r2 = await client.post(
-        f"/api/v1/sales/orders/{oid}/reconcile", json={"payment_id": pid}, headers=h
-    )
-    assert r2.status_code == 200
-    assert r2.json()["TrangThai"] == "Chờ đối soát"
-    assert await order_status(session, oid) == "Chờ đối soát"
-
-
-@pytest.mark.anyio
 async def test_list_payments_for_order(session):
     """The UI recovers the live QR transaction after a reload via this listing."""
     d, t = await _setup(session)
@@ -392,12 +372,12 @@ async def test_expire_does_not_clobber_a_confirmation_landing_mid_expire(session
 
 
 @pytest.mark.anyio
-async def test_mark_for_reconciliation_refuses_when_order_already_settled(session):
-    """Lost-update guard (review #1): a settled order can't be pushed back to reconciliation."""
+async def test_verification_refuses_when_the_order_is_already_settled(session):
+    """Lost-update guard (review #1): a settled order can't be pushed back to verification."""
     from sqlalchemy import text as sql_text
 
     from app.core.errors import BusinessRuleError
-    from app.modules.sales.payments import mark_for_reconciliation
+    from app.modules.sales.payments import request_verification
 
     d, t = await _setup(session)
     client = await _make_client(session)
@@ -416,7 +396,9 @@ async def test_mark_for_reconciliation_refuses_when_order_already_settled(sessio
     await session.commit()
 
     with pytest.raises(BusinessRuleError):
-        await mark_for_reconciliation(session, pid)
+        await request_verification(
+            session, pid, reference="FT1", evidence=None, note=None, actor_id=None
+        )
     await session.commit()
 
     assert await order_status(session, oid) == "Đã thanh toán"
