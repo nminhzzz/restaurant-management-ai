@@ -9,7 +9,7 @@
 --   'THANH_TOAN' - one row per payment transaction
 CREATE OR REPLACE VIEW vw_ai_thungan AS
 SELECT
-    CAST('ORDER' AS CHAR(20)) AS LoaiBanGhi,
+    CAST('ORDER' AS CHAR(20)) COLLATE utf8mb4_unicode_ci AS LoaiBanGhi,
     o.MaOrder AS MaOrder,
     o.BusinessDate AS BusinessDate,
     o.LoaiDon AS LoaiDon,
@@ -19,10 +19,10 @@ SELECT
     CAST(NULL AS DATETIME) AS ThoiDiemXuat,
     CAST(NULL AS DECIMAL(18, 4)) AS TongTien,
     CAST(NULL AS SIGNED) AS MaGiaoDich,
-    CAST(NULL AS CHAR(20)) AS PhuongThuc,
+    CAST(NULL AS CHAR(20)) COLLATE utf8mb4_unicode_ci AS PhuongThuc,
     CAST(NULL AS DECIMAL(18, 4)) AS SoTien,
-    CAST(NULL AS CHAR(100)) AS TenMon,
-    CAST(NULL AS CHAR(100)) AS TenNhom,
+    CAST(NULL AS CHAR(100)) COLLATE utf8mb4_unicode_ci AS TenMon,
+    CAST(NULL AS CHAR(100)) COLLATE utf8mb4_unicode_ci AS TenNhom,
     CAST(NULL AS SIGNED) AS SoLuongMon,
     CAST(NULL AS DECIMAL(18, 4)) AS DonGiaMon,
     CAST(NULL AS DECIMAL(18, 4)) AS ThanhTienMon

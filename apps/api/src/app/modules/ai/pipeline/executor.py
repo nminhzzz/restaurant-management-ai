@@ -11,6 +11,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from app.modules.ai.accounts import readonly_url_for
+from app.modules.ai.guard import ValidatedSql
 from app.shared.roles import Role
 
 
@@ -19,8 +20,14 @@ def _create_engine(url: str) -> AsyncEngine:
     return create_async_engine(url, pool_pre_ping=True)
 
 
-async def execute(sql: str, *, role: Role, timeout_seconds: float) -> list[dict[str, Any]]:
-    """Run validated SQL on this role's account and return plain rows."""
+async def execute(sql: ValidatedSql, *, role: Role, timeout_seconds: float) -> list[dict[str, Any]]:
+    """Run validated SQL on this role's account and return plain rows.
+
+    Only `guard.validate_sql` can mint a `ValidatedSql`; a plain string is refused here so
+    no caller (the evaluation harness included) can reach the database around the guard.
+    """
+    if not isinstance(sql, ValidatedSql):
+        raise TypeError("executor.execute only runs SQL returned by guard.validate_sql")
     engine = _create_engine(readonly_url_for(role))
     try:
         async with engine.connect() as connection:

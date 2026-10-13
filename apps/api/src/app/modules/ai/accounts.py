@@ -4,6 +4,9 @@ The assistant executes SQL on a dedicated account per role, each granted
 `SELECT` on that role's view only. Sharing one read-only account across the
 three roles would let a role's query reach another role's data, which is
 exactly what the view split exists to prevent.
+
+A blank URL fails closed: there is deliberately no fallback to the application's own
+(read-write) database account.
 """
 
 from types import MappingProxyType
@@ -20,6 +23,14 @@ ACCOUNT_FIELDS: MappingProxyType[Role, str] = MappingProxyType(
 )
 
 
+class ReadonlyAccountNotConfigured(RuntimeError):
+    """The role has no read-only database account configured."""
+
+
 def readonly_url_for(role: Role) -> str:
     """Connection string of the read-only account belonging to this role."""
-    return str(getattr(get_settings(), ACCOUNT_FIELDS[role]))
+    field = ACCOUNT_FIELDS[role]
+    url = str(getattr(get_settings(), field)).strip()
+    if not url:
+        raise ReadonlyAccountNotConfigured(f"{field.upper()} is not set")
+    return url

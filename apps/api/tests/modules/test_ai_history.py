@@ -13,7 +13,7 @@ BASE = datetime(2026, 9, 24, 9, 0)
 async def _session_with(
     session, user_id: int, questions: list[str], start: datetime
 ) -> ChatSession:
-    chat = ChatSession(user_id=user_id, created_at=start)
+    chat = ChatSession(user_id=user_id, role_id="CASHIER", created_at=start)
     session.add(chat)
     await session.flush()
     for i, question in enumerate(questions):
@@ -45,7 +45,7 @@ async def test_the_list_holds_only_my_non_empty_sessions_newest_first(
     old = await _session_with(session, 2, ["Câu cũ"], BASE)
     new = await _session_with(session, 2, ["Câu mới", "Câu tiếp"], BASE + timedelta(hours=1))
     await _session_with(session, 1, ["Của quản lý"], BASE + timedelta(hours=2))
-    session.add(ChatSession(user_id=2, created_at=BASE + timedelta(hours=3)))
+    session.add(ChatSession(user_id=2, role_id="CASHIER", created_at=BASE + timedelta(hours=3)))
     await session.commit()
 
     resp = await api_client.get("/api/v1/assistant/sessions", headers=_auth(cashier_token))

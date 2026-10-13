@@ -11,17 +11,21 @@ worker thread so a stalled provider cannot hold the event loop and dodge the bud
 """
 
 import asyncio
+import logging
 import time
 from dataclasses import asdict
 from datetime import date
+from typing import Any
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.errors import BusinessRuleError, NotFoundError
-from app.modules.ai import charts, labels
-from app.modules.ai.errors import ClarificationNeeded, QuotaExceeded
+from app.modules.ai import charts, labels, llm
+from app.modules.ai.errors import ClarificationNeeded, ExecutionFailed, QuotaExceeded
+from app.modules.ai.guard import OutOfScopeError, ValidatedSql
 from app.modules.ai.models import AssistantQuery, ChatSession
 from app.modules.ai.pipeline import executor, generator, interpreter, normalize
 from app.modules.ai.pipeline.answer_format import split_answer
@@ -39,7 +43,10 @@ from app.modules.settings.service import effective_business_day_start, get_confi
 from app.shared import business_date
 from app.shared.roles import Role
 
+logger = logging.getLogger(__name__)
+
 TITLE_LIMIT = 120
+FEEDBACK_LIMIT = 200
 
 REFUSED_ANSWER = (
     "Không thể tạo truy vấn an toàn cho câu hỏi này trong phạm vi của bạn. "
@@ -47,19 +54,22 @@ REFUSED_ANSWER = (
 )
 TIMEOUT_ANSWER = "Trợ lý phản hồi quá lâu. Vui lòng thử lại với câu hỏi ngắn gọn hơn."
 SCOPE_REFUSED_ANSWER = "Câu hỏi này nằm ngoài phạm vi dữ liệu mà vai trò của bạn được phép xem."
+ERROR_ANSWER = "Hệ thống chưa trả lời được câu hỏi này. Vui lòng thử lại sau."
 PENDING_STATUS = "Đang xử lý"
 INTERRUPTED_STATUS = "Bị gián đoạn"
 INTERRUPTED_ANSWER = "Câu hỏi bị gián đoạn khi hệ thống đang xử lý. Vui lòng gửi lại nếu cần."
 
 
 async def _resolve_session(
-    session: AsyncSession, user_id: int, session_id: int | None
+    session: AsyncSession, user_id: int, session_id: int | None, role: Role
 ) -> ChatSession:
     if session_id is not None:
         existing = await session.get(ChatSession, session_id)
-        if existing is not None and existing.user_id == user_id:
+        # A session is bound to the role it was opened under (FR-AI-05): after a role
+        # change the history of the old scope must not be continued under the new one.
+        if existing is not None and existing.user_id == user_id and existing.role_id == role.value:
             return existing
-    chat_session = ChatSession(user_id=user_id, role_id=None)
+    chat_session = ChatSession(user_id=user_id, role_id=role.value)
     session.add(chat_session)
     await session.flush()
     return chat_session
@@ -98,7 +108,7 @@ async def _reserve_question(
     if used >= config.ai_daily_question_quota:
         raise QuotaExceeded("Đã đạt hạn mức câu hỏi trong ngày. Vui lòng thử lại vào ngày mai.")
 
-    chat_session = await _resolve_session(session, user_id, session_id)
+    chat_session = await _resolve_session(session, user_id, session_id, role)
     query = AssistantQuery(
         session_id=chat_session.id,
         scope=ROLE_VIEWS[role],
@@ -124,12 +134,56 @@ async def _update_query(
     status: str,
     summary: str,
     elapsed_ms: int,
+    usage: llm.UsageTally | None = None,
 ) -> None:
     query.sql_text = sql_text
     query.status = status
     query.summary = summary
     query.latency_ms = elapsed_ms
+    if usage is not None and usage.calls:
+        query.model_version = usage.model_version[:100] if usage.model_version else None
+        query.input_tokens = usage.input_tokens
+        query.output_tokens = usage.output_tokens
+        query.cost_usd = usage.priced_cost
+        query.call_count = usage.calls
     await session.flush()
+
+
+def _trace_suffix(query: AssistantQuery) -> str:
+    return f" Mã truy vết: {query.id}."
+
+
+async def _generate_and_execute(
+    session: AsyncSession,
+    question: str,
+    role: Role,
+    user_id: int,
+    effective_date: date,
+) -> tuple[ValidatedSql, list[dict[str, Any]]]:
+    """Generate, guard and run SQL; the database rejecting it earns one regeneration.
+
+    Syntax or execution errors may be regenerated once within the shared
+    `ai_max_sql_attempts` budget (NFR-06); an out-of-scope query never reaches this loop's
+    retry because the generator raises `OutOfScopeError` and the turn ends.
+    """
+    settings = get_settings()
+    budget = generator.AttemptBudget(settings.ai_max_sql_attempts)
+    feedback: str | None = None
+    while True:
+        sql = await generator.generate_sql(
+            session, question, role, user_id, effective_date, budget=budget, feedback=feedback
+        )
+        try:
+            rows = await executor.execute(
+                sql, role=role, timeout_seconds=settings.ai_sql_timeout_seconds
+            )
+        except DBAPIError as exc:
+            generator.invalidate_sql(user_id, question, role, effective_date)
+            if budget.remaining <= 0:
+                raise ExecutionFailed(sql) from exc
+            feedback = str(exc.orig)[:FEEDBACK_LIMIT]
+            continue
+        return sql, rows
 
 
 def _elapsed_ms(started: float) -> int:
@@ -144,6 +198,18 @@ async def answer(
     session_id: int | None = None,
 ) -> ChatResponse:
     """Answer one question within the caller's role scope, and log the turn."""
+    with llm.track_usage() as usage:
+        return await _run_turn(session, question, role, user_id, session_id, usage)
+
+
+async def _run_turn(
+    session: AsyncSession,
+    question: str,
+    role: Role,
+    user_id: int,
+    session_id: int | None,
+    usage: llm.UsageTally,
+) -> ChatResponse:
     settings = get_settings()
     started = time.perf_counter()
     normalized = normalize.normalize_question(question)
@@ -163,11 +229,8 @@ async def answer(
 
     try:
         async with asyncio.timeout(settings.ai_response_budget_seconds):
-            sql_text = await generator.generate_sql(
+            sql_text, rows = await _generate_and_execute(
                 session, normalized, role, user_id, effective_date
-            )
-            rows = await executor.execute(
-                sql_text, role=role, timeout_seconds=settings.ai_sql_timeout_seconds
             )
             columns = list(rows[0].keys()) if rows else []
             spec = charts.choose_chart(columns, rows)
@@ -189,6 +252,7 @@ async def answer(
             status="Yêu cầu làm rõ",
             summary=exc.message,
             elapsed_ms=_elapsed_ms(started),
+            usage=usage,
         )
         await session.commit()
         return ChatResponse(
@@ -202,19 +266,38 @@ async def answer(
             status="Từ chối",
             summary=exc.message,
             elapsed_ms=_elapsed_ms(started),
+            usage=usage,
         )
         await session.commit()
         return ChatResponse(
             answer=exc.message, headline=exc.message, kind="refused", session_id=chat_session.id
         )
+    except OutOfScopeError:
+        await _update_query(
+            session,
+            query,
+            sql_text=None,
+            status="Từ chối",
+            summary=SCOPE_REFUSED_ANSWER,
+            elapsed_ms=_elapsed_ms(started),
+            usage=usage,
+        )
+        await session.commit()
+        return ChatResponse(
+            answer=SCOPE_REFUSED_ANSWER,
+            headline=SCOPE_REFUSED_ANSWER,
+            kind="refused",
+            session_id=chat_session.id,
+        )
     except BusinessRuleError:
         await _update_query(
             session,
             query,
-            sql_text=sql_text,
+            sql_text=None,
             status="Từ chối",
             summary=REFUSED_ANSWER,
             elapsed_ms=_elapsed_ms(started),
+            usage=usage,
         )
         await session.commit()
         return ChatResponse(
@@ -231,6 +314,7 @@ async def answer(
             status="Lỗi",
             summary=TIMEOUT_ANSWER,
             elapsed_ms=_elapsed_ms(started),
+            usage=usage,
         )
         await session.commit()
         return ChatResponse(
@@ -239,17 +323,27 @@ async def answer(
             kind="error",
             session_id=chat_session.id,
         )
-    except Exception:
+    except Exception as exc:
+        failed_sql = exc.sql if isinstance(exc, ExecutionFailed) else sql_text
+        if not isinstance(exc, ExecutionFailed):
+            logger.exception("ai.turn.failed query=%s", query.id)
+        message = ERROR_ANSWER + _trace_suffix(query)
         await _update_query(
             session,
             query,
-            sql_text=sql_text,
+            sql_text=failed_sql,
             status="Lỗi",
-            summary=SCOPE_REFUSED_ANSWER,
+            summary=message,
             elapsed_ms=_elapsed_ms(started),
+            usage=usage,
         )
         await session.commit()
-        raise
+        return ChatResponse(
+            answer=message,
+            headline=message,
+            kind="error",
+            session_id=chat_session.id,
+        )
 
     elapsed_ms = _elapsed_ms(started)
     await _update_query(
@@ -259,6 +353,7 @@ async def answer(
         status="Thành công",
         summary=interpretation.text,
         elapsed_ms=elapsed_ms,
+        usage=usage,
     )
     await session.commit()
     return ChatResponse(
@@ -287,7 +382,7 @@ def _title(question: str) -> str:
 
 
 async def list_sessions(
-    session: AsyncSession, user_id: int, page: int, size: int
+    session: AsyncSession, user_id: int, role: Role, page: int, size: int
 ) -> tuple[list[SessionSummary], int]:
     """The caller's sessions that hold at least one turn, most recent activity first."""
     stats = (
@@ -303,7 +398,7 @@ async def list_sessions(
     base = (
         select(ChatSession, stats.c.turns, stats.c.first_id, stats.c.last_at)
         .join(stats, stats.c.sid == ChatSession.id)
-        .where(ChatSession.user_id == user_id)
+        .where(ChatSession.user_id == user_id, ChatSession.role_id == role.value)
     )
     total = (await session.execute(select(func.count()).select_from(base.subquery()))).scalar_one()
     rows = (
@@ -335,10 +430,12 @@ async def list_sessions(
     return items, total
 
 
-async def session_detail(session: AsyncSession, user_id: int, session_id: int) -> SessionDetail:
+async def session_detail(
+    session: AsyncSession, user_id: int, role: Role, session_id: int
+) -> SessionDetail:
     chat = await session.get(ChatSession, session_id)
-    # Someone else's session answers exactly like a missing one.
-    if chat is None or chat.user_id != user_id:
+    # Someone else's session, or one opened under a former role, answers like a missing one.
+    if chat is None or chat.user_id != user_id or chat.role_id != role.value:
         raise NotFoundError("Không tìm thấy cuộc trò chuyện.")
     turns = (
         (

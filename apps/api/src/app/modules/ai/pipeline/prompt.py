@@ -40,6 +40,7 @@ VIEW_LOAIBANGHI_VALUES: dict[str, tuple[str, ...]] = {
         "GIA_VON_THANG",
         "GIAO_DICH_KHO",
         "PHIEU_NHAP",
+        "LO_NGUYEN_LIEU",
     ),
     "vw_ai_thungan": ("ORDER", "DONG_MON", "HOA_DON", "THANH_TOAN"),
     "vw_ai_kho": ("TON_KHO", "GIAO_DICH_KHO", "LO_NGUYEN_LIEU"),
@@ -67,6 +68,13 @@ COLUMN_NOTES: dict[str, str] = {
     "TenNguyenLieu": "tên nguyên liệu",
     "DonViTinh": "đơn vị tính",
     "SoLuongTon": "số lượng tồn hiện tại, chỉ có ở LoaiBanGhi = 'TON_KHO'",
+    "SoLuongGiu": (
+        "lượng đang giữ cho món chưa gửi trên các lô còn dùng được, chỉ có ở LoaiBanGhi = 'TON_KHO'"
+    ),
+    "SoLuongKhaDung": (
+        "tồn còn dùng được = các lô còn dùng được trừ lượng đang giữ, chỉ có ở "
+        "LoaiBanGhi = 'TON_KHO'; dùng cột này (không phải SoLuongTon) cho câu hỏi còn phục vụ được"
+    ),
     "MucTonToiThieu": "mức tồn tối thiểu hiệu lực để cảnh báo",
     "CanhBaoTonThap": "1 nếu tồn hiện tại dưới mức tối thiểu, ngược lại 0",
     "Thang": (
@@ -88,7 +96,7 @@ COLUMN_NOTES: dict[str, str] = {
     "SoLuongConLai": "số lượng còn lại của lô",
     "TrangThaiLo": "trạng thái lô (Còn hạn, Hết hạn, ...)",
     "NgayNhapLo": "ngày nhập của lô",
-    "HanSuDungLo": "hạn sử dụng tính từ ngày nhập lô + số ngày bảo quản",
+    "HanSuDungLo": "hạn sử dụng của lô (có thể NULL nếu lô không có hạn)",
 }
 
 _RELATIVE_DAY_OFFSET = re.compile(

@@ -200,3 +200,73 @@ def test_a_reasoning_effort_is_sent_when_configured() -> None:
 def test_no_reasoning_effort_is_sent_by_default() -> None:
     """OpenAI-style models reject unknown parameters, so the field stays opt-in."""
     assert "reasoning_effort" not in _capture_body({})
+
+
+def _completion_with_usage(content: str, prompt: int, completion: int) -> dict:
+    return {
+        **_completion(content),
+        "usage": {"prompt_tokens": prompt, "completion_tokens": completion},
+    }
+
+
+def test_usage_of_every_call_in_a_block_is_tallied_with_its_cost() -> None:
+    from decimal import Decimal
+
+    from app.modules.ai import llm
+
+    def handler(_: httpx.Request) -> httpx.Response:
+        return _json_response(200, _completion_with_usage("SELECT 1", 4000, 800))
+
+    client = CommercialClient(
+        api_key="k",
+        model="deepseek-flash",
+        base_url="https://api.deepseek.com",
+        transport=httpx.MockTransport(handler),
+    )
+
+    with llm.track_usage() as tally:
+        client.complete("a")
+        client.complete("b")
+
+    assert (tally.calls, tally.input_tokens, tally.output_tokens) == (2, 8000, 1600)
+    assert tally.model_version == "deepseek-flash"
+    # 0.30 USD / 1M input tokens and 1.20 USD / 1M output tokens (report §4.2).
+    assert tally.priced_cost == Decimal("0.00432")
+
+
+def test_a_fallback_call_adds_its_model_and_an_unpriced_model_leaves_cost_unknown() -> None:
+    from app.modules.ai import llm
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if json.loads(request.content)["model"] == "deepseek-flash":
+            return _json_response(503, {"error": "overloaded"})
+        return _json_response(200, _completion_with_usage("SELECT 1", 100, 50))
+
+    client = CommercialClient(
+        api_key="k",
+        model="deepseek-flash",
+        base_url="https://api.deepseek.com",
+        fallback_model="some-other-model",
+        transport=httpx.MockTransport(handler),
+    )
+
+    with llm.track_usage() as tally:
+        client.complete("a")
+
+    assert tally.model_version == "some-other-model"
+    assert tally.calls == 1
+    assert tally.priced_cost is None
+
+
+def test_usage_outside_a_tracking_block_is_ignored() -> None:
+    def handler(_: httpx.Request) -> httpx.Response:
+        return _json_response(200, _completion_with_usage("SELECT 1", 1, 1))
+
+    client = CommercialClient(
+        api_key="k",
+        model="deepseek-flash",
+        base_url="https://api.deepseek.com",
+        transport=httpx.MockTransport(handler),
+    )
+
+    assert client.complete("a") == "SELECT 1"

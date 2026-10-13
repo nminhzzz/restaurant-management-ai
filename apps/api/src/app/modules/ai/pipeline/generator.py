@@ -1,7 +1,10 @@
 """Step 3 — SQL generation through the configured LLM.
 
-Every candidate goes straight through `guard.validate_sql`; a rejected candidate costs
-one of the `ai_max_sql_attempts` (two) generations, and running out raises. The cache
+Every candidate goes straight through `guard.validate_for_role`. A malformed candidate
+costs one of the `ai_max_sql_attempts` (two) generations and running out raises; a
+candidate that reaches beyond the caller's permission (`OutOfScopeError`) ends the turn
+at once with no regeneration. The attempt budget is shared with the orchestrator, which
+spends one more generation when the database rejects a validated query. The cache
 key includes the role, because the same words asked by another role must never reuse
 an answer produced under a different scope (FR-AI-05).
 
@@ -12,6 +15,7 @@ The SQL cache remains process-local and role-scoped.
 import asyncio
 import re
 from collections import OrderedDict
+from dataclasses import dataclass
 from datetime import date
 from time import monotonic
 
@@ -21,6 +25,7 @@ from app.core.config import get_settings
 from app.core.errors import BusinessRuleError
 from app.modules.ai import guard, llm
 from app.modules.ai.errors import ClarificationNeeded
+from app.modules.ai.guard import OutOfScopeError, ValidatedSql
 from app.modules.ai.pipeline.normalize import normalize_question
 from app.modules.ai.pipeline.prompt import ROLE_SCOPE_NOTE, build_prompt
 from app.modules.ai.scope import views_for
@@ -42,6 +47,19 @@ _VOLATILE_QUESTION = re.compile(
 )
 _CacheKey = tuple[object, ...]
 _cache: OrderedDict[_CacheKey, tuple[str, float]] = OrderedDict()
+
+
+@dataclass
+class AttemptBudget:
+    """SQL generations still available to one question (NFR-06: at most two)."""
+
+    remaining: int
+
+    def take(self) -> bool:
+        if self.remaining <= 0:
+            return False
+        self.remaining -= 1
+        return True
 
 
 def reset_state() -> None:
@@ -88,7 +106,7 @@ def cache_context_key(
     )
 
 
-def _cached_sql(key: _CacheKey, *, allowed_views: frozenset[str], max_rows: int) -> str | None:
+def _cached_sql(key: _CacheKey, *, role: Role, max_rows: int) -> ValidatedSql | None:
     entry = _cache.get(key)
     if entry is None:
         return None
@@ -97,7 +115,7 @@ def _cached_sql(key: _CacheKey, *, allowed_views: frozenset[str], max_rows: int)
         del _cache[key]
         return None
     try:
-        validated = guard.validate_sql(sql, allowed_views=allowed_views, max_rows=max_rows)
+        validated = guard.validate_for_role(sql, role, max_rows=max_rows)
     except BusinessRuleError:
         del _cache[key]
         return None
@@ -118,17 +136,33 @@ def _store_sql(key: _CacheKey, sql: str) -> None:
         _cache.popitem(last=False)
 
 
+def invalidate_sql(user_id: int, question: str, role: Role, effective_business_date: date) -> None:
+    """Drop a cached query the database rejected, so a retry cannot reuse it."""
+    key = cache_context_key(
+        user_id, question, role, effective_business_date, allowed_views=views_for(role)
+    )
+    _cache.pop(key, None)
+
+
 async def generate_sql(
     session: AsyncSession,
     question: str,
     role: Role,
     user_id: int,
     effective_business_date: date,
-) -> str:
-    """Validated SQL for this question, or a raised signal for the orchestrator."""
+    *,
+    budget: AttemptBudget | None = None,
+    feedback: str | None = None,
+) -> ValidatedSql:
+    """Validated SQL for this question, or a raised signal for the orchestrator.
+
+    `feedback` is the database's complaint about the previous query; it bypasses the
+    cache and is passed to the model on the next generation.
+    """
     settings = get_settings()
     normalized = normalize_question(question)
     allowed = views_for(role)
+    attempts = budget if budget is not None else AttemptBudget(settings.ai_max_sql_attempts)
     cache_key = cache_context_key(
         user_id,
         normalized,
@@ -139,8 +173,8 @@ async def generate_sql(
     volatile = is_volatile_question(normalized)
     cached = (
         None
-        if volatile
-        else _cached_sql(cache_key, allowed_views=allowed, max_rows=settings.ai_max_rows)
+        if volatile or feedback is not None
+        else _cached_sql(cache_key, role=role, max_rows=settings.ai_max_rows)
     )
     if cached is not None:
         return cached
@@ -148,11 +182,14 @@ async def generate_sql(
     client = llm.get_client()
     last_error: BusinessRuleError | None = None
 
-    for _ in range(settings.ai_max_sql_attempts):
+    while attempts.take():
         prompt = await build_prompt(
             session, normalized, role, effective_business_date=effective_business_date
         )
-        if last_error is not None:
+        if feedback is not None:
+            prompt += f"\n\nLần trước câu SQL bị cơ sở dữ liệu từ chối: {feedback}. Hãy sửa lại."
+            feedback = None
+        elif last_error is not None:
             prompt += f"\n\nLần trước câu SQL chưa hợp lệ: {last_error}. Hãy sửa lại."
         raw = await asyncio.to_thread(client.complete, prompt) or ""
         text = raw.strip()
@@ -161,11 +198,10 @@ async def generate_sql(
             raise ClarificationNeeded(text[len(CLARIFY_PREFIX) :].strip())
 
         try:
-            sql = guard.validate_sql(
-                text,
-                allowed_views=allowed,
-                max_rows=settings.ai_max_rows,
-            )
+            sql = guard.validate_for_role(text, role, max_rows=settings.ai_max_rows)
+        except OutOfScopeError:
+            # A request beyond the caller's permission is final: no second generation.
+            raise
         except BusinessRuleError as exc:
             last_error = exc
             continue

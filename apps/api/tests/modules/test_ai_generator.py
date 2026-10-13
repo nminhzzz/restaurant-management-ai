@@ -6,8 +6,9 @@ import pytest
 
 from app.core.errors import BusinessRuleError
 from app.modules.ai.errors import ClarificationNeeded
+from app.modules.ai.guard import OutOfScopeError
 from app.modules.ai.pipeline import generator, prompt
-from app.modules.ai.pipeline.generator import generate_sql
+from app.modules.ai.pipeline.generator import AttemptBudget, generate_sql
 from app.shared.roles import Role
 
 
@@ -56,7 +57,9 @@ async def test_a_write_statement_is_never_returned(session, fake_llm, seed_views
 @pytest.mark.anyio
 async def test_the_model_gets_a_second_attempt_after_a_bad_query(session, fake_llm, seed_views):
     """NFR-06: at most two generations per question."""
-    fake_llm.reply_sequence(["SELECT * FROM hoa_don", "SELECT COUNT(*) FROM vw_ai_thungan"])
+    fake_llm.reply_sequence(
+        ["SELECT ThanhTien FROM vw_ai_thungan", "SELECT COUNT(*) FROM vw_ai_thungan"]
+    )
 
     sql = await generate_sql(session, "hỏi", Role.CASHIER, 1, date(2026, 9, 24))
 
@@ -68,8 +71,8 @@ async def test_the_model_gets_a_second_attempt_after_a_bad_query(session, fake_l
 async def test_a_third_attempt_never_happens(session, fake_llm, seed_views):
     fake_llm.reply_sequence(
         [
-            "SELECT * FROM hoa_don",
-            "SELECT * FROM nguoi_dung",
+            "SELECT ThanhTien FROM vw_ai_thungan",
+            "SELECT * FROM vw_ai_thungan -- note",
             "SELECT 1 FROM vw_ai_thungan",
         ]
     )
@@ -78,6 +81,58 @@ async def test_a_third_attempt_never_happens(session, fake_llm, seed_views):
         await generate_sql(session, "hỏi", Role.CASHIER, 1, date(2026, 9, 24))
 
     assert fake_llm.calls == 2
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("role", "reply"),
+    [
+        (Role.CASHIER, "SELECT * FROM hoa_don"),
+        (Role.CASHIER, "SELECT * FROM vw_ai_quanly"),
+        (Role.CASHIER, "WITH nguoi_dung AS (SELECT * FROM nguoi_dung) SELECT * FROM nguoi_dung"),
+        (Role.WAREHOUSE, "SELECT TongTien FROM vw_ai_kho"),
+        (Role.CASHIER, "DELETE FROM vw_ai_thungan"),
+    ],
+)
+async def test_a_request_beyond_the_callers_scope_ends_without_a_second_generation(
+    session, fake_llm, seed_views, role, reply
+):
+    """Report §4.1.3: an out-of-scope request ends at once; only malformed SQL is retried."""
+    fake_llm.reply_sequence([reply, "SELECT COUNT(*) FROM vw_ai_thungan"])
+
+    with pytest.raises(OutOfScopeError):
+        await generate_sql(session, "hỏi", role, 1, date(2026, 9, 24))
+
+    assert fake_llm.calls == 1
+
+
+@pytest.mark.anyio
+async def test_a_shared_budget_is_spent_across_generations(session, fake_llm, seed_views):
+    budget = AttemptBudget(1)
+    fake_llm.reply("SELECT ThanhTien FROM vw_ai_thungan")
+
+    with pytest.raises(BusinessRuleError):
+        await generate_sql(session, "hỏi", Role.CASHIER, 1, date(2026, 9, 24), budget=budget)
+    with pytest.raises(BusinessRuleError):
+        await generate_sql(session, "hỏi", Role.CASHIER, 1, date(2026, 9, 24), budget=budget)
+
+    assert fake_llm.calls == 1
+    assert budget.remaining == 0
+
+
+@pytest.mark.anyio
+async def test_database_feedback_skips_the_cache_and_reaches_the_prompt(
+    session, fake_llm, seed_views
+):
+    fake_llm.reply("SELECT COUNT(*) FROM vw_ai_thungan")
+    await generate_sql(session, "đếm đơn", Role.CASHIER, 1, date(2026, 9, 24))
+
+    await generate_sql(
+        session, "đếm đơn", Role.CASHIER, 1, date(2026, 9, 24), feedback="Unknown column 'x'"
+    )
+
+    assert fake_llm.calls == 2
+    assert "Unknown column 'x'" in (fake_llm.last_prompt or "")
 
 
 @pytest.mark.anyio
@@ -140,7 +195,9 @@ async def test_sql_cache_key_includes_the_current_allowed_view_fingerprint(
         ["SELECT COUNT(*) FROM vw_ai_thungan", "SELECT COUNT(*) FROM vw_ai_quanly"]
     )
     await generate_sql(session, "đếm đơn", Role.CASHIER, 1, date(2026, 9, 24))
-    monkeypatch.setattr(generator, "views_for", lambda role: frozenset({"vw_ai_quanly"}))
+    changed = lambda role: frozenset({"vw_ai_quanly"})  # noqa: E731
+    monkeypatch.setattr(generator, "views_for", changed)
+    monkeypatch.setattr(generator.guard, "views_for", changed)
     await generate_sql(session, "đếm đơn", Role.CASHIER, 1, date(2026, 9, 24))
 
     assert fake_llm.calls == 2
@@ -173,12 +230,12 @@ async def test_cached_sql_is_revalidated_before_it_can_be_reused(
     original_validate = generator.guard.validate_sql
     validations = 0
 
-    def validate(sql, *, allowed_views, max_rows):
+    def validate(sql, **kwargs):
         nonlocal validations
         validations += 1
         if validations == 2:
             raise BusinessRuleError("permission scope changed")
-        return original_validate(sql, allowed_views=allowed_views, max_rows=max_rows)
+        return original_validate(sql, **kwargs)
 
     monkeypatch.setattr(generator.guard, "validate_sql", validate)
     fake_llm.reply("SELECT COUNT(*) FROM vw_ai_thungan")

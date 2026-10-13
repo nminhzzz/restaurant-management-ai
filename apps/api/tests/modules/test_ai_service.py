@@ -5,11 +5,22 @@ from datetime import date, datetime, time
 
 import pytest
 from sqlalchemy import func, select
+from sqlalchemy.exc import OperationalError, ProgrammingError
 
+from app.core.errors import NotFoundError
 from app.modules.ai.errors import ClarificationNeeded
 from app.modules.ai.models import AssistantQuery, ChatSession
 from app.modules.ai.pipeline import generator, interpreter
-from app.modules.ai.service import INTERRUPTED_ANSWER, TIMEOUT_ANSWER, answer, session_detail
+from app.modules.ai.service import (
+    ERROR_ANSWER,
+    INTERRUPTED_ANSWER,
+    REFUSED_ANSWER,
+    SCOPE_REFUSED_ANSWER,
+    TIMEOUT_ANSWER,
+    answer,
+    list_sessions,
+    session_detail,
+)
 from app.modules.settings.models import SystemConfig
 from app.shared.roles import Role
 from tests.helpers import latest_query, session_count
@@ -153,7 +164,7 @@ async def test_every_message_shown_to_the_user_is_vietnamese(
 
     body = (await _chat(api_client, cashier_token, "cho tôi lợi nhuận")).json()
 
-    assert "Không thể" in body["answer"] or "không thể" in body["answer"]
+    assert body["answer"] in {SCOPE_REFUSED_ANSWER, REFUSED_ANSWER}
 
 
 @pytest.mark.anyio
@@ -193,7 +204,7 @@ async def test_sql_retries_consume_one_question_quota_slot(
     await session.commit()
     fake_llm.reply_sequence(
         [
-            "DELETE FROM vw_ai_thungan",
+            "SELECT ThanhTien FROM vw_ai_thungan",
             "SELECT COUNT(*) AS SoDon FROM vw_ai_thungan",
             '{"headline": "Có đơn.", "highlights": [], "follow_ups": []}',
         ]
@@ -243,7 +254,7 @@ async def test_a_quota_row_keeps_its_business_date_after_the_cutoff_changes(
 
 @pytest.mark.anyio
 async def test_an_abandoned_pending_question_is_visible_as_interrupted(session):
-    chat = ChatSession(user_id=2, role_id=None)
+    chat = ChatSession(user_id=2, role_id="CASHIER")
     session.add(chat)
     await session.flush()
     query = AssistantQuery(
@@ -259,7 +270,7 @@ async def test_an_abandoned_pending_question_is_visible_as_interrupted(session):
     session.add(query)
     await session.commit()
 
-    detail = await session_detail(session, user_id=2, session_id=chat.id)
+    detail = await session_detail(session, user_id=2, role=Role.CASHIER, session_id=chat.id)
 
     assert detail.turns[0].status == "Bị gián đoạn"
     assert detail.turns[0].headline == INTERRUPTED_ANSWER
@@ -463,3 +474,187 @@ async def test_a_refused_turn_says_so_in_kind(
     assert body["kind"] == "refused"
     assert body["headline"] == body["answer"]
     assert body["scope_note"] is None
+
+
+def _db_error(kind: type[Exception] = ProgrammingError) -> Exception:
+    return kind("SELECT broken", {}, Exception("Unknown column 'ThanhTien' in 'field list'"))
+
+
+@pytest.mark.anyio
+async def test_a_database_error_earns_one_regeneration_that_can_succeed(
+    session, seed_views, fake_llm, ai_engine
+):
+    """Report §4.1.3: syntax/execution errors are regenerated once, in the same scope."""
+    fake_llm.reply_sequence(
+        [
+            "SELECT COUNT(*) AS SoDon FROM vw_ai_thungan",
+            "SELECT COUNT(*) AS SoDon FROM vw_ai_thungan WHERE LoaiBanGhi = 'ORDER'",
+            '{"headline": "Có đơn.", "highlights": [], "follow_ups": []}',
+        ]
+    )
+    ai_engine.errors = [_db_error()]
+
+    response = await answer(session, "hỏi", Role.CASHIER, user_id=2)
+
+    assert response.kind == "answer"
+    assert fake_llm.calls == 3  # generation, one regeneration, interpretation
+    row = await latest_query(session)
+    assert row["TrangThai"] == "Thành công"
+    assert "LoaiBanGhi" in row["CauSQLSinhRa"]
+
+
+@pytest.mark.anyio
+async def test_a_second_database_error_ends_the_turn_with_a_trace_code(
+    session, seed_views, fake_llm, ai_engine
+):
+    fake_llm.reply_sequence(
+        ["SELECT COUNT(*) FROM vw_ai_thungan", "SELECT COUNT(1) FROM vw_ai_thungan"]
+    )
+    ai_engine.errors = [_db_error(), _db_error(OperationalError)]
+
+    response = await answer(session, "hỏi", Role.CASHIER, user_id=2)
+
+    row = await latest_query(session)
+    assert response.kind == "error"
+    assert response.answer.startswith(ERROR_ANSWER)
+    assert f"Mã truy vết: {row['MaTruyVan']}" in response.answer
+    assert SCOPE_REFUSED_ANSWER not in response.answer
+    assert row["TrangThai"] == "Lỗi"
+    assert row["KetQuaTomTat"] != SCOPE_REFUSED_ANSWER
+    assert fake_llm.calls == 2  # NFR-06: never a third generation
+
+
+@pytest.mark.anyio
+async def test_a_request_beyond_the_role_is_refused_at_once_with_the_scope_message(
+    session, seed_views, fake_llm, ai_engine
+):
+    fake_llm.reply_sequence(["SELECT * FROM hoa_don", "SELECT COUNT(*) FROM vw_ai_thungan"])
+
+    response = await answer(session, "cho tôi lợi nhuận", Role.CASHIER, user_id=2)
+
+    row = await latest_query(session)
+    assert response.kind == "refused"
+    assert response.answer == SCOPE_REFUSED_ANSWER
+    assert row["TrangThai"] == "Từ chối"
+    assert row["KetQuaTomTat"] == SCOPE_REFUSED_ANSWER
+    assert fake_llm.calls == 1
+    assert ai_engine.executed == []
+
+
+@pytest.mark.anyio
+async def test_an_unexpected_failure_is_logged_as_a_generic_error_not_a_scope_refusal(
+    session, seed_views, fake_llm, ai_engine
+):
+    fake_llm.reply("SELECT COUNT(*) FROM vw_ai_thungan")
+    ai_engine.error = RuntimeError("driver exploded")
+
+    response = await answer(session, "hỏi", Role.CASHIER, user_id=2)
+
+    row = await latest_query(session)
+    assert response.kind == "error"
+    assert "driver exploded" not in response.answer
+    assert row["TrangThai"] == "Lỗi"
+    assert row["KetQuaTomTat"] != SCOPE_REFUSED_ANSWER
+
+
+@pytest.mark.anyio
+async def test_a_new_session_records_the_role_it_was_opened_under(
+    session, seed_views, fake_llm, ai_engine
+):
+    """Report PHIEN_CHAT_AI.MaVaiTro: the role at chat time (FR-AI-05)."""
+    response = await answer(session, "hỏi", Role.CASHIER, user_id=2)
+
+    chat = await session.get(ChatSession, response.session_id)
+    assert chat is not None
+    assert chat.role_id == Role.CASHIER.value
+
+
+@pytest.mark.anyio
+async def test_a_session_is_not_continued_under_another_role(
+    session, seed_views, fake_llm, ai_engine
+):
+    first = await answer(session, "hỏi", Role.CASHIER, user_id=2)
+
+    second = await answer(session, "hỏi tiếp", Role.MANAGER, user_id=2, session_id=first.session_id)
+
+    assert second.session_id != first.session_id
+    chat = await session.get(ChatSession, second.session_id)
+    assert chat is not None
+    assert chat.role_id == Role.MANAGER.value
+
+
+@pytest.mark.anyio
+async def test_token_cost_and_call_count_are_persisted_on_the_query(session, seed_views, ai_engine):
+    """Report TRUY_VAN_AI: ModelPhienBan, TokenDauVao/Ra, ChiPhiUSD, SoLanGoi."""
+    import httpx
+
+    from app.modules.ai import llm
+
+    replies = iter(
+        [
+            "SELECT COUNT(*) AS SoDon FROM vw_ai_thungan",
+            '{"headline": "Có đơn.", "highlights": [], "follow_ups": []}',
+        ]
+    )
+
+    def handler(_: httpx.Request) -> httpx.Response:
+        content = next(replies)
+        return httpx.Response(
+            200,
+            json={
+                "choices": [{"message": {"content": content}}],
+                "usage": {"prompt_tokens": 1000, "completion_tokens": 100},
+            },
+        )
+
+    generator.reset_state()
+    interpreter.reset_state()
+    llm.set_client(
+        llm.CommercialClient(
+            api_key="k",
+            model="deepseek-flash",
+            base_url="https://api.deepseek.com",
+            transport=httpx.MockTransport(handler),
+        )
+    )
+    try:
+        response = await answer(session, "hôm nay có bao nhiêu đơn?", Role.CASHIER, user_id=2)
+    finally:
+        llm.set_client(None)
+        generator.reset_state()
+        interpreter.reset_state()
+
+    assert response.kind == "answer"
+    row = await latest_query(session)
+    assert row["ModelPhienBan"] == "deepseek-flash"
+    assert row["TokenDauVao"] == 2000
+    assert row["TokenDauRa"] == 200
+    assert row["SoLanGoi"] == 2
+    assert float(row["ChiPhiUSD"]) == pytest.approx(0.00084)
+
+
+@pytest.mark.anyio
+async def test_history_of_a_former_role_is_hidden_after_a_role_change(session):
+    chat = ChatSession(user_id=2, role_id="CASHIER")
+    session.add(chat)
+    await session.flush()
+    session.add(
+        AssistantQuery(
+            session_id=chat.id,
+            scope="vw_ai_thungan",
+            question="doanh thu hôm nay",
+            sql_text=None,
+            business_date=datetime(2026, 9, 24).date(),
+            status="Thành công",
+            summary="x",
+            latency_ms=1,
+        )
+    )
+    await session.commit()
+
+    same_role = await list_sessions(session, 2, Role.CASHIER, 1, 30)
+    other_role = await list_sessions(session, 2, Role.WAREHOUSE, 1, 30)
+
+    assert same_role[1] == 1 and other_role[1] == 0
+    with pytest.raises(NotFoundError):
+        await session_detail(session, user_id=2, role=Role.WAREHOUSE, session_id=chat.id)
