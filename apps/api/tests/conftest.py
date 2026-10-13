@@ -101,6 +101,21 @@ def _isolate_payment_gateway_environment(monkeypatch: pytest.MonkeyPatch) -> Non
 
 
 @pytest.fixture(autouse=True)
+def _isolate_ai_readonly_accounts(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """Give every test the same per-role account URLs, whatever the developer shell exports.
+
+    A blank URL fails closed (there is no fallback to the application account), so a CI runner
+    without these variables must not behave differently from a machine that has them.
+    """
+    monkeypatch.setenv("AI_READONLY_URL_MANAGER", "mysql+asyncmy://ai_manager@db/restaurant")
+    monkeypatch.setenv("AI_READONLY_URL_CASHIER", "mysql+asyncmy://ai_cashier@db/restaurant")
+    monkeypatch.setenv("AI_READONLY_URL_WAREHOUSE", "mysql+asyncmy://ai_warehouse@db/restaurant")
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
+
+
+@pytest.fixture(autouse=True)
 def freeze_clock(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(business_date, "now", lambda: FIXED_NOW)
 
