@@ -276,6 +276,7 @@ def fake_engine_factory(monkeypatch) -> FakeEngineFactory:
     from app.modules.ai.pipeline import executor
 
     factory = FakeEngineFactory()
+    executor.reset_engine_cache()
     monkeypatch.setattr(executor, "_create_engine", factory)
     return factory
 

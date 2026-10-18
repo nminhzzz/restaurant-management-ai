@@ -1,10 +1,13 @@
 """FastAPI application factory."""
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.core.errors import register_error_handlers
+from app.modules.ai.pipeline import executor
 from app.modules.ai.router import router as ai_router
 from app.modules.catalog.router import router as catalog_router
 from app.modules.inventory.router import router as inventory_router
@@ -22,9 +25,16 @@ MODULE_ROUTERS = (
 )
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    await executor.dispose_engines()
+
+
 def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(
+        lifespan=lifespan,
         title="Restaurant Management API",
         description=(
             "Backend for the AI-powered restaurant management system. "

@@ -19,17 +19,36 @@ def _create_engine(url: str) -> AsyncEngine:
     return create_async_engine(url, pool_pre_ping=True)
 
 
-async def execute(sql: str, *, role: Role, timeout_seconds: float) -> list[dict[str, Any]]:
-    """Run validated SQL on this role's account and return plain rows."""
-    engine = _create_engine(readonly_url_for(role))
-    try:
-        async with engine.connect() as connection:
-            # `timeout_seconds` comes from settings, never from the model, so the
-            # interpolation cannot carry anything a caller controls.
-            timeout_ms = int(timeout_seconds * 1000)
-            await connection.execute(text(f"SET SESSION MAX_EXECUTION_TIME = {timeout_ms}"))
-            result = await connection.execute(text(sql))
-            columns = list(result.keys())
-            return [dict(zip(columns, row, strict=False)) for row in result.fetchall()]
-    finally:
+_ENGINES: dict[str, AsyncEngine] = {}
+
+
+def _engine_for(url: str) -> AsyncEngine:
+    engine = _ENGINES.get(url)
+    if engine is None:
+        engine = _create_engine(url)
+        _ENGINES[url] = engine
+    return engine
+
+
+def reset_engine_cache() -> None:
+    """Tests and shutdown use this; it does not dispose pooled connections."""
+    _ENGINES.clear()
+
+
+async def dispose_engines() -> None:
+    for engine in list(_ENGINES.values()):
         await engine.dispose()
+    _ENGINES.clear()
+
+
+async def execute(sql: str, *, role: Role, timeout_seconds: float) -> list[dict[str, Any]]:
+    """Run validated SQL on this role's pooled read-only engine and return rows."""
+    engine = _engine_for(readonly_url_for(role))
+    async with engine.connect() as connection:
+        # `timeout_seconds` comes from settings, never from the model, so the
+        # interpolation cannot carry anything a caller controls.
+        timeout_ms = int(timeout_seconds * 1000)
+        await connection.execute(text(f"SET SESSION MAX_EXECUTION_TIME = {timeout_ms}"))
+        result = await connection.execute(text(sql))
+        columns = list(result.keys())
+        return [dict(zip(columns, row, strict=False)) for row in result.fetchall()]

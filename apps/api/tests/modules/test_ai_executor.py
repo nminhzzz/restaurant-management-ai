@@ -42,10 +42,8 @@ async def test_the_account_is_never_reused_across_roles(fake_engine_factory, rea
 
 
 @pytest.mark.anyio
-async def test_the_engine_is_disposed_even_when_the_query_fails(fake_engine_factory, readonly_urls):
-    fake_engine_factory.error = RuntimeError("hỏng")
+async def test_the_same_role_reuses_its_engine(fake_engine_factory, readonly_urls):
+    await execute("SELECT 1", role=Role.MANAGER, timeout_seconds=3.0)
+    await execute("SELECT 1", role=Role.MANAGER, timeout_seconds=3.0)
 
-    with pytest.raises(RuntimeError):
-        await execute("SELECT 1", role=Role.MANAGER, timeout_seconds=3.0)
-
-    assert fake_engine_factory.disposed == 1
+    assert len(fake_engine_factory.urls) == 1

@@ -112,6 +112,8 @@ Mọi thay đổi đều có test đi kèm; migration mới **chưa** áp dụng
 - `GET /inventory/stock?alerting=...` đã lọc và phân trang trong SQL, không còn fetch toàn bộ nguyên liệu.
 - Backup loại `NGUOI_DUNG.MatKhauHash` khỏi dữ liệu xuất và ghi `redacted_columns` trong manifest.
 - Sửa 22 đường dẫn ảnh trong báo cáo từ `images/` sang `Images/` đúng thư mục thực tế.
+- AI executor dùng lại engine theo URL read-only từng vai trò (không tạo/đóng mỗi câu hỏi) và dispose
+  toàn bộ engine khi ứng dụng shutdown; test xác nhận cùng vai trò chỉ mở một engine.
 
 ## Còn lại
 

@@ -70,6 +70,9 @@ Hạn mức AI lưu MySQL và giữ lượt trước mỗi lần sinh SQL logic,
 Không hoàn lượt khi transaction câu hỏi rollback. Đây không phải bộ đếm token hoặc mọi HTTP request:
 fallback nội bộ provider và diễn giải kết quả không tính thành lượt sinh SQL riêng.
 
+AI executor giữ một engine riêng cho mỗi URL read-only theo vai trò và đóng chúng khi ứng dụng shutdown;
+không dùng chung engine giữa các vai trò.
+
 Cache SQL có TTL `AI_SQL_CACHE_TTL_SECONDS` (mặc định 300, từ 1 đến 86400 giây), khóa theo vai trò,
 Business Date, schema/prompt, provider/model và cấu hình guard. Cache hit vẫn kiểm duyệt SQL.
 Ghi cache không dọn dữ liệu hết hạn trong cùng transaction để tránh deadlock MySQL.
