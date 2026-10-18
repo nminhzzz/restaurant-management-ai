@@ -357,17 +357,24 @@ async def list_audit_actions(session: AsyncSession) -> list[str]:
     return list(result.scalars().all())
 
 
+REDACTED_BACKUP_COLUMNS = {"NGUOI_DUNG": {"MatKhauHash"}}
+
+
 async def export_backup(session: AsyncSession, actor_id: int) -> dict:
     """Dump every table and audit the export in the same transaction (NFR-10).
 
     Rows are read through the mapped tables, so column names are the physical
-    Vietnamese ones and the file can be restored table by table.
+    Vietnamese ones and the file can be restored table by table. Password hashes
+    never leave the database; the manifest records which columns were removed.
     """
     now = datetime.now(UTC)
     data: dict[str, list[dict]] = {}
     for table in Base.metadata.sorted_tables:
         rows = (await session.execute(select(table))).mappings().all()
-        data[table.name] = [dict(row) for row in rows]
+        redacted = REDACTED_BACKUP_COLUMNS.get(table.name, set())
+        data[table.name] = [
+            {key: value for key, value in dict(row).items() if key not in redacted} for row in rows
+        ]
     session.add(
         SystemAuditLog(
             user_id=actor_id, action="EXPORT_BACKUP", target_entity="SYSTEM", target_id="backup"
@@ -378,5 +385,10 @@ async def export_backup(session: AsyncSession, actor_id: int) -> dict:
         "created_at": now,
         "covers_until": now,
         "tables": list(data),
+        "redacted_columns": [
+            f"{table}.{column}"
+            for table, columns in sorted(REDACTED_BACKUP_COLUMNS.items())
+            for column in sorted(columns)
+        ],
         "data": data,
     }

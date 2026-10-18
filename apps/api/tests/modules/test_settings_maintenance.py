@@ -116,6 +116,8 @@ async def test_the_backup_contains_the_data_of_every_table_and_is_audited(sessio
     assert set(dump["tables"]) == set(dump["data"])
     usernames = {row["TenDangNhap"] for row in dump["data"]["NGUOI_DUNG"]}
     assert usernames == {"quanly01", "thungan01"}
+    assert all("MatKhauHash" not in row for row in dump["data"]["NGUOI_DUNG"])
+    assert dump["redacted_columns"] == ["NGUOI_DUNG.MatKhauHash"]
     audited = (
         await session.execute(
             select(SystemAuditLog).where(SystemAuditLog.action == "EXPORT_BACKUP")

@@ -110,6 +110,8 @@ Mọi thay đổi đều có test đi kèm; migration mới **chưa** áp dụng
 - Thêm index theo `BusinessDate`/`TrangThai` cho ORDER, CHI_TIET_ORDER, HOA_DON, GIAO_DICH_THANH_TOAN,
   GIAO_DICH_KHO (migration `93c8f84d573a`).
 - `GET /inventory/stock?alerting=...` đã lọc và phân trang trong SQL, không còn fetch toàn bộ nguyên liệu.
+- Backup loại `NGUOI_DUNG.MatKhauHash` khỏi dữ liệu xuất và ghi `redacted_columns` trong manifest.
+- Sửa 22 đường dẫn ảnh trong báo cáo từ `images/` sang `Images/` đúng thư mục thực tế.
 
 ## Còn lại
 

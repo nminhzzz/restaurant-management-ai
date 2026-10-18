@@ -87,6 +87,7 @@ class BackupDump(BaseModel):
     created_at: datetime
     covers_until: datetime
     tables: list[str]
+    redacted_columns: list[str] = []
     data: dict[str, list[dict[str, Any]]]
 
 
