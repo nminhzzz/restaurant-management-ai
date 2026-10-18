@@ -190,12 +190,13 @@ export function PaymentPanel({
   const expired = remaining === "Hết hạn" || qr?.TrangThai === "Hết hạn";
   const live = qr?.TrangThai === "Chờ xác nhận" && !expired;
   const reconciling = order.TrangThai === "Chờ đối soát";
+  const verifying = order.TrangThai === "Chờ xác minh thanh toán";
   const settled = order.TrangThai === "Đã thanh toán";
   const locked = order.TrangThai !== "Đang mở";
-  // Only a QR that's still actionable (live, or already moved to reconciliation)
+  // Only a QR that's still actionable (live, reconciliation or verification)
   // should keep the cashier out of the cash tab — an expired/cancelled QR can't
   // be cancelled through the API, so locking cash on it would strand the order.
-  const qrLocksCash = live || reconciling;
+  const qrLocksCash = live || reconciling || verifying;
   const activeMethod: "cash" | "qr" = qrLocksCash ? "qr" : method;
 
   async function run(action: () => Promise<void>, fallback: string) {
@@ -285,6 +286,46 @@ export function PaymentPanel({
       setMessage("Đã chuyển order sang chờ đối soát.");
       await detail.reload();
     }, "Không đối soát được giao dịch.");
+  };
+
+  const requestVerification = () => {
+    if (!qr) return;
+    return run(async () => {
+      const result = await apiFetch<{ TrangThai: string }>(
+        `/sales/payments/${qr.MaGiaoDich}/request-verification`,
+        { method: "POST", body: {} },
+      );
+      setQr({ ...qr, TrangThai: result.TrangThai });
+      setMessage("Đã ghi nhận khách báo chuyển tiền; chờ quản lý xác minh.");
+      await detail.reload();
+    }, "Không gửi được yêu cầu xác minh.");
+  };
+
+  const reopenPayment = () => {
+    if (!qr) return;
+    const reasonText = window.prompt("Lý do mở lại thanh toán:");
+    if (!reasonText?.trim()) return;
+    return run(async () => {
+      await apiFetch(`/sales/payments/${qr.MaGiaoDich}/reopen`, {
+        method: "POST",
+        body: { reason: reasonText },
+      });
+      setMessage("Đã mở lại order để thu tiền lần khác.");
+      await detail.reload();
+    }, "Không mở lại được thanh toán.");
+  };
+
+  const closeUnpaid = () => {
+    const reasonText = window.prompt("Lý do đóng order chưa thu được tiền:");
+    if (!reasonText?.trim()) return;
+    return run(async () => {
+      await apiFetch(`/sales/orders/${orderId}/close-unpaid`, {
+        method: "POST",
+        body: { reason: reasonText },
+      });
+      setMessage("Đã đóng order ở trạng thái chưa thu được tiền.");
+      await detail.reload();
+    }, "Không đóng được order.");
   };
 
   const saveBankRef = () => {
@@ -587,12 +628,47 @@ export function PaymentPanel({
                 <TimerReset />
                 Tạo mã QR mới
               </Button>
-              {expired && !reconciling && (
+              {expired && !reconciling && !verifying && (
                 <Button size="sm" onClick={reportBankTransfer}>
                   Khách báo đã chuyển khoản
                 </Button>
               )}
+              {live && !verifying && (
+                <Button size="sm" onClick={requestVerification}>
+                  Khách báo đã chuyển tiền
+                </Button>
+              )}
             </div>
+
+            {verifying && (
+              <div className="space-y-3 border-t border-border pt-3">
+                <p className="text-sm text-muted-fg">
+                  Order đang chờ xác minh thanh toán. Không thể thêm món hoặc
+                  thu tiền mặt cho tới khi quản lý xử lý.
+                </p>
+                {isManager && (
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" onClick={() => resolve("received")}>
+                      Xác nhận đã nhận tiền
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={reopenPayment}
+                    >
+                      Mở lại thanh toán
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outlineDanger"
+                      onClick={closeUnpaid}
+                    >
+                      Đóng chưa thu
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {reconciling && (
               <div className="space-y-3 border-t border-border pt-3">

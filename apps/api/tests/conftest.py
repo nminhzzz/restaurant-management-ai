@@ -1,5 +1,7 @@
 """Shared pytest fixtures - Phase 0 foundation."""
 
+import os
+import re
 from collections.abc import AsyncIterator, Callable, Iterator
 
 import pytest
@@ -19,7 +21,7 @@ import app.modules.inventory.models
 import app.modules.sales.models
 import app.modules.settings.models
 import app.shared.audit  # noqa: F401
-from app.core.config import get_settings
+from app.core.config import REPO_ROOT, Settings, get_settings
 from app.core.security import create_access_token
 from app.main import app as fastapi_app
 from app.shared import business_date
@@ -36,6 +38,9 @@ def _require_resources_for_integration() -> None:
     """
     import os
     import shutil
+
+    if os.environ.get("CI_REQUIRE_MYSQL") == "1":
+        return
 
     # Disk: need at least 2GB free for MySQL data + tmp
     try:
@@ -61,9 +66,27 @@ def _require_resources_for_integration() -> None:
         pass
 
 
+def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
+    """A required MySQL CI run may not silently succeed with skipped coverage."""
+    if os.environ.get("CI_REQUIRE_MYSQL") != "1":
+        return
+    reporter = session.config.pluginmanager.get_plugin("terminalreporter")
+    if reporter is not None and reporter.stats.get("skipped"):
+        reporter.write_sep("=", "Required MySQL integration coverage was skipped")
+        session.exitstatus = pytest.ExitCode.TESTS_FAILED
+
+
 @pytest.fixture(autouse=True)
-def _clear_settings_cache() -> Iterator[None]:
+def _clear_settings_cache(
+    monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
+) -> Iterator[None]:
     """Ensure get_settings() lru_cache does not leak across tests with different ENV."""
+    if request.node.get_closest_marker("integration") is None:
+        # Unit tests use defaults plus their own monkeypatched environment. Local
+        # credentials and provider choices must never change the tested branch.
+        monkeypatch.setitem(Settings.model_config, "env_file", None)
+        for field in Settings.model_fields:
+            monkeypatch.delenv(field.upper(), raising=False)
     try:
         from app.core.config import get_settings as _gs
 
@@ -167,17 +190,28 @@ class FakeLlm:
         return self._queue[idx]
 
 
+@pytest_asyncio.fixture
+async def ai_runtime_store(tmp_path, monkeypatch):
+    """Use a separate durable database so request rollbacks cannot undo usage."""
+    from app.modules.ai import runtime
+
+    runtime_engine = create_async_engine(f"sqlite+aiosqlite:///{tmp_path / 'ai-runtime.db'}")
+    async with runtime_engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+    store = runtime.AiRuntimeStore(async_sessionmaker(runtime_engine, expire_on_commit=False))
+    monkeypatch.setattr(runtime, "get_runtime_store", lambda: store)
+    yield store
+    await runtime_engine.dispose()
+
+
 @pytest.fixture
-def fake_llm() -> Iterator[FakeLlm]:
+def fake_llm(ai_runtime_store) -> Iterator[FakeLlm]:
     from app.modules.ai import llm
-    from app.modules.ai.pipeline import generator
 
     fake = FakeLlm()
     llm.set_client(fake)
-    generator.reset_state()
     yield fake
     llm.set_client(None)
-    generator.reset_state()
 
 
 class _FakeResult:
@@ -284,6 +318,8 @@ _QUANLY_COLUMNS = [
     "TenNhaCungCap",
     "DonGiaNhap",
     "SoLuongNhap",
+    "SoLuongGiu",
+    "SoLuongKhaDung",
 ]
 _THUNGAN_COLUMNS = [
     "LoaiBanGhi",
@@ -310,6 +346,8 @@ _KHO_COLUMNS = [
     "TenNguyenLieu",
     "DonViTinh",
     "SoLuongTon",
+    "SoLuongGiu",
+    "SoLuongKhaDung",
     "MucTonToiThieu",
     "CanhBaoTonThap",
     "MaGiaoDichKho",
@@ -331,6 +369,19 @@ def _branch(columns: list[str], values: dict[str, str]) -> str:
 
 @pytest_asyncio.fixture
 async def seed_views(engine: AsyncEngine) -> None:
+    if engine.dialect.name == "mysql":
+        # Use the production DDL so the integration test catches real MySQL
+        # collation/UNION problems instead of a simplified fixture.
+        async with engine.begin() as conn:
+            for name in ("vw_ai_quanly.sql", "vw_ai_thungan.sql", "vw_ai_kho.sql"):
+                sql = (REPO_ROOT / "db" / "views" / name).read_text(encoding="utf-8")
+                sql = re.sub(r"SET NAMES[^;]+;", "", sql)
+                sql = "\n".join(
+                    line for line in sql.splitlines() if not line.lstrip().startswith("--")
+                )
+                await conn.execute(text(sql.strip().rstrip(";")))
+        return
+
     quanly_order = _branch(
         _QUANLY_COLUMNS,
         {
@@ -388,6 +439,8 @@ async def seed_views(engine: AsyncEngine) -> None:
             "DonViTinh": "n.DonViTinh",
             "SoLuongTon": "n.SoLuongTon",
             "MucTonToiThieu": "n.MucTonToiThieu",
+            "SoLuongGiu": "0",
+            "SoLuongKhaDung": "n.SoLuongTon",
         },
     )
     quanly_gia_von = _branch(
@@ -484,6 +537,8 @@ async def seed_views(engine: AsyncEngine) -> None:
             "TenNguyenLieu": "n.TenNguyenLieu",
             "DonViTinh": "n.DonViTinh",
             "SoLuongTon": "n.SoLuongTon",
+            "SoLuongGiu": "0",
+            "SoLuongKhaDung": "n.SoLuongTon",
             "MucTonToiThieu": "n.MucTonToiThieu",
             "CanhBaoTonThap": "CASE WHEN n.SoLuongTon < n.MucTonToiThieu THEN 1 ELSE 0 END",
         },
@@ -561,6 +616,23 @@ async def seed_views(engine: AsyncEngine) -> None:
                 "JOIN NGUYEN_LIEU n ON n.MaNguyenLieu = l.MaNguyenLieu"
             )
         )
+
+
+@pytest_asyncio.fixture
+async def mysql_seed_views(mysql_engine_factory) -> None:
+    """Create the production view DDL on the MySQL test database."""
+    engine = mysql_engine_factory()
+    try:
+        async with engine.begin() as conn:
+            for name in ("vw_ai_quanly.sql", "vw_ai_thungan.sql", "vw_ai_kho.sql"):
+                sql = (REPO_ROOT / "db" / "views" / name).read_text(encoding="utf-8")
+                sql = re.sub(r"SET NAMES[^;]+;", "", sql)
+                sql = "\n".join(
+                    line for line in sql.splitlines() if not line.lstrip().startswith("--")
+                )
+                await conn.execute(text(sql.strip().rstrip(";")))
+    finally:
+        await engine.dispose()
 
 
 @pytest.fixture

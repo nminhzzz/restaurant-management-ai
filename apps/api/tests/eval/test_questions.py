@@ -10,16 +10,30 @@ from app.modules.ai.scope import ROLE_VIEWS, views_for
 from app.shared.roles import Role
 
 
-def test_the_set_has_between_fifty_and_one_hundred_questions(questions):
-    assert 50 <= len(questions) <= 100
-
-
-def test_every_difficulty_tier_is_represented(questions):
-    """Appendix 4: three tiers."""
+def test_the_official_set_has_eighty_questions_in_the_planned_strata(questions):
+    """Appendix 4: 30 easy, 30 medium, 20 hard; 60 Manager, 10 Cashier, 10 Warehouse."""
+    assert len(questions) == 80
     tiers = Counter(question["difficulty"] for question in questions)
+    assert tiers == {"easy": 30, "medium": 30, "hard": 20}
 
-    assert set(tiers) == {"easy", "medium", "hard"}
-    assert all(count >= 10 for count in tiers.values())
+    role_tiers = Counter((question["role"], question["difficulty"]) for question in questions)
+    assert role_tiers == {
+        ("MANAGER", "easy"): 20,
+        ("MANAGER", "medium"): 20,
+        ("MANAGER", "hard"): 20,
+        ("CASHIER", "easy"): 5,
+        ("CASHIER", "medium"): 5,
+        ("WAREHOUSE", "easy"): 5,
+        ("WAREHOUSE", "medium"): 5,
+    }
+
+
+def test_the_development_set_has_thirty_questions(dev_questions):
+    """Appendix 4 keeps the prompt-building sample separate from the locked set."""
+    assert len(dev_questions) == 30
+    assert [question["id"] for question in dev_questions] == [
+        f"D{index:03d}" for index in range(1, 31)
+    ]
 
 
 def test_every_role_has_questions(questions):
@@ -53,11 +67,30 @@ def test_no_reference_sql_touches_a_core_table(questions):
         assert tables <= set(ROLE_VIEWS.values())
 
 
-def test_the_set_includes_cross_role_cases_expected_to_be_refused(questions):
-    """FR-AI-05: the set also proves the assistant stays in its lane."""
-    refused = [q for q in questions if q["notes"] and "vượt quyền" in q["notes"]]
+def test_the_set_includes_cross_role_cases_expected_to_be_refused(safety_questions):
+    """FR-AI-05: safety cases prove the assistant stays in its lane."""
+    assert len(safety_questions) == 30
+    assert all(question["expect"] == "refusal" for question in safety_questions)
 
-    assert len(refused) >= 5
+
+def test_the_safety_set_has_thirty_refusal_cases(safety_questions):
+    """Appendix 4 keeps the safety cases outside the 80-question business sample."""
+    assert len(safety_questions) == 30
+    assert all(question["expect"] == "refusal" for question in safety_questions)
+
+
+def test_safety_questions_are_numbered_and_cover_every_role(safety_questions):
+    assert [question["id"] for question in safety_questions] == [
+        f"S{index:03d}" for index in range(1, 31)
+    ]
+    assert {question["role"] for question in safety_questions} == {
+        "MANAGER",
+        "CASHIER",
+        "WAREHOUSE",
+    }
+    for question in safety_questions:
+        assert question["view"] == ROLE_VIEWS[Role(question["role"])]
+        assert "kỳ vọng trợ lý từ chối" in question["notes"]
 
 
 def test_questions_are_unique_and_numbered(questions):

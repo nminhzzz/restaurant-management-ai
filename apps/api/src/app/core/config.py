@@ -47,7 +47,8 @@ class Settings(BaseSettings):
     ai_ollama_base_url: str = "http://localhost:11434"
     ai_max_rows: int = 500
     ai_response_budget_seconds: float = 8.0
-    ai_daily_question_quota: int = 500
+    ai_daily_question_quota: int = 50
+    ai_sql_cache_ttl_seconds: int = Field(default=300, ge=1, le=86400)
 
     # NFR-06 execution limits: a query runs at most `ai_sql_timeout_seconds` on the
     # database, and the model gets at most `ai_max_sql_attempts` tries per question.

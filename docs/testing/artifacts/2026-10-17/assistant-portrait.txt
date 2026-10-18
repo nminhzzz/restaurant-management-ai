@@ -1,0 +1,26 @@
+uid=27_0 RootWebArea "Hệ thống quản lý nhà hàng tích hợp AI" url="http://localhost:3010/assistant"
+  uid=27_1 banner
+    uid=27_2 button "Mở menu"
+    uid=27_3 StaticText "Trợ lý AI"
+  uid=27_4 main
+    uid=27_5 button "Mở lịch sử"
+    uid=27_6 heading "Cuộc trò chuyện mới" level="1"
+    uid=27_7 StaticText "Quản lý · chỉ đọc"
+    uid=27_8 heading "Chào seed_manager, hôm nay bạn muốn xem số liệu gì?" level="2"
+    uid=27_9 StaticText "Hỏi bằng tiếng Việt về doanh thu, order, món bán chạy hay tồn kho. Trợ lý chỉ đọc dữ liệu trong phạm vi vai trò"
+    uid=27_10 StaticText "Quản lý"
+    uid=27_11 StaticText "."
+    uid=27_12 form
+      uid=27_13 StaticText "Câu hỏi bằng tiếng Việt"
+      uid=27_14 textbox "Câu hỏi bằng tiếng Việt" focusable focused multiline
+      uid=27_15 StaticText "0"
+      uid=27_16 StaticText "/"
+      uid=27_17 StaticText "500"
+      uid=27_18 button "Gửi câu hỏi" disableable disabled
+    uid=27_19 button "DOANH THU Doanh thu 7 ngày gần nhất theo từng ngày?"
+    uid=27_20 button "MÓN ĂN Món nào bán chạy nhất tuần này?"
+    uid=27_21 button "THANH TOÁN So sánh doanh thu tiền mặt và QR tháng này"
+    uid=27_22 button "KHO Nguyên liệu nào đang dưới mức tối thiểu?"
+  uid=27_23 region "Notifications alt+T" live="polite" relevant="additions text"
+  uid=27_24 button "Open Next.js Dev Tools" expandable haspopup="menu"
+  uid=27_25 alert atomic live="assertive" relevant="additions text"

@@ -4,10 +4,10 @@ Every random draw in the generator goes through `random.Random(config.seed)`, ne
 global `random`, so the same seed always rebuilds the same dataset.
 """
 
+from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Iterator
 
 from app.shared import business_date
 
@@ -35,9 +35,13 @@ class SeedConfig:
     orders_target: int = 20_000
     now: datetime = field(default_factory=lambda: business_date.now())
 
+    def __post_init__(self) -> None:
+        if self.months < 1 or self.orders_target < 0:
+            raise ValueError("Seed months must be positive and orders must be nonnegative.")
 
-# The day has two peaks — lunch around 11–13h and dinner around 18–20h — with the
-# 15–16h lull between them (Appendix 4).
+
+# The day has two peaks — lunch around 11-13h and dinner around 18-20h — with the
+# 15-16h lull between them (Appendix 4).
 HOUR_WEIGHTS: dict[int, float] = {
     0: 0.05,
     1: 0.03,

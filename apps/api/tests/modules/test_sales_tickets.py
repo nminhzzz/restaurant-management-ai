@@ -114,6 +114,8 @@ async def test_ticket_carries_info(session):
     tickets = await tickets_for(session, oid)
     assert len(tickets) == 1
     assert r.json()["MaOrderHienThi"] in tickets[0]["NoiDung"]
+    assert "Món" in tickets[0]["NoiDung"]
+    assert "Bàn 1" in tickets[0]["NoiDung"]
     assert "không hành" in tickets[0]["NoiDung"]
     assert "2" in tickets[0]["NoiDung"]
 

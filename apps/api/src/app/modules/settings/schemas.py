@@ -46,6 +46,7 @@ class UserCreate(BaseModel):
 class UserUpdate(BaseModel):
     full_name: Annotated[str | None, StringConstraints(min_length=1, max_length=100)] = None
     phone: Annotated[str | None, StringConstraints(max_length=20)] = None
+    role: Role | None = None
 
 
 class ChangePasswordRequest(BaseModel):
@@ -64,6 +65,9 @@ class ConfigOut(BaseModel):
     MauHoaDon: str | None = Field(default=None, validation_alias="invoice_template")
     NguongTonMacDinh: int = Field(validation_alias="default_stock_threshold")
     GioBatDauBusinessDate: time = Field(validation_alias="business_day_start")
+    SoNgayCanhBaoHetHan: int = Field(validation_alias="expiry_warning_days")
+    ThoiGianGiuChoPhut: int = Field(validation_alias="hold_minutes")
+    SoCauHoiAIMoiNgay: int = Field(validation_alias="ai_daily_question_quota")
 
     model_config = {"from_attributes": True, "populate_by_name": True}
 
@@ -73,7 +77,10 @@ class ConfigUpdate(BaseModel):
     DiaChi: Annotated[str | None, StringConstraints(max_length=255)] = None
     MauHoaDon: Annotated[str | None, StringConstraints(max_length=50)] = None
     NguongTonMacDinh: int | None = Field(default=None, ge=0)
-    # GioBatDauBusinessDate is fixed at 06:00, not editable via API
+    SoNgayCanhBaoHetHan: int | None = Field(default=None, ge=0)
+    ThoiGianGiuChoPhut: int | None = Field(default=None, gt=0)
+    SoCauHoiAIMoiNgay: int | None = Field(default=None, gt=0)
+    # GioBatDauBusinessDate needs an effective-date history, so it stays fixed for now.
 
 
 class BackupDump(BaseModel):

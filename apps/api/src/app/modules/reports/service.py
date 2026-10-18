@@ -1,5 +1,7 @@
 """Orchestration for the reporting module (read-only)."""
 
+import asyncio
+import time
 from datetime import date
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,6 +11,8 @@ from app.modules.reports.periods import BusinessPeriod, month_period, resolve_pe
 from app.modules.reports.schemas import (
     CancelledOrderOut,
     CancelledReportOut,
+    ClosedUnpaidOrderOut,
+    ClosedUnpaidReportOut,
     ComparisonOut,
     CostBreakdownOut,
     DishCostListOut,
@@ -18,6 +22,8 @@ from app.modules.reports.schemas import (
     HourBucketOut,
     HourlyOut,
     MarginOut,
+    PendingPaymentListOut,
+    PendingPaymentOut,
     PeriodOut,
     RevenueBucketOut,
     RevenueOut,
@@ -117,12 +123,47 @@ async def dish_costs(session: AsyncSession, month: str) -> DishCostListOut:
     )
 
 
+_COMPARISON_TTL_SECONDS = 30.0
+_comparison_cache: dict[tuple[str, str], tuple[float, ComparisonOut]] = {}
+_comparison_locks: dict[tuple[str, str], asyncio.Lock] = {}
+
+
+def clear_comparison_cache() -> None:
+    """Tests call this so a cached result cannot leak across fixtures."""
+    _comparison_cache.clear()
+    _comparison_locks.clear()
+
+
 async def comparison(session: AsyncSession, left: str, right: str) -> ComparisonOut:
-    result = await queries.compare_periods(session, month_period(left), month_period(right))
+    key = (left, right)
+    cached = _comparison_cache.get(key)
+    if cached is not None and time.monotonic() - cached[0] < _COMPARISON_TTL_SECONDS:
+        return cached[1]
+    lock = _comparison_locks.setdefault(key, asyncio.Lock())
+    async with lock:
+        cached = _comparison_cache.get(key)
+        if cached is not None and time.monotonic() - cached[0] < _COMPARISON_TTL_SECONDS:
+            return cached[1]
+        result = await queries.compare_periods(session, month_period(left), month_period(right))
+        out = _comparison_out(result)
+        _comparison_cache[key] = (time.monotonic(), out)
+        return out
+
+
+def _comparison_out(result) -> ComparisonOut:
     return ComparisonOut(
-        left=RevenueSummaryOut(DoanhThu=result.left.DoanhThu, SoDon=result.left.SoDon),
-        right=RevenueSummaryOut(DoanhThu=result.right.DoanhThu, SoDon=result.right.SoDon),
+        left=RevenueSummaryOut(
+            DoanhThu=result.left.DoanhThu,
+            GiaVon=result.left.GiaVon,
+            SoDon=result.left.SoDon,
+        ),
+        right=RevenueSummaryOut(
+            DoanhThu=result.right.DoanhThu,
+            GiaVon=result.right.GiaVon,
+            SoDon=result.right.SoDon,
+        ),
         change_percent=result.change_percent,
+        change_cost_percent=result.change_cost_percent,
     )
 
 
@@ -131,13 +172,55 @@ async def cancelled(session: AsyncSession, month: str) -> CancelledReportOut:
     return CancelledReportOut(
         SoLuong=result.SoLuong,
         TongGiaTri=result.TongGiaTri,
+        TongGiaVon=result.TongGiaVon,
         items=[
             CancelledOrderOut(
                 MaOrder=item.MaOrder,
                 MaOrderHienThi=item.MaOrderHienThi,
                 TongTien=item.TongTien,
+                GiaVon=item.GiaVon,
                 LyDoHuy=item.LyDoHuy,
             )
             for item in result.items
         ],
+    )
+
+
+async def closed_unpaid(session: AsyncSession, month: str) -> ClosedUnpaidReportOut:
+    result = await queries.closed_unpaid_orders(session, month_period(month))
+    return ClosedUnpaidReportOut(
+        SoLuong=result.SoLuong,
+        TongGiaTri=result.TongGiaTri,
+        TongGiaVon=result.TongGiaVon,
+        items=[
+            ClosedUnpaidOrderOut(
+                MaOrder=item.MaOrder,
+                MaOrderHienThi=item.MaOrderHienThi,
+                TongTien=item.TongTien,
+                GiaVon=item.GiaVon,
+                LyDo=item.LyDo,
+            )
+            for item in result.items
+        ],
+    )
+
+
+async def pending_payments(
+    session: AsyncSession, month: str | None = None
+) -> PendingPaymentListOut:
+    rows = await queries.pending_payments(session, month_period(month) if month else None)
+    return PendingPaymentListOut(
+        items=[
+            PendingPaymentOut(
+                MaOrder=row.MaOrder,
+                MaOrderHienThi=row.MaOrderHienThi,
+                MaGiaoDich=row.MaGiaoDich,
+                PhuongThuc=row.PhuongThuc,
+                SoTien=row.SoTien,
+                TrangThai=row.TrangThai,
+                ThoiGianChoPhut=row.ThoiGianChoPhut,
+                KetQuaGanNhat=row.KetQuaGanNhat,
+            )
+            for row in rows
+        ]
     )

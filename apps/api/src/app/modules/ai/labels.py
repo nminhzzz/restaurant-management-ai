@@ -39,6 +39,8 @@ KNOWN: dict[str, tuple[str, Kind]] = {
     "SoLuongMon": ("Số lượng món", "number"),
     "SoLuongNhap": ("Số lượng nhập", "number"),
     "SoLuongTon": ("Số lượng tồn", "number"),
+    "SoLuongGiu": ("Số lượng đang giữ", "number"),
+    "SoLuongKhaDung": ("Số lượng khả dụng", "number"),
     "SoTien": ("Số tiền", "money"),
     "TenMon": ("Tên món", "text"),
     "TenNguyenLieu": ("Tên nguyên liệu", "text"),

@@ -6,12 +6,14 @@ export type FloorOrder = {
   MoLuc: string | null;
   SoMon: number;
   TamTinh: number;
+  TrangThai?: string;
 };
 
 export type FloorTable = {
   MaBan: number;
   TenBan: string;
   TrangThai: string;
+  MaOrderDangPhucVu?: number | null;
   order: FloorOrder | null;
 };
 

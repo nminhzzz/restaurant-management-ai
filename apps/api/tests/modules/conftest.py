@@ -650,7 +650,7 @@ async def september_data(session, write_off_in_september):
     ingredient = await _r_ingredient(session, "NL September", Decimal("10000"))
     dish = await _r_dish(session, "Món September")
     recipe = await _r_recipe(session, dish, ingredient, Decimal("0.5"), _sep(1))
-    order = await _r_order(session, bd=_sep(20), order_type="Mang về")
+    order = await _r_order(session, bd=_sep(20), status="Đã thanh toán", order_type="Mang về")
     await _r_line(session, order, dish, 4, 125000, recipe_id=recipe.id)
     revenue = Decimal("500000")
     await _r_invoice(session, order, bd=_sep(20), total=revenue)
@@ -664,6 +664,8 @@ async def september_data(session, write_off_in_september):
         waste=waste,
         margin=revenue - cogs,
         month=202609,
+        dish=dish,
+        recipe=recipe,
     )
 
 
@@ -672,7 +674,7 @@ async def order_before_recipe_change(session):
     ingredient = await _r_ingredient(session, "NL trước đổi", Decimal("10000"))
     dish = await _r_dish(session, "Món đổi công thức")
     recipe = await _r_recipe(session, dish, ingredient, Decimal("0.5"), _sep(1))
-    order = await _r_order(session, bd=_sep(5), order_type="Mang về")
+    order = await _r_order(session, bd=_sep(5), status="Đã thanh toán", order_type="Mang về")
     await _r_line(session, order, dish, 2, 60000, recipe_id=recipe.id)
     await session.commit()
     return SimpleNamespace(expected_cost=Decimal("10000"))
@@ -683,7 +685,7 @@ async def order_after_recipe_change(session):
     ingredient = await _r_ingredient(session, "NL sau đổi", Decimal("10000"))
     dish = await _r_dish(session, "Món đổi công thức mới")
     recipe = await _r_recipe(session, dish, ingredient, Decimal("0.25"), _sep(15))
-    order = await _r_order(session, bd=_sep(25), order_type="Mang về")
+    order = await _r_order(session, bd=_sep(25), status="Đã thanh toán", order_type="Mang về")
     await _r_line(session, order, dish, 2, 60000, recipe_id=recipe.id)
     await session.commit()
     return SimpleNamespace(expected_cost=Decimal("5000"))
@@ -771,15 +773,22 @@ async def two_months(session):
 # --- Phase 6 assistant fixtures ---
 
 
-@pytest.fixture
-def quota_reached(fake_llm):
+@pytest_asyncio.fixture
+async def quota_reached(fake_llm, ai_runtime_store):
     """Spend the daily quota before the test runs, so no call reaches the model."""
     from app.core.config import get_settings
-    from app.modules.ai.pipeline import generator
+    from app.modules.ai.runtime_models import AiDailyUsage
     from app.shared import business_date
 
-    today = business_date.business_date_of(business_date.now()).isoformat()
-    generator.set_daily_calls(today, get_settings().ai_daily_question_quota)
+    today = business_date.business_date_of(business_date.now())
+    async with ai_runtime_store.session_factory.begin() as state_session:
+        state_session.add(
+            AiDailyUsage(
+                business_date=today,
+                user_id=0,
+                calls=get_settings().ai_daily_question_quota,
+            )
+        )
     return fake_llm
 
 
@@ -816,18 +825,24 @@ class _SlowLlm:
 
 
 @pytest.fixture
-def slow_llm(monkeypatch):
+def slow_llm(monkeypatch, ai_runtime_store):
     """A model that stalls past a deliberately tiny response budget (NFR-02)."""
     from app.core.config import get_settings
     from app.modules.ai import llm
-    from app.modules.ai.pipeline import generator
 
     monkeypatch.setenv("AI_RESPONSE_BUDGET_SECONDS", "0.05")
     get_settings.cache_clear()
     slow = _SlowLlm(0.4)
     llm.set_client(slow)
-    generator.reset_state()
     yield slow
     llm.set_client(None)
-    generator.reset_state()
     get_settings.cache_clear()
+
+
+@pytest.fixture(autouse=True)
+def _clear_report_comparison_cache():
+    from app.modules.reports.service import clear_comparison_cache
+
+    clear_comparison_cache()
+    yield
+    clear_comparison_cache()

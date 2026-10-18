@@ -11,18 +11,15 @@ from datetime import date, timedelta
 import pytest
 from scripts.seed.config import SeedConfig
 from scripts.seed.operations import daily_order_count, dish_order_counts, hour_weight
+from sqlalchemy import func, select
 from tests.helpers import (
     FIXED_NOW,
-    ingredient_ids,
-    ingredient_total,
-    ledger_mismatch_count,
-    ledger_total,
-    lot_cache_mismatch_count,
-    lot_total,
-    negative_stock_count,
     order_count_between,
     order_status_counts,
 )
+
+from app.modules.catalog.models import Ingredient
+from app.modules.inventory.models import IngredientLot, StockMovement
 
 pytestmark = pytest.mark.slow
 
@@ -65,19 +62,35 @@ def test_a_few_dishes_take_most_of_the_orders():
 
 async def test_generated_orders_respect_business_invariants(session, seeded_year):
     """The generator must not invent states the services would refuse."""
-    assert await negative_stock_count(session) == 0
-    assert await lot_cache_mismatch_count(session) == 0
-    assert await ledger_mismatch_count(session) == 0
+    assert (
+        await session.scalar(
+            select(func.count()).select_from(Ingredient).where(Ingredient.stock_qty < 0)
+        )
+        == 0
+    )
+    assert (
+        await session.scalar(
+            select(func.count())
+            .select_from(IngredientLot)
+            .where(IngredientLot.quantity_remaining < 0)
+        )
+        == 0
+    )
 
 
 async def test_the_three_tiers_agree_after_a_full_year(session, seeded_year):
-    for ingredient_id in await ingredient_ids(session):
-        total = await ingredient_total(session, ingredient_id)
-        lots = await lot_total(session, ingredient_id)
-        ledger = await ledger_total(session, ingredient_id)
-        # Four decimals is the storage precision; comparing raw floats would fail on
-        # the last bit even when the three tiers hold the same quantity.
-        assert round(total, 4) == round(lots, 4) == round(ledger, 4)
+    for ingredient_id, total in await session.execute(select(Ingredient.id, Ingredient.stock_qty)):
+        lots = await session.scalar(
+            select(func.coalesce(func.sum(IngredientLot.quantity_remaining), 0)).where(
+                IngredientLot.ingredient_id == ingredient_id
+            )
+        )
+        ledger = await session.scalar(
+            select(func.coalesce(func.sum(StockMovement.qty), 0)).where(
+                StockMovement.ingredient_id == ingredient_id
+            )
+        )
+        assert total == lots == ledger
 
 
 async def test_every_order_has_a_plausible_final_state(session, seeded_year):

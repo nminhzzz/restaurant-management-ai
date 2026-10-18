@@ -1,5 +1,9 @@
 # Kế hoạch nghiệm thu người dùng (UAT)
 
+**Trạng thái ngày 17/10/2026:** chưa có người tham gia ký xác nhận, chưa kết luận Go/No-Go.
+Đã chạy một số luồng kỹ thuật trên MySQL và Chrome, ghi riêng tại
+[kết quả kiểm chứng](results-2026-10-17.md); các kết quả này không thay cho UAT của người dùng thật.
+
 Theo MT6 (mục 1.3.2 của báo cáo): tổ chức UAT với người có kinh nghiệm vận hành nhà hàng. Ưu tiên mời lại
 những người đã tham gia phỏng vấn ở Phụ lục 3 (QL1–QL5, TN1–TN2, OD1–OD2, KH1–KH2) hoặc người có vai trò
 tương đương nếu không mời lại được người cũ, để bối cảnh nghiệp vụ họ mô tả khi phỏng vấn khớp với kịch

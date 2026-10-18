@@ -1,12 +1,19 @@
 """Schemas for sales module — Task 1."""
 
+from datetime import datetime
+
 from pydantic import BaseModel, Field
+
+
+class ReleaseTableIn(BaseModel):
+    order_id: int | None = Field(..., gt=0)
 
 
 class OrderLineIn(BaseModel):
     dish_id: int = Field(alias="MaMon")
     quantity: int = Field(default=1, ge=1, alias="SoLuong")
     note: str | None = Field(default=None, alias="GhiChu")
+    hold_id: int | None = None
     model_config = {"populate_by_name": True}
 
 
@@ -41,7 +48,36 @@ class AddLineIn(BaseModel):
     dish_id: int
     quantity: int = Field(ge=1)
     note: str | None = None
+    hold_id: int | None = None
 
 
 class UpdateLineIn(BaseModel):
     quantity: int = Field(ge=1)
+
+
+class HoldCreate(BaseModel):
+    selection_code: str | None = Field(default=None, max_length=36)
+    table_id: int | None = None
+    order_id: int | None = None
+    dish_id: int
+    quantity: int = Field(default=1, ge=1)
+    note: str | None = Field(default=None, max_length=500)
+
+
+class HoldUpdate(BaseModel):
+    quantity: int = Field(ge=1)
+
+
+class HoldOut(BaseModel):
+    MaGiuCho: int
+    MaLuotChon: str
+    MaBan: int | None
+    MaMon: int
+    TenMon: str | None = None
+    SoLuong: int
+    GhiChu: str | None
+    ThoiDiemHetHan: datetime
+    TrangThai: str
+    DonGia: float | None = None
+    MaPhienBanGia: int | None = None
+    MaCongThuc: int | None = None

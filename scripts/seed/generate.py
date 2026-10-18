@@ -7,7 +7,10 @@ operations, all through the module services so the data obeys the business invar
 
 import argparse
 import asyncio
+import json
 import sys
+from dataclasses import asdict
+from datetime import datetime, timedelta
 from pathlib import Path
 
 # `make seed` runs this file by path, so sys.path[0] is `scripts/seed/` and the
@@ -16,11 +19,42 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from alembic.runtime.migration import MigrationContext  # noqa: E402
+from scripts.seed.catalog import seed_catalog  # noqa: E402
+from scripts.seed.config import SeedConfig  # noqa: E402
+from scripts.seed.operations import SeedSummary, seed_operations  # noqa: E402
+from sqlalchemy.engine import make_url  # noqa: E402
+
+from app.core.config import get_settings  # noqa: E402
 from app.core.database import get_session_factory  # noqa: E402
 from app.modules.settings.service import seed_reference_data  # noqa: E402
 from app.shared import business_date  # noqa: E402
-from scripts.seed.catalog import seed_catalog  # noqa: E402
-from scripts.seed.config import SeedConfig  # noqa: E402
+
+
+def seed_report(
+    config: SeedConfig, summary: SeedSummary, database_url: str, revisions: tuple[str, ...]
+) -> dict:
+    """Emit reproducibility metadata through an explicit credential-free allowlist."""
+    url = make_url(database_url)
+    end = business_date.business_date_of(config.now)
+    return {
+        "status": "completed",
+        "config": {
+            "seed": config.seed,
+            "months": config.months,
+            "orders_target": config.orders_target,
+            "now": config.now.isoformat(),
+            "business_date_start": (end - timedelta(days=config.months * 30)).isoformat(),
+            "business_date_end": end.isoformat(),
+        },
+        "database": {
+            "dialect": url.get_backend_name(),
+            "schema": url.database,
+            "revisions": list(revisions),
+        },
+        "operations": asdict(summary),
+        "integrity": "passed",
+    }
 
 
 async def generate(config: SeedConfig) -> None:
@@ -36,14 +70,18 @@ async def generate(config: SeedConfig) -> None:
             f"{len(ids.ingredient_ids)} nguyên liệu · {len(ids.table_ids)} bàn"
         )
 
-        from scripts.seed.operations import seed_operations
-
         summary = await seed_operations(session, config, ids)
-        print(
-            f"[seed] vận hành: {summary.orders} order · "
-            f"{summary.receipts} phiếu nhập · {summary.issues} phiếu xuất"
+        connection = await session.connection()
+        revisions = await connection.run_sync(
+            lambda conn: MigrationContext.configure(conn).get_current_heads()
         )
-        print(f"[seed] xong lúc {business_date.now().isoformat()}")
+        print(
+            json.dumps(
+                seed_report(config, summary, get_settings().database_url, revisions),
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+        )
 
 
 def main() -> None:
@@ -51,10 +89,20 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--months", type=int, default=12)
     parser.add_argument("--orders", type=int, default=20_000)
+    parser.add_argument(
+        "--now",
+        type=datetime.fromisoformat,
+        help="Mốc thời gian ISO để tái lập dữ liệu (mặc định: đồng hồ hệ thống).",
+    )
     args = parser.parse_args()
     asyncio.run(
         generate(
-            SeedConfig(seed=args.seed, months=args.months, orders_target=args.orders)
+            SeedConfig(
+                seed=args.seed,
+                months=args.months,
+                orders_target=args.orders,
+                **({"now": args.now} if args.now else {}),
+            )
         )
     )
 

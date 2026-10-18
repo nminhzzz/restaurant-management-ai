@@ -119,6 +119,11 @@ async def test_closing_a_month_prices_its_write_offs_and_is_audited(session):
     )
     assert issued.status_code == 201, issued.text
 
+    from app.modules.inventory.models import StockIssue
+
+    issue = await session.get(StockIssue, issued.json()["MaPhieuXuat"])
+    assert issue.created_at == FIXED_NOW
+
     month = FIXED_NOW.year * 100 + FIXED_NOW.month
     r = await client.post(f"/api/v1/inventory/costing/{month}/close", headers=h)
 
@@ -135,3 +140,58 @@ async def test_closing_a_month_prices_its_write_offs_and_is_audited(session):
     ).scalar_one()
     assert audit.user_id == manager.id
     assert audit.target_id == str(month)
+
+
+@pytest.mark.anyio
+async def test_a_cancelled_receipt_is_not_in_the_month_average(session):
+    """A cancelled receipt never entered stock, so it must not price the month."""
+    ing = await _ingredient(session, "NL phiếu hủy")
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    cancelled = await client.post(
+        "/api/v1/inventory/receipts",
+        json={"lines": [{"ingredient_id": ing.id, "quantity": 10, "unit_price": 1000}]},
+        headers=h,
+    )
+    await client.delete(f"/api/v1/inventory/receipts/{cancelled.json()['MaPhieuNhap']}", headers=h)
+    await client.post(
+        "/api/v1/inventory/receipts",
+        json={"lines": [{"ingredient_id": ing.id, "quantity": 10, "unit_price": 2000}]},
+        headers=h,
+    )
+
+    month = FIXED_NOW.year * 100 + FIXED_NOW.month
+    body = (await client.post(f"/api/v1/inventory/costing/{month}/close", headers=h)).json()
+
+    row = next(x for x in body if x["MaNguyenLieu"] == ing.id)
+    assert row["GiaBinhQuan"] == 2000
+    assert row["TongSoLuongNhap"] == 10
+
+
+@pytest.mark.anyio
+async def test_a_stocktake_surplus_does_not_dilute_the_month_average(session):
+    """The adjustment lot is a reconciliation document with price 0 (FR-INV-09)."""
+    ing = await _ingredient(session, "NL kiểm kê dư")
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    await client.post(
+        "/api/v1/inventory/receipts",
+        json={"lines": [{"ingredient_id": ing.id, "quantity": 10, "unit_price": 1000}]},
+        headers=h,
+    )
+    stocktake = await client.post("/api/v1/inventory/stocktakes", headers=h)
+    sid = stocktake.json()["MaPhieuKiemKe"]
+    await client.post(
+        f"/api/v1/inventory/stocktakes/{sid}/counts",
+        json=[{"ingredient_id": ing.id, "actual_qty": 15}],
+        headers=h,
+    )
+    confirmed = await client.post(f"/api/v1/inventory/stocktakes/{sid}/confirm", headers=h)
+    assert confirmed.status_code == 200, confirmed.text
+
+    month = FIXED_NOW.year * 100 + FIXED_NOW.month
+    body = (await client.post(f"/api/v1/inventory/costing/{month}/close", headers=h)).json()
+
+    row = next(x for x in body if x["MaNguyenLieu"] == ing.id)
+    assert row["GiaBinhQuan"] == 1000
+    assert row["TongSoLuongNhap"] == 10

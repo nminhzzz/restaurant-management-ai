@@ -17,6 +17,9 @@ const config = {
   MauHoaDon: null,
   NguongTonMacDinh: 5,
   GioBatDauBusinessDate: "06:00:00",
+  SoNgayCanhBaoHetHan: 3,
+  ThoiGianGiuChoPhut: 5,
+  SoCauHoiAIMoiNgay: 50,
 };
 
 describe("ConfigPanel", () => {

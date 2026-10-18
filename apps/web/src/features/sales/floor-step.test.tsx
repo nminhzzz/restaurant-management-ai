@@ -51,6 +51,66 @@ describe("FloorStep", () => {
     );
   });
 
+  it("counts a physically occupied table without an open order as busy", async () => {
+    fetchMock.mockResolvedValue({
+      tables: [
+        {
+          MaBan: 9,
+          TenBan: "Bàn chờ khách rời",
+          TrangThai: "Đang phục vụ",
+          order: null,
+        },
+      ],
+      takeaway: [],
+    });
+    const handlers = setup();
+    fireEvent.click(
+      await screen.findByRole("button", { name: /Bàn chờ khách rời/ }),
+    );
+    expect(handlers.onNewOrder).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("button", { name: "Có khách 1" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Giải phóng bàn" }),
+    ).toBeInTheDocument();
+  });
+
+  it("releases the displayed order and refreshes physical occupancy", async () => {
+    let released = false;
+    fetchMock.mockImplementation((path: string) => {
+      if (path === "/sales/tables/4/release") {
+        released = true;
+        return Promise.resolve({ MaBan: 4, TrangThai: "Trống" });
+      }
+      return Promise.resolve({
+        tables: [
+          released
+            ? { ...board.tables[1], TrangThai: "Trống", order: null }
+            : {
+                ...board.tables[1],
+                MaOrderDangPhucVu: 142,
+                order: { ...board.tables[1].order, TrangThai: "Đã thanh toán" },
+              },
+        ],
+        takeaway: [],
+      });
+    });
+    setup();
+    fireEvent.click(await screen.findByRole("button", { name: /Bàn 04/ }));
+    expect(
+      screen.queryByRole("button", { name: "Gọi thêm" }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Giải phóng bàn" }));
+    expect(
+      await screen.findByRole("button", { name: "Trống 1" }),
+    ).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith("/sales/tables/4/release", {
+      method: "POST",
+      body: { order_id: 142 },
+    });
+  });
+
   it("opens a new order on a free table", async () => {
     const h = setup();
     fireEvent.click(await screen.findByRole("button", { name: /Bàn 01/ }));

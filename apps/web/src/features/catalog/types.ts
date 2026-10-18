@@ -14,12 +14,16 @@ export type Ingredient = {
   TenNguyenLieu: string;
   DonViTinh: string;
   MucTonToiThieu?: number | null;
+  SoNgayBaoQuan?: number | null;
 };
 
 export type Supplier = {
   MaNhaCungCap: number;
   TenNhaCungCap: string;
   SoDienThoai?: string | null;
+  Email?: string | null;
+  NguoiLienHe?: string | null;
+  DiaChi?: string | null;
   PhieuNhap?: { MaPhieuNhap: number }[];
 };
 
@@ -27,6 +31,8 @@ export type DiningTable = {
   MaBan: number;
   TenBan: string;
   TrangThai?: string;
+  KhuVuc?: string | null;
+  SoChoNgoi?: number | null;
 };
 
 export type RecipeItem = { MaNguyenLieu: number; SoLuong: number };

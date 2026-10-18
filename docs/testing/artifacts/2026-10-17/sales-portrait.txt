@@ -1,0 +1,43 @@
+uid=23_0 RootWebArea "Hệ thống quản lý nhà hàng tích hợp AI" url="http://localhost:3010/sales"
+  uid=23_1 banner
+    uid=23_2 button "Mở menu"
+    uid=23_3 StaticText "Bán hàng"
+  uid=23_4 main
+    uid=23_5 heading "Bán hàng" level="1"
+    uid=23_6 button "1 Chọn bàn"
+    uid=23_7 button "2 Gọi món" disableable disabled
+    uid=23_8 button "3 Thanh toán" disableable disabled
+    uid=23_9 search
+      uid=23_10 textbox "Tra mã order"
+    uid=23_11 button "Tất cả 20" pressed
+    uid=23_12 button "Trống 20"
+    uid=23_13 button "Có khách 0"
+    uid=23_14 button "Đã đặt 0"
+    uid=23_15 button "Bàn 01 Đang phục vụ Chạm để mở order"
+    uid=23_16 button "Bàn 02 Trống Chạm để mở order"
+    uid=23_17 button "Bàn 03 Trống Chạm để mở order"
+    uid=23_18 button "Bàn 04 Trống Chạm để mở order"
+    uid=23_19 button "Bàn 05 Trống Chạm để mở order"
+    uid=23_20 button "Bàn 06 Trống Chạm để mở order"
+    uid=23_21 button "Bàn 07 Đang phục vụ Chạm để mở order"
+    uid=23_22 button "Bàn 08 Đang phục vụ Chạm để mở order"
+    uid=23_23 button "Bàn 09 Đang phục vụ Chạm để mở order"
+    uid=23_24 button "Bàn 10 Trống Chạm để mở order"
+    uid=23_25 button "Bàn 11 Trống Chạm để mở order"
+    uid=23_26 button "Bàn 12 Trống Chạm để mở order"
+    uid=23_27 button "Bàn 13 Trống Chạm để mở order"
+    uid=23_28 button "Bàn 14 Đang phục vụ Chạm để mở order"
+    uid=23_29 button "Bàn 15 Trống Chạm để mở order"
+    uid=23_30 button "Bàn 16 Trống Chạm để mở order"
+    uid=23_31 button "Bàn 17 Trống Chạm để mở order"
+    uid=23_32 button "Bàn 18 Trống Chạm để mở order"
+    uid=23_33 button "Bàn 19 Trống Chạm để mở order"
+    uid=23_34 button "Bàn 20 Đang phục vụ Chạm để mở order"
+    uid=23_35 complementary
+      uid=23_36 region "Mang về"
+        uid=23_37 heading "Mang về" level="2"
+        uid=23_38 button "Đơn mới mang về"
+        uid=23_39 StaticText "Chưa có đơn mang về đang mở."
+  uid=23_40 region "Notifications alt+T" live="polite" relevant="additions text"
+  uid=23_41 button "Open Next.js Dev Tools" expandable haspopup="menu"
+  uid=23_42 alert atomic live="assertive" relevant="additions text"

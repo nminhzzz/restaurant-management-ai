@@ -15,12 +15,14 @@ from app.modules.reports import service
 from app.modules.reports.periods import BusinessPeriod
 from app.modules.reports.schemas import (
     CancelledReportOut,
+    ClosedUnpaidReportOut,
     ComparisonOut,
     CostBreakdownOut,
     DishCostListOut,
     DishRankListOut,
     HourlyOut,
     MarginOut,
+    PendingPaymentListOut,
     RevenueOut,
 )
 from app.shared.roles import Role
@@ -109,3 +111,21 @@ async def cancelled_orders(
     session: AsyncSession = Depends(get_session),
 ) -> CancelledReportOut:
     return await service.cancelled(session, month)
+
+
+@router.get("/closed-unpaid", response_model=ClosedUnpaidReportOut)
+async def closed_unpaid(
+    month: str = Query(...),
+    user: Principal = Depends(require_roles(Role.MANAGER)),
+    session: AsyncSession = Depends(get_session),
+) -> ClosedUnpaidReportOut:
+    return await service.closed_unpaid(session, month)
+
+
+@router.get("/pending-payments", response_model=PendingPaymentListOut)
+async def pending_payments(
+    month: str | None = Query(None),
+    user: Principal = Depends(require_roles(Role.MANAGER)),
+    session: AsyncSession = Depends(get_session),
+) -> PendingPaymentListOut:
+    return await service.pending_payments(session, month)

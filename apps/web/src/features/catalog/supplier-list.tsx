@@ -39,7 +39,13 @@ const loadSuppliers = () =>
     (r) => (Array.isArray(r) ? r : r.items),
   );
 
-type FormValues = { TenNhaCungCap: string; SoDienThoai: string };
+type FormValues = {
+  TenNhaCungCap: string;
+  SoDienThoai: string;
+  Email: string;
+  NguoiLienHe: string;
+  DiaChi: string;
+};
 
 function SupplierFormDialog({
   open,
@@ -86,6 +92,34 @@ function SupplierFormDialog({
               value={values.SoDienThoai}
               onChange={(e) =>
                 setValues((v) => ({ ...v, SoDienThoai: e.target.value }))
+              }
+            />
+          </FormField>
+          <FormField id="supplier-email" label="Email">
+            <Input
+              id="supplier-email"
+              type="email"
+              value={values.Email}
+              onChange={(e) =>
+                setValues((v) => ({ ...v, Email: e.target.value }))
+              }
+            />
+          </FormField>
+          <FormField id="supplier-contact" label="Người liên hệ">
+            <Input
+              id="supplier-contact"
+              value={values.NguoiLienHe}
+              onChange={(e) =>
+                setValues((v) => ({ ...v, NguoiLienHe: e.target.value }))
+              }
+            />
+          </FormField>
+          <FormField id="supplier-address" label="Địa chỉ">
+            <Input
+              id="supplier-address"
+              value={values.DiaChi}
+              onChange={(e) =>
+                setValues((v) => ({ ...v, DiaChi: e.target.value }))
               }
             />
           </FormField>
@@ -150,7 +184,13 @@ function SupplierDetailDialog({
   );
 }
 
-const EMPTY_FORM: FormValues = { TenNhaCungCap: "", SoDienThoai: "" };
+const EMPTY_FORM: FormValues = {
+  TenNhaCungCap: "",
+  SoDienThoai: "",
+  Email: "",
+  NguoiLienHe: "",
+  DiaChi: "",
+};
 
 export function SupplierList() {
   const res = useResource(loadSuppliers);
@@ -180,6 +220,9 @@ export function SupplierList() {
         body: {
           TenNhaCungCap: values.TenNhaCungCap.trim(),
           SoDienThoai: values.SoDienThoai.trim() || undefined,
+          Email: values.Email.trim() || undefined,
+          NguoiLienHe: values.NguoiLienHe.trim() || undefined,
+          DiaChi: values.DiaChi.trim() || undefined,
         },
       });
       setCreateOpen(false);
@@ -195,6 +238,9 @@ export function SupplierList() {
         body: {
           TenNhaCungCap: values.TenNhaCungCap.trim(),
           SoDienThoai: values.SoDienThoai.trim() || undefined,
+          Email: values.Email.trim() || undefined,
+          NguoiLienHe: values.NguoiLienHe.trim() || undefined,
+          DiaChi: values.DiaChi.trim() || undefined,
         },
       });
       setEditSupplier(null);
@@ -341,6 +387,9 @@ export function SupplierList() {
           initial={{
             TenNhaCungCap: editSupplier.TenNhaCungCap,
             SoDienThoai: editSupplier.SoDienThoai ?? "",
+            Email: editSupplier.Email ?? "",
+            NguoiLienHe: editSupplier.NguoiLienHe ?? "",
+            DiaChi: editSupplier.DiaChi ?? "",
           }}
           pending={edit.pending}
           onSubmit={handleEdit}

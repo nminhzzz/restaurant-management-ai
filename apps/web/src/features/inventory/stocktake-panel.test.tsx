@@ -108,7 +108,7 @@ describe("StocktakePanel", () => {
         }
         if (path.startsWith("/inventory/stocktakes")) {
           return Promise.resolve({
-            items: [{ MaPhieuKiemKe: 5, TrangThai: "Đã xác nhận" }],
+            items: [{ MaPhieuKiemKe: 5, TrangThai: "Đã chốt" }],
             total: 26,
           });
         }
@@ -139,7 +139,7 @@ describe("StocktakePanel", () => {
         }
         if (path.startsWith("/inventory/stocktakes")) {
           return Promise.resolve({
-            items: [{ MaPhieuKiemKe: 5, TrangThai: "Đã xác nhận" }],
+            items: [{ MaPhieuKiemKe: 5, TrangThai: "Đã chốt" }],
             total: 26,
           });
         }
@@ -161,11 +161,11 @@ describe("StocktakePanel", () => {
     );
 
     fireEvent.change(screen.getByLabelText("Trạng thái"), {
-      target: { value: "Đã xác nhận" },
+      target: { value: "Đã chốt" },
     });
     await vi.waitFor(() =>
       expect(fetchMock).toHaveBeenLastCalledWith(
-        "/inventory/stocktakes?status=%C4%90%C3%A3+x%C3%A1c+nh%E1%BA%ADn&page=1&page_size=20",
+        "/inventory/stocktakes?status=%C4%90%C3%A3+ch%E1%BB%91t&page=1&page_size=20",
       ),
     );
 
@@ -177,7 +177,7 @@ describe("StocktakePanel", () => {
     });
     await vi.waitFor(() =>
       expect(fetchMock).toHaveBeenLastCalledWith(
-        "/inventory/stocktakes?status=%C4%90%C3%A3+x%C3%A1c+nh%E1%BA%ADn&date_from=2026-09-01&date_to=2026-09-25&page=1&page_size=20",
+        "/inventory/stocktakes?status=%C4%90%C3%A3+ch%E1%BB%91t&date_from=2026-09-01&date_to=2026-09-25&page=1&page_size=20",
       ),
     );
   });

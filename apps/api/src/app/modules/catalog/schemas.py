@@ -71,6 +71,7 @@ class DishOut(BaseModel):
     MaNhomMon: int | None = Field(default=None, validation_alias="group_id")
     HinhAnh: str | None = None
     GiaHienTai: float | None = None
+    SoSuatKhaDung: int | None = None
     TrangThai: str
     DaXoa: bool = Field(validation_alias="is_deleted")
 
@@ -144,12 +145,14 @@ class IngredientCreate(BaseModel):
     TenNguyenLieu: Name
     DonViTinh: str | None = Field(default="kg", max_length=20)
     MucTonToiThieu: float | None = Field(default=None, ge=0)
+    SoNgayBaoQuan: int | None = Field(default=None, ge=0)
 
 
 class IngredientUpdate(BaseModel):
     TenNguyenLieu: Name | None = None
     DonViTinh: str | None = Field(default=None, max_length=20)
     MucTonToiThieu: float | None = Field(default=None, ge=0)
+    SoNgayBaoQuan: int | None = Field(default=None, ge=0)
 
 
 class IngredientOut(BaseModel):
@@ -157,6 +160,7 @@ class IngredientOut(BaseModel):
     TenNguyenLieu: str = Field(validation_alias="name")
     DonViTinh: str = Field(validation_alias="unit")
     MucTonToiThieu: float = Field(validation_alias="min_stock")
+    SoNgayBaoQuan: int | None = Field(default=None, validation_alias="shelf_days")
     DaXoa: bool = Field(validation_alias="is_deleted")
 
     model_config = {"from_attributes": True, "populate_by_name": True}
@@ -165,17 +169,26 @@ class IngredientOut(BaseModel):
 class SupplierCreate(BaseModel):
     TenNhaCungCap: Name
     SoDienThoai: str | None = Field(default=None, max_length=20)
+    Email: str | None = Field(default=None, max_length=255)
+    NguoiLienHe: str | None = Field(default=None, max_length=100)
+    DiaChi: str | None = Field(default=None, max_length=255)
 
 
 class SupplierUpdate(BaseModel):
     TenNhaCungCap: Name | None = None
     SoDienThoai: str | None = Field(default=None, max_length=20)
+    Email: str | None = Field(default=None, max_length=255)
+    NguoiLienHe: str | None = Field(default=None, max_length=100)
+    DiaChi: str | None = Field(default=None, max_length=255)
 
 
 class SupplierOut(BaseModel):
     MaNhaCungCap: int = Field(validation_alias="id")
     TenNhaCungCap: str = Field(validation_alias="name")
     SoDienThoai: str | None = Field(default=None, validation_alias="phone")
+    Email: str | None = Field(default=None, validation_alias="email")
+    NguoiLienHe: str | None = Field(default=None, validation_alias="contact_name")
+    DiaChi: str | None = Field(default=None, validation_alias="address")
     DaXoa: bool = Field(validation_alias="is_deleted")
     PhieuNhap: list[dict] = Field(default_factory=list)
 
@@ -184,12 +197,22 @@ class SupplierOut(BaseModel):
 
 class TableCreate(BaseModel):
     TenBan: Name
+    KhuVuc: str | None = Field(default=None, max_length=100)
+    SoChoNgoi: int | None = Field(default=None, ge=1)
+
+
+class TableUpdate(BaseModel):
+    TenBan: Name | None = None
+    KhuVuc: str | None = Field(default=None, max_length=100)
+    SoChoNgoi: int | None = Field(default=None, ge=1)
 
 
 class TableOut(BaseModel):
     MaBan: int = Field(validation_alias="id")
     TenBan: str = Field(validation_alias="name")
     TrangThai: str = Field(validation_alias="status")
+    KhuVuc: str | None = Field(default=None, validation_alias="area")
+    SoChoNgoi: int | None = Field(default=None, validation_alias="capacity")
     DaXoa: bool = Field(validation_alias="is_deleted")
 
     model_config = {"from_attributes": True, "populate_by_name": True}

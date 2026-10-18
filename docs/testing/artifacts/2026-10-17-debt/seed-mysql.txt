@@ -1,0 +1,3 @@
+[seed] seed=42 months=12 target=365
+[seed] danh mục: 80 món · 68 nguyên liệu · 20 bàn
+{"config": {"business_date_end": "2026-10-17", "business_date_start": "2025-10-22", "months": 12, "now": "2026-10-17T10:00:00+07:00", "orders_target": 365, "seed": 42}, "database": {"dialect": "mysql", "revisions": ["e31f52a6c901"], "schema": "restaurant_seed_debt_20261017"}, "integrity": "passed", "operations": {"disputed_orders": 4, "issue_attempts": 38, "issue_rejected": 0, "issues": 38, "order_attempts": 365, "order_rejected": 0, "orders": 365, "pending_reconciliation": 4, "receipts": 104, "rejection_reasons": {}}, "status": "completed"}

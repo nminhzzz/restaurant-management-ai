@@ -85,6 +85,7 @@ class DishCostListOut(BaseModel):
 
 class RevenueSummaryOut(BaseModel):
     DoanhThu: Decimal
+    GiaVon: Decimal
     SoDon: int
 
 
@@ -92,16 +93,49 @@ class ComparisonOut(BaseModel):
     left: RevenueSummaryOut
     right: RevenueSummaryOut
     change_percent: Decimal | None
+    change_cost_percent: Decimal | None
 
 
 class CancelledOrderOut(BaseModel):
     MaOrder: int
     MaOrderHienThi: str | None
     TongTien: Decimal
+    GiaVon: Decimal
     LyDoHuy: str | None
+
+
+class PendingPaymentOut(BaseModel):
+    MaOrder: int
+    MaOrderHienThi: str | None
+    MaGiaoDich: int
+    PhuongThuc: str
+    SoTien: Decimal
+    TrangThai: str
+    ThoiGianChoPhut: int
+    KetQuaGanNhat: str | None
+
+
+class PendingPaymentListOut(BaseModel):
+    items: list[PendingPaymentOut]
 
 
 class CancelledReportOut(BaseModel):
     SoLuong: int
     TongGiaTri: Decimal
+    TongGiaVon: Decimal
     items: list[CancelledOrderOut]
+
+
+class ClosedUnpaidOrderOut(BaseModel):
+    MaOrder: int
+    MaOrderHienThi: str | None
+    TongTien: Decimal
+    GiaVon: Decimal
+    LyDo: str | None
+
+
+class ClosedUnpaidReportOut(BaseModel):
+    SoLuong: int
+    TongGiaTri: Decimal
+    TongGiaVon: Decimal
+    items: list[ClosedUnpaidOrderOut]

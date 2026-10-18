@@ -17,9 +17,10 @@ import { formatNumber, formatVnd } from "@/lib/format";
 import { useResource } from "@/lib/use-resource";
 
 type ComparisonResponse = {
-  left: { DoanhThu: string; SoDon: number };
-  right: { DoanhThu: string; SoDon: number };
+  left: { DoanhThu: string; GiaVon: string; SoDon: number };
+  right: { DoanhThu: string; GiaVon: string; SoDon: number };
   change_percent: string | null;
+  change_cost_percent: string | null;
 };
 
 function ChangeBadge({ changePercent }: { changePercent: string | null }) {
@@ -105,6 +106,20 @@ export function ComparisonReport() {
           <ChangeBadge changePercent={data.change_percent} />
         </div>
       </div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <StatCard
+          label={`Giá vốn kỳ gốc (${left})`}
+          value={formatVnd(data.left.GiaVon)}
+        />
+        <StatCard
+          label={`Giá vốn kỳ so sánh (${right})`}
+          value={formatVnd(data.right.GiaVon)}
+        />
+        <div className="grid gap-1.5 rounded-container border border-border bg-surface p-4">
+          <span className="text-muted">Chênh lệch giá vốn</span>
+          <ChangeBadge changePercent={data.change_cost_percent} />
+        </div>
+      </div>
       <section className="space-y-3 rounded-container border border-border bg-surface p-4">
         <h2 className="text-[15px] font-bold">Doanh thu hai kỳ</h2>
         <Bars
@@ -120,16 +135,18 @@ export function ComparisonReport() {
       <section className="space-y-3">
         <h2 className="text-[15px] font-bold">Chi tiết</h2>
         <ReportTable
-          headers={["Kỳ", "Doanh thu", "Số đơn"]}
+          headers={["Kỳ", "Doanh thu", "Giá vốn", "Số đơn"]}
           rows={[
             [
               left,
               formatVnd(data.left.DoanhThu),
+              formatVnd(data.left.GiaVon),
               formatNumber(data.left.SoDon),
             ],
             [
               right,
               formatVnd(data.right.DoanhThu),
+              formatVnd(data.right.GiaVon),
               formatNumber(data.right.SoDon),
             ],
           ]}

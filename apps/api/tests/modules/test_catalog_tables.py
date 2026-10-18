@@ -81,6 +81,7 @@ async def test_a_table_in_use_cannot_be_deleted(session, occupied_table):
     from app.modules.sales.models import Order
     from app.shared import business_date
 
+    occupied_table.status = "Đang phục vụ"
     o = Order(
         table_id=occupied_table.id,
         business_date=business_date.business_date_of(business_date.now()),
@@ -179,3 +180,28 @@ async def test_soft_delete_is_a_state_of_its_own(session, dish):
     row = await get_dish(session, dish.id)
     assert row.is_deleted is True
     assert await display_status(session, row) == "Đã xóa"
+
+
+@pytest.mark.asyncio
+async def test_a_table_can_be_created_and_edited_with_area_and_capacity(session):
+    h = await _headers(session, "MANAGER")
+    async with await _make_client(session) as c:
+        created = await c.post(
+            "/api/v1/catalog/tables",
+            json={"TenBan": "Bàn VIP", "KhuVuc": "Tầng 2", "SoChoNgoi": 6},
+            headers=h,
+        )
+        tid = created.json()["MaBan"]
+        updated = await c.patch(
+            f"/api/v1/catalog/tables/{tid}",
+            json={"TenBan": "Bàn VIP 2", "KhuVuc": "Tầng 1", "SoChoNgoi": 4},
+            headers=h,
+        )
+    app.dependency_overrides.clear()
+    assert created.status_code == 201
+    assert created.json()["KhuVuc"] == "Tầng 2"
+    assert created.json()["SoChoNgoi"] == 6
+    assert updated.status_code == 200
+    assert updated.json()["TenBan"] == "Bàn VIP 2"
+    assert updated.json()["KhuVuc"] == "Tầng 1"
+    assert updated.json()["SoChoNgoi"] == 4

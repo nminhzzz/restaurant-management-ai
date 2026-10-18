@@ -68,4 +68,33 @@ describe("IngredientList", () => {
     fireEvent.click(screen.getByRole("button", { name: "Xóa bộ lọc" }));
     expect(await screen.findByText("Thịt bò")).toBeInTheDocument();
   });
+
+  it("sends the shelf life when creating an ingredient", async () => {
+    mockFetch.mockResolvedValue({ items: [] });
+    render(<IngredientList />);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Thêm nguyên liệu" }),
+    );
+    fireEvent.change(screen.getByLabelText("Tên nguyên liệu"), {
+      target: { value: "Cà chua" },
+    });
+    fireEvent.change(screen.getByLabelText("Đơn vị tính"), {
+      target: { value: "kg" },
+    });
+    fireEvent.change(screen.getByLabelText("Số ngày bảo quản"), {
+      target: { value: "5" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Lưu" }));
+
+    await vi.waitFor(() =>
+      expect(mockFetch).toHaveBeenCalledWith(
+        "/catalog/ingredients",
+        expect.objectContaining({
+          method: "POST",
+          body: expect.objectContaining({ SoNgayBaoQuan: 5 }),
+        }),
+      ),
+    );
+  });
 });

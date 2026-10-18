@@ -3,12 +3,24 @@
 from app.modules.sales.models import KitchenTicket, Order, OrderLine
 
 
-def render_ticket(order: Order, lines: list[OrderLine]) -> str:
-    header = f"Order {order.display_code or order.id} - Ban {order.table_id or 'Mang ve'}"
+def render_ticket(
+    order: Order,
+    lines: list[OrderLine],
+    *,
+    dish_names: dict[int, str] | None = None,
+    table_name: str | None = None,
+) -> str:
+    """A printable ticket with human names, not internal ids.
+
+    The caller resolves names in one query, so the ticket stays a pure function.
+    """
+    table = table_name or ("Mang về" if order.table_id is None else f"Bàn #{order.table_id}")
+    header = f"Order {order.display_code or order.id} - {table}"
     body_lines = []
     for ln in lines:
         note = f" ({ln.note})" if ln.note else ""
-        body_lines.append(f"{ln.dish_id} x{ln.quantity}{note} - {float(ln.unit_price):.0f}")
+        name = (dish_names or {}).get(ln.dish_id, f"Món #{ln.dish_id}")
+        body_lines.append(f"{name} x{ln.quantity}{note} - {float(ln.unit_price):.0f}")
     return header + "\n" + "\n".join(body_lines)
 
 

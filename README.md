@@ -26,7 +26,7 @@ Next.js (web)  ──HTTP──▶  FastAPI (api)  ──SQL──▶  MySQL
 | `apps/api` | Backend FastAPI, 6 module nghiệp vụ + pipeline Text-to-SQL |
 | `apps/web` | Frontend Next.js (App Router, TypeScript, Tailwind) |
 | `db/views` | Định nghĩa view phân quyền cho trợ lý AI |
-| `data/eval` | Bộ dữ liệu đánh giá 50–100 cặp câu hỏi tiếng Việt – SQL chuẩn |
+| `data/eval` | Bộ 95 câu hỏi tiếng Việt – SQL chuẩn và harness A/B/C |
 | `scripts/seed` | Sinh dữ liệu mô phỏng 12 tháng phục vụ báo cáo và thực nghiệm |
 | `docs` | Báo cáo, sơ đồ UML (drawio), hình ảnh, kế hoạch triển khai |
 | `docs/plans` | Lộ trình tổng và kế hoạch chi tiết từng phase (`phases/`) |
@@ -43,7 +43,7 @@ Next.js (web)  ──HTTP──▶  FastAPI (api)  ──SQL──▶  MySQL
 make setup      # cài dependencies cho cả api và web
 make db-up      # khởi động MySQL bằng docker compose
 make env        # tạo tập biến môi trường cục bộ từ file mẫu
-make migrate    # tạo schema (khi có migration đầu tiên)
+make migrate    # áp dụng migration tạo/cập nhật schema
 make api        # http://localhost:8000/docs
 make web        # http://localhost:3000
 ```
@@ -68,16 +68,29 @@ Quyền được kiểm tra ở tầng API (`app.core.dependencies.require_roles
 
 ## Hiện trạng
 
-Đã xong **Phase 0 → 7**: lược đồ CSDL 29 bảng theo báo cáo cộng `DEM_ORDER` (`migrations/versions/`),
-ba view phân quyền `vw_ai_*` và tài khoản chỉ-đọc riêng (`db/views/`), sáu module nghiệp vụ
-Cài đặt · Danh mục · Kho · Bán hàng · Báo cáo · Trợ lý AI có API và giao diện dùng được, cùng bộ
-dữ liệu mô phỏng 12 tháng (`make seed`), bộ 75 câu hỏi – SQL chuẩn (`data/eval/questions.jsonl`) và
-harness ba cấu hình đối chứng (`data/eval/harness.py`).
+Đã có phần triển khai của **Phase 0 → 7** trong lộ trình ban đầu: migration CSDL, ba view phân quyền
+`vw_ai_*`, tài khoản chỉ-đọc riêng và API/giao diện cho sáu module Cài đặt · Danh mục · Kho · Bán hàng ·
+Báo cáo · Trợ lý AI. Có script sinh dữ liệu 12 tháng (`make seed`), bộ **95 câu hỏi**
+(`data/eval/questions.jsonl`) và harness A/B/C (`data/eval/harness.py`). Điều này không đồng nghĩa
+mọi yêu cầu trong bản báo cáo cập nhật đã được nghiệm thu.
 
-Trợ lý AI và lần chạy thực nghiệm A/B/C cần cấu hình nhà cung cấp LLM (`AI_PROVIDER`, `LLM_MODEL`,
-`AI_API_KEY`, hoặc `AI_PROVIDER=ollama`); bộ test dùng client giả nên không cần khoá. Hai việc chưa
-chốt được vì phụ thuộc lựa chọn đó là **Q5** (mô hình cho cấu hình C) và **Q6** (domain API được phép)
-— xem `docs/plans/2026-09-24-master-roadmap.md`.
+**Q5/Q6 đã chốt ngày 26/09/2026**: DeepSeek, mô hình chính `deepseek-flash`, cấu hình C
+`deepseek-v4-pro`. Kết quả lần chạy đã lưu ở [`docs/eval-results.json`](docs/eval-results.json):
+độ đúng thực thi A/B/C lần lượt **56,84% / 66,32% / 57,89%**. Đây là kết quả đã lưu trên bộ 95 câu,
+không phải kết quả cho kế hoạch đánh giá mới gồm 80 câu trong báo cáo.
+
+Chạy AI hoặc thực nghiệm mới cần cấu hình `AI_PROVIDER`, `LLM_MODEL`, `AI_API_KEY` và các URL
+CSDL chỉ-đọc; unit test dùng client giả, không cần khóa API. QR có adapter giả lập mặc định và
+adapter SePay tùy cấu hình (`PAYMENT_GATEWAY`). Unit test không đọc cấu hình/khóa local.
+
+Kết quả mới nhất: [đợt sửa nợ kỹ thuật ngày 18/10/2026](docs/testing/technical-debt-2026-10-18.md),
+gồm view AI, lịch giá/công thức, xác thực/phân quyền, kiểm kê/giá vốn, cấu hình vận hành,
+hạn mức AI theo người dùng và báo cáo thanh toán chưa hoàn tất. Kết quả trước đó:
+[đợt trả sáu khoản nợ kỹ thuật ngày 17/10/2026](docs/testing/technical-debt-2026-10-17.md),
+gồm giải phóng bàn, mốc tháng 06:00, CI MySQL, seed có kiểm chứng và cache/hạn mức AI lưu MySQL.
+Nhật ký [kiểm chứng trước sửa](docs/testing/results-2026-10-17.md) được giữ riêng để truy vết.
+**SUS/UAT với người dùng thật và kiểm tra tablet thật/Safari/Edge vẫn chờ thực hiện**; mẫu phiếu
+và kịch bản nằm trong [`docs/testing/`](docs/testing/README.md).
 
 Kế hoạch triển khai đầy đủ nằm ở [`docs/plans/2026-09-24-master-roadmap.md`](docs/plans/2026-09-24-master-roadmap.md):
 **tám phase** từ lược đồ CSDL tới dữ liệu đánh giá, kèm thứ tự phụ thuộc và các cổng cần duyệt. Kế hoạch

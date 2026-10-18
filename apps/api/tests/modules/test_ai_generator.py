@@ -94,3 +94,125 @@ async def test_the_cache_does_not_leak_across_roles(session, fake_llm, seed_view
     await generate_sql(session, "có bao nhiêu", Role.WAREHOUSE)
 
     assert fake_llm.calls == 2
+
+
+@pytest.mark.anyio
+async def test_retry_reserves_quota_before_each_model_call(
+    session, fake_llm, seed_views, monkeypatch
+):
+    from app.core.config import get_settings
+
+    monkeypatch.setenv("AI_DAILY_QUESTION_QUOTA", "1")
+    get_settings.cache_clear()
+    fake_llm.reply_sequence(["DELETE FROM vw_ai_thungan", "SELECT 1 FROM vw_ai_thungan"])
+    with pytest.raises(QuotaExceeded):
+        await generate_sql(session, "hỏi", Role.CASHIER)
+    assert fake_llm.calls == 1
+
+
+@pytest.mark.anyio
+async def test_cache_changes_with_model_and_business_day(
+    session, fake_llm, seed_views, monkeypatch
+):
+    from datetime import timedelta
+
+    from app.core.config import get_settings
+    from app.shared import business_date
+
+    fake_llm.reply("SELECT 1 FROM vw_ai_thungan")
+    await generate_sql(session, "hỏi", Role.CASHIER)
+    monkeypatch.setenv("LLM_MODEL", "another-model")
+    get_settings.cache_clear()
+    await generate_sql(session, "hỏi", Role.CASHIER)
+    now = business_date.now()
+    monkeypatch.setattr(business_date, "now", lambda: now + timedelta(days=1))
+    await generate_sql(session, "hỏi", Role.CASHIER)
+    assert fake_llm.calls == 3
+
+
+@pytest.mark.anyio
+async def test_cache_expires_and_provider_and_limits_invalidate_it(
+    session, fake_llm, seed_views, monkeypatch
+):
+    from datetime import timedelta
+
+    from app.core.config import get_settings
+    from app.shared import business_date
+
+    fake_llm.reply("SELECT 1 FROM vw_ai_thungan")
+    await generate_sql(session, "hỏi", Role.CASHIER)
+    now = business_date.now()
+    monkeypatch.setattr(business_date, "now", lambda: now + timedelta(seconds=301))
+    await generate_sql(session, "hỏi", Role.CASHIER)
+    monkeypatch.setenv("AI_PROVIDER", "ollama")
+    get_settings.cache_clear()
+    await generate_sql(session, "hỏi", Role.CASHIER)
+    monkeypatch.setenv("AI_MAX_ROWS", "20")
+    get_settings.cache_clear()
+    sql = await generate_sql(session, "hỏi", Role.CASHIER)
+    assert fake_llm.calls == 4
+    assert "LIMIT 20" in sql
+
+
+@pytest.mark.anyio
+async def test_cache_is_revalidated_and_corrupt_sql_never_returned(
+    session, fake_llm, seed_views, ai_runtime_store
+):
+    from sqlalchemy import update
+
+    from app.modules.ai.runtime_models import AiSqlCache
+
+    fake_llm.reply("SELECT 1 FROM vw_ai_thungan")
+    await generate_sql(session, "hỏi", Role.CASHIER)
+    async with ai_runtime_store.session_factory.begin() as state_session:
+        await state_session.execute(update(AiSqlCache).values(sql_text="DELETE FROM vw_ai_thungan"))
+    sql = await generate_sql(session, "hỏi", Role.CASHIER)
+    assert sql.startswith("SELECT")
+    assert fake_llm.calls == 2
+
+
+@pytest.mark.anyio
+async def test_failed_turn_usage_survives_request_rollback(
+    session, fake_llm, seed_views, ai_runtime_store
+):
+    from sqlalchemy import select
+
+    from app.modules.ai.runtime_models import AiDailyUsage
+
+    fake_llm.reply("DELETE FROM vw_ai_thungan")
+    with pytest.raises(BusinessRuleError):
+        await generate_sql(session, "hỏi", Role.CASHIER)
+    await session.rollback()
+    async with ai_runtime_store.session_factory() as state_session:
+        assert await state_session.scalar(select(AiDailyUsage.calls)) == 2
+
+
+@pytest.mark.anyio
+async def test_view_schema_change_invalidates_cache(session, fake_llm, seed_views):
+    from sqlalchemy import text
+
+    fake_llm.reply("SELECT 1 FROM vw_ai_thungan")
+    await generate_sql(session, "hỏi", Role.CASHIER)
+    await session.execute(text("DROP VIEW vw_ai_thungan"))
+    await session.execute(text("CREATE VIEW vw_ai_thungan AS SELECT 1 AS NewColumn"))
+    await generate_sql(session, "hỏi", Role.CASHIER)
+    assert fake_llm.calls == 2
+
+
+@pytest.mark.anyio
+async def test_provider_failure_keeps_committed_reservation(
+    session, fake_llm, seed_views, ai_runtime_store, monkeypatch
+):
+    from sqlalchemy import select
+
+    from app.modules.ai.runtime_models import AiDailyUsage
+
+    def unavailable(prompt):
+        raise RuntimeError("provider unavailable")
+
+    monkeypatch.setattr(fake_llm, "complete", unavailable)
+    with pytest.raises(RuntimeError, match="provider unavailable"):
+        await generate_sql(session, "hỏi", Role.CASHIER)
+    await session.rollback()
+    async with ai_runtime_store.session_factory() as state_session:
+        assert await state_session.scalar(select(AiDailyUsage.calls)) == 1

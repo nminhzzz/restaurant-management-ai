@@ -1518,13 +1518,79 @@ UAT sử dụng các kịch bản phục vụ, kho và quản lý theo quyền. 
 
 Bảng 13. Mẫu câu hỏi và tiêu chí chấm AI
 
+### Kết quả kiểm chứng kỹ thuật ngày 17/10/2026
+
+Đợt kiểm chứng này dùng mã nguồn nền `347650d` cùng các bản sửa trong phiên, Python 3.12,
+Next.js 16.3.5 và MySQL 8.4.11. Cổng `make gate` chạy thành công: 439 test backend và 155 test
+frontend đạt, kiểm tra định dạng, lint, kiểu và build production đều đạt. Bảy test backend ban đầu
+thất bại đã được truy nguyên: sáu ca bị ảnh hưởng cấu hình SePay trong môi trường local, một ca
+lọc sai tháng do ngày tạo phiếu xuất lấy giờ CSDL thay vì đồng hồ nghiệp vụ. Sau sửa, các ca đều đạt.
+
+Bảy ca integration trên MySQL đạt, gồm ba luồng nhập kho–gọi món–thanh toán–chốt giá vốn–báo cáo
+với tiền mặt, QR giả lập và webhook SePay thử, cùng kiểm tra cấu trúc view và quyền ba tài khoản AI.
+Các ca xác nhận FIFO, nhất quán ba tầng tồn kho, hóa đơn không sinh lặp khi gửi lại webhook,
+giá vốn và kiểm tra quyền API. Thử nghiệm dùng schema riêng; không phát sinh chuyển khoản ngân hàng thật.
+
+Trên Chrome, sáu màn hình module được kiểm tra tại 1440×1000, 768×1024 và 1024×768; hai kích thước
+tablet giả lập có cảm ứng. Các màn hình chính được đo không tràn ngang. Sau sửa kích thước điều khiển,
+các nút, tab và ô nhập văn bản/số đã đo trên viewport cảm ứng đạt tối thiểu 44px. Luồng mang về và
+thu tiền mặt hiển thị đúng tiền thối; luồng QR giả lập tự chuyển sang hóa đơn khi API nhận webhook.
+Kiểm tra này không xác nhận tablet vật lý, bàn phím ảo, Edge, Safari hoặc mọi hộp thoại/nhánh nghiệp vụ.
+
+Tệp `docs/eval-results.json` lưu thực nghiệm trước đó trên bộ 95 câu: độ đúng thực thi A/B/C lần lượt
+56,84%, 66,32% và 57,89%; độ trễ trung bình theo harness lần lượt 5,7452, 5,0819 và 8,7885 giây.
+Đợt 17/10 không chạy lại LLM. Những số liệu này thuộc bộ cũ, không phải kết quả của kế hoạch mới
+gồm 80 câu chính thức và 30 câu phát triển tại mục 5.2, cũng không chứng minh độ trễ đầu-cuối.
+
+Nhật ký, lệnh tái lập, ảnh và giới hạn nằm ở `docs/testing/results-2026-10-17.md`. Mẫu giao diện chỉ
+dùng một tháng dữ liệu nhỏ; chưa kiểm tra tải đồng thời, p95/INP, sao lưu–phục hồi hoặc xác nhận toàn bộ
+yêu cầu mới về giữ chỗ, giải phóng bàn và xác minh thanh toán. Có ghi nhận nhãn trạng thái bàn trong
+mẫu chưa thống nhất với bộ lọc dựa trên order mở; vấn đề này cần được xử lý trước nghiệm thu sơ đồ bàn.
+Chưa có phiếu SUS hay biên bản UAT từ người dùng thật, nên chưa báo cáo điểm SUS hoặc kết luận chấp nhận.
+
+### Kết quả trả nợ kỹ thuật tiếp theo trong ngày 17/10/2026
+
+Sau đợt kiểm chứng trên, nhóm xử lý sáu khoản nợ về trạng thái bàn, ranh giới tháng, CI MySQL,
+seed, trạng thái AI dùng chung và tài liệu. Cổng kiểm tra mới đạt 479 test backend và 157 test
+frontend, cùng 10 ca integration MySQL 8.4.11; lint, kiểm tra kiểu và build đều đạt.
+Log và lệnh tái lập được lưu tại `docs/testing/technical-debt-2026-10-17.md`.
+
+Trạng thái bàn vật lý được quản lý bằng `BAN.TrangThai` và `BAN.MaOrderDangPhucVu`, tách khỏi
+trạng thái tài chính. Thu ngân/Quản lý xác nhận giải phóng khi khách rời; thao tác kiểm tra mã order
+đang gắn và khóa dòng bàn. Thanh toán muộn không giải phóng bàn của lượt khách mới. Migration
+`e31f52a6c901` phục hồi liên kết với order mở của dữ liệu cũ và dừng trước DDL nếu một bàn còn nhiều
+order mở cần đối soát. Luồng gọi món–thu tiền–giải phóng bàn đã thao tác trên Chrome giả lập tablet,
+nhãn và bộ đếm bàn thống nhất. Ghi nhận bất nhất nhãn bàn trong đợt trước đã được xử lý trong phạm vi này.
+
+Chốt giá vốn và báo cáo hao hụt cùng dùng mốc tháng từ 06:00, có ca biên hai đầu tháng và làm tròn
+chi phí theo độ chính xác lưu trữ. Seed MySQL trên khoảng 12 tháng với mục tiêu giảm còn 365 order
+tạo đúng 365 order, 104 phiếu nhập và 38 phiếu xuất; validator xác nhận tồn nguyên liệu, lô và sổ
+giao dịch khớp nhau. Lượt từ chối được rollback bằng savepoint, ghi nguyên nhân; thiếu mục tiêu
+hoặc lỗi bất biến làm lượt sinh thất bại. Mẫu này không thay cho kiểm tra tải 20.000 order.
+
+Cache SQL và hạn mức được lưu trong hai bảng hạ tầng `BO_NHO_DEM_SQL_AI`, `HAN_MUC_AI_NGAY`,
+tách khỏi sơ đồ lớp nghiệp vụ và không cấp cho các tài khoản view AI. Hạn mức được giữ nguyên tử
+trước mỗi lần sinh SQL logic, không hoàn lại khi câu hỏi rollback. Cache có TTL, khóa theo vai trò,
+Business Date và ngữ cảnh mô hình/lược đồ; SQL lấy từ cache vẫn được kiểm duyệt. Kiểm thử MySQL
+xác nhận các worker không vượt hạn mức và ghi cache đồng thời không deadlock; dọn cache hết hạn
+là tác vụ riêng. Hạn mức này không phải số liệu tổng token hoặc tổng HTTP request của provider.
+
+Workflow CI bổ sung job MySQL 8.4 và không chấp nhận ca integration bị skip. Các lệnh tương đương
+đã chạy local; workflow trên GitHub chưa chạy vì chưa push thay đổi. SUS/UAT, thiết bị vật lý,
+thực nghiệm bộ mới và toàn bộ các yêu cầu khác vẫn giữ phạm vi/chưa nghiệm thu như đã nêu.
+
 ## KẾT LUẬN
 
 Báo cáo trình bày kết quả khảo sát người dùng, xác định yêu cầu và thiết kế hệ thống quản lý nhà hàng. Thiết kế bao quát năm module nghiệp vụ: danh mục, bán hàng, kho, báo cáo thống kê và cài đặt, cùng các cơ chế kiểm soát đặc thù như thanh toán QR có đối soát, quản lý lô nguyên liệu theo FIFO và phân quyền dữ liệu theo vai trò. Đây là phần đóng góp chính của đề tài, làm cơ sở cho quá trình xây dựng chương trình.
 
 AI Assistant hỗ trợ quản lý tra cứu và so sánh doanh thu, lượng bán, phân bố order bằng tiếng Việt để xem xét hoạt động kinh doanh. Thiết kế sử dụng LLM qua API kết hợp Text-to-SQL, view theo vai trò và kiểm duyệt truy vấn. Kế hoạch đánh giá gồm 80 câu hỏi có đáp án chuẩn, các cấu hình đối chứng và bộ ca an toàn; kết quả được đối chiếu theo phương pháp tại mục 5.2.
 
-Tại thời điểm báo cáo, kiểm thử toàn hệ thống, thực nghiệm AI và khảo sát SUS chưa hoàn tất. Các ngưỡng tại mục 5.2 là mục tiêu đánh giá dự kiến; báo cáo chưa có kết quả để xác nhận mức độ đạt các ngưỡng này.
+Đợt kiểm chứng và trả nợ kỹ thuật ngày 17/10/2026 đã có kết quả kiểm thử tự động, integration MySQL,
+seed có kiểm chứng và một số luồng giao diện; thực nghiệm AI trên bộ 95 câu cũ được lưu riêng.
+Đánh giá theo bộ 80 câu mới, kiểm thử toàn bộ
+yêu cầu, tải và thiết bị thực tế, khảo sát SUS và nghiệm thu UAT vẫn chưa hoàn tất. Các kết quả đã có
+không đủ để xác nhận đạt toàn bộ ngưỡng tại mục 5.2; báo cáo không suy điểm SUS hay kết luận UAT từ
+kiểm thử tự động.
 
 ### Giới hạn phạm vi
 

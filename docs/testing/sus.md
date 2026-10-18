@@ -1,5 +1,9 @@
 # Khảo sát SUS (System Usability Scale)
 
+**Trạng thái ngày 17/10/2026:** đã chuẩn bị phiếu và nhiệm vụ; chưa có câu trả lời từ người dùng thật.
+Các ô dưới đây giữ trống cho tới khi khảo sát. Không lấy kết quả test tự động hoặc thao tác của trợ lý
+để tính điểm SUS. Xem [kết quả kiểm chứng kỹ thuật](results-2026-10-17.md).
+
 Theo Phụ lục 4 của `docs/BaoCao_HeThongQuanLyNhaHang.md`: 3–5 người đóng vai Chủ nhà hàng/Quản lý,
 kết hợp phỏng vấn ngắn. Với cỡ mẫu này kết quả chỉ có giá trị định tính, tham khảo — không suy rộng
 thành kết luận thống kê.

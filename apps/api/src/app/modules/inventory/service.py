@@ -19,6 +19,7 @@ from app.modules.inventory.models import (
 from app.modules.inventory.stock import StockChange, apply_stock_movement
 from app.shared import business_date
 from app.shared.audit import SystemAuditLog
+from app.shared.enums import StocktakeStatus
 
 
 def _bd():
@@ -315,8 +316,13 @@ async def list_receipts(
 async def create_issue(
     session: AsyncSession, actor_id: int, reason: str, lines: list[dict]
 ) -> StockIssue:
+    moment = business_date.now()
     issue = StockIssue(
-        reason=reason, status="Nháp", issue_date=business_date.now(), created_by=actor_id
+        reason=reason,
+        status="Nháp",
+        created_at=moment,
+        issue_date=moment,
+        created_by=actor_id,
     )
     session.add(issue)
     await session.flush()
@@ -382,6 +388,12 @@ async def list_issues(
 
 # Stocktakes
 async def create_stocktake(session: AsyncSession, actor_id: int) -> Stocktake:
+    # NFR-20: one open counting session at a time; the session blocks stock changes.
+    existing = (
+        await session.execute(select(Stocktake.id).where(Stocktake.status == "Nháp").limit(1))
+    ).scalar_one_or_none()
+    if existing is not None:
+        raise BusinessRuleError("Đang có phiên kiểm kê chưa chốt.")
     st = Stocktake(status="Nháp", stocktake_date=business_date.now(), performed_by=actor_id)
     session.add(st)
     await session.flush()
@@ -423,6 +435,16 @@ async def record_counts(
         raise NotFoundError("Không tìm thấy phiếu kiểm kê.")
     if st.status != "Nháp":
         raise BusinessRuleError("Phiếu kiểm kê đã chốt, không thể ghi nhận thêm.")
+    existing = {
+        line.ingredient_id: line
+        for line in (
+            await session.execute(
+                select(StocktakeLine).where(StocktakeLine.stocktake_id == stocktake_id)
+            )
+        )
+        .scalars()
+        .all()
+    }
     seen_ids: set[int] = set()
     for iid, actual in counts:
         if iid in seen_ids:
@@ -435,13 +457,20 @@ async def record_counts(
 
         ing = await session.get(Ingredient, iid)
         sys_qty = Decimal(str(ing.stock_qty)) if ing else Decimal(0)
-        line = StocktakeLine(
-            stocktake_id=stocktake_id,
-            ingredient_id=iid,
-            system_qty=sys_qty,
-            actual_qty=actual,
-        )
-        session.add(line)
+        line = existing.get(iid)
+        if line is None:
+            session.add(
+                StocktakeLine(
+                    stocktake_id=stocktake_id,
+                    ingredient_id=iid,
+                    system_qty=sys_qty,
+                    actual_qty=actual,
+                )
+            )
+        else:
+            # Re-counting an ingredient updates its line instead of duplicating it.
+            line.system_qty = sys_qty
+            line.actual_qty = actual
     await session.flush()
 
 
@@ -462,6 +491,18 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
     )
     if not lines:
         raise BusinessRuleError("Chưa ghi nhận kiểm kê.")
+    from app.modules.catalog.models import Ingredient as ActiveIngredient
+
+    active_count = (
+        await session.execute(
+            select(func.count())
+            .select_from(ActiveIngredient)
+            .where(ActiveIngredient.is_deleted.is_(False))
+        )
+    ).scalar_one()
+    counted = len({line.ingredient_id for line in lines})
+    if counted < active_count:
+        raise BusinessRuleError("Chưa kiểm đủ nguyên liệu đang hoạt động.")
     affected_ingredient_ids: list[int] = []
     for line in lines:
         affected_ingredient_ids.append(line.ingredient_id)
@@ -469,10 +510,11 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
         if diff == 0:
             continue
         if diff < 0:
-            # Deduct via FIFO but never touch HET_HAN lots; keep 3-tier in sync
+            # The physical count includes expired lots, so the shortage must be
+            # deducted from every lot, not only the still-sellable ones.
             from app.modules.inventory.stock import lots_for_fifo
 
-            fifo_lots = await lots_for_fifo(session, line.ingredient_id)
+            fifo_lots = await lots_for_fifo(session, line.ingredient_id, allow_expired=True)
             need = -diff
             total_avail = sum(
                 (Decimal(str(lot.quantity_remaining)) for lot in fifo_lots), Decimal(0)
@@ -546,7 +588,7 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
             ing = await session.get(Ing4, line.ingredient_id)
             if ing:
                 ing.stock_qty = ing.stock_qty + diff
-    st.status = "Đã xác nhận"
+    st.status = StocktakeStatus.DA_CHOT.value
     await session.flush()
     session.add(
         SystemAuditLog(

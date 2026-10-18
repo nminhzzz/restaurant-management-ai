@@ -25,6 +25,12 @@ async def _has_active_recipe(session: AsyncSession, dish_id: int) -> bool:
 async def display_status_for(session: AsyncSession, dish: Dish) -> str:
     if dish.is_deleted:
         return "Đã xóa"
+    # A recipe scheduled for today may only be discovered when the screen is opened;
+    # promote it before deciding whether the dish is still a draft.
+    from app.modules.catalog import versions as catalog_versions
+
+    await catalog_versions.promote_due_versions(session, dish.id, _bd.business_date_of(_bd.now()))
+    await session.refresh(dish)
     if dish.missing_recipe:
         return "Nháp"
     if dish.out_of_stock:
@@ -436,7 +442,8 @@ async def schedule_recipe_change(
     )
     session.add(r)
     await session.flush()
-    d.missing_recipe = False
+    # A scheduled recipe is not active yet: keep the dish in "Nháp" until the
+    # promotion in catalog.versions makes it effective, then set missing_recipe=False.
     for ing_id, qty in items:
         session.add(_RI(recipe_id=r.id, ingredient_id=ing_id, quantity=float(qty)))
         # lock unit
@@ -579,7 +586,12 @@ async def cancel_pending_recipe_change(session, actor_id: int, recipe_id: int):
 
 # --- Ingredients & Suppliers (Task 4) ---
 async def create_ingredient(
-    session, actor_id: int, name: str, unit: str = "kg", min_stock: float | None = None
+    session,
+    actor_id: int,
+    name: str,
+    unit: str = "kg",
+    min_stock: float | None = None,
+    shelf_days: int | None = None,
 ):
     from app.modules.catalog.models import Ingredient as _Ing
     from app.modules.settings.models import SystemConfig
@@ -594,6 +606,7 @@ async def create_ingredient(
         stock_qty=0,
         is_deleted=False,
         unit_locked=False,
+        shelf_days=shelf_days,
     )
     session.add(ing)
     await session.flush()
@@ -616,6 +629,7 @@ async def update_ingredient(
     name: str | None = None,
     unit: str | None = None,
     min_stock: float | None = None,
+    shelf_days: int | None = None,
 ):
     from app.modules.catalog.models import Ingredient as _Ing
 
@@ -630,6 +644,8 @@ async def update_ingredient(
         ing.name = name
     if min_stock is not None:
         ing.min_stock = float(min_stock)
+    if shelf_days is not None:
+        ing.shelf_days = shelf_days
     await session.flush()
     session.add(
         SystemAuditLog(
@@ -719,10 +735,25 @@ async def effective_min_stock(session, ingredient) -> float:
     return float(cfg.default_stock_threshold) if cfg else 5
 
 
-async def create_supplier(session, actor_id: int, name: str, phone: str | None = None):
+async def create_supplier(
+    session,
+    actor_id: int,
+    name: str,
+    phone: str | None = None,
+    email: str | None = None,
+    contact_name: str | None = None,
+    address: str | None = None,
+):
     from app.modules.catalog.models import Supplier as _Sup
 
-    s = _Sup(name=name, phone=phone, is_deleted=False)
+    s = _Sup(
+        name=name,
+        phone=phone,
+        email=email,
+        contact_name=contact_name,
+        address=address,
+        is_deleted=False,
+    )
     session.add(s)
     await session.flush()
     session.add(
@@ -743,6 +774,9 @@ async def update_supplier(
     sup_id: int,
     name: str | None = None,
     phone: str | None = None,
+    email: str | None = None,
+    contact_name: str | None = None,
+    address: str | None = None,
 ):
     from app.modules.catalog.models import Supplier as _Sup
 
@@ -753,6 +787,12 @@ async def update_supplier(
         s.name = name
     if phone is not None:
         s.phone = phone
+    if email is not None:
+        s.email = email
+    if contact_name is not None:
+        s.contact_name = contact_name
+    if address is not None:
+        s.address = address
     await session.flush()
     session.add(
         SystemAuditLog(
@@ -816,10 +856,16 @@ async def list_suppliers(session):
 
 
 # --- Tables & visibility (Task 5) ---
-async def create_table(session, actor_id: int, name: str):
+async def create_table(
+    session,
+    actor_id: int,
+    name: str,
+    area: str | None = None,
+    capacity: int | None = None,
+):
     from app.modules.catalog.models import DiningTable as _T
 
-    t = _T(name=name, is_deleted=False)
+    t = _T(name=name, area=area, capacity=capacity, is_deleted=False)
     session.add(t)
     await session.flush()
     session.add(
@@ -831,23 +877,57 @@ async def create_table(session, actor_id: int, name: str):
     return t
 
 
+async def update_table(
+    session,
+    actor_id: int,
+    table_id: int,
+    *,
+    name: str | None = None,
+    area: str | None = None,
+    capacity: int | None = None,
+):
+    from app.modules.catalog.models import DiningTable as _T
+
+    t = (
+        await session.execute(
+            select(_T)
+            .where(_T.id == table_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+    ).scalar_one_or_none()
+    if t is None or t.is_deleted:
+        raise NotFoundError("Không tìm thấy bàn.")
+    if name is not None:
+        t.name = name
+    if area is not None:
+        t.area = area
+    if capacity is not None:
+        t.capacity = capacity
+    await session.flush()
+    session.add(
+        SystemAuditLog(
+            user_id=actor_id, action="UPDATE_TABLE", target_entity="BAN", target_id=str(t.id)
+        )
+    )
+    await session.flush()
+    return t
+
+
 async def delete_table(session, actor_id: int, table_id: int):
     from app.modules.catalog.models import DiningTable as _T
 
-    t = await session.get(_T, table_id)
-    if t is None or t.is_deleted:
-        raise NotFoundError("Không tìm thấy bàn.")
-    # check if in use: any ORDER with TrangThai != Da thanh toan / Da huy and MaBan == table_id
-    from app.modules.sales.models import Order as _O
-
-    has = (
+    t = (
         await session.execute(
-            select(_O)
-            .where(_O.table_id == table_id, _O.status.notin_(["Đã thanh toán", "Đã hủy"]))
-            .limit(1)
+            select(_T)
+            .where(_T.id == table_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
         )
     ).scalar_one_or_none()
-    if has is not None:
+    if t is None or t.is_deleted:
+        raise NotFoundError("Không tìm thấy bàn.")
+    if t.status == "Đang phục vụ" or t.current_order_id is not None:
         raise BusinessRuleError("Không thể xóa bàn đang được sử dụng.")
     t.is_deleted = True
     await session.flush()

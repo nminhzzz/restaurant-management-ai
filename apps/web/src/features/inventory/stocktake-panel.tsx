@@ -44,7 +44,7 @@ const HISTORY_PAGE_SIZE = 20;
 
 const STOCKTAKE_STATUSES = [
   { value: "Nháp", label: "Nháp" },
-  { value: "Đã xác nhận", label: "Đã xác nhận" },
+  { value: "Đã chốt", label: "Đã chốt" },
 ];
 
 type HistoryFilters = { status: string; dateFrom: string; dateTo: string };
@@ -120,7 +120,7 @@ function DraftStocktake({
         apiFetch(`/inventory/stocktakes/${stocktakeId}/confirm`, {
           method: "POST",
         }),
-      "Đã xác nhận kiểm kê, cập nhật tồn kho.",
+      "Đã chốt kiểm kê, cập nhật tồn kho.",
     );
     if (confirmed !== undefined) onDone();
   }

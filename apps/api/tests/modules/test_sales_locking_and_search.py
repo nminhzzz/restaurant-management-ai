@@ -181,6 +181,10 @@ async def test_search_lists_newest_first_and_filters_by_status_and_table(session
     h, _ = await _headers(session)
     first, _ = await _submit(session, client, h, d, t)
     await client.post(f"/api/v1/sales/orders/{first}/pay/cash", headers=h)
+    released = await client.post(
+        f"/api/v1/sales/tables/{t.id}/release", json={"order_id": first}, headers=h
+    )
+    assert released.status_code == 200
     second, _ = await _submit(session, client, h, d, t)
     today = business_date.business_date_of(business_date.now()).isoformat()
 
@@ -202,6 +206,10 @@ async def test_search_caps_the_number_of_rows(session):
     for _ in range(3):
         oid, _ = await _submit(session, client, h, d, t)
         await client.post(f"/api/v1/sales/orders/{oid}/pay/cash", headers=h)
+        released = await client.post(
+            f"/api/v1/sales/tables/{t.id}/release", json={"order_id": oid}, headers=h
+        )
+        assert released.status_code == 200
 
     r = await client.get("/api/v1/sales/orders?limit=2", headers=h)
 
@@ -217,6 +225,10 @@ async def test_search_paginates_and_reports_a_real_total(session):
     for _ in range(5):
         oid, _ = await _submit(session, client, h, d, t)
         await client.post(f"/api/v1/sales/orders/{oid}/pay/cash", headers=h)
+        released = await client.post(
+            f"/api/v1/sales/tables/{t.id}/release", json={"order_id": oid}, headers=h
+        )
+        assert released.status_code == 200
 
     page1 = await client.get("/api/v1/sales/orders?page=1&size=2", headers=h)
     page2 = await client.get("/api/v1/sales/orders?page=2&size=2", headers=h)
@@ -261,3 +273,21 @@ async def test_search_rejects_a_malformed_business_date(session):
     r = await client.get("/api/v1/sales/orders?business_date=25-09-2026", headers=h)
 
     assert r.status_code == 422
+
+
+@pytest.mark.anyio
+async def test_warehouse_cannot_search_or_read_orders(session):
+    """Bảng 10: the warehouse role has no order/invoice screen."""
+    d, t = await _setup(session)
+    client = await _make_client(session)
+    cashier, _ = await _headers(session)
+    warehouse, _ = await _headers(session, role="WAREHOUSE", username="kho_wh")
+    oid, _ = await _submit(session, client, cashier, d, t)
+
+    search = await client.get("/api/v1/sales/orders", headers=warehouse)
+    detail = await client.get(f"/api/v1/sales/orders/{oid}", headers=warehouse)
+    tickets = await client.get(f"/api/v1/sales/orders/{oid}/tickets", headers=warehouse)
+
+    assert search.status_code == 403
+    assert detail.status_code == 403
+    assert tickets.status_code == 403

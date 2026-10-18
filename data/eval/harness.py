@@ -10,21 +10,23 @@ different queries returning the same table are both correct.
 
 Run against a seeded database with that database's read-only accounts in place:
 
-    cd apps/api && uv run python ../../data/eval/harness.py --configs A,B,C --out ../../docs/eval-results.json
+    cd apps/api && uv run python ../../data/eval/harness.py \
+        --configs A,B,C --out ../../docs/eval-results.json
 """
 
 import argparse
 import asyncio
 import json
-from decimal import Decimal, InvalidOperation
-from itertools import product
 import sys
 import time
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import asdict, dataclass, field
-from enum import Enum
+from decimal import Decimal, InvalidOperation
+from enum import StrEnum
+from itertools import product
 from pathlib import Path
-from typing import Any, AsyncIterator
+from typing import Any
 
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -42,7 +44,7 @@ from app.shared.roles import Role
 QUESTIONS_PATH = Path(__file__).with_name("questions.jsonl")
 
 
-class Config(str, Enum):
+class Config(StrEnum):
     A = "A"
     B = "B"
     C = "C"
@@ -241,7 +243,9 @@ async def _run(config: Config, questions: list[Any], session: AsyncSession) -> C
     for question in questions:
         question_id = question["id"]
         role = Role(question["role"])
-        expected_refusal = bool(question.get("notes") and "vượt quyền" in question["notes"])
+        expected_refusal = question.get("expect") == "refusal" or bool(
+            question.get("notes") and "vượt quyền" in question["notes"]
+        )
         text = (
             normalize.normalize_question(question["question"])
             if normalises(config)
@@ -268,6 +272,13 @@ async def _run(config: Config, questions: list[Any], session: AsyncSession) -> C
             record(question, "lỗi", started)
             continue
 
+        if expected_refusal and not question.get("sql"):
+            # A safety case without a reference query: producing any SQL is wrong,
+            # but there is nothing safe to execute for comparison.
+            failures.append(Failure(question_id, "câu không được phép nhưng vẫn trả dữ liệu"))
+            record(question, "sai", started, sql)
+            continue
+
         try:
             produced = await executor.execute(
                 sql, role=role, timeout_seconds=settings.ai_sql_timeout_seconds
@@ -277,7 +288,7 @@ async def _run(config: Config, questions: list[Any], session: AsyncSession) -> C
                 role=role,
                 timeout_seconds=settings.ai_sql_timeout_seconds,
             )
-        except Exception as exc:  # noqa: BLE001 - a failed query is a measured outcome
+        except Exception as exc:
             errors += 1
             failures.append(Failure(question_id, f"lỗi thực thi: {exc}"))
             record(question, "lỗi", started, sql)
@@ -347,8 +358,8 @@ async def run_harness(config: Config, questions: list[Any], out: Path) -> Config
     return result
 
 
-async def _main(configs: list[Config], out: Path) -> int:
-    questions = load_questions()
+async def _main(configs: list[Config], out: Path, questions_path: Path | None = None) -> int:
+    questions = load_questions(questions_path)
     results = [await run_configuration(config, questions) for config in configs]
     table = compare(results)
     detail = {
@@ -377,6 +388,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--configs", default="A,B,C")
     parser.add_argument("--out", default="eval-results.json")
+    parser.add_argument(
+        "--questions",
+        default=None,
+        help="Đường dẫn file JSONL; mặc định data/eval/questions.jsonl",
+    )
     args = parser.parse_args()
     chosen = [Config(name.strip()) for name in args.configs.split(",") if name.strip()]
-    raise SystemExit(asyncio.run(_main(chosen, Path(args.out))))
+    questions_path = Path(args.questions) if args.questions else None
+    raise SystemExit(asyncio.run(_main(chosen, Path(args.out), questions_path)))

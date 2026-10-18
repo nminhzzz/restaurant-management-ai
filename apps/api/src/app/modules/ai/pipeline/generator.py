@@ -1,22 +1,22 @@
-"""Step 3 — SQL generation through the configured LLM.
+"""Generate guarded SQL with shared, durable cache and daily reservations.
 
-Every candidate goes straight through `guard.validate_sql`; a rejected candidate costs
-one of the `ai_max_sql_attempts` (two) generations, and running out raises. The cache
-key includes the role, because the same words asked by another role must never reuse
-an answer produced under a different scope (FR-AI-05).
-
-Daily quota and cache are process-local on purpose: NFR-16 asks for cost control, not
-for durable accounting, and keeping them here avoids a table the report never mentions.
+Quota counts logical SQL-generation calls (`client.complete`), including guard
+retries. Transport fallback inside the adapter and result interpretation are not
+additional SQL generations. Each reservation commits before invoking the model.
 """
 
 import asyncio
+import hashlib
+import json
+from datetime import UTC
+from pathlib import Path
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.errors import BusinessRuleError
-from app.modules.ai import guard, llm
-from app.modules.ai.errors import ClarificationNeeded, QuotaExceeded
+from app.modules.ai import guard, llm, runtime
+from app.modules.ai.errors import ClarificationNeeded
 from app.modules.ai.pipeline.normalize import normalize_question
 from app.modules.ai.pipeline.prompt import build_prompt
 from app.modules.ai.scope import views_for
@@ -24,54 +24,71 @@ from app.shared import business_date
 from app.shared.roles import Role
 
 CLARIFY_PREFIX = "CLARIFY:"
-
-_cache: dict[tuple[str, str], str] = {}
-_daily_calls: dict[str, int] = {}
-
-
-def reset_state() -> None:
-    """Clear the cache and the quota counter (used between tests)."""
-    _cache.clear()
-    _daily_calls.clear()
+# Guard implementation changes invalidate previously accepted candidates too.
+_GUARD_FINGERPRINT = hashlib.sha256(Path(guard.__file__).read_bytes()).hexdigest()
 
 
-def set_daily_calls(day: str, count: int) -> None:
-    _daily_calls[day] = count
-
-
-def _today() -> str:
-    return business_date.business_date_of(business_date.now()).isoformat()
-
-
-def _enforce_quota() -> None:
-    if _daily_calls.get(_today(), 0) >= get_settings().ai_daily_question_quota:
-        raise QuotaExceeded("Đã đạt hạn mức câu hỏi trong ngày. Vui lòng thử lại vào ngày mai.")
-
-
-def _charge_quota() -> None:
-    day = _today()
-    _daily_calls[day] = _daily_calls.get(day, 0) + 1
-
-
-async def generate_sql(session: AsyncSession, question: str, role: Role) -> str:
-    """Validated SQL for this question, or a raised signal for the orchestrator."""
+async def generate_sql(
+    session: AsyncSession, question: str, role: Role, user_id: int | None = None
+) -> str:
+    """Return SQL only after validation, including when it came from shared cache."""
     settings = get_settings()
     normalized = normalize_question(question)
-    cache_key = (role.value, normalized)
-    cached = _cache.get(cache_key)
-    if cached is not None:
-        return cached
-
-    _enforce_quota()
-    client = llm.get_client()
     allowed = views_for(role)
-    last_error: BusinessRuleError | None = None
+    quota = settings.ai_daily_question_quota
+    try:
+        # The manager's configured per-user daily limit wins over the env default.
+        from app.modules.settings.service import get_config
 
+        quota = (await get_config(session)).ai_daily_question_quota
+    except Exception:
+        pass
+    # Schema reflection uses the caller's connection and never locks runtime tables.
+    # Include the full prompt: view columns, examples and prompt policy all matter.
+    base_prompt = await build_prompt(session, normalized, role)
+    now = business_date.now()
+    day = business_date.business_date_of(now)
+    cache_context = {
+        "role": role.value,
+        "day": day.isoformat(),
+        "prompt": base_prompt,
+        "provider": settings.ai_provider,
+        "endpoint": settings.llm_base_url,
+        "ollama_endpoint": settings.ai_ollama_base_url,
+        "model": settings.llm_model,
+        "client_model": getattr(llm.get_client(), "model", None),
+        "fallback_model": settings.llm_fallback_model or settings.ai_config_c_model,
+        "reasoning_effort": settings.llm_reasoning_effort,
+        "guard": _GUARD_FINGERPRINT,
+        "views": sorted(allowed),
+        "max_rows": settings.ai_max_rows,
+        "timeout": settings.ai_sql_timeout_seconds,
+        "attempts": settings.ai_max_sql_attempts,
+        "ttl": settings.ai_sql_cache_ttl_seconds,
+    }
+    cache_key = hashlib.sha256(
+        json.dumps(cache_context, sort_keys=True, ensure_ascii=False).encode()
+    ).hexdigest()
+    store = runtime.get_runtime_store()
+    # Store naive UTC in MySQL DATETIME; BusinessDate itself uses restaurant time.
+    cache_now = now.astimezone(UTC).replace(tzinfo=None)
+    cached = await store.get_sql(cache_key, cache_now)
+    if cached is not None:
+        try:
+            return guard.validate_sql(cached, allowed_views=allowed, max_rows=settings.ai_max_rows)
+        except BusinessRuleError:
+            # Corrupt/outdated cache content must never bypass the guard.
+            pass
+
+    client = llm.get_client()
+    last_error: BusinessRuleError | None = None
     for _ in range(settings.ai_max_sql_attempts):
-        _charge_quota()
-        prompt = await build_prompt(session, normalized, role)
+        prompt = base_prompt
         if last_error is not None:
             prompt += f"\n\nLần trước câu SQL chưa hợp lệ: {last_error}. Hãy sửa lại."
+        # Recompute BusinessDate on retries crossing the restaurant's 06:00 boundary.
+        call_day = business_date.business_date_of(business_date.now())
+        await store.reserve_call(call_day, quota, user_id or 0)
         raw = await asyncio.to_thread(client.complete, prompt) or ""
         text = raw.strip()
 
@@ -79,16 +96,12 @@ async def generate_sql(session: AsyncSession, question: str, role: Role) -> str:
             raise ClarificationNeeded(text[len(CLARIFY_PREFIX) :].strip())
 
         try:
-            sql = guard.validate_sql(
-                text,
-                allowed_views=allowed,
-                max_rows=settings.ai_max_rows,
-            )
+            sql = guard.validate_sql(text, allowed_views=allowed, max_rows=settings.ai_max_rows)
         except BusinessRuleError as exc:
             last_error = exc
             continue
 
-        _cache[cache_key] = sql
+        await store.put_sql(cache_key, sql, cache_now, settings.ai_sql_cache_ttl_seconds)
         return sql
 
     raise BusinessRuleError(guard.SQL_REJECTED_MESSAGE)

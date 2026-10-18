@@ -13,7 +13,7 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import BusinessRuleError, NotFoundError
-from app.modules.catalog.models import DiningTable, Ingredient
+from app.modules.catalog.models import DiningTable, Dish, DishPriceVersion, Ingredient
 from app.modules.catalog.versions import (
     active_price_version,
     active_recipe,
@@ -21,6 +21,7 @@ from app.modules.catalog.versions import (
 )
 from app.modules.inventory.models import IngredientLot, StockMovement
 from app.modules.inventory.stock import StockChange, apply_stock_movement
+from app.modules.sales import reservations
 from app.modules.sales.models import DemOrder, KitchenTicket, Order, OrderLine
 from app.modules.sales.tickets import render_ticket
 from app.shared import business_date
@@ -91,15 +92,25 @@ async def next_display_code(session: AsyncSession, bd: date) -> str:
     return f"ORD-{bd.strftime('%d%m%y')}-{number:03d}"
 
 
-def write_kitchen_ticket(
+async def write_kitchen_ticket(
     session: AsyncSession, order: Order, lines: list[OrderLine]
 ) -> KitchenTicket:
+    """Build one ticket with the names a kitchen can read, not internal ids."""
+    dish_ids = {line.dish_id for line in lines}
+    dish_names: dict[int, str] = {}
+    if dish_ids:
+        rows = await session.execute(select(Dish.id, Dish.name).where(Dish.id.in_(dish_ids)))
+        dish_names = {row[0]: row[1] for row in rows}
+    table_name: str | None = None
+    if order.table_id is not None:
+        table = await session.get(DiningTable, order.table_id)
+        table_name = table.name if table is not None else None
     ticket = KitchenTicket(
         order_id=order.id,
         status="Chờ in",
         print_status="Chờ in",
         print_count=1,
-        content=render_ticket(order, lines),
+        content=render_ticket(order, lines, dish_names=dish_names, table_name=table_name),
     )
     session.add(ticket)
     return ticket
@@ -123,13 +134,21 @@ async def _resolve_line_inputs(
     if price_version is None:
         return line, False, "Món chưa có giá"
     if recipe is None:
-        return line, True, None
+        # A price alone is not a sellable dish: without an active recipe there is no
+        # stock to draw, so allowing the line would give away free food.
+        return line, False, "Món chưa có công thức hiệu lực"
     for item in await recipe_items(session, recipe.id):
         ingredient = await session.get(Ingredient, item.ingredient_id)
         needed = Decimal(str(item.quantity)) * quantity
         if ingredient is None or Decimal(str(ingredient.stock_qty)) < needed:
             return line, False, "không đủ tồn kho"
     return line, True, None
+
+
+def _rejection_message(reason: str | None) -> str:
+    if reason in ("Món chưa có giá", "Món chưa có công thức hiệu lực"):
+        return reason
+    return "Không đủ tồn kho."
 
 
 async def _draw_line_stock(
@@ -248,9 +267,17 @@ async def _set_order_status(session: AsyncSession, order: Order, status: str) ->
 async def _free_table(session: AsyncSession, order: Order) -> None:
     if order.table_id is None:
         return
-    table = await session.get(DiningTable, order.table_id)
-    if table is not None:
+    table = (
+        await session.execute(
+            select(DiningTable)
+            .where(DiningTable.id == order.table_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+    ).scalar_one_or_none()
+    if table is not None and table.current_order_id == order.id:
         table.status = "Trống"
+        table.current_order_id = None
 
 
 async def submit_order(
@@ -265,10 +292,18 @@ async def submit_order(
     if order_type == "Mang về":
         table_id = None
     elif table_id is not None:
-        table = await session.get(DiningTable, table_id)
+        table = (
+            await session.execute(
+                select(DiningTable)
+                .where(DiningTable.id == table_id)
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
+        ).scalar_one_or_none()
         if table is None or table.is_deleted:
             raise BusinessRuleError("Bàn không tồn tại.")
-        table.status = "Đang phục vụ"
+        if table.status != "Trống" or table.current_order_id is not None:
+            raise BusinessRuleError("Bàn đang phục vụ. Hãy giải phóng bàn trước khi mở order mới.")
 
     display_code = await next_display_code(session, bd)
     order = Order(
@@ -291,6 +326,53 @@ async def submit_order(
             continue
         quantity = int(line_input.get("quantity") or line_input.get("SoLuong") or 1)
         note = line_input.get("note") or line_input.get("GhiChu")
+        hold_id = line_input.get("hold_id")
+
+        if hold_id is not None:
+            if actor_id is None:
+                rejected.append({"MaMon": int(dish_id), "reason": "Lượt giữ chỗ không hợp lệ"})
+                continue
+            try:
+                async with session.begin_nested():
+                    hold = await reservations.get_active_hold(session, int(hold_id), actor_id)
+                    if hold.dish_id != int(dish_id) or int(hold.quantity) != quantity:
+                        raise BusinessRuleError("Lượt giữ chỗ không khớp món/số lượng")
+                    if hold.table_id != table_id:
+                        raise BusinessRuleError("Lượt giữ chỗ khác bàn")
+                    price = (
+                        await session.get(DishPriceVersion, hold.price_version_id)
+                        if hold.price_version_id is not None
+                        else None
+                    )
+                    if price is None:
+                        raise BusinessRuleError("Món chưa có giá")
+                    unit_price = Decimal(str(price.price))
+                    line = OrderLine(
+                        order_id=order.id,
+                        dish_id=int(dish_id),
+                        quantity=quantity,
+                        unit_price=unit_price,
+                        total=unit_price * quantity,
+                        price_version_id=hold.price_version_id,
+                        recipe_id=hold.recipe_id,
+                        note=note or hold.note,
+                        status=LINE_WAITING,
+                    )
+                    session.add(line)
+                    await session.flush()
+                    hold.order_id = order.id
+                    await reservations.consume_hold(
+                        session,
+                        hold,
+                        order_line_id=line.id,
+                        business_date_value=bd,
+                        actor_id=actor_id,
+                    )
+                created_lines.append(line)
+            except (BusinessRuleError, NotFoundError) as exc:
+                rejected.append({"MaMon": int(dish_id), "reason": str(exc)})
+            continue
+
         line, ok, reason = await _resolve_line_inputs(session, int(dish_id), quantity, bd)
         if not ok:
             rejected.append({"MaMon": int(dish_id), "reason": reason})
@@ -307,7 +389,11 @@ async def submit_order(
         await session.flush()
         raise BusinessRuleError("Không có món nào đủ tồn kho.")
 
-    write_kitchen_ticket(session, order, created_lines)
+    if table_id is not None:
+        assert table is not None
+        table.status = "Đang phục vụ"
+        table.current_order_id = order.id
+    await write_kitchen_ticket(session, order, created_lines)
     await session.flush()
     return {"order": order, "lines": created_lines, "rejected": rejected}
 
@@ -320,23 +406,75 @@ async def add_line(
     note: str | None = None,
     *,
     actor_id: int | None = None,
+    hold_id: int | None = None,
 ) -> OrderLine:
     order = await session.get(Order, order_id)
     if order is None:
         raise NotFoundError("Order không tồn tại.")
     ensure_order_is_open(order)
 
+    if order.table_id is not None:
+        table = (
+            await session.execute(
+                select(DiningTable)
+                .where(DiningTable.id == order.table_id)
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
+        ).scalar_one_or_none()
+        if table is None or table.current_order_id != order.id:
+            raise BusinessRuleError("Order đã được giải phóng khỏi bàn, không thể gọi thêm.")
+
+    if hold_id is not None:
+        if actor_id is None:
+            raise BusinessRuleError("Lượt giữ chỗ không hợp lệ.")
+        hold = await reservations.get_active_hold(session, hold_id, actor_id)
+        if hold.dish_id != dish_id or int(hold.quantity) != quantity:
+            raise BusinessRuleError("Lượt giữ chỗ không khớp món/số lượng.")
+        if hold.table_id != order.table_id:
+            raise BusinessRuleError("Lượt giữ chỗ khác bàn.")
+        price = (
+            await session.get(DishPriceVersion, hold.price_version_id)
+            if hold.price_version_id is not None
+            else None
+        )
+        if price is None:
+            raise BusinessRuleError("Món chưa có giá.")
+        unit_price = Decimal(str(price.price))
+        line = OrderLine(
+            order_id=order.id,
+            dish_id=dish_id,
+            quantity=quantity,
+            unit_price=unit_price,
+            total=unit_price * quantity,
+            price_version_id=hold.price_version_id,
+            recipe_id=hold.recipe_id,
+            note=note or hold.note,
+            status=LINE_WAITING,
+        )
+        session.add(line)
+        await session.flush()
+        hold.order_id = order.id
+        await reservations.consume_hold(
+            session,
+            hold,
+            order_line_id=line.id,
+            business_date_value=order.business_date,
+            actor_id=actor_id,
+        )
+        await write_kitchen_ticket(session, order, [line])
+        await session.flush()
+        return line
+
     line, ok, reason = await _resolve_line_inputs(session, dish_id, quantity, order.business_date)
     if not ok:
-        raise BusinessRuleError(
-            "Món chưa có giá." if reason == "Món chưa có giá" else "Không đủ tồn kho."
-        )
+        raise BusinessRuleError(_rejection_message(reason))
     line.order_id = order.id
     line.note = note
     session.add(line)
     await session.flush()
     await _draw_line_stock(session, line, quantity, order.business_date, actor_id=actor_id)
-    write_kitchen_ticket(session, order, [line])
+    await write_kitchen_ticket(session, order, [line])
     await session.flush()
     return line
 
@@ -361,11 +499,11 @@ async def update_line(
 
     delta = quantity - int(line.quantity)
     if delta > 0:
-        _, ok, _reason = await _resolve_line_inputs(
+        _, ok, reason = await _resolve_line_inputs(
             session, line.dish_id, delta, order.business_date
         )
         if not ok:
-            raise BusinessRuleError("Không đủ tồn kho.")
+            raise BusinessRuleError(_rejection_message(reason))
         await _draw_line_stock(session, line, delta, order.business_date, actor_id=actor_id)
         line.quantity = int(line.quantity) + delta
     elif delta < 0:
@@ -437,18 +575,38 @@ async def move_table(
     if order is None:
         raise NotFoundError("Order không tồn tại.")
     ensure_order_is_open(order)
-    destination = await session.get(DiningTable, to_table_id)
+    table_ids = sorted({tid for tid in (order.table_id, to_table_id) if tid is not None})
+    locked = (
+        (
+            await session.execute(
+                select(DiningTable)
+                .where(DiningTable.id.in_(table_ids))
+                .order_by(DiningTable.id)
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    tables = {t.id: t for t in locked}
+    destination = tables.get(to_table_id)
     if destination is None or destination.is_deleted:
         raise BusinessRuleError("Bàn đích không tồn tại.")
-    if destination.status != "Trống":
+    if destination.status != "Trống" or destination.current_order_id is not None:
         raise BusinessRuleError("Bàn đích đang bận.")
 
     source_id = order.table_id
     if source_id is not None:
-        source = await session.get(DiningTable, source_id)
-        if source is not None:
-            source.status = "Trống"
+        source = tables.get(source_id)
+        if source is None or source.current_order_id != order.id:
+            raise BusinessRuleError("Order không còn gắn với bàn đang phục vụ.")
+        source.status = "Trống"
+        source.current_order_id = None
+        # Release the unique order pointer before assigning it to a lower-ID table.
+        await session.flush()
     destination.status = "Đang phục vụ"
+    destination.current_order_id = order.id
     order.table_id = to_table_id
     from app.modules.sales.models import TableMoveLog
 

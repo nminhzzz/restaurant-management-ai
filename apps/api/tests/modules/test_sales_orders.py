@@ -397,3 +397,73 @@ async def test_add_line_rejects_a_dish_without_an_active_price(session):
     )
 
     assert add.status_code == 422
+
+
+async def _setup_recipe_less_dish(session, group_id):
+    """A priced dish with no active recipe: there is nothing to draw from stock."""
+    d = Dish(name="Món chưa có công thức", group_id=group_id, is_deleted=False)
+    session.add(d)
+    await session.flush()
+    bd = business_date.business_date_of(business_date.now())
+    session.add(
+        DishPriceVersion(
+            dish_id=d.id,
+            price=50000,
+            business_date=bd,
+            status=VersionStatus.HIEU_LUC.value,
+            change_type="Tạo mới",
+        )
+    )
+    await session.flush()
+    await session.commit()
+    return d
+
+
+@pytest.mark.anyio
+async def test_rejected_when_no_active_recipe(session):
+    """A price without a recipe must not create a free, stock-less order line."""
+    d, ing, g = await _setup_dish_with_stock(session)
+    recipe_less = await _setup_recipe_less_dish(session, g.id)
+    t = await _setup_table(session)
+    client = await _make_client(session)
+    headers = await _cashier_headers(session)
+
+    r = await client.post(
+        "/api/v1/sales/orders",
+        json={
+            "MaBan": t.id,
+            "lines": [{"MaMon": d.id, "SoLuong": 1}, {"MaMon": recipe_less.id, "SoLuong": 1}],
+        },
+        headers=headers,
+    )
+
+    assert r.status_code == 201, r.text
+    assert [x["MaMon"] for x in r.json()["lines"]] == [d.id]
+    assert r.json()["rejected"] == [
+        {"MaMon": recipe_less.id, "reason": "Món chưa có công thức hiệu lực"}
+    ]
+
+
+@pytest.mark.anyio
+async def test_add_line_rejects_a_dish_without_an_active_recipe(session):
+    """Adding a recipe-less dish to an open order must fail before any stock write."""
+    d, ing, g = await _setup_dish_with_stock(session)
+    recipe_less = await _setup_recipe_less_dish(session, g.id)
+    t = await _setup_table(session)
+    client = await _make_client(session)
+    headers = await _cashier_headers(session)
+    r = await client.post(
+        "/api/v1/sales/orders",
+        json={"MaBan": t.id, "lines": [{"MaMon": d.id, "SoLuong": 1}]},
+        headers=headers,
+    )
+    oid = r.json()["MaOrder"]
+
+    add = await client.post(
+        f"/api/v1/sales/orders/{oid}/lines",
+        json={"MaMon": recipe_less.id, "SoLuong": 1},
+        headers=headers,
+    )
+
+    assert add.status_code == 422
+    assert add.json()["error"]["message"] == "Món chưa có công thức hiệu lực"

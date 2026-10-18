@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 
 from app.core.errors import BusinessRuleError
+from app.shared.business_date import business_month_range
 
 GRANULARITIES = ("day", "week", "month", "year")
 
@@ -32,8 +33,9 @@ def resolve_period(granularity: str, anchor: date) -> BusinessPeriod:
         start = anchor - timedelta(days=anchor.weekday())
         return BusinessPeriod(start, start + timedelta(days=6), granularity)
     if granularity == "month":
-        start = anchor.replace(day=1)
-        end = (start + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+        start_time, end_time = business_month_range(anchor.year * 100 + anchor.month)
+        start = start_time.date()
+        end = end_time.date() - timedelta(days=1)
         return BusinessPeriod(start, end, granularity)
     if granularity == "year":
         return BusinessPeriod(date(anchor.year, 1, 1), date(anchor.year, 12, 31), granularity)

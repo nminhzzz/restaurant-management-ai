@@ -1,5 +1,10 @@
 # Checklist tương thích thiết bị/trình duyệt (NFR-13, NFR-17)
 
+**Đợt 17/10/2026:** đã kiểm tra Chrome ở desktop 1440×1000 và tablet giả lập 768×1024,
+1024×768 có cảm ứng. Log kích thước/vùng chạm và ảnh nằm trong
+[kết quả kiểm chứng](results-2026-10-17.md). Các ô dành cho tablet thật, Edge và Safari bên dưới
+vẫn giữ trống; giả lập không xác nhận hành vi bàn phím ảo hay trình duyệt trên thiết bị thật.
+
 NFR-13 — tối ưu thao tác trên tablet: chạm nhanh, bàn phím số cho số lượng, hoạt động tốt cả hai chiều
 màn hình (portrait/landscape). NFR-17 — hoạt động ổn định trên Chrome, Edge, Safari, cả máy tính và
 tablet.

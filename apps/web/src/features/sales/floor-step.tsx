@@ -28,7 +28,7 @@ type FilterKey = (typeof FILTERS)[number]["key"];
 const loadBoard = () => apiFetch<FloorBoard>("/sales/floor");
 
 function kindOf(table: FloorTable): Exclude<FilterKey, "all"> {
-  if (table.order) return "busy";
+  if (table.TrangThai === "Đang phục vụ") return "busy";
   return table.TrangThai === "Đã đặt" ? "booked" : "free";
 }
 
@@ -54,6 +54,8 @@ export function FloorStep({
   const [selected, setSelected] = useState<number | null>(null);
   const [code, setCode] = useState("");
   const [lookupError, setLookupError] = useState<string | null>(null);
+  const [releaseError, setReleaseError] = useState<string | null>(null);
+  const [releasing, setReleasing] = useState(false);
 
   if (board.status === "loading") return <LoadingState rows={6} />;
   if (board.status === "error")
@@ -65,8 +67,33 @@ export function FloorStep({
   const visible = tables.filter(
     (t) => filter === "all" || kindOf(t) === filter,
   );
-  const active = tables.find((t) => t.MaBan === selected && t.order) ?? null;
+  const active =
+    tables.find((t) => t.MaBan === selected && kindOf(t) === "busy") ?? null;
   const activeOrder = active?.order;
+
+  async function release() {
+    if (!active) return;
+    setReleasing(true);
+    setReleaseError(null);
+    try {
+      await apiFetch(`/sales/tables/${active.MaBan}/release`, {
+        method: "POST",
+        body: {
+          order_id: active.MaOrderDangPhucVu ?? activeOrder?.MaOrder ?? null,
+        },
+      });
+      setSelected(null);
+      board.reload();
+    } catch (error) {
+      setReleaseError(
+        error instanceof ApiError
+          ? error.message
+          : "Không giải phóng được bàn.",
+      );
+    } finally {
+      setReleasing(false);
+    }
+  }
 
   async function lookup(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -145,7 +172,7 @@ export function FloorStep({
 
         <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2">
           {visible.map((table) => {
-            const busy = table.order !== null;
+            const busy = kindOf(table) === "busy";
             return (
               <button
                 key={table.MaBan}
@@ -162,9 +189,7 @@ export function FloorStep({
               >
                 <span className="flex items-center justify-between gap-2 text-lg font-bold tracking-tight">
                   {table.TenBan}
-                  <StatusBadge
-                    status={busy ? "Đang phục vụ" : table.TrangThai}
-                  />
+                  <StatusBadge status={table.TrangThai} />
                 </span>
                 {table.order ? (
                   <span className="grid gap-0.5 text-xs text-muted">
@@ -176,7 +201,11 @@ export function FloorStep({
                     </span>
                   </span>
                 ) : (
-                  <span className="text-xs text-muted">Chạm để mở order</span>
+                  <span className="text-xs text-muted">
+                    {busy
+                      ? "Chờ khách rời · chạm để giải phóng"
+                      : "Chạm để mở order"}
+                  </span>
                 )}
               </button>
             );
@@ -185,7 +214,7 @@ export function FloorStep({
       </div>
 
       <aside className="space-y-3 lg:sticky lg:top-4">
-        {active && activeOrder && (
+        {active && (
           <section
             aria-label={`Order ${active.TenBan}`}
             className="rounded-container border border-border bg-surface"
@@ -195,32 +224,66 @@ export function FloorStep({
               <StatusBadge status="Đang phục vụ" />
             </header>
             <div className="space-y-3 p-4">
-              <p className="font-mono text-xs text-subtle">
-                {activeOrder.MaOrderHienThi} · mở {openedAt(activeOrder)} ·{" "}
-                {activeOrder.SoMon} món
+              {activeOrder && (
+                <>
+                  <p className="font-mono text-xs text-subtle">
+                    {activeOrder.MaOrderHienThi} · mở {openedAt(activeOrder)} ·{" "}
+                    {activeOrder.SoMon} món
+                  </p>
+                  <p className="flex items-baseline justify-between border-t border-border-strong pt-3 text-lg font-bold">
+                    <span>Tạm tính</span>
+                    <span className="tabular-nums">
+                      {formatVnd(activeOrder.TamTinh)}
+                    </span>
+                  </p>
+                  {!activeOrder.TrangThai ||
+                  activeOrder.TrangThai === "Đang mở" ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        variant="secondary"
+                        size="pos"
+                        onClick={() =>
+                          onAddMore(activeOrder.MaOrder, active.MaBan)
+                        }
+                      >
+                        <Plus />
+                        Gọi thêm
+                      </Button>
+                      <Button
+                        size="pos"
+                        onClick={() => onPay(activeOrder.MaOrder, active.MaBan)}
+                      >
+                        Thanh toán
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      size="pos"
+                      variant="secondary"
+                      onClick={() => onPay(activeOrder.MaOrder, active.MaBan)}
+                    >
+                      Xem order · {activeOrder.TrangThai}
+                    </Button>
+                  )}
+                </>
+              )}
+              <p className="text-xs text-muted">
+                Xác nhận khi khách đã rời để bàn nhận lượt mới.
               </p>
-              <p className="flex items-baseline justify-between border-t border-border-strong pt-3 text-lg font-bold">
-                <span>Tạm tính</span>
-                <span className="tabular-nums">
-                  {formatVnd(activeOrder.TamTinh)}
-                </span>
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant="secondary"
-                  size="pos"
-                  onClick={() => onAddMore(activeOrder.MaOrder, active.MaBan)}
-                >
-                  <Plus />
-                  Gọi thêm
-                </Button>
-                <Button
-                  size="pos"
-                  onClick={() => onPay(activeOrder.MaOrder, active.MaBan)}
-                >
-                  Thanh toán
-                </Button>
-              </div>
+              {releaseError && (
+                <p role="alert" className="text-danger-fg">
+                  {releaseError}
+                </p>
+              )}
+              <Button
+                size="pos"
+                variant="secondary"
+                className="w-full"
+                disabled={releasing}
+                onClick={release}
+              >
+                {releasing ? "Đang giải phóng…" : "Giải phóng bàn"}
+              </Button>
             </div>
           </section>
         )}

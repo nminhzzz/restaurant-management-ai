@@ -52,17 +52,23 @@ COLUMN_NOTES: dict[str, str] = {
     "LyDoHuyOrder": "lý do hủy order, chỉ có ở LoaiBanGhi = 'ORDER'",
     "MaHoaDon": "mã hóa đơn",
     "TongTien": "tổng tiền của hóa đơn",
-    "SoTien": "số tiền của giao dịch thanh toán",
+    "SoTien": "số tiền của giao dịch thanh toán thành công",
     "ThoiDiemXuat": "thời điểm xuất hóa đơn",
     "TenMon": "tên món ăn, ở LoaiBanGhi = 'DONG_MON'",
     "TenNhom": "tên nhóm món",
     "SoLuongMon": "số lượng món trong dòng order",
     "DonGiaMon": "đơn giá bán của món tại thời điểm order",
-    "ThanhTienMon": "thành tiền của dòng món = SoLuongMon * DonGiaMon",
+    "ThanhTienMon": (
+        "thành tiền của dòng món = SoLuongMon * DonGiaMon; dòng món đã hủy không có trong view"
+    ),
     "MaNguyenLieu": "mã nguyên liệu",
     "TenNguyenLieu": "tên nguyên liệu",
     "DonViTinh": "đơn vị tính",
     "SoLuongTon": "số lượng tồn hiện tại, chỉ có ở LoaiBanGhi = 'TON_KHO'",
+    "SoLuongGiu": "lượng nguyên liệu đang được giữ cho các lượt chọn còn hiệu lực",
+    "SoLuongKhaDung": (
+        "lượng còn dùng được sau khi trừ giữ chỗ, dùng để trả lời số suất còn phục vụ"
+    ),
     "MucTonToiThieu": "mức tồn tối thiểu hiệu lực để cảnh báo",
     "CanhBaoTonThap": "1 nếu tồn hiện tại dưới mức tối thiểu, ngược lại 0",
     "Thang": (
@@ -78,7 +84,7 @@ COLUMN_NOTES: dict[str, str] = {
     ),
     "MaPhieuNhap": "mã phiếu nhập kho, ở LoaiBanGhi = 'PHIEU_NHAP'",
     "TenNhaCungCap": "tên nhà cung cấp của phiếu nhập",
-    "DonGiaNhap": "đơn giá nhập (giá mua) của nguyên liệu trong phiếu nhập",
+    "DonGiaNhap": "đơn giá nhập (giá mua) của nguyên liệu trong phiếu nhập chưa hủy",
     "SoLuongNhap": "số lượng nhập trong dòng phiếu nhập",
     "MaLo": "mã lô nguyên liệu, ở LoaiBanGhi = 'LO_NGUYEN_LIEU'",
     "SoLuongConLai": "số lượng còn lại của lô",

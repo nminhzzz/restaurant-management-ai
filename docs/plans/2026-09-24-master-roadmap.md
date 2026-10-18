@@ -1,6 +1,6 @@
 # Lộ trình triển khai — Hệ thống quản lý nhà hàng tích hợp AI
 
-Ngày: 2026-09-24 · Cập nhật: 2026-09-25
+Ngày: 2026-09-24 · Cập nhật: 2026-10-17
 
 ## Mục tiêu dự án
 
@@ -13,9 +13,15 @@ hỏi – SQL chấm được trên ba cấu hình A/B/C, và số liệu thực
 
 ## Hiện trạng
 
-Cập nhật 2026-09-26: **Phase 0 → 7 đã xong**, kể cả Task 5 của Phase 7: thực nghiệm A/B/C đã chạy trên
-DeepSeek (95 câu, dữ liệu 12 tháng); số liệu ở `docs/eval-results.json` và §4.2 của báo cáo. Còn lại là SUS và
-UAT với người dùng thật (tài liệu ở `docs/testing/`).
+Cập nhật 2026-10-17: phần triển khai **Phase 0 → 7 của lộ trình ban đầu** đã có trong repo.
+Kết quả A/B/C trên bộ 95 câu nằm ở `docs/eval-results.json`; Q5/Q6 đã chốt. Bản báo cáo hiện tại
+có kế hoạch đánh giá mới gồm 80 câu và bổ sung nghiệp vụ, nên không dùng trạng thái phase cũ
+để khẳng định mọi yêu cầu hiện tại đã được nghiệm thu.
+
+Đã xử lý bảy test thất bại do cấu hình local và đồng hồ phiếu xuất. Kết quả kiểm tra lại,
+integration MySQL, ảnh desktop/tablet giả lập cùng giới hạn nằm tại
+[`../testing/results-2026-10-17.md`](../testing/results-2026-10-17.md).
+**SUS/UAT với người dùng thật, tablet thật và Edge/Safari chưa có kết quả nghiệm thu.**
 
 | Hạng mục | Trạng thái |
 | --- | --- |
@@ -27,7 +33,7 @@ UAT với người dùng thật (tài liệu ở `docs/testing/`).
 | View `vw_ai_*` + tài khoản chỉ-đọc | **Xong** (Phase 0, cập nhật ở Phase 7 theo đặc tả `db/views/README.md`) |
 | Sáu module nghiệp vụ | Phase 1–6 xong (Cài đặt · Danh mục · Kho · Bán hàng · Báo cáo · Trợ lý AI) |
 | Pipeline AI | **Xong** (Phase 6): prompt theo view, sinh SQL qua guard, thực thi trên tài khoản vai trò, diễn giải + biểu đồ |
-| Seed dữ liệu, bộ đánh giá | **Xong** (Phase 7): `make seed` (12 tháng qua tầng service), 95 câu hỏi – SQL chuẩn, harness A/B/C. **Số liệu thực nghiệm đã có** (§4.2, Bảng 37–38) |
+| Seed dữ liệu, bộ đánh giá | Đã có script 12 tháng, 95 câu và harness A/B/C; kết quả cũ ở `docs/eval-results.json`. Kế hoạch mới 80 câu trong báo cáo chưa được xác nhận bằng lần chạy đó. |
 
 ## Ràng buộc bất biến
 
@@ -150,7 +156,7 @@ tự chốt được chưa, hay vẫn đang chờ bạn trả lời — plan vi�
 
 | # | Vấn đề | Ảnh hưởng | Đề xuất | Trạng thái |
 | --- | --- | --- | --- | --- |
-| Q1 | **Cổng thanh toán QR chưa chọn** (Phụ lục 2, Vấn đề #3). Không có nhà cung cấp thì không có webhook thật để tích hợp. | Phase 4 | Dựng **adapter** với một cổng giả lập (`mock`) làm mặc định, cài đặt theo interface; cắm cổng thật sau chỉ đổi adapter. Webhook vẫn xác thực chữ ký + đối chiếu số tiền + idempotent đầy đủ. | Plan đi theo đề xuất; đổi nhà cung cấp chỉ cần viết thêm một adapter. |
+| Q1 | Cổng thanh toán QR | Phase 4 | Giữ adapter giả lập để kiểm thử; cấu hình adapter thật riêng. | Đã có adapter SePay và test webhook, đối chiếu số tiền, chống ghi nhận lặp. Đợt 17/10 dùng webhook thử, chưa xác nhận chuyển khoản ngân hàng thật. |
 | Q2 | **Máy in nhiệt** (§1.4.3 loại chi tiết driver/khổ giấy khỏi phạm vi). | Phase 4 | Backend sinh **nội dung phiếu** (text + cấu trúc) và ghi `PHIEU_BEP`; tầng in thật để ngoài hệ thống. Giao diện có nút in gọi `window.print()`. | Plan đi theo đề xuất; §1.4.3 đã loại driver khỏi phạm vi nên không cần chốt. |
 | Q3 | **Sao lưu/phục hồi** (FR-SET-06/07, FR-SET-07 ghi rõ "(Mở rộng)"). | Phase 1 | Làm FR-SET-06 (xuất bản sao thủ công) trong MVP; FR-SET-07 để lại sau, ghi rõ trong plan là mở rộng. | **Đã chốt trong plan** (Phase 1 Task 2 + mục Rủi ro). Phục hồi là thao tác phá huỷ — bàn riêng trước khi làm. |
 | Q4 | **Tên biến môi trường LLM**: báo cáo §1.4.2 và §4.1.1 ghi `LLM_MODEL`, repo hiện dùng `AI_MODEL`. | Phase 6 | Đổi sang `LLM_MODEL` cho khớp báo cáo, giữ `AI_PROVIDER` để chọn nhà cung cấp. Xác nhận giúp. | **Đã xong ở Phase 6 Task 2** — `core/config.py`, `.env.example` và `llm.py` nay dùng `LLM_MODEL`. |
@@ -171,23 +177,23 @@ tự chốt được chưa, hay vẫn đang chờ bạn trả lời — plan vi�
 | Ba thành viên sửa cùng file (`modules.ts`, `main.py`) | Thấp | Mỗi module một gói riêng; registry `modules.ts` chỉ sửa khi thêm module |
 | Prompt AI phụ thuộc lược đồ | Trung bình | Chỉ triển khai `prompt.py` sau khi Phase 0 xong |
 
-## Nợ kỹ thuật đã biết, phải trả trong lúc làm
+## Nợ kỹ thuật — đối soát ngày 17/10/2026
 
-Không phải rủi ro (chưa xảy ra) mà là **việc đã biết chắc là phải làm**, ghi ở đây để không ai quên:
+Danh sách nợ từ lúc dựng khung đã được thay bằng tình trạng thực tế. Các việc cũ như seed vai trò,
+phụ thuộc test, naming convention CHECK, sắp xếp nhóm món, bộ đếm order, benchmark và template
+quyền AI đã có trong code; không tiếp tục liệt kê chúng như việc chưa triển khai.
 
-| Việc | Ai trả | Ở đâu |
+| Khoản | Kết quả xử lý | Bằng chứng |
 | --- | --- | --- |
-| `VAI_TRO` + `CAU_HINH_HE_THONG` chưa từng được seed; mọi FK `MaVaiTro` fail trên CSDL sạch | Phase 1 | Task 1 Step 0 (`seed_reference_data`) |
-| `aiosqlite`, `asgi-lifespan`, `httpx` (runtime) chưa có trong `pyproject.toml`; marker pytest chưa đăng ký | Phase 0 | Task 0 Step 1 (và Phase 6 Task 2 cho `httpx`) |
-| `NAMING_CONVENTION` thiếu khoá `ck` → mọi `CHECK` vô danh, test lọc `ck_` pass rỗng | Phase 0 | Quy ước #8 + Task 1 |
-| `MON_AN.TrangThai` GENERATED không biểu diễn được `Nháp` — báo cáo tự mâu thuẫn | Phase 2 | Mục "Trạng thái hiển thị của món" + quyết định #1 của Phase 0 |
-| `ThuTuHienThi` (sắp xếp nhóm món, FR-CAT-01) chưa có endpoint lẫn test | Phase 2 | Task 1 (`reorder_groups`) |
-| Bộ đếm số order không tồn tại; `SELECT MAX(...) FOR UPDATE` không khoá được dải rỗng | Phase 4 | Task 1 (`DEM_ORDER`, bảng thứ 30) |
-| `scripts/bench_reports.py` chưa có → cổng NFR-01/NFR-03 thành "unfinished" im lặng | Phase 5 | Task 5 Step 5 |
-| `data/eval/harness.py` không import được từ `apps/api/tests` nếu thiếu `pythonpath` | Phase 7 | Task 4 Step 2 |
-| `grants.sql` chứa mật khẩu plaintext — không được commit | Phase 0 | Task 7 (`grants.sql.template` + `scripts/apply_grants.sh`) |
-| Đồng hồ: service gọi `datetime.now()` trực tiếp thì test không cắm được | Phase 0 | Task 0 Step 4 (`business_date.now()` + fixture `freeze_clock` autouse) |
-| `ThuTuHienThi` không đặt `UNIQUE` — reorder tạm trùng số giữa chừng | Phase 0 | Task 2 (chốt không unique) + Phase 2 Task 1 |
+| Trạng thái bàn | Nguồn trạng thái vật lý là BAN và MaOrderDangPhucVu; giải phóng riêng, có khóa và chống yêu cầu cũ | Test occupancy, test giao diện, migration và MySQL |
+| Ranh giới tháng | Dùng chung business_month_range với mốc 06:00; chốt giá vốn và hao hụt cùng kỳ | Test biên 05:59/06:00, tháng 12 và tháng không hợp lệ |
+| Integration trong CI | Job MySQL 8.4, migration hai schema, view và tài khoản AI; skip làm job thất bại | Workflow CI và phép thử mã thoát |
+| Dữ liệu seed | Savepoint, thống kê từ chối, đúng mục tiêu, kiểm tra ba tầng tồn kho và trạng thái tài chính | Seed 12 tháng/365 order trên MySQL, các ca hồi quy |
+| Cache/hạn mức AI | Lưu MySQL, giới hạn nguyên tử, TTL và khóa ngữ cảnh; dọn cache tách khỏi luồng trả lời | Test worker đồng thời và cache đồng thời trên MySQL |
+| Tài liệu nhiều thế hệ | Bộ 95 câu đã chạy được ghi riêng; kế hoạch mới 80+30 câu chưa có kết quả | README, tài liệu đánh giá và nhật ký đợt trả nợ |
+
+Chi tiết và giới hạn: [kết quả trả nợ kỹ thuật](../testing/technical-debt-2026-10-17.md).
+Đây là trạng thái sáu khoản đã xử lý, không phải kết luận đạt toàn bộ đặc tả mới hoặc nghiệm thu người dùng.
 
 ## Định nghĩa "xong" của dự án
 

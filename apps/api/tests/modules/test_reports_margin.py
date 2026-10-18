@@ -130,3 +130,114 @@ async def test_the_per_dish_costs_add_up_to_the_ingredient_cost(
     ).json()
 
     assert sum(Decimal(item["GiaVon"]) for item in dishes["items"]) == Decimal(costs["NguyenLieu"])
+
+
+@pytest.mark.anyio
+async def test_an_open_order_is_not_costed_as_sold(session):
+    """FR-REP-05a: cost follows collected revenue, not merely a placed order."""
+    from datetime import date
+
+    from app.modules.catalog.models import Dish, Ingredient, Recipe, RecipeItem
+    from app.modules.inventory.models import MonthlyAverageCost
+    from app.modules.reports import queries
+    from app.modules.sales.models import Order, OrderLine
+
+    ingredient = Ingredient(name="NL mở", unit="kg", min_stock=0, stock_qty=10, is_deleted=False)
+    session.add(ingredient)
+    await session.flush()
+    dish = Dish(name="Món mở", is_deleted=False)
+    session.add(dish)
+    await session.flush()
+    recipe = Recipe(
+        dish_id=dish.id,
+        business_date=date(2026, 9, 1),
+        status="Đang áp dụng",
+        change_type="Tạo mới",
+    )
+    session.add(recipe)
+    await session.flush()
+    session.add(
+        RecipeItem(recipe_id=recipe.id, ingredient_id=ingredient.id, quantity=Decimal("0.5"))
+    )
+    session.add(
+        MonthlyAverageCost(
+            ingredient_id=ingredient.id, month=202609, avg_cost=Decimal("10000"), total_qty=10
+        )
+    )
+    order = Order(
+        business_date=date(2026, 9, 20),
+        status="Đang mở",
+        order_type="Mang về",
+        display_code="ORD-OPEN-COST",
+    )
+    session.add(order)
+    await session.flush()
+    session.add(
+        OrderLine(
+            order_id=order.id,
+            dish_id=dish.id,
+            quantity=4,
+            unit_price=Decimal("125000"),
+            recipe_id=recipe.id,
+            status="Chờ",
+        )
+    )
+    await session.commit()
+
+    assert await queries.ingredient_cost(session, 202609) == Decimal("0")
+
+    order.status = "Đã thanh toán"
+    await session.commit()
+    assert await queries.ingredient_cost(session, 202609) == Decimal("20000")
+
+
+@pytest.mark.anyio
+async def test_a_negative_stocktake_adjustment_is_part_of_waste(session):
+    """FR-REP-05b: stocktake shortages are a cost, costed from the monthly average."""
+    from datetime import date
+
+    from app.modules.catalog.models import Ingredient
+    from app.modules.inventory.models import (
+        MonthlyAverageCost,
+        StockMovement,
+        Stocktake,
+        StocktakeLine,
+    )
+    from app.modules.reports import queries
+
+    ingredient = Ingredient(
+        name="NL kiểm kê", unit="kg", min_stock=0, stock_qty=10, is_deleted=False
+    )
+    session.add(ingredient)
+    await session.flush()
+    session.add(
+        MonthlyAverageCost(
+            ingredient_id=ingredient.id, month=202609, avg_cost=Decimal("10000"), total_qty=10
+        )
+    )
+    stocktake = Stocktake(status="Nháp")
+    session.add(stocktake)
+    await session.flush()
+    line = StocktakeLine(
+        stocktake_id=stocktake.id,
+        ingredient_id=ingredient.id,
+        system_qty=Decimal("10"),
+        actual_qty=Decimal("7"),
+    )
+    session.add(line)
+    await session.flush()
+    session.add(
+        StockMovement(
+            ingredient_id=ingredient.id,
+            kind="Điều chỉnh kiểm kê",
+            qty=Decimal("-3"),
+            business_date=date(2026, 9, 22),
+            stocktake_line_id=line.id,
+        )
+    )
+    await session.commit()
+
+    waste, uncosted = await queries.waste_cost(session, 202609)
+
+    assert waste == Decimal("30000")
+    assert uncosted == 0

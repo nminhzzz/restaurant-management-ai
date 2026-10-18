@@ -87,23 +87,26 @@ async def test_confirm_refused_until_every_line_has_a_count(session):
     r0 = await client.post(f"/api/v1/inventory/stocktakes/{sid}/confirm", headers=h)
     assert r0.status_code == 422
 
-    # Only one of the two ingredients counted — service allows recording partial
-    # counts, but real UI coverage is enforced client-side (all lines filled) and
-    # here we exercise a stand-in server rule: confirming succeeds because the
-    # API takes whatever counts were recorded as the full sheet. The frontend is
-    # responsible for blocking submission until every row has a value (see
-    # features/inventory stocktake tests).
+    # Only one of the two ingredients counted: the server must refuse to close a
+    # partial sheet; the UI may record counts in more than one request.
     await client.post(
         f"/api/v1/inventory/stocktakes/{sid}/counts",
         json=[{"ingredient_id": ing1.id, "actual_qty": 9}],
         headers=h,
     )
     r1 = await client.post(f"/api/v1/inventory/stocktakes/{sid}/confirm", headers=h)
-    assert r1.status_code == 200
+    assert r1.status_code == 422
+    await client.post(
+        f"/api/v1/inventory/stocktakes/{sid}/counts",
+        json=[{"ingredient_id": ing2.id, "actual_qty": 5}],
+        headers=h,
+    )
+    r2 = await client.post(f"/api/v1/inventory/stocktakes/{sid}/confirm", headers=h)
+    assert r2.status_code == 200
     await session.refresh(ing1)
     assert float(ing1.stock_qty) == 9
     await session.refresh(ing2)
-    assert float(ing2.stock_qty) == 5  # untouched, was never counted
+    assert float(ing2.stock_qty) == 5
 
 
 @pytest.mark.anyio
@@ -218,7 +221,7 @@ async def test_list_stocktakes_filters_by_status_and_date_range(session):
     assert by_status.json()["total"] == 1
     assert by_status.json()["items"][0]["MaPhieuKiemKe"] == sid
 
-    confirmed = await client.get("/api/v1/inventory/stocktakes?status=Đã xác nhận", headers=h)
+    confirmed = await client.get("/api/v1/inventory/stocktakes?status=Đã chốt", headers=h)
     assert confirmed.json()["total"] == 0
 
     today = business_date.now().date()
@@ -240,11 +243,61 @@ async def test_list_stocktakes_rejects_a_malformed_date(session):
 
 @pytest.mark.anyio
 async def test_list_stocktakes_total_reflects_all_rows_across_pages(session):
+    from app.modules.inventory.models import Stocktake
+
     client = await _make_client(session)
     h, _ = await _headers(session)
-    for _ in range(3):
-        await client.post("/api/v1/inventory/stocktakes", headers=h)
+    created = await client.post("/api/v1/inventory/stocktakes", headers=h)
+    assert created.status_code == 201
+    for _ in range(2):
+        session.add(Stocktake(status="Đã chốt", stocktake_date=business_date.now()))
+    await session.commit()
     r = await client.get("/api/v1/inventory/stocktakes?page=1&page_size=2", headers=h)
     body = r.json()
     assert body["total"] == 3
     assert len(body["items"]) == 2
+
+
+@pytest.mark.anyio
+async def test_only_one_open_stocktake_is_allowed(session):
+    """NFR-20: two counting sessions would both claim the same stock."""
+    await _ingredient(session, "NL duy nhất", 10)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+
+    first = await client.post("/api/v1/inventory/stocktakes", headers=h)
+    second = await client.post("/api/v1/inventory/stocktakes", headers=h)
+
+    assert first.status_code == 201
+    assert second.status_code == 422
+
+
+@pytest.mark.anyio
+async def test_open_stocktake_blocks_stock_changes(session):
+    """NFR-20: no receipt/issue may move stock while a counting session is open."""
+    ing = await _ingredient(session, "NL bị khóa", 10)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    st = await client.post("/api/v1/inventory/stocktakes", headers=h)
+    sid = st.json()["MaPhieuKiemKe"]
+
+    blocked = await client.post(
+        "/api/v1/inventory/receipts",
+        json={"lines": [{"ingredient_id": ing.id, "quantity": 1, "unit_price": 1000}]},
+        headers=h,
+    )
+    assert blocked.status_code == 422
+
+    await client.post(
+        f"/api/v1/inventory/stocktakes/{sid}/counts",
+        json=[{"ingredient_id": ing.id, "actual_qty": 10}],
+        headers=h,
+    )
+    confirmed = await client.post(f"/api/v1/inventory/stocktakes/{sid}/confirm", headers=h)
+    assert confirmed.status_code == 200
+    allowed = await client.post(
+        "/api/v1/inventory/receipts",
+        json={"lines": [{"ingredient_id": ing.id, "quantity": 1, "unit_price": 1000}]},
+        headers=h,
+    )
+    assert allowed.status_code == 201

@@ -1,14 +1,14 @@
 """Monthly weighted average costing."""
 
-from datetime import datetime
 from decimal import ROUND_HALF_UP, Decimal
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.inventory.models import (
     GoodsReceipt,
     GoodsReceiptLine,
+    IngredientLot,
     MonthlyAverageCost,
     StockIssueLine,
 )
@@ -16,18 +16,7 @@ from app.shared import business_date as _bd
 
 
 async def close_month(session: AsyncSession, month: int) -> list[MonthlyAverageCost]:
-    # month format YYYYMM int - validate 1..12
-    year = month // 100
-    m = month % 100
-    if m < 1 or m > 12 or year < 1000 or year > 9999:
-        from app.core.errors import BusinessRuleError
-
-        raise BusinessRuleError("Tháng không hợp lệ (YYYYMM).")
-    start = datetime(year, m, 1)
-    if m == 12:
-        end = datetime(year + 1, 1, 1)
-    else:
-        end = datetime(year, m + 1, 1)
+    start, end = _bd.business_month_range(month)
     # aggregate per ingredient
     q = (
         select(
@@ -36,9 +25,14 @@ async def close_month(session: AsyncSession, month: int) -> list[MonthlyAverageC
             func.sum(GoodsReceiptLine.quantity * GoodsReceiptLine.unit_price).label("total"),
         )
         .join(GoodsReceipt, GoodsReceiptLine.receipt_id == GoodsReceipt.id)
+        .outerjoin(IngredientLot, IngredientLot.receipt_line_id == GoodsReceiptLine.id)
         .where(
             GoodsReceipt.receipt_date >= start,
             GoodsReceipt.receipt_date < end,
+            # A cancelled receipt never entered stock; a stocktake-surplus line is a
+            # reconciliation document with unit_price 0 and must not dilute the average.
+            GoodsReceipt.status != "Đã hủy",
+            or_(IngredientLot.is_adjustment.is_(False), IngredientLot.id.is_(None)),
         )
         .group_by(GoodsReceiptLine.ingredient_id)
     )
@@ -72,6 +66,7 @@ async def close_month(session: AsyncSession, month: int) -> list[MonthlyAverageC
 
 
 async def backfill_issue_costs(session: AsyncSession, month: int) -> int:
+    start, end = _bd.business_month_range(month)
     # find avg for month
     costs = {
         c.ingredient_id: Decimal(str(c.avg_cost))
@@ -85,10 +80,6 @@ async def backfill_issue_costs(session: AsyncSession, month: int) -> int:
     }
     if not costs:
         return 0
-    year = month // 100
-    m = month % 100
-    start = datetime(year, m, 1)
-    end = datetime(year + 1, 1, 1) if m == 12 else datetime(year, m + 1, 1)
     from app.modules.inventory.models import StockIssue
 
     q = (
@@ -105,7 +96,9 @@ async def backfill_issue_costs(session: AsyncSession, month: int) -> int:
     for ln in lines:
         avg = costs.get(ln.ingredient_id)
         if avg is not None:
-            ln.estimated_cost = avg * ln.quantity
+            ln.estimated_cost = (avg * ln.quantity).quantize(
+                Decimal("0.0001"), rounding=ROUND_HALF_UP
+            )
             updated += 1
     await session.flush()
     return updated

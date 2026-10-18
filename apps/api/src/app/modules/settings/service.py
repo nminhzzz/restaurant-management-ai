@@ -47,6 +47,9 @@ async def seed_reference_data(session: AsyncSession) -> None:
                 invoice_template=None,
                 default_stock_threshold=5,
                 business_day_start=time(6, 0),
+                expiry_warning_days=3,
+                hold_minutes=5,
+                ai_daily_question_quota=50,
             )
         )
         await session.flush()
@@ -158,6 +161,65 @@ async def unlock_user(session: AsyncSession, actor_id: int, user_id: int) -> Use
     )
 
 
+async def update_user(
+    session: AsyncSession,
+    actor_id: int,
+    user_id: int,
+    *,
+    full_name: str | None = None,
+    phone: str | None = None,
+    role: str | Role | None = None,
+) -> User:
+    """FR-SET-01: edit the display fields and assign one of the three roles."""
+    user = await session.get(User, user_id)
+    if user is None:
+        raise NotFoundError("Kh\u00f4ng t\u00ecm th\u1ea5y t\u00e0i kho\u1ea3n.")
+    before = {"HoTen": user.full_name, "SoDienThoai": user.phone, "MaVaiTro": user.role_id}
+    if full_name is not None:
+        user.full_name = full_name
+    if phone is not None:
+        user.phone = phone
+    if role is not None:
+        role_value = role.value if isinstance(role, Role) else str(role)
+        if role_value not in {r.value for r in Role}:
+            raise BusinessRuleError(f"Vai tr\u00f2 kh\u00f4ng h\u1ee3p l\u1ec7: {role_value}")
+        if actor_id == user_id and role_value != Role.MANAGER.value:
+            raise BusinessRuleError(
+                "Kh\u00f4ng th\u1ec3 t\u1ef1 b\u1ecf quy\u1ec1n qu\u1ea3n l\u00fd."
+            )
+        if user.role_id == Role.MANAGER.value and role_value != Role.MANAGER.value:
+            managers = (
+                (
+                    await session.execute(
+                        select(User).where(
+                            User.role_id == Role.MANAGER.value,
+                            User.status == UserStatus.HOAT_DONG,
+                        )
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            if len(managers) <= 1:
+                raise BusinessRuleError(
+                    "Ph\u1ea3i c\u00f2n \u00edt nh\u1ea5t m\u1ed9t qu\u1ea3n l\u00fd ho\u1ea1t \u0111\u1ed9ng."
+                )
+        user.role_id = role_value
+    await session.flush()
+    session.add(
+        SystemAuditLog(
+            user_id=actor_id,
+            action="UPDATE_USER",
+            target_entity="NGUOI_DUNG",
+            target_id=str(user_id),
+            before=before,
+            after={"HoTen": user.full_name, "SoDienThoai": user.phone, "MaVaiTro": user.role_id},
+        )
+    )
+    await session.flush()
+    return user
+
+
 async def reset_password(
     session: AsyncSession, actor_id: int, user_id: int, new_password: str
 ) -> None:
@@ -218,7 +280,13 @@ async def update_config(
                 "Ng\u01b0\u1ee1ng t\u1ed3n kh\u00f4ng \u0111\u01b0\u1ee3c \u00e2m."
             )
         cfg.default_stock_threshold = d["NguongTonMacDinh"]
-    # BusinessDate locked
+    if "SoNgayCanhBaoHetHan" in d and d["SoNgayCanhBaoHetHan"] is not None:
+        cfg.expiry_warning_days = int(d["SoNgayCanhBaoHetHan"])
+    if "ThoiGianGiuChoPhut" in d and d["ThoiGianGiuChoPhut"] is not None:
+        cfg.hold_minutes = int(d["ThoiGianGiuChoPhut"])
+    if "SoCauHoiAIMoiNgay" in d and d["SoCauHoiAIMoiNgay"] is not None:
+        cfg.ai_daily_question_quota = int(d["SoCauHoiAIMoiNgay"])
+    # BusinessDate locked until the effective-date history exists
     await session.flush()
     session.add(
         SystemAuditLog(

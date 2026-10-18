@@ -34,6 +34,7 @@ type Dish = {
   TrangThai?: string;
   MaNhomMon?: number | null;
   GiaHienTai?: number | null;
+  SoSuatKhaDung?: number | null;
 };
 
 type Group = { MaNhomMon: number; TenNhom: string };
@@ -44,6 +45,7 @@ type CartLine = {
   DonGia: number;
   SoLuong: number;
   GhiChu: string;
+  holdId: number;
 };
 
 type CreatedOrder = {
@@ -94,7 +96,11 @@ async function loadMenu(orderId: number | null) {
   return {
     tables: Array.isArray(tables) ? tables : [],
     names: new Map(all.map((d) => [d.MaMon, d.TenMon])),
-    dishes: all.filter((d) => !UNSELLABLE.has(d.TrangThai ?? "")),
+    dishes: all.filter(
+      (d) =>
+        !UNSELLABLE.has(d.TrangThai ?? "") &&
+        (d.SoSuatKhaDung == null || d.SoSuatKhaDung > 0),
+    ),
     groups: Array.isArray(groups) ? groups : [],
     order,
   };
@@ -116,7 +122,13 @@ export function OrderStep({
   const [groupId, setGroupId] = useState<number | null>(null);
   const [query, setQuery] = useState("");
   const [cart, setCart] = useState<CartLine[]>([]);
+  const [selectionCode] = useState(
+    () =>
+      globalThis.crypto?.randomUUID?.() ??
+      `sel-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  );
   const [error, setError] = useState<string | null>(null);
+  const [adding, setAdding] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   // Lines confirmed by the server during this visit but not yet reflected in
   // `menu.data.order` (no reload happens on a partial failure, so the total
@@ -168,27 +180,55 @@ export function OrderStep({
       (!needle || d.TenMon.toLowerCase().includes(needle)),
   );
 
-  function addDish(dish: Dish) {
-    if (dish.GiaHienTai == null) return;
-    const price = dish.GiaHienTai;
-    setCart((prev) => {
-      const existing = prev.find((l) => l.MaMon === dish.MaMon);
+  async function addDish(dish: Dish) {
+    if (dish.GiaHienTai == null || adding === dish.MaMon) return;
+    setError(null);
+    setAdding(dish.MaMon);
+    try {
+      const existing = cart.find((l) => l.MaMon === dish.MaMon);
       if (existing) {
-        return prev.map((l) =>
-          l.MaMon === dish.MaMon ? { ...l, SoLuong: l.SoLuong + 1 } : l,
+        const updated = await apiFetch<{ MaGiuCho: number; SoLuong: number }>(
+          `/sales/holds/${existing.holdId}`,
+          { method: "PATCH", body: { quantity: existing.SoLuong + 1 } },
         );
+        updateLine(dish.MaMon, { SoLuong: updated.SoLuong });
+        return;
       }
-      return [
-        ...prev,
-        {
-          MaMon: dish.MaMon,
-          TenMon: dish.TenMon,
-          DonGia: price,
-          SoLuong: 1,
-          GhiChu: "",
+      const hold = await apiFetch<{
+        MaGiuCho: number;
+        SoLuong?: number;
+        DonGia?: number | null;
+      }>("/sales/holds", {
+        method: "POST",
+        body: {
+          selection_code: selectionCode,
+          table_id: tableId,
+          order_id: orderId,
+          dish_id: dish.MaMon,
+          quantity: 1,
         },
-      ];
-    });
+      });
+      setCart((prev) => {
+        if (prev.some((l) => l.MaMon === dish.MaMon)) return prev;
+        return [
+          ...prev,
+          {
+            MaMon: dish.MaMon,
+            TenMon: dish.TenMon,
+            DonGia: hold.DonGia ?? dish.GiaHienTai ?? 0,
+            SoLuong: hold.SoLuong ?? 1,
+            GhiChu: "",
+            holdId: hold.MaGiuCho,
+          },
+        ];
+      });
+    } catch (e: unknown) {
+      setError(
+        messageOf(e, "Không giữ được món. Kiểm tra tồn kho rồi thử lại."),
+      );
+    } finally {
+      setAdding(null);
+    }
   }
 
   function updateLine(dishId: number, patch: Partial<CartLine>) {
@@ -197,11 +237,34 @@ export function OrderStep({
     );
   }
 
-  function step(line: CartLine, delta: number) {
-    if (line.SoLuong + delta <= 0) {
-      setCart((prev) => prev.filter((l) => l.MaMon !== line.MaMon));
-    } else {
-      updateLine(line.MaMon, { SoLuong: line.SoLuong + delta });
+  async function step(line: CartLine, delta: number) {
+    const next = line.SoLuong + delta;
+    setError(null);
+    try {
+      if (next <= 0) {
+        await apiFetch(`/sales/holds/${line.holdId}`, { method: "DELETE" });
+        setCart((prev) => prev.filter((l) => l.MaMon !== line.MaMon));
+      } else {
+        const updated = await apiFetch<{ MaGiuCho: number; SoLuong: number }>(
+          `/sales/holds/${line.holdId}`,
+          { method: "PATCH", body: { quantity: next } },
+        );
+        updateLine(line.MaMon, { SoLuong: updated.SoLuong });
+      }
+    } catch (e: unknown) {
+      setError(messageOf(e, "Không cập nhật được số lượng giữ chỗ."));
+    }
+  }
+
+  async function syncQuantity(line: CartLine) {
+    try {
+      const updated = await apiFetch<{ MaGiuCho: number; SoLuong: number }>(
+        `/sales/holds/${line.holdId}`,
+        { method: "PATCH", body: { quantity: line.SoLuong } },
+      );
+      updateLine(line.MaMon, { SoLuong: updated.SoLuong });
+    } catch (e: unknown) {
+      setError(messageOf(e, "Không cập nhật được số lượng giữ chỗ."));
     }
   }
 
@@ -225,6 +288,7 @@ export function OrderStep({
               MaMon: l.MaMon,
               SoLuong: l.SoLuong,
               GhiChu: l.GhiChu || null,
+              hold_id: l.holdId,
             })),
           },
         });
@@ -243,6 +307,7 @@ export function OrderStep({
               MaMon: line.MaMon,
               SoLuong: line.SoLuong,
               GhiChu: line.GhiChu || null,
+              hold_id: line.holdId,
             },
           });
           setExtraSent((prev) => [
@@ -341,7 +406,7 @@ export function OrderStep({
                   key={d.MaMon}
                   type="button"
                   onClick={() => addDish(d)}
-                  disabled={d.GiaHienTai == null}
+                  disabled={d.GiaHienTai == null || adding === d.MaMon}
                   className={cn(
                     "relative flex min-h-24 flex-col justify-between gap-2 rounded-container border bg-surface p-3 text-left transition-[border-color,box-shadow,transform] active:translate-y-px disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:hover:border-border disabled:hover:shadow-none",
                     inCart
@@ -358,6 +423,11 @@ export function OrderStep({
                     </span>
                   ) : (
                     <span className="text-subtle">Chưa có giá</span>
+                  )}
+                  {d.SoSuatKhaDung != null && (
+                    <span className="text-[11px] text-subtle">
+                      Còn {d.SoSuatKhaDung} suất
+                    </span>
                   )}
                   {inCart && (
                     <span
@@ -455,6 +525,7 @@ export function OrderStep({
                             SoLuong: Math.max(1, Number(e.target.value) || 1),
                           })
                         }
+                        onBlur={() => void syncQuantity(l)}
                       />
                       <button
                         type="button"

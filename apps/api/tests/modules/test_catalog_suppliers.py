@@ -121,3 +121,24 @@ async def test_the_cashier_cannot_update_a_supplier(session, fresh_supplier):
         resp = await update_supplier(c, h, fresh_supplier.id, name="NCC D")
     app.dependency_overrides.clear()
     assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_supplier_contact_fields_are_saved(session, fresh_supplier):
+    h = await _headers_for(session, "MANAGER")
+    async with await _make_client(session) as c:
+        resp = await c.patch(
+            f"/api/v1/catalog/suppliers/{fresh_supplier.id}",
+            json={
+                "Email": "ncc@example.com",
+                "NguoiLienHe": "Chị Lan",
+                "DiaChi": "12 Nguyễn Huệ",
+            },
+            headers=h,
+        )
+    app.dependency_overrides.clear()
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["Email"] == "ncc@example.com"
+    assert body["NguoiLienHe"] == "Chị Lan"
+    assert body["DiaChi"] == "12 Nguyễn Huệ"

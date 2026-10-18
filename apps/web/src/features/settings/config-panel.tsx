@@ -17,6 +17,9 @@ type Config = {
   MauHoaDon: string | null;
   NguongTonMacDinh: number;
   GioBatDauBusinessDate: string;
+  SoNgayCanhBaoHetHan: number;
+  ThoiGianGiuChoPhut: number;
+  SoCauHoiAIMoiNgay: number;
 };
 
 const loadConfig = () => apiFetch<Config>("/settings/config");
@@ -44,13 +47,31 @@ function ConfigForm({
     config.MauHoaDon ?? "",
   );
   const [threshold, setThreshold] = useState(String(config.NguongTonMacDinh));
+  const [expiryDays, setExpiryDays] = useState(
+    String(config.SoNgayCanhBaoHetHan),
+  );
+  const [holdMinutes, setHoldMinutes] = useState(
+    String(config.ThoiGianGiuChoPhut),
+  );
+  const [aiQuota, setAiQuota] = useState(String(config.SoCauHoiAIMoiNgay));
 
-  const thresholdError =
-    threshold.trim() !== "" && !/^\d+$/.test(threshold.trim())
-      ? "Nhập một số nguyên không âm."
-      : null;
+  const numberError = (value: string, label: string, positive = false) => {
+    const trimmed = value.trim();
+    if (!/^\d+$/.test(trimmed) || (positive && Number(trimmed) <= 0))
+      return `${label} phải là số nguyên ${positive ? "dương" : "không âm"}.`;
+    return null;
+  };
+  const thresholdError = numberError(threshold, "Ngưỡng tồn");
+  const expiryError = numberError(expiryDays, "Số ngày cảnh báo");
+  const holdError = numberError(holdMinutes, "Thời gian giữ chỗ", true);
+  const aiQuotaError = numberError(aiQuota, "Hạn mức câu hỏi AI", true);
   const nameError = name.trim() === "" ? "Nhập tên nhà hàng." : null;
-  const canSave = thresholdError === null && nameError === null;
+  const canSave =
+    thresholdError === null &&
+    expiryError === null &&
+    holdError === null &&
+    aiQuotaError === null &&
+    nameError === null;
 
   async function save() {
     if (!canSave) return;
@@ -63,6 +84,9 @@ function ConfigForm({
             DiaChi: address.trim() || null,
             MauHoaDon: invoiceTemplate.trim() || null,
             NguongTonMacDinh: Number(threshold),
+            SoNgayCanhBaoHetHan: Number(expiryDays),
+            ThoiGianGiuChoPhut: Number(holdMinutes),
+            SoCauHoiAIMoiNgay: Number(aiQuota),
           },
         }),
       "Đã lưu cấu hình.",
@@ -107,9 +131,45 @@ function ConfigForm({
         />
       </FormField>
       <FormField
+        id="cfg-expiry"
+        label="Số ngày cảnh báo hết hạn lô"
+        error={expiryError}
+      >
+        <Input
+          id="cfg-expiry"
+          inputMode="numeric"
+          value={expiryDays}
+          onChange={(e) => setExpiryDays(e.target.value)}
+        />
+      </FormField>
+      <FormField
+        id="cfg-hold"
+        label="Thời gian giữ chỗ món (phút)"
+        error={holdError}
+      >
+        <Input
+          id="cfg-hold"
+          inputMode="numeric"
+          value={holdMinutes}
+          onChange={(e) => setHoldMinutes(e.target.value)}
+        />
+      </FormField>
+      <FormField
+        id="cfg-ai-quota"
+        label="Hạn mức câu hỏi AI mỗi người mỗi ngày"
+        error={aiQuotaError}
+      >
+        <Input
+          id="cfg-ai-quota"
+          inputMode="numeric"
+          value={aiQuota}
+          onChange={(e) => setAiQuota(e.target.value)}
+        />
+      </FormField>
+      <FormField
         id="cfg-business-date"
         label="Giờ bắt đầu Business Date"
-        help="Cố định 06:00, không thể chỉnh sửa ở đây."
+        help="Cần lịch sử hiệu lực theo Business Date; hiện cố định 06:00."
       >
         <Input
           id="cfg-business-date"

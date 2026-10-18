@@ -1,5 +1,10 @@
 # Kiểm thử và đánh giá hệ thống
 
+**Kết quả gần nhất:** [trả nợ kỹ thuật ngày 17/10/2026](technical-debt-2026-10-17.md).
+Nhật ký [kiểm chứng trước sửa](results-2026-10-17.md) được giữ để truy vết, kèm log tự động,
+integration MySQL và ảnh Chrome ở desktop/tablet giả lập. Đây là kiểm thử kỹ thuật do nhóm phát triển
+thực hiện; phiếu SUS và biên bản UAT của người dùng thật vẫn chưa được thu thập.
+
 Thư mục này hiện thực MT6 (mục 1.3.2 của `docs/BaoCao_HeThongQuanLyNhaHang.md`): đánh giá chất lượng
 hệ thống qua ba phương pháp bổ sung cho nhau. Không phương pháp nào thay thế được phương pháp còn lại —
 test case chứng minh từng chức năng hoạt động đúng đặc tả (FR/NFR), SUS đo cảm nhận về khả năng sử dụng,

@@ -381,4 +381,31 @@ describe("PaymentPanel cash and SePay", () => {
       vi.useRealTimers();
     }
   });
+
+  it("shows verification actions to a manager and locks the order", async () => {
+    saveSession({ token: "t", role: "MANAGER", username: "quanly" });
+    stubByPath({
+      "/sales/orders/1/payments": {
+        items: [qr({ TrangThai: "Chờ xác minh thanh toán" })],
+      },
+      "/sales/orders/1": {
+        ...openOrder,
+        TrangThai: "Chờ xác minh thanh toán",
+      },
+    });
+    render(<PaymentPanel orderId={1} />);
+
+    expect(
+      await screen.findByText(/Order đang chờ xác minh thanh toán/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Xác nhận đã nhận tiền" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Mở lại thanh toán" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Đóng chưa thu" }),
+    ).toBeInTheDocument();
+  });
 });

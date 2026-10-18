@@ -2,10 +2,16 @@ from typing import Annotated
 
 import pytest
 from fastapi import Depends, FastAPI
+from fastapi.security import HTTPAuthorizationCredentials
 from fastapi.testclient import TestClient
 
-from app.core.dependencies import Principal, require_roles
+from app.core.config import get_settings
+from app.core.dependencies import Principal, get_current_user, require_roles
+from app.core.errors import UnauthenticatedError
+from app.core.security import create_access_token, hash_password
 from app.main import create_app
+from app.modules.settings.models import User
+from app.modules.settings.service import seed_reference_data
 from app.shared.roles import Role
 
 manager_only = require_roles(Role.MANAGER)
@@ -61,3 +67,58 @@ def test_allowed_role_reaches_the_handler(guarded_client: TestClient, token_for)
 
     assert response.status_code == 200
     assert response.json() == {"username": "tester"}
+
+
+def _production_env(monkeypatch) -> None:
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.setenv("JWT_SECRET", "production-secret-0123456789abcdef")
+    monkeypatch.setenv("PAYMENT_WEBHOOK_SECRET", "production-webhook-secret")
+    get_settings.cache_clear()
+
+
+async def _make_user(session, *, role: str, status: str) -> User:
+    await seed_reference_data(session)
+    user = User(
+        username=f"user-{role.lower()}-{status}",
+        password_hash=hash_password("pass"),
+        full_name="Test",
+        role_id=role,
+        status=status,
+    )
+    session.add(user)
+    await session.flush()
+    return user
+
+
+@pytest.mark.anyio
+async def test_production_token_takes_the_role_from_the_database(session, monkeypatch) -> None:
+    _production_env(monkeypatch)
+    user = await _make_user(session, role="CASHIER", status="Hoạt động")
+    scheme = HTTPAuthorizationCredentials(
+        scheme="Bearer",
+        credentials=create_access_token(
+            str(user.id), {"role": "MANAGER", "username": user.username}
+        ),
+    )
+
+    principal = await get_current_user(scheme, session)
+
+    assert principal.role == Role.CASHIER
+    assert principal.username == user.username
+
+
+@pytest.mark.anyio
+async def test_production_locked_user_is_rejected_even_with_a_valid_token(
+    session, monkeypatch
+) -> None:
+    _production_env(monkeypatch)
+    user = await _make_user(session, role="CASHIER", status="Đã khóa")
+    scheme = HTTPAuthorizationCredentials(
+        scheme="Bearer",
+        credentials=create_access_token(
+            str(user.id), {"role": "CASHIER", "username": user.username}
+        ),
+    )
+
+    with pytest.raises(UnauthenticatedError):
+        await get_current_user(scheme, session)

@@ -3,6 +3,10 @@
 Ba view `vw_ai_*` là ranh giới dữ liệu của trợ lý AI — mỗi vai trò chỉ thấy view của mình.
 Tài khoản CSDL chỉ-đọc tương ứng chỉ được `GRANT SELECT` trên đúng view đó.
 
+Trên MySQL 8.4, file DDL bắt đầu bằng `SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci` và các cột
+`CHAR` có `COLLATE` tường minh. Nếu thiếu, MySQL báo lỗi 1271 “Illegal mix of collations” khi tạo
+hoặc truy vấn view vì literal mặc định `utf8mb4_0900_ai_ci` khác collation bảng.
+
 ## Áp dụng
 
 ### macOS / Linux
@@ -44,7 +48,12 @@ Cột: `LoaiBanGhi`, `MaOrder`, `BusinessDate`, `LoaiDon`, `TrangThaiOrder`, `Ma
 `SoLuongTon`, `MucTonToiThieu` (ngưỡng hiệu lực — cột nếu > 0, ngược lại `NguongTonMacDinh`),
 `Thang`, `GiaBinhQuanThang`, `TongSoLuongNhapThang` (giá vốn bình quân tháng — FR-REP-04/05),
 `MaGiaoDichKho`, `SoLuong`, `LoaiGiaoDich` (giao dịch kho), `MaPhieuNhap`, `TenNhaCungCap`,
-`DonGiaNhap`, `SoLuongNhap` (giá nhập nguyên liệu — FR-AI-02).
+`DonGiaNhap`, `SoLuongNhap` (giá nhập nguyên liệu — FR-AI-02), `SoLuongGiu`, `SoLuongKhaDung`
+(lượng giữ/khả dụng, chỉ có ở nhánh `TON_KHO`).
+
+Nhánh `DONG_MON` chỉ chứa dòng món chưa hủy (`CHI_TIET_ORDER.TrangThai <> 'Đã hủy'`), nhánh
+`THANH_TOAN` chỉ chứa giao dịch thành công (`GIAO_DICH_THANH_TOAN.TrangThai = 'Thành công'`), và
+nhánh `PHIEU_NHAP` loại phiếu đã hủy, đồng thời quy `NgayNhap` về Business Date bằng mốc 06:00.
 
 Biên lợi nhuận gộp/tháng (FR-REP-04) và chi phí tiêu hao (FR-REP-05) không phải là một cột có sẵn
 (view không tự JOIN xuyên nhánh) — trợ lý tính bằng cách tự JOIN hai nhánh của cùng view: doanh
@@ -58,17 +67,23 @@ nhân `GiaBinhQuanThang` của `GIA_VON_THANG` cùng nguyên liệu/tháng.
 Cột: `LoaiBanGhi`, `MaOrder`, `BusinessDate`, `LoaiDon`, `TrangThaiOrder`, `MaBan`, `MaHoaDon`,
 `ThoiDiemXuat`, `TongTien`, `MaGiaoDich`, `PhuongThuc`, `SoTien`, `TenMon`, `TenNhom`,
 `SoLuongMon`, `DonGiaMon` (giá bán), `ThanhTienMon`. **Không có** `MaNguyenLieu`,
-`GiaBinhQuanThang`, `DonGiaNhap`, hay bất kỳ cột giá vốn/giá nhập nào.
+`GiaBinhQuanThang`, `DonGiaNhap`, hay bất kỳ cột giá vốn/giá nhập nào. Nhánh `DONG_MON` loại dòng
+món đã hủy; nhánh `THANH_TOAN` chỉ chứa giao dịch thành công.
 
 ### `vw_ai_kho` — FR-AI-04 (Nhân viên kho; không doanh thu/hóa đơn/lợi nhuận)
 
 3 nhánh: `TON_KHO`, `GIAO_DICH_KHO`, `LO_NGUYEN_LIEU`.
 
-Cột: `LoaiBanGhi`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `SoLuongTon`, `MucTonToiThieu`
-(ngưỡng hiệu lực), `CanhBaoTonThap` (cờ cảnh báo tồn thấp — FR-AI-04), `MaGiaoDichKho`,
-`BusinessDate`, `SoLuong`, `LoaiGiaoDich`, `MaLo`, `SoLuongConLai`, `TrangThaiLo`, `NgayNhapLo`,
-`HanSuDungLo` (hạn sử dụng tính từ `NgayNhap + SoNgayBaoQuan`). **Không có** `TongTien`, `SoTien`,
-`DonGia`/`DonGiaNhap`, hay bất kỳ cột doanh thu/hóa đơn/giá nào.
+Cột: `LoaiBanGhi`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `SoLuongTon`, `SoLuongGiu`
+(lượng đang giữ trên các lô đủ điều kiện), `SoLuongKhaDung` (tồn còn dùng được sau khi trừ giữ),
+`MucTonToiThieu` (ngưỡng hiệu lực), `CanhBaoTonThap` (cờ cảnh báo tồn thấp — FR-AI-04),
+`MaGiaoDichKho`, `BusinessDate`, `SoLuong`, `LoaiGiaoDich`, `MaLo`, `SoLuongConLai`, `TrangThaiLo`,
+`NgayNhapLo`, `HanSuDungLo` (hạn sử dụng đã lưu trên lô, tính từ `NgayNhap + SoNgayBaoQuan` khi nhập).
+**Không có** `TongTien`, `SoTien`, `DonGia`/`DonGiaNhap`, hay bất kỳ cột doanh thu/hóa đơn/giá nào.
+
+Ở nhánh `TON_KHO`, `SoLuongGiu` chỉ cộng giữ chỗ `Đang giữ` còn hạn trên lô có tồn dương, trạng thái
+khác `Hết hạn` và còn trong ngày sử dụng. `SoLuongKhaDung` là tổng `GREATEST(0, SoLuongConLai - lượng
+giữ)` trên chính các lô đủ điều kiện. Hai cột được NULL-pad ở nhánh giao dịch và nhánh lô.
 
 ### Cột cấm (không bao giờ lộ ở bất kỳ view nào)
 

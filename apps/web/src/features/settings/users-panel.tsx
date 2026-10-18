@@ -1,6 +1,6 @@
 "use client";
 
-import { KeyRound, Lock, LockOpen, Users } from "lucide-react";
+import { KeyRound, Lock, LockOpen, Pencil, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -29,6 +29,7 @@ import { useClientPagination } from "@/lib/use-client-pagination";
 import { useResource } from "@/lib/use-resource";
 
 import { CreateUserDialog } from "./create-user-dialog";
+import { EditUserDialog } from "./edit-user-dialog";
 import { ResetPasswordDialog } from "./reset-password-dialog";
 
 export type User = {
@@ -74,6 +75,7 @@ export function UsersPanel() {
   const { run: runLock, pending: lockPending } = useAction();
   const [lockTarget, setLockTarget] = useState<User | null>(null);
   const [resetTarget, setResetTarget] = useState<User | null>(null);
+  const [editTarget, setEditTarget] = useState<User | null>(null);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -197,6 +199,14 @@ export function UsersPanel() {
                       <Button
                         variant="ghost"
                         size="icon"
+                        aria-label={`Sửa tài khoản ${u.HoTen}`}
+                        onClick={() => setEditTarget(u)}
+                      >
+                        <Pencil />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         aria-label={`Đặt lại mật khẩu cho ${u.HoTen}`}
                         onClick={() => setResetTarget(u)}
                       >
@@ -256,6 +266,11 @@ export function UsersPanel() {
       <ResetPasswordDialog
         user={resetTarget}
         onOpenChange={(open) => !open && setResetTarget(null)}
+      />
+      <EditUserDialog
+        user={editTarget}
+        onOpenChange={(open) => !open && setEditTarget(null)}
+        onUpdated={users.reload}
       />
     </div>
   );

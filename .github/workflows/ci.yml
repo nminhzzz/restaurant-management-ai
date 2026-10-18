@@ -28,6 +28,50 @@ jobs:
       - run: uv run mypy .
       - run: uv run pytest
 
+  mysql:
+    name: API — MySQL 8.4 integration
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: restaurant-root
+          MYSQL_DATABASE: restaurant
+          MYSQL_USER: restaurant
+          MYSQL_PASSWORD: restaurant
+          TZ: Asia/Ho_Chi_Minh
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -prestaurant-root"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      CI_REQUIRE_MYSQL: "1"
+      DATABASE_URL: mysql+asyncmy://restaurant:restaurant@127.0.0.1:3306/restaurant_integration?charset=utf8mb4
+      MYSQL_TEST_DATABASE_URL: mysql+asyncmy://restaurant:restaurant@127.0.0.1:3306/restaurant_test?charset=utf8mb4
+      AI_READONLY_URL_MANAGER: mysql+asyncmy://ci_ai_manager:ci-manager-pass@127.0.0.1:3306/restaurant_integration
+      AI_READONLY_URL_CASHIER: mysql+asyncmy://ci_ai_cashier:ci-cashier-pass@127.0.0.1:3306/restaurant_integration
+      AI_READONLY_URL_WAREHOUSE: mysql+asyncmy://ci_ai_warehouse:ci-warehouse-pass@127.0.0.1:3306/restaurant_integration
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: apps/api/uv.lock
+      - run: uv sync --locked
+        working-directory: apps/api
+      - run: bash scripts/prepare_ci_mysql.sh
+        env:
+          MYSQL_CONTAINER: ${{ job.services.mysql.id }}
+          MYSQL_ROOT_PASSWORD: restaurant-root
+      - run: uv run pytest -m integration --junitxml=mysql-results.xml
+        working-directory: apps/api
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mysql-integration-results
+          path: apps/api/mysql-results.xml
+
   web:
     name: Web — lint, types, tests, build
     runs-on: ubuntu-latest

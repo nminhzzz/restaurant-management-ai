@@ -161,3 +161,73 @@ async def test_a_user_is_given_exactly_one_of_the_three_roles(session):
     app.dependency_overrides.clear()
     assert ok.status_code == 201
     assert bad.status_code in (400, 422)
+
+
+@pytest.mark.asyncio
+async def test_manager_can_edit_name_phone_and_role(session):
+    """FR-SET-01: edit an account and assign one of the three roles."""
+    from app.core.security import create_access_token
+    from app.shared.roles import Role
+    from tests.helpers import latest_audit
+
+    await seed_reference_data(session)
+    mgr = User(
+        username="quanly01",
+        password_hash=hash_password("pass123"),
+        full_name="QL",
+        role_id=Role.MANAGER.value,
+        status="Hoạt động",
+    )
+    cash = User(
+        username="thungan01",
+        password_hash=hash_password("pass123"),
+        full_name="TN",
+        role_id=Role.CASHIER.value,
+        status="Hoạt động",
+    )
+    session.add_all([mgr, cash])
+    await session.flush()
+    await session.commit()
+    token = create_access_token(str(mgr.id), {"role": mgr.role_id, "username": mgr.username})
+    async with await _make_client(session) as client:
+        resp = await client.patch(
+            f"/api/v1/settings/users/{cash.id}",
+            json={"full_name": "Thu ngân mới", "phone": "0909000111", "role": "WAREHOUSE"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+    app.dependency_overrides.clear()
+    assert resp.status_code == 200, resp.text
+    await session.refresh(cash)
+    assert cash.full_name == "Thu ngân mới"
+    assert cash.phone == "0909000111"
+    assert cash.role_id == Role.WAREHOUSE.value
+    assert (await latest_audit(session))["LoaiThaoTac"] == "UPDATE_USER"
+
+
+@pytest.mark.asyncio
+async def test_manager_cannot_demote_themselves(session):
+    from app.core.security import create_access_token
+    from app.shared.roles import Role
+
+    await seed_reference_data(session)
+    mgr = User(
+        username="quanly01",
+        password_hash=hash_password("pass123"),
+        full_name="QL",
+        role_id=Role.MANAGER.value,
+        status="Hoạt động",
+    )
+    session.add(mgr)
+    await session.flush()
+    await session.commit()
+    token = create_access_token(str(mgr.id), {"role": mgr.role_id, "username": mgr.username})
+    async with await _make_client(session) as client:
+        resp = await client.patch(
+            f"/api/v1/settings/users/{mgr.id}",
+            json={"role": "CASHIER"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+    app.dependency_overrides.clear()
+    assert resp.status_code == 422
+    await session.refresh(mgr)
+    assert mgr.role_id == Role.MANAGER.value

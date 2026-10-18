@@ -1,3 +1,5 @@
+SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 -- Manager scope (NFR-12, FR-AI-02): the full scope of Cashier + Warehouse, plus
 -- cancel reasons, dish-level sales, monthly average ingredient cost and receipt
 -- purchase prices needed for gross margin, cost, and cancelled-order reporting.
@@ -7,16 +9,16 @@
 -- so an aggregate such as SUM(TongTien) or SUM(SoTien) simply ignores rows that do
 -- not carry it, and the LLM filters branches by LoaiBanGhi instead of guessing:
 --   'ORDER'         - one row per order (incl. cancel reason)
---   'DONG_MON'      - one row per order line (dish, quantity, selling price)
+--   'DONG_MON'      - one row per live order line (cancelled lines are excluded)
 --   'HOA_DON'       - one row per invoice
---   'THANH_TOAN'    - one row per payment transaction
+--   'THANH_TOAN'    - one row per successful payment transaction
 --   'TON_KHO'       - one row per ingredient: current stock + effective min-stock
 --   'GIA_VON_THANG' - one row per ingredient per month: weighted-average purchase cost
 --   'GIAO_DICH_KHO' - one row per stock movement (receipt/issue/consumption/adjustment)
 --   'PHIEU_NHAP'    - one row per goods-receipt line: supplier + purchase price
 CREATE OR REPLACE VIEW vw_ai_quanly AS
 SELECT
-    CAST('ORDER' AS CHAR(20)) AS LoaiBanGhi,
+    CAST('ORDER' AS CHAR(20)) COLLATE utf8mb4_unicode_ci AS LoaiBanGhi,
     o.MaOrder AS MaOrder,
     o.BusinessDate AS BusinessDate,
     o.LoaiDon AS LoaiDon,
@@ -27,16 +29,16 @@ SELECT
     CAST(NULL AS DATETIME) AS ThoiDiemXuat,
     CAST(NULL AS DECIMAL(18, 4)) AS TongTien,
     CAST(NULL AS SIGNED) AS MaGiaoDich,
-    CAST(NULL AS CHAR(20)) AS PhuongThuc,
+    CAST(NULL AS CHAR(20)) COLLATE utf8mb4_unicode_ci AS PhuongThuc,
     CAST(NULL AS DECIMAL(18, 4)) AS SoTien,
-    CAST(NULL AS CHAR(100)) AS TenMon,
-    CAST(NULL AS CHAR(100)) AS TenNhom,
+    CAST(NULL AS CHAR(100)) COLLATE utf8mb4_unicode_ci AS TenMon,
+    CAST(NULL AS CHAR(100)) COLLATE utf8mb4_unicode_ci AS TenNhom,
     CAST(NULL AS SIGNED) AS SoLuongMon,
     CAST(NULL AS DECIMAL(18, 4)) AS DonGiaMon,
     CAST(NULL AS DECIMAL(18, 4)) AS ThanhTienMon,
     CAST(NULL AS SIGNED) AS MaNguyenLieu,
-    CAST(NULL AS CHAR(100)) AS TenNguyenLieu,
-    CAST(NULL AS CHAR(20)) AS DonViTinh,
+    CAST(NULL AS CHAR(100)) COLLATE utf8mb4_unicode_ci AS TenNguyenLieu,
+    CAST(NULL AS CHAR(20)) COLLATE utf8mb4_unicode_ci AS DonViTinh,
     CAST(NULL AS DECIMAL(18, 4)) AS SoLuongTon,
     CAST(NULL AS DECIMAL(18, 4)) AS MucTonToiThieu,
     CAST(NULL AS SIGNED) AS Thang,
@@ -44,11 +46,13 @@ SELECT
     CAST(NULL AS DECIMAL(18, 4)) AS TongSoLuongNhapThang,
     CAST(NULL AS SIGNED) AS MaGiaoDichKho,
     CAST(NULL AS DECIMAL(18, 4)) AS SoLuong,
-    CAST(NULL AS CHAR(30)) AS LoaiGiaoDich,
+    CAST(NULL AS CHAR(30)) COLLATE utf8mb4_unicode_ci AS LoaiGiaoDich,
     CAST(NULL AS SIGNED) AS MaPhieuNhap,
-    CAST(NULL AS CHAR(100)) AS TenNhaCungCap,
+    CAST(NULL AS CHAR(100)) COLLATE utf8mb4_unicode_ci AS TenNhaCungCap,
     CAST(NULL AS DECIMAL(18, 4)) AS DonGiaNhap,
-    CAST(NULL AS DECIMAL(18, 4)) AS SoLuongNhap
+    CAST(NULL AS DECIMAL(18, 4)) AS SoLuongNhap,
+    CAST(NULL AS DECIMAL(18, 4)) AS SoLuongGiu,
+    CAST(NULL AS DECIMAL(18, 4)) AS SoLuongKhaDung
 FROM `ORDER` o
 UNION ALL
 SELECT
@@ -56,18 +60,19 @@ SELECT
     NULL, NULL, NULL, NULL, NULL, NULL,
     m.TenMon, ng.TenNhomMon, ct.SoLuong, ct.DonGia, ct.ThanhTien,
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-    NULL, NULL, NULL, NULL
+    NULL, NULL, NULL, NULL, NULL, NULL
 FROM CHI_TIET_ORDER ct
 JOIN `ORDER` o ON o.MaOrder = ct.MaOrder
 JOIN MON_AN m ON m.MaMon = ct.MaMon
 LEFT JOIN NHOM_MON ng ON ng.MaNhomMon = m.MaNhomMon
+WHERE ct.TrangThai <> 'Đã hủy'
 UNION ALL
 SELECT
     'HOA_DON', h.MaOrder, h.BusinessDate, NULL, NULL, NULL, NULL,
     h.MaHoaDon, h.ThoiDiemXuat, h.TongTien, NULL, NULL, NULL,
     NULL, NULL, NULL, NULL, NULL,
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-    NULL, NULL, NULL, NULL
+    NULL, NULL, NULL, NULL, NULL, NULL
 FROM HOA_DON h
 UNION ALL
 SELECT
@@ -75,8 +80,9 @@ SELECT
     NULL, NULL, NULL, t.MaGiaoDichTT, t.PhuongThuc, t.SoTien,
     NULL, NULL, NULL, NULL, NULL,
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-    NULL, NULL, NULL, NULL
+    NULL, NULL, NULL, NULL, NULL, NULL
 FROM GIAO_DICH_THANH_TOAN t
+WHERE t.TrangThai = 'Thành công'
 UNION ALL
 SELECT
     'TON_KHO', NULL, NULL, NULL, NULL, NULL, NULL,
@@ -86,7 +92,37 @@ SELECT
     CASE WHEN n.MucTonToiThieu > 0 THEN n.MucTonToiThieu
          ELSE (SELECT cfg.NguongTonMacDinh FROM CAU_HINH_HE_THONG cfg ORDER BY cfg.MaCauHinh LIMIT 1)
     END,
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+    CAST((
+        SELECT COALESCE(SUM(d.SoLuongGiu), 0)
+        FROM CHI_TIET_GIU_CHO d
+        JOIN GIU_CHO_MON g ON g.MaGiuCho = d.MaGiuCho
+        JOIN LO_NGUYEN_LIEU l ON l.MaLoNguyenLieu = d.MaLoNguyenLieu
+        WHERE l.MaNguyenLieu = n.MaNguyenLieu
+          AND g.TrangThai = 'Đang giữ'
+          AND g.ThoiDiemHetHan > CURRENT_TIMESTAMP
+          AND l.SoLuongConLai > 0
+          AND l.TrangThai <> 'Hết hạn'
+          AND (l.HanSuDung IS NULL OR DATE_ADD(l.HanSuDung, INTERVAL 1 DAY) > CURRENT_TIMESTAMP)
+    ) AS DECIMAL(18, 4)) AS SoLuongGiu,
+    CAST((
+        SELECT COALESCE(SUM(GREATEST(
+            0,
+            l.SoLuongConLai - (
+                SELECT COALESCE(SUM(d.SoLuongGiu), 0)
+                FROM CHI_TIET_GIU_CHO d
+                JOIN GIU_CHO_MON g ON g.MaGiuCho = d.MaGiuCho
+                WHERE d.MaLoNguyenLieu = l.MaLoNguyenLieu
+                  AND g.TrangThai = 'Đang giữ'
+                  AND g.ThoiDiemHetHan > CURRENT_TIMESTAMP
+            )
+        )), 0)
+        FROM LO_NGUYEN_LIEU l
+        WHERE l.MaNguyenLieu = n.MaNguyenLieu
+          AND l.SoLuongConLai > 0
+          AND l.TrangThai <> 'Hết hạn'
+          AND (l.HanSuDung IS NULL OR DATE_ADD(l.HanSuDung, INTERVAL 1 DAY) > CURRENT_TIMESTAMP)
+    ) AS DECIMAL(18, 4)) AS SoLuongKhaDung
 FROM NGUYEN_LIEU n
 WHERE n.DaXoa = 0
 UNION ALL
@@ -96,7 +132,7 @@ SELECT
     NULL, NULL, NULL, NULL, NULL,
     gv.MaNguyenLieu, n.TenNguyenLieu, n.DonViTinh, NULL, NULL,
     gv.Thang, gv.DonGiaBinhQuan, gv.TongSoLuongNhap,
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 FROM GIA_BINH_QUAN_THANG gv
 JOIN NGUYEN_LIEU n ON n.MaNguyenLieu = gv.MaNguyenLieu
 UNION ALL
@@ -106,19 +142,20 @@ SELECT
     NULL, NULL, NULL, NULL, NULL,
     g.MaNguyenLieu, n.TenNguyenLieu, n.DonViTinh, NULL, NULL,
     NULL, NULL, NULL,
-    g.MaGiaoDichKho, g.SoLuongThayDoi, g.LoaiGiaoDich, NULL, NULL, NULL, NULL
+    g.MaGiaoDichKho, g.SoLuongThayDoi, g.LoaiGiaoDich, NULL, NULL, NULL, NULL, NULL, NULL
 FROM GIAO_DICH_KHO g
 JOIN NGUYEN_LIEU n ON n.MaNguyenLieu = g.MaNguyenLieu
 UNION ALL
 SELECT
-    'PHIEU_NHAP', NULL, DATE(pn.NgayNhap), NULL, NULL, NULL, NULL,
+    'PHIEU_NHAP', NULL, DATE(pn.NgayNhap - INTERVAL 6 HOUR), NULL, NULL, NULL, NULL,
     NULL, NULL, NULL, NULL, NULL, NULL,
     NULL, NULL, NULL, NULL, NULL,
     ct.MaNguyenLieu, n.TenNguyenLieu, n.DonViTinh, NULL, NULL,
     NULL, NULL, NULL,
     NULL, NULL, NULL,
-    pn.MaPhieuNhap, ncc.TenNCC, ct.DonGia, ct.SoLuong
+    pn.MaPhieuNhap, ncc.TenNCC, ct.DonGia, ct.SoLuong, NULL, NULL
 FROM CHI_TIET_PHIEU_NHAP ct
 JOIN PHIEU_NHAP_KHO pn ON pn.MaPhieuNhap = ct.MaPhieuNhap
 JOIN NGUYEN_LIEU n ON n.MaNguyenLieu = ct.MaNguyenLieu
-LEFT JOIN NHA_CUNG_CAP ncc ON ncc.MaNCC = pn.MaNCC;
+LEFT JOIN NHA_CUNG_CAP ncc ON ncc.MaNCC = pn.MaNCC
+WHERE pn.TrangThai <> 'Đã hủy';

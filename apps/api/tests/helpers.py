@@ -86,16 +86,22 @@ async def get_config_row(session: AsyncSession) -> object | None:
 
 
 async def active_recipe(session: AsyncSession, dish_id: int, business_date=None) -> object | None:
-    from sqlalchemy import text
+    """The recipe in force on a Business Date, using the real lookup (which also
+    promotes a scheduled version that has become due)."""
+    from app.modules.catalog.versions import active_recipe as _active
+    from app.shared import business_date as _bd
 
-    try:
-        r = await session.execute(
-            text("SELECT * FROM CONG_THUC WHERE MaMon=:id AND TrangThai='Đang áp dụng' LIMIT 1"),
-            {"id": dish_id},
-        )
-        return r.mappings().first()
-    except Exception:
+    bd = business_date or _bd.business_date_of(_bd.now())
+    recipe = await _active(session, dish_id, bd)
+    if recipe is None:
         return None
+    return {
+        "MaCongThuc": recipe.id,
+        "MaMon": recipe.dish_id,
+        "BusinessDateApDung": recipe.business_date,
+        "TrangThai": recipe.status,
+        "LoaiThayDoi": recipe.change_type,
+    }
 
 
 async def active_price(session: AsyncSession, dish_id: int, business_date=None) -> object | None:

@@ -1,0 +1,761 @@
+[
+  {
+    "route": "catalog",
+    "viewport": "desktop",
+    "url": "/catalog",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "heading": "Danh mục",
+    "small": [
+      {
+        "text": "Món ăn",
+        "width": 74.34375,
+        "height": 32
+      },
+      {
+        "text": "Nhóm món",
+        "width": 97.5,
+        "height": 32
+      },
+      {
+        "text": "Nguyên liệu",
+        "width": 104.109375,
+        "height": 32
+      },
+      {
+        "text": "Nhà cung cấp",
+        "width": 119.90625,
+        "height": 32
+      },
+      {
+        "text": "Bàn",
+        "width": 51.3125,
+        "height": 32
+      },
+      {
+        "text": "Tìm món",
+        "width": 256,
+        "height": 36
+      },
+      {
+        "text": "Tất cả nhómKhai vịMón chínhTráng miệngĐồ uống",
+        "width": 133,
+        "height": 36
+      },
+      {
+        "text": "Tất cả trạng tháiHoạt độngHết nguyên liệu",
+        "width": 163,
+        "height": 36
+      },
+      {
+        "text": "Thêm món",
+        "width": 127.953125,
+        "height": 36
+      },
+      {
+        "text": "Sửa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Xóa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Sửa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Xóa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Sửa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Xóa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Sửa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Xóa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Sửa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Xóa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Sửa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Xóa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Sửa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Xóa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Sửa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Xóa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Sửa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Xóa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Sửa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Xóa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Sửa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Xóa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Sửa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Xóa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Sửa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Xóa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Sửa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Xóa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Sửa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Xóa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Sửa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Xóa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Sửa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Xóa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Sửa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Xóa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Sửa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Xóa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Sửa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Xóa món",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "102050",
+        "width": 57,
+        "height": 36
+      },
+      {
+        "text": "Trang trước",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "1",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "2",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "3",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "4",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Trang sau",
+        "width": 36,
+        "height": 36
+      }
+    ],
+    "alerts": [],
+    "body": "Danh mục\nMón ăn\nNhóm món\nNguyên liệu\nNhà cung cấp\nBàn\nTất cả nhóm\nKhai vị\nMón chính\nTráng miệng\nĐồ uống\nTất cả trạng thái\nHoạt động\nHết nguyên liệu\nThêm món\nDanh sách món\nTÊN MÓN\tNHÓM\tGIÁ HIỆN TẠI\tTRẠNG THÁI\t\nTHAO TÁC\n\n\nBò sốt vang\n\tKhai vị\t110.000 ₫"
+  },
+  {
+    "route": "catalog",
+    "viewport": "portrait",
+    "url": "/catalog",
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Danh mục",
+    "small": [],
+    "alerts": [],
+    "body": "Danh mục\nMón ăn\nNhóm món\nNguyên liệu\nNhà cung cấp\nBàn\nTất cả nhóm\nKhai vị\nMón chính\nTráng miệng\nĐồ uống\nTất cả trạng thái\nHoạt động\nHết nguyên liệu\nThêm món\nDanh sách món\nTÊN MÓN\tNHÓM\tGIÁ HIỆN TẠI\tTRẠNG THÁI\t\nTHAO TÁC\n\n\nBò sốt vang\n\tKhai vị\t110.000 ₫"
+  },
+  {
+    "route": "catalog",
+    "viewport": "landscape",
+    "url": "/catalog",
+    "width": 1024,
+    "scrollWidth": 1024,
+    "heading": "Danh mục",
+    "small": [],
+    "alerts": [],
+    "body": "Danh mục\nMón ăn\nNhóm món\nNguyên liệu\nNhà cung cấp\nBàn\nTất cả nhóm\nKhai vị\nMón chính\nTráng miệng\nĐồ uống\nTất cả trạng thái\nHoạt động\nHết nguyên liệu\nThêm món\nDanh sách món\nTÊN MÓN\tNHÓM\tGIÁ HIỆN TẠI\tTRẠNG THÁI\t\nTHAO TÁC\n\n\nBò sốt vang\n\tKhai vị\t110.000 ₫"
+  },
+  {
+    "route": "sales",
+    "viewport": "desktop",
+    "url": "/sales",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "heading": "Bán hàng",
+    "small": [
+      {
+        "text": "Tra mã order",
+        "width": 288,
+        "height": 36
+      },
+      {
+        "text": "Tất cả 20",
+        "width": 87.59375,
+        "height": 36
+      },
+      {
+        "text": "Trống 20",
+        "width": 83.640625,
+        "height": 36
+      },
+      {
+        "text": "Có khách 0",
+        "width": 101.6875,
+        "height": 36
+      },
+      {
+        "text": "Đã đặt 0",
+        "width": 83.703125,
+        "height": 36
+      }
+    ],
+    "alerts": [],
+    "body": "Bán hàng\n1\nChọn bàn\n2\nGọi món\n3\nThanh toán\nTất cả 20\nTrống 20\nCó khách 0\nĐã đặt 0\nBàn 01\nĐang phục vụ\nChạm để mở order\nBàn 02\nTrống\nChạm để mở order\nBàn 03\nTrống\nChạm để mở order\nBàn 04\nTrống\nChạm để mở order\nBàn 05\nTrống\nChạm để mở order\nBàn 06\nTrốn"
+  },
+  {
+    "route": "sales",
+    "viewport": "portrait",
+    "url": "/sales",
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Bán hàng",
+    "small": [],
+    "alerts": [],
+    "body": "Bán hàng\n1\nChọn bàn\n2\nGọi món\n3\nThanh toán\nTất cả 20\nTrống 20\nCó khách 0\nĐã đặt 0\nBàn 01\nĐang phục vụ\nChạm để mở order\nBàn 02\nTrống\nChạm để mở order\nBàn 03\nTrống\nChạm để mở order\nBàn 04\nTrống\nChạm để mở order\nBàn 05\nTrống\nChạm để mở order\nBàn 06\nTrốn"
+  },
+  {
+    "route": "sales",
+    "viewport": "landscape",
+    "url": "/sales",
+    "width": 1024,
+    "scrollWidth": 1024,
+    "heading": "Bán hàng",
+    "small": [],
+    "alerts": [],
+    "body": "Bán hàng\n1\nChọn bàn\n2\nGọi món\n3\nThanh toán\nTất cả 20\nTrống 20\nCó khách 0\nĐã đặt 0\nBàn 01\nĐang phục vụ\nChạm để mở order\nBàn 02\nTrống\nChạm để mở order\nBàn 03\nTrống\nChạm để mở order\nBàn 04\nTrống\nChạm để mở order\nBàn 05\nTrống\nChạm để mở order\nBàn 06\nTrốn"
+  },
+  {
+    "route": "inventory",
+    "viewport": "desktop",
+    "url": "/inventory",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "heading": "Kho",
+    "small": [
+      {
+        "text": "Tồn kho",
+        "width": 87.75,
+        "height": 36
+      },
+      {
+        "text": "Phiếu nhập",
+        "width": 108.875,
+        "height": 36
+      },
+      {
+        "text": "Phiếu xuất",
+        "width": 105.421875,
+        "height": 36
+      },
+      {
+        "text": "Kiểm kê",
+        "width": 86.40625,
+        "height": 36
+      },
+      {
+        "text": "Tất cả",
+        "width": 69.546875,
+        "height": 40
+      },
+      {
+        "text": "Cần nhập thêm",
+        "width": 128.765625,
+        "height": 40
+      },
+      {
+        "text": "Tìm nguyên liệu",
+        "width": 256,
+        "height": 36
+      },
+      {
+        "text": "Nhập thêm",
+        "width": 115.1875,
+        "height": 32
+      },
+      {
+        "text": "Trang trước",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "1",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "2",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "3",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "4",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Trang sau",
+        "width": 36,
+        "height": 36
+      }
+    ],
+    "alerts": [],
+    "body": "Kho\nTồn kho\nPhiếu nhập\nPhiếu xuất\nKiểm kê\nTồn kho\n\n68 nguyên liệu.\n\nTất cả\nCần nhập thêm\nTồn kho nguyên liệu\nNGUYÊN LIỆU\tTỒN HIỆN TẠI\tMỨC TỐI THIỂU\tTRẠNG THÁI\tTHAO TÁC\nThịt bò\t0\t5\tHết hàng\t\nNhập thêm\nThịt heo\t114,63\t5\tĐủ hàng\t\nThịt heo ba chỉ\t70,58\t5"
+  },
+  {
+    "route": "inventory",
+    "viewport": "portrait",
+    "url": "/inventory",
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Kho",
+    "small": [],
+    "alerts": [],
+    "body": "Kho\nTồn kho\nPhiếu nhập\nPhiếu xuất\nKiểm kê\nTồn kho\n\n68 nguyên liệu.\n\nTất cả\nCần nhập thêm\nTồn kho nguyên liệu\nNGUYÊN LIỆU\tTỒN HIỆN TẠI\tMỨC TỐI THIỂU\tTRẠNG THÁI\tTHAO TÁC\nThịt bò\t0\t5\tHết hàng\t\nNhập thêm\nThịt heo\t114,63\t5\tĐủ hàng\t\nThịt heo ba chỉ\t70,58\t5"
+  },
+  {
+    "route": "inventory",
+    "viewport": "landscape",
+    "url": "/inventory",
+    "width": 1024,
+    "scrollWidth": 1024,
+    "heading": "Kho",
+    "small": [],
+    "alerts": [],
+    "body": "Kho\nTồn kho\nPhiếu nhập\nPhiếu xuất\nKiểm kê\nTồn kho\n\n68 nguyên liệu.\n\nTất cả\nCần nhập thêm\nTồn kho nguyên liệu\nNGUYÊN LIỆU\tTỒN HIỆN TẠI\tMỨC TỐI THIỂU\tTRẠNG THÁI\tTHAO TÁC\nThịt bò\t0\t5\tHết hàng\t\nNhập thêm\nThịt heo\t114,63\t5\tĐủ hàng\t\nThịt heo ba chỉ\t70,58\t5"
+  },
+  {
+    "route": "reports",
+    "viewport": "desktop",
+    "url": "/reports",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "heading": "Báo cáo",
+    "small": [
+      {
+        "text": "Doanh thu",
+        "width": 95.109375,
+        "height": 32
+      },
+      {
+        "text": "Món ăn",
+        "width": 74.34375,
+        "height": 32
+      },
+      {
+        "text": "Khung giờ",
+        "width": 93.296875,
+        "height": 32
+      },
+      {
+        "text": "Lợi nhuận",
+        "width": 91.609375,
+        "height": 32
+      },
+      {
+        "text": "So sánh",
+        "width": 78.765625,
+        "height": 32
+      },
+      {
+        "text": "Order hủy",
+        "width": 92.90625,
+        "height": 32
+      },
+      {
+        "text": "Ngày",
+        "width": 60.6875,
+        "height": 32
+      },
+      {
+        "text": "Tuần",
+        "width": 57.953125,
+        "height": 32
+      },
+      {
+        "text": "Tháng",
+        "width": 68.421875,
+        "height": 32
+      },
+      {
+        "text": "Năm",
+        "width": 56.1875,
+        "height": 32
+      },
+      {
+        "text": "Mốc thời gian",
+        "width": 118.859375,
+        "height": 32
+      },
+      {
+        "text": "Bàn",
+        "width": 51.3125,
+        "height": 32
+      },
+      {
+        "text": "Phương thức thanh toán",
+        "width": 190.796875,
+        "height": 32
+      },
+      {
+        "text": "Trang trước",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "1",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "2",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Trang sau",
+        "width": 36,
+        "height": 36
+      }
+    ],
+    "alerts": [],
+    "body": "Báo cáo\n\nBáo cáo tính theo Business Date, từ 06:00 hôm nay tới 06:00 hôm sau.\n\nDoanh thu\nMón ăn\nKhung giờ\nLợi nhuận\nSo sánh\nOrder hủy\nNgày\nTuần\nTháng\nNăm\n\n01/10/2026 đến 31/10/2026\n\nDOANH THU\n\n5.295.000 ₫\n\nĐã đối soát đầy đủ\n\nSỐ ĐƠN\n\n18\n\nTRUNG BÌNH M"
+  },
+  {
+    "route": "reports",
+    "viewport": "portrait",
+    "url": "/reports",
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Báo cáo",
+    "small": [],
+    "alerts": [],
+    "body": "Báo cáo\n\nBáo cáo tính theo Business Date, từ 06:00 hôm nay tới 06:00 hôm sau.\n\nDoanh thu\nMón ăn\nKhung giờ\nLợi nhuận\nSo sánh\nOrder hủy\nNgày\nTuần\nTháng\nNăm\n\n01/10/2026 đến 31/10/2026\n\nDOANH THU\n\n5.295.000 ₫\n\nĐã đối soát đầy đủ\n\nSỐ ĐƠN\n\n18\n\nTRUNG BÌNH M"
+  },
+  {
+    "route": "reports",
+    "viewport": "landscape",
+    "url": "/reports",
+    "width": 1024,
+    "scrollWidth": 1024,
+    "heading": "Báo cáo",
+    "small": [],
+    "alerts": [],
+    "body": "Báo cáo\n\nBáo cáo tính theo Business Date, từ 06:00 hôm nay tới 06:00 hôm sau.\n\nDoanh thu\nMón ăn\nKhung giờ\nLợi nhuận\nSo sánh\nOrder hủy\nNgày\nTuần\nTháng\nNăm\n\n01/10/2026 đến 31/10/2026\n\nDOANH THU\n\n5.295.000 ₫\n\nĐã đối soát đầy đủ\n\nSỐ ĐƠN\n\n18\n\nTRUNG BÌNH M"
+  },
+  {
+    "route": "settings",
+    "viewport": "desktop",
+    "url": "/settings",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "heading": "Cài đặt hệ thống",
+    "small": [
+      {
+        "text": "Tài khoản",
+        "width": 91.703125,
+        "height": 32
+      },
+      {
+        "text": "Cấu hình",
+        "width": 84.671875,
+        "height": 32
+      },
+      {
+        "text": "Nhật ký thao tác",
+        "width": 140.921875,
+        "height": 32
+      },
+      {
+        "text": "Sao lưu",
+        "width": 74.953125,
+        "height": 32
+      },
+      {
+        "text": "Tìm theo tên, tên đăng nhập, số điện thoại",
+        "width": 256,
+        "height": 36
+      },
+      {
+        "text": "Tất cả vai tròQuản lýThu ngânThủ kho",
+        "width": 139,
+        "height": 36
+      },
+      {
+        "text": "Tất cả trạng tháiHoạt độngĐã khóa",
+        "width": 163,
+        "height": 36
+      },
+      {
+        "text": "Thêm tài khoản",
+        "width": 163.625,
+        "height": 36
+      },
+      {
+        "text": "Đặt lại mật khẩu cho seed_manager",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Khóa tài khoản seed_manager",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Đặt lại mật khẩu cho seed_cashier",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Khóa tài khoản seed_cashier",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Đặt lại mật khẩu cho seed_warehouse",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Khóa tài khoản seed_warehouse",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "102050",
+        "width": 57,
+        "height": 36
+      },
+      {
+        "text": "Trang trước",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "1",
+        "width": 36,
+        "height": 36
+      },
+      {
+        "text": "Trang sau",
+        "width": 36,
+        "height": 36
+      }
+    ],
+    "alerts": [],
+    "body": "Cài đặt hệ thống\n\nTài khoản nhân viên, cấu hình chung, nhật ký thao tác và sao lưu dữ liệu.\n\nTài khoản\nCấu hình\nNhật ký thao tác\nSao lưu\nTất cả vai trò\nQuản lý\nThu ngân\nThủ kho\nTất cả trạng thái\nHoạt động\nĐã khóa\nThêm tài khoản\nTài khoản người dùng\nH"
+  },
+  {
+    "route": "settings",
+    "viewport": "portrait",
+    "url": "/settings",
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Cài đặt hệ thống",
+    "small": [],
+    "alerts": [],
+    "body": "Cài đặt hệ thống\n\nTài khoản nhân viên, cấu hình chung, nhật ký thao tác và sao lưu dữ liệu.\n\nTài khoản\nCấu hình\nNhật ký thao tác\nSao lưu\nTất cả vai trò\nQuản lý\nThu ngân\nThủ kho\nTất cả trạng thái\nHoạt động\nĐã khóa\nThêm tài khoản\nTài khoản người dùng\nH"
+  },
+  {
+    "route": "settings",
+    "viewport": "landscape",
+    "url": "/settings",
+    "width": 1024,
+    "scrollWidth": 1024,
+    "heading": "Cài đặt hệ thống",
+    "small": [],
+    "alerts": [],
+    "body": "Cài đặt hệ thống\n\nTài khoản nhân viên, cấu hình chung, nhật ký thao tác và sao lưu dữ liệu.\n\nTài khoản\nCấu hình\nNhật ký thao tác\nSao lưu\nTất cả vai trò\nQuản lý\nThu ngân\nThủ kho\nTất cả trạng thái\nHoạt động\nĐã khóa\nThêm tài khoản\nTài khoản người dùng\nH"
+  },
+  {
+    "route": "assistant",
+    "viewport": "desktop",
+    "url": "/assistant",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "heading": "Cuộc trò chuyện mới",
+    "small": [
+      {
+        "text": "Cuộc trò chuyện mới",
+        "width": 259,
+        "height": 36
+      }
+    ],
+    "alerts": [],
+    "body": "Trợ lý AI\nCuộc trò chuyện mới\n\nChưa có cuộc trò chuyện nào.\n\nCuộc trò chuyện mới\nQuản lý · chỉ đọc\nChào seed_manager, hôm nay bạn muốn xem số liệu gì?\n\nHỏi bằng tiếng Việt về doanh thu, order, món bán chạy hay tồn kho. Trợ lý chỉ đọc dữ liệu trong ph"
+  },
+  {
+    "route": "assistant",
+    "viewport": "portrait",
+    "url": "/assistant",
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Cuộc trò chuyện mới",
+    "small": [],
+    "alerts": [],
+    "body": "Cuộc trò chuyện mới\nQuản lý · chỉ đọc\nChào seed_manager, hôm nay bạn muốn xem số liệu gì?\n\nHỏi bằng tiếng Việt về doanh thu, order, món bán chạy hay tồn kho. Trợ lý chỉ đọc dữ liệu trong phạm vi vai trò Quản lý.\n\nCâu hỏi bằng tiếng Việt\n0/500\nDOANH T"
+  },
+  {
+    "route": "assistant",
+    "viewport": "landscape",
+    "url": "/assistant",
+    "width": 1024,
+    "scrollWidth": 1024,
+    "heading": "Cuộc trò chuyện mới",
+    "small": [],
+    "alerts": [],
+    "body": "Cuộc trò chuyện mới\nQuản lý · chỉ đọc\nChào seed_manager, hôm nay bạn muốn xem số liệu gì?\n\nHỏi bằng tiếng Việt về doanh thu, order, món bán chạy hay tồn kho. Trợ lý chỉ đọc dữ liệu trong phạm vi vai trò Quản lý.\n\nCâu hỏi bằng tiếng Việt\n0/500\nDOANH T"
+  }
+]

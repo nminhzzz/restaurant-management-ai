@@ -7,7 +7,7 @@ Integration (mysql): asserts actual view columns == expected on MySQL 8.4.
 from pathlib import Path
 
 import pytest
-from sqlalchemy import text
+from sqlalchemy import column, false, literal, select, table, text, update
 
 # Expected column sets from db/views/README.md contract (FR-AI-02/03/04).
 EXPECTED_COLUMNS = {
@@ -45,6 +45,8 @@ EXPECTED_COLUMNS = {
         "TenNhaCungCap",
         "DonGiaNhap",
         "SoLuongNhap",
+        "SoLuongGiu",
+        "SoLuongKhaDung",
     },
     "vw_ai_thungan": {
         "LoaiBanGhi",
@@ -71,6 +73,8 @@ EXPECTED_COLUMNS = {
         "TenNguyenLieu",
         "DonViTinh",
         "SoLuongTon",
+        "SoLuongGiu",
+        "SoLuongKhaDung",
         "MucTonToiThieu",
         "CanhBaoTonThap",
         "MaGiaoDichKho",
@@ -102,6 +106,30 @@ def test_view_column_contract_is_documented() -> None:
         assert view in readme
 
 
+def _view_sql(name: str) -> str:
+    return (Path(__file__).resolve().parents[4] / "db" / "views" / f"{name}.sql").read_text(
+        encoding="utf-8"
+    )
+
+
+def test_order_line_branches_exclude_cancelled_lines() -> None:
+    """A cancelled line never was a sale; the assistant must not count it."""
+    for view in ("vw_ai_quanly", "vw_ai_thungan"):
+        assert "ct.TrangThai <> 'Đã hủy'" in _view_sql(view), view
+
+
+def test_payment_branches_only_expose_successful_transactions() -> None:
+    """A pending/expired/failed QR is not revenue, and the view has no status column."""
+    for view in ("vw_ai_quanly", "vw_ai_thungan"):
+        assert "t.TrangThai = 'Thành công'" in _view_sql(view), view
+
+
+def test_purchase_branch_excludes_cancelled_receipts_and_uses_business_date() -> None:
+    sql = _view_sql("vw_ai_quanly")
+    assert "pn.TrangThai <> 'Đã hủy'" in sql
+    assert "DATE(pn.NgayNhap - INTERVAL 6 HOUR)" in sql
+
+
 def test_cashier_view_never_carries_cost_or_purchase_price_columns() -> None:
     """FR-AI-03, NFR-06/12: no giá nhập / giá vốn / lợi nhuận theo món."""
     assert EXPECTED_COLUMNS["vw_ai_thungan"].isdisjoint(FORBIDDEN_CASHIER)
@@ -114,7 +142,7 @@ def test_warehouse_view_never_carries_revenue_or_amount_columns() -> None:
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_view_columns_match_contract_on_mysql(mysql_engine_factory) -> None:
+async def test_view_columns_match_contract_on_mysql(mysql_engine_factory, mysql_seed_views) -> None:
     engine = mysql_engine_factory()
     async with engine.connect() as conn:
         for view, expected in EXPECTED_COLUMNS.items():
@@ -138,17 +166,36 @@ async def test_view_columns_match_contract_on_mysql(mysql_engine_factory) -> Non
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_grants_per_role_on_mysql(mysql_engine_factory) -> None:
-    # ai_cashier must not read vw_ai_kho
+@pytest.mark.parametrize(
+    ("role", "own_view", "other_view"),
+    [
+        ("MANAGER", "vw_ai_quanly", "vw_ai_kho"),
+        ("CASHIER", "vw_ai_thungan", "vw_ai_quanly"),
+        ("WAREHOUSE", "vw_ai_kho", "vw_ai_thungan"),
+    ],
+)
+async def test_grants_per_role_on_mysql(mysql_engine_factory, role, own_view, other_view) -> None:
     from sqlalchemy.exc import OperationalError
 
-    cashier_url = (
-        "mysql+asyncmy://ai_cashier:dev-cashier-pass@localhost:3306/restaurant?charset=utf8mb4"
-    )
-    eng = mysql_engine_factory(cashier_url)
+    from app.modules.ai.accounts import readonly_url_for
+    from app.shared.roles import Role
+
+    url = readonly_url_for(Role(role))
+    if not url:
+        pytest.fail(f"AI_READONLY_URL_{role} is required to verify MySQL isolation")
+    eng = mysql_engine_factory(url)
     try:
         async with eng.connect() as conn:
+            await conn.execute(select(literal(1)).select_from(table(own_view)).limit(1))
             with pytest.raises(OperationalError, match=r"denied|1142"):
-                await conn.execute(text("SELECT COUNT(*) FROM vw_ai_kho"))
+                await conn.execute(select(literal(1)).select_from(table(other_view)).limit(1))
+            with pytest.raises(OperationalError, match=r"denied|1142"):
+                await conn.execute(select(literal(1)).select_from(table("NGUOI_DUNG")).limit(1))
+            with pytest.raises(OperationalError, match=r"denied|1142"):
+                await conn.execute(
+                    update(table("NGUYEN_LIEU", column("SoLuongTon")))
+                    .values(SoLuongTon=0)
+                    .where(false())
+                )
     finally:
         await eng.dispose()

@@ -69,6 +69,19 @@ class DiningTable(Base):
     status: Mapped[str] = mapped_column(
         "TrangThai", String(20), nullable=False, default="Tr\u1ed1ng"
     )
+    current_order_id: Mapped[int | None] = mapped_column(
+        "MaOrderDangPhucVu",
+        BigInteger,
+        ForeignKey(
+            "ORDER.MaOrder",
+            name="fk_BAN_MaOrderDangPhucVu_ORDER",
+            ondelete="RESTRICT",
+            onupdate="RESTRICT",
+            use_alter=True,
+        ),
+        nullable=True,
+        unique=True,
+    )
     area: Mapped[str | None] = mapped_column("KhuVuc", String(100), nullable=True)
     capacity: Mapped[int | None] = mapped_column("SoChoNgoi", Integer, nullable=True)
     is_deleted: Mapped[bool] = mapped_column("DaXoa", default=False, nullable=False)

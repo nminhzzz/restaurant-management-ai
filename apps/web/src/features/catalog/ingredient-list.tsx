@@ -49,6 +49,7 @@ type FormValues = {
   TenNguyenLieu: string;
   DonViTinh: string;
   MucTonToiThieu: string;
+  SoNgayBaoQuan: string;
 };
 
 function IngredientFormDialog({
@@ -119,6 +120,21 @@ function IngredientFormDialog({
               }
             />
           </FormField>
+          <FormField
+            id="ing-shelf"
+            label="Số ngày bảo quản"
+            help="Dùng để tính hạn sử dụng của lô khi nhập kho."
+          >
+            <Input
+              id="ing-shelf"
+              type="number"
+              min={0}
+              value={values.SoNgayBaoQuan}
+              onChange={(e) =>
+                setValues((v) => ({ ...v, SoNgayBaoQuan: e.target.value }))
+              }
+            />
+          </FormField>
         </div>
         <DialogFooter>
           <Button variant="secondary" onClick={() => onOpenChange(false)}>
@@ -144,6 +160,7 @@ const EMPTY_FORM: FormValues = {
   TenNguyenLieu: "",
   DonViTinh: "",
   MucTonToiThieu: "",
+  SoNgayBaoQuan: "",
 };
 
 export function IngredientList() {
@@ -193,6 +210,9 @@ export function IngredientList() {
           ...(values.MucTonToiThieu.trim()
             ? { MucTonToiThieu: Number(values.MucTonToiThieu) }
             : {}),
+          ...(values.SoNgayBaoQuan.trim()
+            ? { SoNgayBaoQuan: Number(values.SoNgayBaoQuan) }
+            : {}),
         },
       });
       setCreateOpen(false);
@@ -209,6 +229,9 @@ export function IngredientList() {
       TenNguyenLieu: values.TenNguyenLieu.trim(),
       MucTonToiThieu: values.MucTonToiThieu.trim()
         ? Number(values.MucTonToiThieu)
+        : null,
+      SoNgayBaoQuan: values.SoNgayBaoQuan.trim()
+        ? Number(values.SoNgayBaoQuan)
         : null,
     };
     if (unitChanged) body.DonViTinh = values.DonViTinh.trim();
@@ -296,6 +319,7 @@ export function IngredientList() {
                 <TableHead>Nguyên liệu</TableHead>
                 <TableHead>Đơn vị tính</TableHead>
                 <TableHead className="text-right">Mức tồn tối thiểu</TableHead>
+                <TableHead className="text-right">Bảo quản (ngày)</TableHead>
                 <TableHead className="sr-only">Thao tác</TableHead>
               </TableRow>
             </TableHeader>
@@ -308,6 +332,9 @@ export function IngredientList() {
                   <TableCell className="text-muted">{i.DonViTinh}</TableCell>
                   <TableCell className="text-right tabular-nums">
                     {formatNumber(i.MucTonToiThieu)}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatNumber(i.SoNgayBaoQuan)}
                   </TableCell>
                   <TableCell>
                     {canWrite && (
@@ -339,7 +366,7 @@ export function IngredientList() {
               {visible.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={4}
+                    colSpan={5}
                     className="py-8 text-center text-muted"
                   >
                     Không có nguyên liệu nào khớp bộ lọc.
@@ -382,6 +409,10 @@ export function IngredientList() {
             MucTonToiThieu:
               editIngredient.MucTonToiThieu != null
                 ? String(editIngredient.MucTonToiThieu)
+                : "",
+            SoNgayBaoQuan:
+              editIngredient.SoNgayBaoQuan != null
+                ? String(editIngredient.SoNgayBaoQuan)
                 : "",
           }}
           unitLocked={unitLocked[editIngredient.MaNguyenLieu] ?? false}

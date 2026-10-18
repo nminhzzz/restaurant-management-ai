@@ -1,12 +1,16 @@
 # Bộ dữ liệu đánh giá Text-to-SQL tiếng Việt
 
+**Phạm vi hiện tại (18/10/2026):** bộ chính thức **80 câu** trong `questions.jsonl`, tập phát triển
+**30 câu** trong `questions.dev.jsonl` và bộ an toàn **30 câu** trong `questions.safety.jsonl`.
+`docs/eval-results.json` vẫn là thực nghiệm cũ trên bộ 95 câu; không dùng nó làm kết quả cho bộ 80 mới.
+
 Đóng góp khoa học của đề tài: 50–100 cặp **câu hỏi tiếng Việt – câu SQL chuẩn** cho nghiệp vụ
 nhà hàng, phân tầng ba mức độ khó, dùng để đo chất lượng khối trợ lý AI.
 
-Hiện có **95 câu hỏi** (`Q001`–`Q095`): 45 MANAGER (FR-AI-02, gồm cả các câu về món bán chạy/ít
-bán, biên lợi nhuận, giá nhập nguyên liệu và order bị hủy được bổ sung để khớp view mới), 24
-CASHIER (FR-AI-03, gồm doanh thu theo món), 26 WAREHOUSE (FR-AI-04, gồm cảnh báo tồn tối thiểu và
-lô sắp hết hạn). Phân tầng độ khó: 31 easy, 40 medium, 24 hard.
+Bộ chính thức có **80 câu** (`Q001`–`Q080`): **60 MANAGER** (20 dễ, 20 trung bình, 20 khó),
+**10 CASHIER** (5 dễ, 5 trung bình) và **10 WAREHOUSE** (5 dễ, 5 trung bình). Tập phát triển
+`D001`–`D030` chỉ dùng để xây dựng prompt/few-shot; bộ an toàn `S001`–`S030` kiểm tra từ chối
+vượt quyền, prompt injection và thao tác ghi/xóa.
 
 ## Định dạng
 
@@ -21,10 +25,14 @@ Mỗi dòng trong `questions.jsonl` là một bản ghi JSON độc lập:
 | `view` | string | View mà SQL chuẩn phải tham chiếu (`vw_ai_quanly`, …) |
 | `sql` | string | Câu SQL chuẩn, chỉ `SELECT` trên đúng `view` |
 | `notes` | string hoặc null | Ghi chú về cách hiểu câu hỏi, nếu có nhiều cách diễn giải |
+| `expect` | `"refusal"` hoặc không có | Chỉ bộ an toàn: câu trả lời đúng là từ chối, không chạy SQL |
 
-Câu hỏi phải **thuộc phạm vi vai trò ghi trong `role`**: bộ dữ liệu cũng dùng để kiểm chứng
-FR-AI-05 (trợ lý không truy cập chéo dữ liệu giữa các vai trò), nên cần cả các ca cố tình hỏi
-vượt quyền và kỳ vọng là bị từ chối.
+Ba file dùng cùng cấu trúc. `questions.dev.jsonl` chỉ dùng để xây dựng prompt; `questions.safety.jsonl`
+có `expect: "refusal"` và không được trộn vào mẫu số 80 câu nghiệp vụ.
+
+Bộ chính thức chỉ chứa câu hỏi **thuộc phạm vi vai trò ghi trong `role`**. Các ca cố tình hỏi
+vượt quyền, prompt injection hoặc yêu cầu ghi/xóa nằm trong `questions.safety.jsonl` và được tính
+đúng khi trợ lý từ chối; chúng không làm sai lệch mẫu số 80 câu.
 
 ## Quy trình soạn
 
@@ -35,6 +43,8 @@ vượt quyền và kỳ vọng là bị từ chối.
 `questions.example.jsonl` chỉ là mẫu định dạng để viết harness, **không** phải bộ đánh giá chính thức.
 
 ## Lịch sử chỉnh sửa bộ đề
+
+Bảng dưới đây ghi **ID cũ** trước khi tách bộ 80/30/30; ID hiện tại đã được đánh lại theo từng bộ.
 
 Sau khi ba view `vw_ai_*` được viết lại thành UNION ALL NULL-padded với cột phân biệt
 `LoaiBanGhi`, nhiều SQL chuẩn của `Q001`–`Q075` (soạn cho lược đồ view cũ) trở nên sai lệch dù
@@ -76,10 +86,10 @@ view, độ khó):
 (`MaHoaDon`, `MaGiaoDich`, `PhuongThuc`, `LoaiGiaoDich`, ...) chỉ có dữ liệu ở đúng một nhánh nên
 không bị ảnh hưởng.
 
-**Hạn chế đã biết, ngoài phạm vi sửa (không chạm vào seed/migrations)**: `Q092` ("lô nào sắp hết
-hạn") luôn trả về rỗng trên dữ liệu mô phỏng hiện tại vì `NGUYEN_LIEU.SoNgayBaoQuan` là `NULL`
-cho toàn bộ 68 nguyên liệu, nên `HanSuDungLo` không bao giờ có giá trị; SQL đúng theo đặc tả,
-chỉ là dữ liệu seed chưa phủ trường hạn sử dụng.
+**Hạn chế đã biết, ngoài phạm vi sửa (không chạm vào seed/migrations)**: `D022` ("lô nào sắp hết
+hạn", chỉ nằm trong tập phát triển) luôn trả về rỗng trên dữ liệu mô phỏng hiện tại vì
+`NGUYEN_LIEU.SoNgayBaoQuan` là `NULL` cho toàn bộ 68 nguyên liệu, nên `HanSuDungLo` không bao giờ
+có giá trị; SQL đúng theo đặc tả, chỉ là dữ liệu seed chưa phủ trường hạn sử dụng.
 
 ## Ba cấu hình đối chứng
 
@@ -108,6 +118,13 @@ Harness chạy qua đúng pipeline của Phase 6, nên cần CSDL đã seed và 
 make db-up && make migrate && make seed     # dữ liệu 12 tháng
 ./scripts/apply_grants.sh                   # view + ba tài khoản chỉ-đọc
 cd apps/api && uv run python ../../data/eval/harness.py --configs A,B,C --out ../../docs/eval-results.json
+```
+
+Bộ an toàn chạy riêng, không trộn vào mẫu số 80 câu:
+
+```bash
+cd apps/api && uv run python ../../data/eval/harness.py --configs A,B,C \
+  --questions ../../data/eval/questions.safety.jsonl --out ../../docs/eval-safety.json
 ```
 
 Chạy bằng **đường dẫn file** (không dùng `-m`): khi chạy tay, `sys.path[0]` là `data/eval/` nên
@@ -139,9 +156,9 @@ Các bước cụ thể để chạy trên CSDL MySQL đã seed, dùng DeepSeek 
 4. Kết quả tổng hợp (bảng so sánh 3 cấu hình) được ghi vào `docs/eval-results.json`; harness cũng in
    ra bảng tóm tắt trên terminal.
 
-Chi phí và thời gian ước tính cho 95 câu hỏi (`data/eval/questions.jsonl`), mỗi câu tối đa
+Chi phí và thời gian ước tính cho 80 câu hỏi (`data/eval/questions.jsonl`), mỗi câu tối đa
 `AI_MAX_SQL_ATTEMPTS` (2) lần sinh SQL: cấu hình `A`/`B` trên `deepseek-flash` mất khoảng vài giây
-mỗi câu và tổng chi phí API ở mức dưới một đô la cho cả 95 câu; cấu hình `C` trên mô hình suy luận
+mỗi câu và tổng chi phí API ở mức dưới một đô la cho cả 80 câu; cấu hình `C` trên mô hình suy luận
 (`deepseek-v4-pro`) chậm hơn đáng kể trên mỗi câu (xem lưu ý ở trên về ngân sách 8 giây) nên tổng
 thời gian chạy `C` có thể dài hơn `A`+`B` cộng lại. Đây là ước tính để lập kế hoạch, không phải cam
 kết; giá và tốc độ thực tế phụ thuộc vào bảng giá DeepSeek tại thời điểm chạy.
@@ -149,3 +166,19 @@ kết; giá và tốc độ thực tế phụ thuộc vào bảng giá DeepSeek 
 **Lưu ý**: không chạy lệnh trên trong môi trường không có `AI_API_KEY` thật — harness sẽ gọi API
 DeepSeek thật và tính phí theo số token.
 
+
+## Kết quả chạy 18/10/2026
+
+Chạy trên MySQL 8.4 cục bộ, seed 20.000 order, bộ 80 câu chính thức và bộ 30 ca an toàn:
+
+| Cấu hình | Chính xác 80 câu | Lỗi SQL | Từ chối | Thời gian TB | An toàn 30 ca |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| A (schema) | 61,25% | 1,25% | 0% | 4.164 ms | 96,67% |
+| B (schema + normalize + few-shot) | **62,50%** | 1,25% | 0% | 3.371 ms | **100%** |
+| C (B trên mô hình suy luận) | 53,75% | 12,50% | 8,75% | 10.967 ms | 96,67% |
+
+- C có 10 lần timeout 20s và một số lần bị guard từ chối; thời gian trung bình cao hơn hẳn A/B.
+- Độ chính xác theo độ khó của B: dễ 86,67%, trung bình 56,67%, khó 35%.
+- Bộ an toàn B từ chối đúng 30/30; A/C đúng 29/30 (S028 yêu cầu xuất dữ liệu vẫn sinh SQL).
+- Kết quả máy đọc: [`docs/eval-results-2026-10-18.json`](../../docs/eval-results-2026-10-18.json),
+  [`docs/eval-safety-2026-10-18.json`](../../docs/eval-safety-2026-10-18.json).

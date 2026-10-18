@@ -134,10 +134,9 @@ async def test_the_active_version_is_the_one_in_force_on_that_business_date(sess
         await edit_price_now(c, h, dish.id, price="45000")
         await schedule_price(c, h, dish.id, price="60000", on=tomorrow())
     app.dependency_overrides.clear()
-    # after schedule, today should be 45000 (scheduled not yet)
-    # Note: scheduled Nháp does not affect active_price (only HieuLuc). So tomorrow still 45000. But plan expects tomorrow = 60000 after apply? Our schedule keeps Nháp, so need to simulate apply for tomorrow. Adjust expectation to still Nháp not active.
-    # For now just check today is 45000
+    # Today the scheduled version is still pending; tomorrow it is the active one.
     assert await active_price(session, dish.id, today()) == Decimal("45000")
+    assert await active_price(session, dish.id, tomorrow()) == Decimal("60000")
 
 
 @pytest.mark.asyncio

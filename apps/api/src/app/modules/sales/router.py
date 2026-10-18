@@ -16,10 +16,17 @@ from app.core.config import get_settings
 from app.core.database import get_session
 from app.core.dependencies import Principal, require_roles
 from app.core.errors import NotFoundError, UnauthenticatedError
-from app.modules.sales import floor, orders, payments
+from app.modules.catalog.models import Dish, DishPriceVersion
+from app.modules.sales import floor, orders, payments, reservations
 from app.modules.sales.gateways import sepay
-from app.modules.sales.models import Invoice, KitchenTicket, Order, OrderLine
-from app.modules.sales.schemas import SubmitOrderIn
+from app.modules.sales.models import Invoice, KitchenTicket, Order, OrderLine, Reservation
+from app.modules.sales.schemas import (
+    HoldCreate,
+    HoldOut,
+    HoldUpdate,
+    ReleaseTableIn,
+    SubmitOrderIn,
+)
 from app.shared.audit import SystemAuditLog
 from app.shared.roles import Role
 
@@ -37,6 +44,29 @@ def _line_payload(line: OrderLine) -> dict:
         "GhiChu": line.note,
         "TrangThai": line.status,
     }
+
+
+async def _hold_payload(session: AsyncSession, hold: Reservation) -> HoldOut:
+    dish = await session.get(Dish, hold.dish_id)
+    price = (
+        await session.get(DishPriceVersion, hold.price_version_id)
+        if hold.price_version_id is not None
+        else None
+    )
+    return HoldOut(
+        MaGiuCho=hold.id,
+        MaLuotChon=hold.selection_code,
+        MaBan=hold.table_id,
+        MaMon=hold.dish_id,
+        TenMon=dish.name if dish is not None else None,
+        SoLuong=hold.quantity,
+        GhiChu=hold.note,
+        ThoiDiemHetHan=hold.expires_at,
+        TrangThai=hold.status,
+        DonGia=float(price.price) if price is not None else None,
+        MaPhienBanGia=hold.price_version_id,
+        MaCongThuc=hold.recipe_id,
+    )
 
 
 def _order_payload(order: Order, lines: list[OrderLine]) -> dict:
@@ -57,6 +87,76 @@ async def get_floor(
     user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
 ):
     return await floor.floor_board(session)
+
+
+@router.post("/tables/{table_id}/release")
+async def release_table(
+    table_id: int,
+    payload: ReleaseTableIn,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
+):
+    table = await floor.release_table(session, table_id, payload.order_id, actor_id=user.user_id)
+    await session.commit()
+    return {"MaBan": table.id, "TrangThai": table.status}
+
+
+@router.post("/holds", response_model=HoldOut, status_code=201)
+async def create_hold(
+    payload: HoldCreate,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
+):
+    hold = await reservations.create_hold(
+        session,
+        user_id=user.user_id,
+        selection_code=payload.selection_code,
+        table_id=payload.table_id,
+        order_id=payload.order_id,
+        dish_id=payload.dish_id,
+        quantity=payload.quantity,
+        note=payload.note,
+    )
+    await session.commit()
+    return await _hold_payload(session, hold)
+
+
+@router.get("/holds", response_model=list[HoldOut])
+async def list_holds(
+    selection_code: str | None = None,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
+):
+    holds = await reservations.list_holds(
+        session, user_id=user.user_id, selection_code=selection_code
+    )
+    await session.commit()
+    return [await _hold_payload(session, hold) for hold in holds]
+
+
+@router.patch("/holds/{hold_id}", response_model=HoldOut)
+async def update_hold(
+    hold_id: int,
+    payload: HoldUpdate,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
+):
+    hold = await reservations.update_hold(
+        session, hold_id=hold_id, user_id=user.user_id, quantity=payload.quantity
+    )
+    await session.commit()
+    return await _hold_payload(session, hold)
+
+
+@router.delete("/holds/{hold_id}")
+async def release_hold(
+    hold_id: int,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
+):
+    hold = await reservations.release_hold(session, hold_id=hold_id, user_id=user.user_id)
+    await session.commit()
+    return {"MaGiuCho": hold.id, "TrangThai": hold.status}
 
 
 @router.post("/orders", status_code=201)
@@ -92,7 +192,7 @@ async def search_orders(
     size: int = Query(20, ge=1, le=100),
     limit: int | None = Query(None, ge=1, le=200),
     session: AsyncSession = Depends(get_session),
-    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER, Role.WAREHOUSE)),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
 ):
     filters = []
     if code:
@@ -132,7 +232,7 @@ async def search_orders(
 async def get_order(
     order_id: int,
     session: AsyncSession = Depends(get_session),
-    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER, Role.WAREHOUSE)),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
 ):
     await payments.expire_stale_qr(session)
     await session.commit()
@@ -160,7 +260,13 @@ async def add_order_line(
     quantity = payload.get("quantity") or payload.get("SoLuong") or 1
     note = payload.get("note") or payload.get("GhiChu")
     line = await orders.add_line(
-        session, order_id, int(dish_id), int(quantity), note, actor_id=user.user_id
+        session,
+        order_id,
+        int(dish_id),
+        int(quantity),
+        note,
+        actor_id=user.user_id,
+        hold_id=payload.get("hold_id"),
     )
     await session.commit()
     return _line_payload(line)
@@ -246,7 +352,7 @@ async def cancel_whole_order(
 async def list_tickets(
     order_id: int,
     session: AsyncSession = Depends(get_session),
-    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER, Role.WAREHOUSE)),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
 ):
     """FR-SALE-27/28: kitchen tickets for an order, so the UI can reprint or flag a failed print."""
     tickets = list(
@@ -438,6 +544,47 @@ async def cancel_payment_qr(
     payment = await payments.cancel_qr(session, payment_id, actor_id=user.user_id)
     await session.commit()
     return {"MaGiaoDich": payment.id, "TrangThai": payment.status}
+
+
+@router.post("/payments/{payment_id}/request-verification")
+async def request_payment_verification(
+    payment_id: int,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
+):
+    payment = await payments.request_verification(session, payment_id, actor_id=user.user_id)
+    await session.commit()
+    return {"MaGiaoDich": payment.id, "TrangThai": payment.status}
+
+
+@router.post("/payments/{payment_id}/reopen")
+async def reopen_payment(
+    payment_id: int,
+    payload: dict,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER)),
+):
+    reason = payload.get("reason") or payload.get("LyDo") or ""
+    order = await payments.reopen_payment(
+        session, payment_id, reason=str(reason), actor_id=user.user_id
+    )
+    await session.commit()
+    return {"MaOrder": order.id, "TrangThai": order.status}
+
+
+@router.post("/orders/{order_id}/close-unpaid")
+async def close_unpaid_order(
+    order_id: int,
+    payload: dict,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER)),
+):
+    reason = payload.get("reason") or payload.get("LyDo") or ""
+    order = await payments.close_unpaid_order(
+        session, order_id, reason=str(reason), actor_id=user.user_id
+    )
+    await session.commit()
+    return {"MaOrder": order.id, "TrangThai": order.status}
 
 
 @router.post("/orders/{order_id}/reconcile")

@@ -103,7 +103,7 @@ async def answer(
 
     try:
         async with asyncio.timeout(settings.ai_response_budget_seconds):
-            sql_text = await generator.generate_sql(session, normalized, role)
+            sql_text = await generator.generate_sql(session, normalized, role, user_id)
             rows = await executor.execute(
                 sql_text, role=role, timeout_seconds=settings.ai_sql_timeout_seconds
             )

@@ -69,6 +69,22 @@
   }
 }
 
+/* NFR-13: compact desktop controls still need usable targets on touch devices. */
+@media (any-pointer: coarse) {
+  button,
+  [role="tab"],
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    min-height: 44px;
+  }
+
+  button,
+  [role="tab"] {
+    min-width: 44px;
+  }
+}
+
 /* Sonner injects its own stylesheet at runtime; the extra `html` outranks it. */
 html [data-sonner-toaster][data-sonner-theme="light"] {
   --border-radius: var(--radius-container);

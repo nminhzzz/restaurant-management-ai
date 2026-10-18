@@ -17,6 +17,7 @@ const dishes = {
       TenMon: "Phở bò",
       TrangThai: "Hoạt động",
       GiaHienTai: 65000,
+      SoSuatKhaDung: 10,
       MaNhomMon: 1,
     },
     {
@@ -48,12 +49,26 @@ function route(extra: Record<string, unknown> = {}) {
     "/catalog/tables": [{ MaBan: 4, TenBan: "Bàn 04" }],
     "/catalog/dishes": dishes,
     "/catalog/groups": [{ MaNhomMon: 1, TenNhom: "Món chính" }],
+    "/sales/holds": { MaGiuCho: 99, SoLuong: 1, DonGia: 65000 },
     ...extra,
   };
-  fetchMock.mockImplementation((path: string) =>
-    Promise.resolve(
-      Object.entries(routes).find(([p]) => path.startsWith(p))?.[1] ?? {},
-    ),
+  fetchMock.mockImplementation(
+    (
+      path: string,
+      options?: { method?: string; body?: { quantity?: number } },
+    ) => {
+      if (path.startsWith("/sales/holds")) {
+        if (options?.method === "DELETE") return Promise.resolve({});
+        return Promise.resolve({
+          MaGiuCho: 99,
+          SoLuong: options?.body?.quantity ?? 1,
+          DonGia: 65000,
+        });
+      }
+      return Promise.resolve(
+        Object.entries(routes).find(([p]) => path.startsWith(p))?.[1] ?? {},
+      );
+    },
   );
 }
 
@@ -72,6 +87,7 @@ describe("OrderStep", () => {
     );
 
     expect(await screen.findByText("65.000 ₫")).toBeInTheDocument();
+    expect(screen.getByText("Còn 10 suất")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Nem rán/ })).toBeDisabled();
     expect(screen.getByText("Chưa có giá")).toBeInTheDocument();
     expect(
@@ -91,8 +107,13 @@ describe("OrderStep", () => {
     );
     const tile = await screen.findByRole("button", { name: /Phở bò/ });
     fireEvent.click(tile);
+    await vi.waitFor(() =>
+      expect(screen.getByTestId("cart-total")).toHaveTextContent("65.000 ₫"),
+    );
     fireEvent.click(tile);
-    expect(screen.getByTestId("cart-total")).toHaveTextContent("130.000 ₫");
+    await vi.waitFor(() =>
+      expect(screen.getByTestId("cart-total")).toHaveTextContent("130.000 ₫"),
+    );
   });
 
   it("creates a new dine-in order and moves on to payment", async () => {
@@ -104,6 +125,9 @@ describe("OrderStep", () => {
       <OrderStep tableId={4} orderId={null} onBack={vi.fn()} onSent={onSent} />,
     );
     fireEvent.click(await screen.findByRole("button", { name: /Phở bò/ }));
+    await vi.waitFor(() =>
+      expect(screen.getByTestId("cart-total")).toHaveTextContent("65.000 ₫"),
+    );
     fireEvent.click(
       screen.getByRole("button", { name: "Gửi bếp & thanh toán" }),
     );
@@ -114,6 +138,44 @@ describe("OrderStep", () => {
       expect.objectContaining({
         method: "POST",
         body: expect.objectContaining({ MaBan: 4, LoaiDon: "Tại chỗ" }),
+      }),
+    );
+  });
+
+  it("holds ingredients before sending an order", async () => {
+    const onSent = vi.fn();
+    route({
+      "/sales/orders": { MaOrder: 43, MaOrderHienThi: "ORD-43", rejected: [] },
+    });
+    render(
+      <OrderStep tableId={4} orderId={null} onBack={vi.fn()} onSent={onSent} />,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: /Phở bò/ }));
+    await vi.waitFor(() =>
+      expect(screen.getByTestId("cart-total")).toHaveTextContent("65.000 ₫"),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Gửi bếp & thanh toán" }),
+    );
+
+    await vi.waitFor(() => expect(onSent).toHaveBeenCalledWith(43, "pay"));
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/sales/holds",
+      expect.objectContaining({
+        method: "POST",
+        body: expect.objectContaining({
+          table_id: 4,
+          dish_id: 5,
+          quantity: 1,
+        }),
+      }),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/sales/orders",
+      expect.objectContaining({
+        body: expect.objectContaining({
+          lines: [expect.objectContaining({ MaMon: 5, hold_id: 99 })],
+        }),
       }),
     );
   });
@@ -145,6 +207,9 @@ describe("OrderStep", () => {
     expect(await screen.findByText("Đã gửi bếp")).toBeInTheDocument();
     expect(screen.getByText(/mở 14:32/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /Phở bò/ }));
+    await vi.waitFor(() =>
+      expect(screen.getByTestId("cart-total")).toHaveTextContent("195.000 ₫"),
+    );
     fireEvent.click(screen.getByRole("button", { name: "Gửi bếp" }));
 
     await vi.waitFor(() => expect(onSent).toHaveBeenCalledWith(142, "floor"));
@@ -152,7 +217,12 @@ describe("OrderStep", () => {
       "/sales/orders/142/lines",
       expect.objectContaining({
         method: "POST",
-        body: { MaMon: 5, SoLuong: 1, GhiChu: null },
+        body: expect.objectContaining({
+          MaMon: 5,
+          SoLuong: 1,
+          GhiChu: null,
+          hold_id: 99,
+        }),
       }),
     );
   });
@@ -197,7 +267,13 @@ describe("OrderStep", () => {
       <OrderStep tableId={4} orderId={142} onBack={vi.fn()} onSent={onSent} />,
     );
     fireEvent.click(await screen.findByRole("button", { name: /Phở bò/ }));
+    await vi.waitFor(() =>
+      expect(screen.getByLabelText("Số lượng Phở bò")).toBeInTheDocument(),
+    );
     fireEvent.click(screen.getByRole("button", { name: /Gỏi cuốn/ }));
+    await vi.waitFor(() =>
+      expect(screen.getByLabelText("Số lượng Gỏi cuốn")).toBeInTheDocument(),
+    );
     fireEvent.click(screen.getByRole("button", { name: "Gửi bếp" }));
 
     expect(await screen.findByRole("alert")).toBeInTheDocument();
@@ -222,6 +298,9 @@ describe("OrderStep", () => {
       />,
     );
     fireEvent.click(await screen.findByRole("button", { name: /Phở bò/ }));
+    await vi.waitFor(() =>
+      expect(screen.getByTestId("cart-total")).toHaveTextContent("65.000 ₫"),
+    );
     fireEvent.click(screen.getByRole("button", { name: "Gửi bếp" }));
     await vi.waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(

@@ -62,4 +62,40 @@ describe("SupplierList", () => {
     fireEvent.click(screen.getByRole("button", { name: "Xóa bộ lọc" }));
     expect(await screen.findByText("Vissan")).toBeInTheDocument();
   });
+
+  it("sends contact details when creating a supplier", async () => {
+    mockFetch.mockResolvedValue({ items: [] });
+    render(<SupplierList />);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Thêm nhà cung cấp" }),
+    );
+    fireEvent.change(screen.getByLabelText("Tên nhà cung cấp"), {
+      target: { value: "NCC mới" },
+    });
+    fireEvent.change(screen.getByLabelText("Email"), {
+      target: { value: "ncc@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("Người liên hệ"), {
+      target: { value: "Chị Lan" },
+    });
+    fireEvent.change(screen.getByLabelText("Địa chỉ"), {
+      target: { value: "12 Lê Lợi" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Lưu" }));
+
+    await vi.waitFor(() =>
+      expect(mockFetch).toHaveBeenCalledWith(
+        "/catalog/suppliers",
+        expect.objectContaining({
+          method: "POST",
+          body: expect.objectContaining({
+            Email: "ncc@example.com",
+            NguoiLienHe: "Chị Lan",
+            DiaChi: "12 Lê Lợi",
+          }),
+        }),
+      ),
+    );
+  });
 });

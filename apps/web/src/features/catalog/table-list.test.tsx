@@ -38,4 +38,32 @@ describe("TableList", () => {
     fireEvent.click(screen.getByRole("button", { name: "Xóa bộ lọc" }));
     expect(await screen.findByText("Bàn 2")).toBeInTheDocument();
   });
+
+  it("edits the area and capacity of a table", async () => {
+    mockFetch.mockResolvedValue([
+      { MaBan: 1, TenBan: "Bàn 1", TrangThai: "Trống" },
+    ]);
+    render(<TableList />);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Sửa bàn Bàn 1" }),
+    );
+    fireEvent.change(screen.getByLabelText("Khu vực"), {
+      target: { value: "Tầng 2" },
+    });
+    fireEvent.change(screen.getByLabelText("Số chỗ ngồi"), {
+      target: { value: "6" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Lưu thay đổi" }));
+
+    await vi.waitFor(() =>
+      expect(mockFetch).toHaveBeenCalledWith(
+        "/catalog/tables/1",
+        expect.objectContaining({
+          method: "PATCH",
+          body: expect.objectContaining({ KhuVuc: "Tầng 2", SoChoNgoi: 6 }),
+        }),
+      ),
+    );
+  });
 });

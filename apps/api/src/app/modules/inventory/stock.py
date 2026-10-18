@@ -64,9 +64,21 @@ async def lots_for_fifo(
     return list(r.scalars().all())
 
 
+async def ensure_no_open_stocktake(session: AsyncSession) -> None:
+    """NFR-20: a counting session freezes stock-changing transactions."""
+    from app.modules.inventory.models import Stocktake
+
+    open_id = (
+        await session.execute(select(Stocktake.id).where(Stocktake.status == "Nháp").limit(1))
+    ).scalar_one_or_none()
+    if open_id is not None:
+        raise BusinessRuleError("Đang kiểm kê, không thể thay đổi tồn kho.")
+
+
 async def apply_stock_movement(
     session: AsyncSession, change: StockChange, *, actor_id: int | None = None
 ) -> list[StockMovement]:
+    await ensure_no_open_stocktake(session)
     ing = await lock_ingredient(session, change.ingredient_id)
     bd = change.business_date or _bd_now()
     delta = Decimal(str(change.delta))

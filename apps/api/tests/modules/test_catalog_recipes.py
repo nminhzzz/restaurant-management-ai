@@ -7,7 +7,7 @@ from app.core.security import create_access_token, hash_password
 from app.main import app
 from app.modules.settings.models import User
 from app.modules.settings.service import seed_reference_data
-from tests.helpers import latest_audit, pending_recipe_versions, today
+from tests.helpers import latest_audit, pending_recipe_versions, today, tomorrow
 
 
 async def _make_client(session):
@@ -122,6 +122,44 @@ async def test_a_recipe_line_carries_no_unit_of_its_own(session, draft_dish, flo
     )
     # no unit field
     assert "DonViTinh" not in (items[0] if isinstance(items[0], dict) else {})
+
+
+@pytest.mark.asyncio
+async def test_a_scheduled_recipe_is_not_active_before_its_business_date(
+    session, draft_dish, flour
+):
+    """FR-CAT-08: a future recipe must not make a draft dish sellable today."""
+    h = await _headers(session)
+    async with await _make_client(session) as c:
+        scheduled = await schedule_recipe(
+            c, h, draft_dish.id, items=[(flour.id, "0.2")], on=tomorrow()
+        )
+    app.dependency_overrides.clear()
+    assert scheduled.status_code == 201
+    await session.refresh(draft_dish)
+    assert draft_dish.missing_recipe is True
+    assert await active_recipe(session, draft_dish.id, today()) is None
+
+
+@pytest.mark.asyncio
+async def test_a_scheduled_recipe_becomes_active_on_its_business_date(
+    session, dish_with_recipe, flour
+):
+    """The due version is promoted on the first lookup, closing the old one."""
+    h = await _headers(session)
+    old = await active_recipe(session, dish_with_recipe.id, today())
+    old_id = old["MaCongThuc"]
+    async with await _make_client(session) as c:
+        scheduled = await schedule_recipe(
+            c, h, dish_with_recipe.id, items=[(flour.id, "0.4")], on=tomorrow()
+        )
+    app.dependency_overrides.clear()
+    new_id = scheduled.json()["MaCongThuc"]
+
+    assert (await active_recipe(session, dish_with_recipe.id, today()))["MaCongThuc"] == old_id
+    tomorrow_recipe = await active_recipe(session, dish_with_recipe.id, tomorrow())
+    assert tomorrow_recipe["MaCongThuc"] == new_id
+    assert tomorrow_recipe["TrangThai"] == "Đang áp dụng"
 
 
 @pytest.mark.asyncio

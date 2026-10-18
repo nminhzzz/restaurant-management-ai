@@ -5,6 +5,7 @@ from datetime import datetime
 from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.modules.ai.runtime_models import AiDailyUsage, AiSqlCache  # noqa: F401
 from app.shared.base import Base, BigInteger
 
 

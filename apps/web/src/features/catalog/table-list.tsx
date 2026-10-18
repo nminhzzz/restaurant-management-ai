@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutGrid, Plus, Trash2 } from "lucide-react";
+import { LayoutGrid, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -39,9 +39,16 @@ export function TableList() {
   const canWrite = useCanWrite(WRITE_ROLES);
   const [createOpen, setCreateOpen] = useState(false);
   const [name, setName] = useState("");
+  const [area, setArea] = useState("");
+  const [capacity, setCapacity] = useState("");
+  const [editTable, setEditTable] = useState<DiningTable | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editArea, setEditArea] = useState("");
+  const [editCapacity, setEditCapacity] = useState("");
   const [deleteTable, setDeleteTable] = useState<DiningTable | null>(null);
   const [statusFilter, setStatusFilter] = useState("");
   const create = useAction();
+  const edit = useAction();
   const del = useAction();
 
   const tables = res.status === "ready" ? res.data : [];
@@ -56,12 +63,41 @@ export function TableList() {
     void create.run(async () => {
       await apiFetch("/catalog/tables", {
         method: "POST",
-        body: { TenBan: name.trim() },
+        body: {
+          TenBan: name.trim(),
+          ...(area.trim() ? { KhuVuc: area.trim() } : {}),
+          ...(capacity.trim() ? { SoChoNgoi: Number(capacity) } : {}),
+        },
       });
       setCreateOpen(false);
       setName("");
+      setArea("");
+      setCapacity("");
       res.reload();
     }, "Đã thêm bàn.");
+  }
+
+  function openEdit(table: DiningTable) {
+    setEditTable(table);
+    setEditName(table.TenBan);
+    setEditArea(table.KhuVuc ?? "");
+    setEditCapacity(table.SoChoNgoi != null ? String(table.SoChoNgoi) : "");
+  }
+
+  function handleEdit() {
+    if (!editTable) return;
+    void edit.run(async () => {
+      await apiFetch(`/catalog/tables/${editTable.MaBan}`, {
+        method: "PATCH",
+        body: {
+          TenBan: editName.trim(),
+          KhuVuc: editArea.trim() || null,
+          SoChoNgoi: editCapacity.trim() ? Number(editCapacity) : null,
+        },
+      });
+      setEditTable(null);
+      res.reload();
+    }, "Đã cập nhật bàn.");
   }
 
   function handleDelete() {
@@ -130,16 +166,33 @@ export function TableList() {
               >
                 <span className="font-medium">{t.TenBan}</span>
                 {t.TrangThai ? <StatusBadge status={t.TrangThai} /> : null}
+                {(t.KhuVuc || t.SoChoNgoi) && (
+                  <span className="text-xs text-muted">
+                    {[t.KhuVuc, t.SoChoNgoi ? `${t.SoChoNgoi} chỗ` : null]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </span>
+                )}
                 {canWrite && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="self-end text-danger-fg"
-                    aria-label={`Xóa bàn ${t.TenBan}`}
-                    onClick={() => setDeleteTable(t)}
-                  >
-                    <Trash2 />
-                  </Button>
+                  <div className="flex justify-end gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      aria-label={`Sửa bàn ${t.TenBan}`}
+                      onClick={() => openEdit(t)}
+                    >
+                      <Pencil />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-danger-fg"
+                      aria-label={`Xóa bàn ${t.TenBan}`}
+                      onClick={() => setDeleteTable(t)}
+                    >
+                      <Trash2 />
+                    </Button>
+                  </div>
                 )}
               </div>
             ))}
@@ -159,6 +212,22 @@ export function TableList() {
               onChange={(e) => setName(e.target.value)}
             />
           </FormField>
+          <FormField id="table-area" label="Khu vực">
+            <Input
+              id="table-area"
+              value={area}
+              onChange={(e) => setArea(e.target.value)}
+            />
+          </FormField>
+          <FormField id="table-capacity" label="Số chỗ ngồi">
+            <Input
+              id="table-capacity"
+              type="number"
+              min={0}
+              value={capacity}
+              onChange={(e) => setCapacity(e.target.value)}
+            />
+          </FormField>
           <DialogFooter>
             <Button variant="secondary" onClick={() => setCreateOpen(false)}>
               Quay lại
@@ -168,6 +237,51 @@ export function TableList() {
               onClick={handleCreate}
             >
               Lưu
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!editTable}
+        onOpenChange={(open) => !open && setEditTable(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Sửa bàn {editTable?.TenBan}</DialogTitle>
+          </DialogHeader>
+          <FormField id="table-edit-name" label="Tên bàn">
+            <Input
+              id="table-edit-name"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+            />
+          </FormField>
+          <FormField id="table-edit-area" label="Khu vực">
+            <Input
+              id="table-edit-area"
+              value={editArea}
+              onChange={(e) => setEditArea(e.target.value)}
+            />
+          </FormField>
+          <FormField id="table-edit-capacity" label="Số chỗ ngồi">
+            <Input
+              id="table-edit-capacity"
+              type="number"
+              min={0}
+              value={editCapacity}
+              onChange={(e) => setEditCapacity(e.target.value)}
+            />
+          </FormField>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setEditTable(null)}>
+              Quay lại
+            </Button>
+            <Button
+              disabled={edit.pending || editName.trim() === ""}
+              onClick={handleEdit}
+            >
+              Lưu thay đổi
             </Button>
           </DialogFooter>
         </DialogContent>

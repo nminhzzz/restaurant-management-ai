@@ -1,8 +1,11 @@
 """Phase 5 Task 4 — period comparison and cancelled orders (FR-REP-08, FR-REP-10)."""
 
+from datetime import date
 from decimal import Decimal
 
 import pytest
+
+from app.modules.sales.models import Order, OrderLine
 
 COMPARISON = "/api/v1/reports/comparison"
 CANCELLED = "/api/v1/reports/cancelled-orders"
@@ -26,10 +29,27 @@ async def test_the_comparison_returns_the_percentage_change(api_client, manager_
 
     assert Decimal(body["left"]["DoanhThu"]) == two_months.left_revenue
     assert Decimal(body["right"]["DoanhThu"]) == two_months.right_revenue
+    assert Decimal(body["left"]["GiaVon"]) == 0
+    assert body["change_cost_percent"] is None
     expected = (two_months.right_revenue - two_months.left_revenue) / two_months.left_revenue * 100
     assert Decimal(body["change_percent"]).quantize(Decimal("0.01")) == expected.quantize(
         Decimal("0.01")
     )
+
+
+@pytest.mark.anyio
+async def test_the_comparison_includes_material_cost(api_client, manager_token, september_data):
+    """FR-REP-08: revenue and cost are both compared, not revenue only."""
+    body = (
+        await api_client.get(
+            COMPARISON,
+            headers=_auth(manager_token),
+            params={"left": "2026-08", "right": "2026-09"},
+        )
+    ).json()
+
+    assert Decimal(body["right"]["GiaVon"]) == september_data.cogs
+    assert body["change_cost_percent"] is None
 
 
 @pytest.mark.anyio
@@ -43,6 +63,7 @@ async def test_comparing_against_an_empty_period_does_not_divide_by_zero(api_cli
     ).json()
 
     assert body["change_percent"] is None
+    assert body["change_cost_percent"] is None
 
 
 @pytest.mark.anyio
@@ -75,3 +96,57 @@ async def test_the_cancelled_value_stays_out_of_revenue(
     assert Decimal(cancelled_body["TongGiaTri"]) > 0
     # Revenue only counts settled invoices; a cancelled order never produced one.
     assert Decimal(revenue_body["total"]) == invoices_in_september.total
+
+
+@pytest.mark.anyio
+async def test_the_cancelled_report_includes_consumed_ingredient_cost(
+    api_client, session, manager_token, september_data
+):
+    """FR-REP-05c/10: a served line keeps its cost even when the order is cancelled."""
+    order = Order(
+        business_date=date(2026, 9, 21),
+        status="Đã hủy",
+        order_type="Mang về",
+        display_code="ORD-CANCEL-COST",
+        cancel_reason="khách bỏ về",
+    )
+    session.add(order)
+    await session.flush()
+    session.add(
+        OrderLine(
+            order_id=order.id,
+            dish_id=september_data.dish.id,
+            quantity=2,
+            unit_price=Decimal("50000"),
+            recipe_id=september_data.recipe.id,
+            status="Đã phục vụ",
+        )
+    )
+    await session.commit()
+
+    body = (
+        await api_client.get(CANCELLED, headers=_auth(manager_token), params={"month": "2026-09"})
+    ).json()
+    item = next(row for row in body["items"] if row["MaOrder"] == order.id)
+
+    assert Decimal(item["GiaVon"]) == Decimal("10000")
+    assert Decimal(body["TongGiaVon"]) >= Decimal("10000")
+
+
+@pytest.mark.anyio
+async def test_the_comparison_is_cached_for_repeated_reads(session, monkeypatch):
+    from app.modules.reports import service
+
+    calls = 0
+    original = service.queries.compare_periods
+
+    async def counted(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        return await original(*args, **kwargs)
+
+    monkeypatch.setattr(service.queries, "compare_periods", counted)
+    await service.comparison(session, "2026-08", "2026-09")
+    await service.comparison(session, "2026-08", "2026-09")
+
+    assert calls == 1

@@ -61,6 +61,36 @@ async def test_revenue_can_be_split_by_table_and_by_payment_method(
 
 
 @pytest.mark.anyio
+async def test_revenue_can_be_split_by_order_type(
+    api_client, manager_token, invoices_in_september, order_awaiting_reconciliation
+):
+    """FR-REP-01: dine-in and take-away are separate revenue lines."""
+    body = (
+        await api_client.get(
+            REVENUE, headers=_auth(manager_token), params={"group_by": "order_type"}
+        )
+    ).json()
+
+    assert {row["key"] for row in body["items"]} == {"Tại chỗ", "Mang về"}
+
+
+@pytest.mark.anyio
+async def test_pending_payments_list_shows_unconfirmed_money(
+    api_client, manager_token, order_awaiting_reconciliation, disputed_payment
+):
+    """FR-REP-02: a separate list with the value and how long it has waited."""
+    body = (
+        await api_client.get("/api/v1/reports/pending-payments", headers=_auth(manager_token))
+    ).json()
+
+    assert {row["MaOrder"] for row in body["items"]} == {
+        order_awaiting_reconciliation.order_id,
+        disputed_payment.order_id,
+    }
+    assert {"ThoiGianChoPhut", "SoTien", "TrangThai", "PhuongThuc"} <= set(body["items"][0])
+
+
+@pytest.mark.anyio
 async def test_the_split_by_table_sums_back_to_the_total(
     api_client, manager_token, invoices_in_september
 ):

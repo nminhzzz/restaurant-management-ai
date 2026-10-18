@@ -198,9 +198,39 @@ async def test_a_supplier_with_receipts_is_only_soft_deleted(session, supplier_w
 
 
 @pytest.mark.asyncio
-async def test_a_supplier_with_no_history_is_deleted_outright(session, fresh_supplier):
+async def test_cashier_cannot_read_ingredients_or_suppliers(session):
+    """Bảng 10: cashier only reads dishes, prices and the floor plan."""
+    ch = await _headers_for(session, "CASHIER")
+    async with await _make_client(session) as c:
+        ingredients = await list_ingredients(c, ch)
+        suppliers = await c.get("/api/v1/catalog/suppliers", headers=ch)
+    app.dependency_overrides.clear()
+    assert ingredients.status_code == 403
+    assert suppliers.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_warehouse_cannot_read_dishes_groups_or_tables(session):
+    """Bảng 10: warehouse staff never reads the dish/price catalogue."""
+    wh = await _headers_for(session, "WAREHOUSE")
+    async with await _make_client(session) as c:
+        for path in (
+            "/api/v1/catalog/dishes",
+            "/api/v1/catalog/groups",
+            "/api/v1/catalog/tables",
+        ):
+            resp = await c.get(path, headers=wh)
+            assert resp.status_code == 403, (path, resp.status_code)
+
+
+@pytest.mark.asyncio
+async def test_ingredient_shelf_days_are_saved(session):
+    """FR-INV-14: shelf days drive the lot expiry date."""
     h = await _headers_for(session, "WAREHOUSE")
     async with await _make_client(session) as c:
-        await delete_supplier(c, h, fresh_supplier.id)
+        created = await create_ingredient(c, h, name="Sữa tươi", SoNgayBaoQuan=5)
+        listed = await list_ingredients(c, h, search="Sữa")
     app.dependency_overrides.clear()
-    assert await get_supplier_row(session, fresh_supplier.id) is None
+    assert created.status_code == 201
+    assert created.json()["SoNgayBaoQuan"] == 5
+    assert listed.json()["items"][0]["SoNgayBaoQuan"] == 5

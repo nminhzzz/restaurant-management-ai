@@ -92,3 +92,47 @@ async def test_a_non_manager_cannot_read_the_config(session):
         )
     app.dependency_overrides.clear()
     assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_operational_fields_are_saved_and_returned(session):
+    """FR-SET-04: expiry warning, hold minutes and the per-user AI quota."""
+    client, token = await _mgr(session)
+    async with client:
+        updated = await client.put(
+            "/api/v1/settings/config",
+            json={
+                "SoNgayCanhBaoHetHan": 2,
+                "ThoiGianGiuChoPhut": 7,
+                "SoCauHoiAIMoiNgay": 40,
+            },
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        reloaded = await client.get(
+            "/api/v1/settings/config", headers={"Authorization": f"Bearer {token}"}
+        )
+    app.dependency_overrides.clear()
+    assert updated.status_code == 200
+    assert updated.json()["SoNgayCanhBaoHetHan"] == 2
+    assert updated.json()["ThoiGianGiuChoPhut"] == 7
+    assert updated.json()["SoCauHoiAIMoiNgay"] == 40
+    assert reloaded.json()["SoCauHoiAIMoiNgay"] == 40
+
+
+@pytest.mark.asyncio
+async def test_operational_fields_reject_out_of_range_values(session):
+    client, token = await _mgr(session)
+    async with client:
+        zero_hold = await client.put(
+            "/api/v1/settings/config",
+            json={"ThoiGianGiuChoPhut": 0},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        negative_quota = await client.put(
+            "/api/v1/settings/config",
+            json={"SoCauHoiAIMoiNgay": -1},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+    app.dependency_overrides.clear()
+    assert zero_hold.status_code == 422
+    assert negative_quota.status_code == 422

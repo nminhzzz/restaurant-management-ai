@@ -10,9 +10,14 @@ from typing import Annotated, Any
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import InvalidTokenError
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
+from app.core.database import get_session
 from app.core.errors import ForbiddenError, UnauthenticatedError
 from app.core.security import decode_access_token
+from app.modules.settings.models import User
+from app.shared.enums import UserStatus
 from app.shared.roles import Role
 
 _bearer = HTTPBearer(auto_error=False)
@@ -20,8 +25,7 @@ _bearer = HTTPBearer(auto_error=False)
 
 @dataclass(frozen=True)
 class Principal:
-    """The authenticated caller. Will be backed by the NGUOI_DUNG entity once
-    the settings module is implemented."""
+    """The authenticated caller. The database is authoritative outside local dev."""
 
     user_id: int
     username: str
@@ -30,17 +34,25 @@ class Principal:
 
 async def get_current_user(
     scheme: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
+    session: Annotated[AsyncSession, Depends(get_session)],
 ) -> Principal:
     if scheme is None:
         raise UnauthenticatedError("Vui lòng đăng nhập để tiếp tục.")
 
     try:
         claims = decode_access_token(scheme.credentials)
-        return Principal(
-            user_id=int(str(claims["sub"])),
-            username=str(claims.get("username", "")),
-            role=Role(str(claims["role"])),
-        )
+        user_id = int(str(claims["sub"]))
+        username = str(claims.get("username", ""))
+        role = Role(str(claims["role"]))
+        # A token is a snapshot: locking an account or changing its role must take
+        # effect without waiting for the eight-hour token to expire (NFR-19).
+        if get_settings().environment != "local":
+            user = await session.get(User, user_id)
+            if user is None or user.status != UserStatus.HOAT_DONG:
+                raise UnauthenticatedError("Phiên đăng nhập không hợp lệ.")
+            username = user.username
+            role = Role(user.role_id)
+        return Principal(user_id=user_id, username=username, role=role)
     except (KeyError, ValueError, InvalidTokenError) as exc:
         raise UnauthenticatedError("Phiên đăng nhập không hợp lệ.") from exc
 

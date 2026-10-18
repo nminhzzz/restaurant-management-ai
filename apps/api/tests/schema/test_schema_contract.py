@@ -25,6 +25,8 @@ EXPECTED_TABLES = {
     "HOA_DON",
     "GIAO_DICH_THANH_TOAN",
     "PHIEU_BEP",
+    "GIU_CHO_MON",
+    "CHI_TIET_GIU_CHO",
     "PHIEU_NHAP_KHO",
     "CHI_TIET_PHIEU_NHAP",
     "LO_NGUYEN_LIEU",
@@ -37,6 +39,8 @@ EXPECTED_TABLES = {
     "PHIEN_CHAT_AI",
     "TRUY_VAN_AI",
     "DEM_ORDER",
+    "HAN_MUC_AI_NGAY",
+    "BO_NHO_DEM_SQL_AI",
 }
 
 EXPECTED_INDEXES = {
@@ -49,10 +53,13 @@ EXPECTED_INDEXES = {
     ("NHAT_KY_HE_THONG", ("ThoiDiem",)),
     ("HOA_DON", ("ThoiDiemXuat",)),
     ("TRUY_VAN_AI", ("MaPhien", "ThoiDiem")),
+    ("GIU_CHO_MON", ("MaLuotChon", "TrangThai")),
+    ("GIU_CHO_MON", ("TrangThai", "ThoiDiemHetHan")),
+    ("CHI_TIET_GIU_CHO", ("MaLoNguyenLieu", "MaGiuCho")),
 }
 
 
-def test_the_schema_has_the_report_tables_plus_the_counter() -> None:
+def test_the_schema_has_the_report_tables_counter_and_technical_ai_state() -> None:
     assert set(Base.metadata.tables) == EXPECTED_TABLES
 
 

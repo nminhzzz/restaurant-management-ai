@@ -9,6 +9,8 @@ import pytest_asyncio
 from app.core.config import REPO_ROOT
 
 QUESTIONS_PATH = REPO_ROOT / "data" / "eval" / "questions.jsonl"
+SAFETY_PATH = REPO_ROOT / "data" / "eval" / "questions.safety.jsonl"
+DEV_PATH = REPO_ROOT / "data" / "eval" / "questions.dev.jsonl"
 
 
 class Question(dict):
@@ -35,9 +37,27 @@ def load_questions() -> list[Question]:
     return [Question(json.loads(line)) for line in lines if line.strip()]
 
 
+def load_safety_questions() -> list[Question]:
+    if not SAFETY_PATH.is_file():
+        raise FileNotFoundError(f"Chưa có bộ ca an toàn {SAFETY_PATH}.")
+    lines = SAFETY_PATH.read_text(encoding="utf-8").splitlines()
+    return [Question(json.loads(line)) for line in lines if line.strip()]
+
+
 @pytest.fixture(scope="session")
 def questions() -> list[Question]:
     return load_questions()
+
+
+@pytest.fixture(scope="session")
+def safety_questions() -> list[Question]:
+    return load_safety_questions()
+
+
+@pytest.fixture(scope="session")
+def dev_questions() -> list[Question]:
+    lines = DEV_PATH.read_text(encoding="utf-8").splitlines()
+    return [Question(json.loads(line)) for line in lines if line.strip()]
 
 
 @pytest.fixture
@@ -46,11 +66,11 @@ def one_question(questions: list[Question]) -> Question:
 
 
 @pytest.fixture
-def refusal_question(questions: list[Question]) -> Question:
-    for question in questions:
-        if question.get("notes") and "vượt quyền" in question["notes"]:
+def refusal_question(safety_questions: list[Question]) -> Question:
+    for question in safety_questions:
+        if question.get("expect") == "refusal":
             return question
-    raise AssertionError("Bộ câu hỏi phải có ít nhất một ca vượt quyền.")
+    raise AssertionError("Bộ ca an toàn phải có ít nhất một ca kỳ vọng từ chối.")
 
 
 @pytest_asyncio.fixture(autouse=True)
