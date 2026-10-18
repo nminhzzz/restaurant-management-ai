@@ -675,6 +675,78 @@ async def close_unpaid_order(
     return order
 
 
+async def apply_late_payment(
+    session: AsyncSession,
+    payment_id: int,
+    *,
+    actor_id: int | None = None,
+    bank_ref: str | None = None,
+) -> dict:
+    """FR-SALE-17b: money arrives after the order was closed unpaid.
+
+    Apply it once, issue the invoice, and let the order leave the closed-unpaid
+    report and its cost move back to the paid (05a) group.
+    """
+    payment = (
+        await session.execute(
+            select(PaymentTransaction)
+            .where(PaymentTransaction.id == payment_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+    ).scalar_one_or_none()
+    if payment is None:
+        raise NotFoundError("Giao dịch không tồn tại.")
+    if payment.status != PAYMENT_CLOSED_UNPAID:
+        raise BusinessRuleError("Giao dịch không ở trạng thái đóng chưa thu.")
+    order = (
+        await session.execute(
+            select(Order)
+            .where(Order.id == payment.order_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+    ).scalar_one_or_none()
+    if order is None:
+        raise NotFoundError("Order không tồn tại.")
+    if order.status != PAYMENT_CLOSED_UNPAID:
+        raise BusinessRuleError("Order không ở trạng thái đóng chưa thu.")
+    successful = await session.scalar(
+        select(func.count())
+        .select_from(PaymentTransaction)
+        .where(
+            PaymentTransaction.order_id == order.id,
+            PaymentTransaction.status == QR_SUCCESS,
+        )
+    )
+    invoice_count = await session.scalar(
+        select(func.count()).select_from(Invoice).where(Invoice.order_id == order.id)
+    )
+    if successful or invoice_count:
+        raise BusinessRuleError("Order đã có thanh toán/hóa đơn, không thể áp dụng lại.")
+    total = await order_total(session, order)
+    order.total = total
+    payment.status = QR_SUCCESS
+    if bank_ref is not None:
+        payment.bank_ref = bank_ref
+    await session.flush()
+    invoice = await _issue_invoice(
+        session, order, business_date_value=payment.business_date, total=total, payment=payment
+    )
+    _settle(order, "Đã thanh toán", business_date.now())
+    session.add(
+        SystemAuditLog(
+            user_id=actor_id,
+            action="APPLY_LATE_PAYMENT",
+            target_entity="GIAO_DICH_THANH_TOAN",
+            target_id=str(payment.id),
+            after={"MaOrder": order.id, "MaHoaDon": invoice.id},
+        )
+    )
+    await session.flush()
+    return {"payment": payment, "invoice": invoice}
+
+
 async def mark_for_reconciliation(
     session: AsyncSession, payment_id: int, *, actor_id: int | None = None
 ) -> PaymentTransaction:

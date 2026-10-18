@@ -409,3 +409,21 @@ describe("PaymentPanel cash and SePay", () => {
     ).toBeInTheDocument();
   });
 });
+
+it("offers a late-payment action to a manager after closing unpaid", async () => {
+  saveSession({ token: "t", role: "MANAGER", username: "quanly" });
+  stubByPath({
+    "/sales/orders/1/payments": {
+      items: [qr({ TrangThai: "Đóng – chưa thu được tiền" })],
+    },
+    "/sales/orders/1": {
+      ...openOrder,
+      TrangThai: "Đóng – chưa thu được tiền",
+    },
+  });
+  render(<PaymentPanel orderId={1} />);
+
+  expect(
+    await screen.findByRole("button", { name: "Áp dụng khoản đến muộn" }),
+  ).toBeInTheDocument();
+});

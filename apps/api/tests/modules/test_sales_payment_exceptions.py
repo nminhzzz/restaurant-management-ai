@@ -273,3 +273,54 @@ async def test_manager_can_confirm_a_verifying_payment(
         )
         == 1
     )
+
+
+@pytest.mark.anyio
+async def test_a_late_payment_reopens_the_money_and_issues_one_invoice(
+    api_client, session, manager_token, cashier_token
+):
+    """FR-SALE-17b: apply a late transfer once and move the order back to paid."""
+    dish, table = await _setup(session)
+    order_id, payment_id = await _open_order(api_client, cashier_token, dish, table)
+    await api_client.post(
+        f"/api/v1/sales/payments/{payment_id}/request-verification",
+        headers=_auth(cashier_token),
+    )
+    await api_client.post(
+        f"/api/v1/sales/orders/{order_id}/close-unpaid",
+        json={"reason": "chưa thấy tiền"},
+        headers=_auth(manager_token),
+    )
+
+    forbidden = await api_client.post(
+        f"/api/v1/sales/payments/{payment_id}/apply-late",
+        json={"bank_ref": "FT-LATE"},
+        headers=_auth(cashier_token),
+    )
+    applied = await api_client.post(
+        f"/api/v1/sales/payments/{payment_id}/apply-late",
+        json={"bank_ref": "FT-LATE"},
+        headers=_auth(manager_token),
+    )
+
+    assert forbidden.status_code == 403
+    assert applied.status_code == 200
+    assert applied.json()["TrangThai"] == "Thành công"
+    payment = await session.get(PaymentTransaction, payment_id)
+    assert payment is not None and payment.status == "Thành công"
+    order = (
+        await api_client.get(f"/api/v1/sales/orders/{order_id}", headers=_auth(manager_token))
+    ).json()
+    assert order["TrangThai"] == "Đã thanh toán"
+    assert (
+        await session.scalar(
+            select(func.count()).select_from(Invoice).where(Invoice.order_id == order_id)
+        )
+        == 1
+    )
+    report = await api_client.get(
+        "/api/v1/reports/closed-unpaid",
+        params={"month": business_date.now().strftime("%Y-%m")},
+        headers=_auth(manager_token),
+    )
+    assert report.json()["SoLuong"] == 0

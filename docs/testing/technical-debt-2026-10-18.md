@@ -60,11 +60,13 @@ Mọi thay đổi đều có test đi kèm; migration mới **chưa** áp dụng
 - Quản lý mở lại thanh toán (hủy giao dịch chờ, đưa order về `Đang mở`) hoặc đóng chưa thu (không tạo
   hóa đơn); cả hai bắt buộc lý do và ghi nhật ký.
 - Quản lý xác nhận tiền đã về từ trạng thái chờ xác minh; chuyển khoản đến muộn vẫn được đối chiếu.
+- Quản lý áp dụng khoản tiền đến muộn cho order “Đóng – chưa thu được tiền”: order trở lại
+  `Đã thanh toán`, phát hành hóa đơn đúng một lần và rời báo cáo closed-unpaid.
 - Doanh thu tạm tính và danh sách thanh toán chờ bao gồm tiền đang chờ xác minh.
 - `GET /reports/closed-unpaid` tách riêng order đóng chưa thu khỏi báo cáo order hủy, kèm giá trị,
   giá vốn nguyên liệu đã tiêu hao và lý do; báo cáo order hủy cũng có `GiaVon`/`TongGiaVon`.
-- Giao diện thanh toán có nút “Khách báo đã chuyển tiền” và, với Quản lý, ba thao tác xác nhận đã
-  nhận/mở lại/đóng chưa thu; trạng thái chờ xác minh khóa gọi thêm và thu tiền mặt.
+- Giao diện thanh toán có nút “Khách báo đã chuyển tiền” và, với Quản lý, các thao tác xác nhận đã
+  nhận/mở lại/đóng chưa thu/áp dụng khoản đến muộn; trạng thái chờ xác minh khóa gọi thêm và thu tiền mặt.
 
 ### Cài đặt và báo cáo
 - `CAU_HINH_HE_THONG` có `SoNgayCanhBaoHetHan`, `ThoiGianGiuChoPhut`, `SoCauHoiAIMoiNgay`;
@@ -86,8 +88,8 @@ Mọi thay đổi đều có test đi kèm; migration mới **chưa** áp dụng
 
 ## Kiểm chứng
 
-- API: **535 test qua**, 18 test integration/slow được loại khỏi lượt gate theo cấu hình.
-- Web: **162 test qua**; prettier, eslint, tsc và `next build` đều qua.
+- API: **536 test qua**, 18 test integration/slow được loại khỏi lượt gate theo cấu hình.
+- Web: **163 test qua**; prettier, eslint, tsc và `next build` đều qua.
 - API: ruff format/check và mypy qua.
 - **MySQL 8.4 integration: 12 test qua** trên `restaurant_test` đã migrate; seed 20.000 order
   hoàn tất với `integrity: passed`.

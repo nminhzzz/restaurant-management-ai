@@ -587,6 +587,27 @@ async def close_unpaid_order(
     return {"MaOrder": order.id, "TrangThai": order.status}
 
 
+@router.post("/payments/{payment_id}/apply-late")
+async def apply_late_payment(
+    payment_id: int,
+    payload: dict,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER)),
+):
+    result = await payments.apply_late_payment(
+        session,
+        payment_id,
+        actor_id=user.user_id,
+        bank_ref=payload.get("bank_ref") or payload.get("MaGiaoDichNganHang"),
+    )
+    await session.commit()
+    return {
+        "MaGiaoDich": result["payment"].id,
+        "MaHoaDon": result["invoice"].id,
+        "TrangThai": result["payment"].status,
+    }
+
+
 @router.post("/orders/{order_id}/reconcile")
 async def flag_reconcile(
     order_id: int,

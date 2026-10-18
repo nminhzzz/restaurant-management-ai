@@ -191,12 +191,13 @@ export function PaymentPanel({
   const live = qr?.TrangThai === "Chờ xác nhận" && !expired;
   const reconciling = order.TrangThai === "Chờ đối soát";
   const verifying = order.TrangThai === "Chờ xác minh thanh toán";
+  const closedUnpaid = order.TrangThai === "Đóng – chưa thu được tiền";
   const settled = order.TrangThai === "Đã thanh toán";
   const locked = order.TrangThai !== "Đang mở";
   // Only a QR that's still actionable (live, reconciliation or verification)
   // should keep the cashier out of the cash tab — an expired/cancelled QR can't
   // be cancelled through the API, so locking cash on it would strand the order.
-  const qrLocksCash = live || reconciling || verifying;
+  const qrLocksCash = live || reconciling || verifying || closedUnpaid;
   const activeMethod: "cash" | "qr" = qrLocksCash ? "qr" : method;
 
   async function run(action: () => Promise<void>, fallback: string) {
@@ -313,6 +314,19 @@ export function PaymentPanel({
       setMessage("Đã mở lại order để thu tiền lần khác.");
       await detail.reload();
     }, "Không mở lại được thanh toán.");
+  };
+
+  const applyLatePayment = () => {
+    if (!qr) return;
+    return run(async () => {
+      await apiFetch(`/sales/payments/${qr.MaGiaoDich}/apply-late`, {
+        method: "POST",
+        body: {},
+      });
+      setMessage("Đã áp dụng khoản tiền đến muộn và phát hành hóa đơn.");
+      await detail.reload();
+      await loadInvoice();
+    }, "Không áp dụng được khoản tiền đến muộn.");
   };
 
   const closeUnpaid = () => {
@@ -666,6 +680,20 @@ export function PaymentPanel({
                       Đóng chưa thu
                     </Button>
                   </div>
+                )}
+              </div>
+            )}
+
+            {closedUnpaid && (
+              <div className="space-y-3 border-t border-border pt-3">
+                <p className="text-sm text-muted-fg">
+                  Order đã đóng vì chưa thu được tiền. Khi khoản chuyển đến
+                  muộn, quản lý có thể áp dụng một lần và phát hành hóa đơn.
+                </p>
+                {isManager && qr && (
+                  <Button size="sm" onClick={applyLatePayment}>
+                    Áp dụng khoản đến muộn
+                  </Button>
                 )}
               </div>
             )}
