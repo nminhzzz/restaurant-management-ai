@@ -178,6 +178,7 @@ Chạy trên MySQL 8.4 cục bộ, seed 20.000 order, bộ 80 câu chính thức
 | C (B trên mô hình suy luận) | 53,75% | 12,50% | 8,75% | 10.967 ms | 96,67% |
 
 - C có 10 lần timeout 20s và một số lần bị guard từ chối; thời gian trung bình cao hơn hẳn A/B.
+- Timeout 20s là timeout của client gọi LLM; các lần timeout được tính vào mẫu số là lỗi, không bị loại bỏ hay tính là câu đúng.
 - Độ chính xác theo độ khó của B: dễ 86,67%, trung bình 56,67%, khó 35%.
 - Bộ an toàn B từ chối đúng 30/30; A/C đúng 29/30 (S028 yêu cầu xuất dữ liệu vẫn sinh SQL).
 - Kết quả máy đọc: [`docs/eval-results-2026-10-18.json`](../../docs/eval-results-2026-10-18.json),
