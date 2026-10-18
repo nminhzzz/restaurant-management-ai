@@ -241,3 +241,6 @@ test-results/
 *.bkp
 .$*.drawio.bkp
 .worktrees/
+
+# --- Local agent tooling ---
+.crossweave/
