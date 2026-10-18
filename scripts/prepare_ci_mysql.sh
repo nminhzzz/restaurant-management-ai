@@ -11,6 +11,7 @@ mysql_root() {
 
 # Fixed names prevent this helper from selecting an arbitrary application schema.
 mysql_root <<'SQL'
+SET GLOBAL log_bin_trust_function_creators = 1;
 CREATE DATABASE IF NOT EXISTS restaurant_integration CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE DATABASE IF NOT EXISTS restaurant_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 GRANT ALL PRIVILEGES ON restaurant_integration.* TO 'restaurant'@'%';

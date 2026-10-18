@@ -40,13 +40,17 @@ Kiểm tra view cần `DATABASE_URL` và đủ ba biến `AI_READONLY_URL_MANAGE
 
 ## Trạng thái bàn và AI dùng chung
 
-Chạy migration tới head `93c8f84d573a` trước khi khởi động bản mới. Chuỗi migration gần đây bổ sung
+Chạy migration tới head `f8db86d6d0a4` trước khi khởi động bản mới. Chuỗi migration gần đây bổ sung
 `BAN.MaOrderDangPhucVu`, hai bảng hạ tầng `HAN_MUC_AI_NGAY`, `BO_NHO_DEM_SQL_AI`, các trường cấu hình
 vận hành (`SoNgayCanhBaoHetHan`, `ThoiGianGiuChoPhut`, `SoCauHoiAIMoiNgay`), khóa hạn mức AI theo
 `(BusinessDate, MaNguoiDung)`, hai bảng giữ chỗ `GIU_CHO_MON`/`CHI_TIET_GIU_CHO` và mở rộng
 `GIAO_DICH_THANH_TOAN.TrangThai` cho trạng thái “Chờ xác minh thanh toán”. Các bảng này không nằm
 trong view chỉ-đọc của AI. Migration khôi phục bàn ghi Trống nhưng còn một order mở; nếu một bàn có
 nhiều order mở, migration dừng trước DDL để đối soát dữ liệu.
+
+Migration `f8db86d6d0a4` tạo trigger chặn UPDATE/DELETE trên `NHAT_KY_HE_THONG` và `TRUY_VAN_AI`.
+MySQL cần bật `log_bin_trust_function_creators=1` (đã có trong `docker-compose.yml` và CI) để tài khoản
+migration tạo được trigger khi binary logging đang bật.
 
 Giữ chỗ nguyên liệu là API server-side: `POST/PATCH/DELETE /sales/holds`; gửi món dùng `hold_id` trên
 dòng order. Giữ chỗ chỉ phân bổ theo lô và không ghi `GIAO_DICH_KHO`; khi gửi mới trừ kho đúng một lần.

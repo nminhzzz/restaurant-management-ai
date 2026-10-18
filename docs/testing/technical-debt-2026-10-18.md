@@ -89,7 +89,7 @@ Mọi thay đổi đều có test đi kèm; migration mới **chưa** áp dụng
 - API: **535 test qua**, 18 test integration/slow được loại khỏi lượt gate theo cấu hình.
 - Web: **162 test qua**; prettier, eslint, tsc và `next build` đều qua.
 - API: ruff format/check và mypy qua.
-- **MySQL 8.4 integration: 10 test qua** trên `restaurant_test` đã migrate; seed 20.000 order
+- **MySQL 8.4 integration: 12 test qua** trên `restaurant_test` đã migrate; seed 20.000 order
   hoàn tất với `integrity: passed`.
 - Benchmark báo cáo tháng 2026-09: revenue 0,036s; dishes 0,020s; hours 0,017s; costs 0,097s
   (ngân sách 2s/endpoint).
@@ -105,6 +105,8 @@ Mọi thay đổi đều có test đi kèm; migration mới **chưa** áp dụng
   costs 634,3ms; comparison 306,1ms — 0 lỗi, tất cả dưới 2s. `comparison` dùng cache 30s sau
   lần tính đầu để tránh lặp chi phí hai tháng.
 - Menu 80 món: **0,274s** sau khi gộp truy vấn khả dụng thành batch (trước đó 1,88s).
+- Trigger MySQL chặn UPDATE/DELETE trên `NHAT_KY_HE_THONG` và `TRUY_VAN_AI`; Docker/CI bật
+  `log_bin_trust_function_creators=1`. Integration test kiểm tra trigger tồn tại và update bị chặn.
 - Thêm index theo `BusinessDate`/`TrangThai` cho ORDER, CHI_TIET_ORDER, HOA_DON, GIAO_DICH_THANH_TOAN,
   GIAO_DICH_KHO (migration `93c8f84d573a`).
 - `GET /inventory/stock?alerting=...` đã lọc và phân trang trong SQL, không còn fetch toàn bộ nguyên liệu.
