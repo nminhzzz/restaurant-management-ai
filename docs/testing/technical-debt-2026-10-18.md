@@ -119,7 +119,7 @@ Mọi thay đổi đều có test đi kèm; migration mới **chưa** áp dụng
 - AI executor dùng lại engine theo URL read-only từng vai trò (không tạo/đóng mỗi câu hỏi) và dispose
   toàn bộ engine khi ứng dụng shutdown; test xác nhận cùng vai trò chỉ mở một engine.
 
-## Còn lại
+## Bàn giao / nghiệm thu bên ngoài (không còn nợ code)
 
-- SUS/UAT; tablet thật, Edge/Safari.
-- Áp dụng migration `93c8f84d573a` vào CSDL triển khai thật (commit checkpoint đã tạo).
+- SUS/UAT với người dùng thật; kiểm tra tablet thật, Edge/Safari.
+- Áp dụng migration head `2dbae7c74ed0` vào CSDL triển khai thật.
