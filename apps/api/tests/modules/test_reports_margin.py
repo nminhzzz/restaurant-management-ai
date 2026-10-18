@@ -199,6 +199,8 @@ async def test_a_negative_stocktake_adjustment_is_part_of_waste(session):
     from app.modules.catalog.models import Ingredient
     from app.modules.inventory.models import (
         MonthlyAverageCost,
+        StockIssue,
+        StockIssueLine,
         StockMovement,
         Stocktake,
         StocktakeLine,
@@ -233,6 +235,17 @@ async def test_a_negative_stocktake_adjustment_is_part_of_waste(session):
             qty=Decimal("-3"),
             business_date=date(2026, 9, 22),
             stocktake_line_id=line.id,
+        )
+    )
+    issue = StockIssue(reason="Hủy do kiểm kê", status="Đã xác nhận", stocktake_id=stocktake.id)
+    session.add(issue)
+    await session.flush()
+    session.add(
+        StockIssueLine(
+            issue_id=issue.id,
+            ingredient_id=ingredient.id,
+            quantity=Decimal("3"),
+            estimated_cost=Decimal("0"),
         )
     )
     await session.commit()

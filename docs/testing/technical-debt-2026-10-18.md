@@ -38,6 +38,8 @@ Mọi thay đổi đều có test đi kèm; migration mới **chưa** áp dụng
 - Kiểm kê: chỉ một phiên mở; chặn nhập/xuất/trừ kho khi phiên đang mở; yêu cầu kiểm đủ nguyên liệu
   hoạt động; ghi lại nhiều lần không tạo dòng trùng; trạng thái kết thúc dùng `Đã chốt`.
 - Chênh lệch âm trừ được cả lô hết hạn, đúng với tồn thực tế gồm lô hết hạn.
+- Kiểm kê âm tự sinh phiếu xuất hủy liên kết `MaPhieuKiemKe`; phiếu chỉ là chứng từ, chi phí vẫn lấy từ
+  giao dịch điều chỉnh kho nên báo cáo hao hụt không cộng trùng.
 
 ### Giữ chỗ nguyên liệu (backend)
 - Thêm `GIU_CHO_MON`/`CHI_TIET_GIU_CHO`: phân bổ theo lô FIFO, hạn giữ lấy từ cấu hình, không ghi
@@ -88,7 +90,7 @@ Mọi thay đổi đều có test đi kèm; migration mới **chưa** áp dụng
 
 ## Kiểm chứng
 
-- API: **536 test qua**, 18 test integration/slow được loại khỏi lượt gate theo cấu hình.
+- API: **536 test qua**, 20 integration/slow được loại khỏi lượt gate theo cấu hình.
 - Web: **163 test qua**; prettier, eslint, tsc và `next build` đều qua.
 - API: ruff format/check và mypy qua.
 - **MySQL 8.4 integration: 12 test qua** trên `restaurant_test` đã migrate; seed 20.000 order

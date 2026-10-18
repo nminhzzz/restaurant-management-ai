@@ -504,12 +504,14 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
     if counted < active_count:
         raise BusinessRuleError("Chưa kiểm đủ nguyên liệu đang hoạt động.")
     affected_ingredient_ids: list[int] = []
+    write_off: list[tuple[int, Decimal]] = []
     for line in lines:
         affected_ingredient_ids.append(line.ingredient_id)
         diff = Decimal(str(line.actual_qty)) - Decimal(str(line.system_qty))
         if diff == 0:
             continue
         if diff < 0:
+            write_off.append((line.ingredient_id, -diff))
             # The physical count includes expired lots, so the shortage must be
             # deducted from every lot, not only the still-sellable ones.
             from app.modules.inventory.stock import lots_for_fifo
@@ -588,6 +590,31 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
             ing = await session.get(Ing4, line.ingredient_id)
             if ing:
                 ing.stock_qty = ing.stock_qty + diff
+    if write_off:
+        # FR-INV-05: the write-off document is evidence only; its cost stays on
+        # the negative stocktake movement so reports do not count it twice.
+        issue = StockIssue(
+            reason="Hủy do kiểm kê",
+            status="Đã xác nhận",
+            created_at=business_date.now(),
+            issue_date=business_date.now(),
+            created_by=actor_id,
+            note=f"Tự sinh từ phiếu kiểm kê #{st.id}",
+            stocktake_id=st.id,
+        )
+        session.add(issue)
+        await session.flush()
+        for ingredient_id, quantity in write_off:
+            session.add(
+                StockIssueLine(
+                    issue_id=issue.id,
+                    ingredient_id=ingredient_id,
+                    quantity=quantity,
+                    estimated_cost=Decimal("0"),
+                )
+            )
+        await session.flush()
+
     st.status = StocktakeStatus.DA_CHOT.value
     await session.flush()
     session.add(

@@ -128,6 +128,12 @@ class StockIssue(Base):
         nullable=True,
     )
     note: Mapped[str | None] = mapped_column("GhiChu", String(500), nullable=True)
+    stocktake_id: Mapped[int | None] = mapped_column(
+        "MaPhieuKiemKe",
+        BigInteger,
+        ForeignKey("PHIEU_KIEM_KE.MaPhieuKiemKe", ondelete="RESTRICT", onupdate="RESTRICT"),
+        nullable=True,
+    )
 
 
 class StockIssueLine(Base):

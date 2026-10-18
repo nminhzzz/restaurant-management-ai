@@ -7,7 +7,13 @@ from app.core.database import get_session
 from app.core.security import create_access_token, hash_password
 from app.main import app
 from app.modules.catalog.models import Ingredient
-from app.modules.inventory.models import GoodsReceipt, GoodsReceiptLine, IngredientLot
+from app.modules.inventory.models import (
+    GoodsReceipt,
+    GoodsReceiptLine,
+    IngredientLot,
+    StockIssue,
+    StockIssueLine,
+)
 from app.modules.settings.models import User
 from app.modules.settings.service import seed_reference_data
 from app.shared import business_date
@@ -171,6 +177,16 @@ async def test_cannot_record_counts_after_confirm(session):
         headers=h,
     )
     await client.post(f"/api/v1/inventory/stocktakes/{sid}/confirm", headers=h)
+    from sqlalchemy import select
+
+    issue = (
+        await session.execute(select(StockIssue).where(StockIssue.stocktake_id == sid))
+    ).scalar_one()
+    issue_line = (
+        await session.execute(select(StockIssueLine).where(StockIssueLine.issue_id == issue.id))
+    ).scalar_one()
+    assert issue_line.quantity == 2
+    assert issue_line.estimated_cost == 0
     r = await client.post(
         f"/api/v1/inventory/stocktakes/{sid}/counts",
         json=[{"ingredient_id": ing.id, "actual_qty": 8}],

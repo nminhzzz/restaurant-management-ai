@@ -500,13 +500,17 @@ async def waste_cost(session: AsyncSession, month: int) -> tuple[Decimal, int]:
         session,
         select(func.coalesce(func.sum(StockIssueLine.estimated_cost), 0))
         .join(StockIssue, StockIssue.id == StockIssueLine.issue_id)
-        .where(*window),
+        .where(*window, StockIssue.stocktake_id.is_(None)),
     )
     uncosted = await _scalar_count(
         session,
         select(func.count(StockIssueLine.id))
         .join(StockIssue, StockIssue.id == StockIssueLine.issue_id)
-        .where(*window, StockIssueLine.estimated_cost == 0),
+        .where(
+            *window,
+            StockIssue.stocktake_id.is_(None),
+            StockIssueLine.estimated_cost == 0,
+        ),
     )
 
     # A negative stocktake line is a cost too (FR-REP-05b), but it has no
