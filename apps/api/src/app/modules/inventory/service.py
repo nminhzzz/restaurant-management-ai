@@ -610,6 +610,7 @@ async def list_stock(
     page: int = 1,
     page_size: int = 50,
 ):
+    from sqlalchemy import case
     from sqlalchemy import select as sel
 
     from app.modules.catalog.models import Ingredient
@@ -617,51 +618,35 @@ async def list_stock(
 
     cfg = (await session.execute(sel(SystemConfig))).scalar_one_or_none()
     default = float(cfg.default_stock_threshold) if cfg else 5
-    # Build base query with alert filter in SQL where possible; fallback to Python for threshold compare
     base = sel(Ingredient).where(Ingredient.is_deleted == False)
     if search:
         safe = search.replace("%", "\\%").replace("_", "\\_")
         base = base.where(Ingredient.name.ilike(f"%{safe}%", escape="\\"))
-    # If alerting filter requested, fetch a larger window then filter, else SQL pagination
+    threshold = case((Ingredient.min_stock > 0, Ingredient.min_stock), else_=default)
     if alerting is not None:
-        # Need to evaluate threshold per row; fetch with LIMIT/OFFSET * factor then filter
-        # Simple: fetch all matching then filter then paginate in Python (bounded by threshold check)
-        # For true SQL pagination without function, keep Python slice after alert filter
-        all_rows = (await session.execute(base.order_by(Ingredient.id))).scalars().all()
-        filtered = []
-        for ing in all_rows:
-            thr = float(ing.min_stock) if ing.min_stock and float(ing.min_stock) > 0 else default
-            alert = float(ing.stock_qty) < thr
-            if alert == alerting:
-                filtered.append((ing, thr, alert))
-        total = len(filtered)
-        start_idx = (page - 1) * page_size
-        page_items = filtered[start_idx : start_idx + page_size]
-        return [
-            {
-                "MaNguyenLieu": ing.id,
-                "TenNguyenLieu": ing.name,
-                "SoLuongTon": float(ing.stock_qty),
-                "MucTonToiThieuApDung": thr,
-                "CanhBaoTonThap": alert,
-            }
-            for ing, thr, alert in page_items
-        ], total
-    # No alert filter: SQL pagination
-    total = (await session.execute(select(func.count()).select_from(base.subquery()))).scalar_one()
-    q = base.order_by(Ingredient.id).offset((page - 1) * page_size).limit(page_size)
-    rows = (await session.execute(q)).scalars().all()
+        base = base.where(
+            Ingredient.stock_qty < threshold if alerting else Ingredient.stock_qty >= threshold
+        )
+    total = (await session.execute(sel(func.count()).select_from(base.subquery()))).scalar_one()
+    rows = (
+        (
+            await session.execute(
+                base.order_by(Ingredient.id).offset((page - 1) * page_size).limit(page_size)
+            )
+        )
+        .scalars()
+        .all()
+    )
     out = []
     for ing in rows:
-        thr = float(ing.min_stock) if ing.min_stock and float(ing.min_stock) > 0 else default
-        alert = float(ing.stock_qty) < thr
+        applied = float(ing.min_stock) if ing.min_stock and float(ing.min_stock) > 0 else default
         out.append(
             {
                 "MaNguyenLieu": ing.id,
                 "TenNguyenLieu": ing.name,
                 "SoLuongTon": float(ing.stock_qty),
-                "MucTonToiThieuApDung": thr,
-                "CanhBaoTonThap": alert,
+                "MucTonToiThieuApDung": applied,
+                "CanhBaoTonThap": float(ing.stock_qty) < applied,
             }
         )
     return out, total

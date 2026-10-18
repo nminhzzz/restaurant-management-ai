@@ -105,8 +105,11 @@ Mọi thay đổi đều có test đi kèm; migration mới **chưa** áp dụng
   costs 634,3ms; comparison 306,1ms — 0 lỗi, tất cả dưới 2s. `comparison` dùng cache 30s sau
   lần tính đầu để tránh lặp chi phí hai tháng.
 - Menu 80 món: **0,274s** sau khi gộp truy vấn khả dụng thành batch (trước đó 1,88s).
+- Thêm index theo `BusinessDate`/`TrangThai` cho ORDER, CHI_TIET_ORDER, HOA_DON, GIAO_DICH_THANH_TOAN,
+  GIAO_DICH_KHO (migration `93c8f84d573a`).
+- `GET /inventory/stock?alerting=...` đã lọc và phân trang trong SQL, không còn fetch toàn bộ nguyên liệu.
 
 ## Còn lại
 
 - SUS/UAT; tablet thật, Edge/Safari.
-- Áp dụng migration vào CSDL triển khai thật (commit checkpoint `0db1e9b` đã tạo).
+- Áp dụng migration `93c8f84d573a` vào CSDL triển khai thật (commit checkpoint đã tạo).

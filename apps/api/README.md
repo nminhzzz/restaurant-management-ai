@@ -40,7 +40,7 @@ Kiểm tra view cần `DATABASE_URL` và đủ ba biến `AI_READONLY_URL_MANAGE
 
 ## Trạng thái bàn và AI dùng chung
 
-Chạy migration tới head `8891574f0e84` trước khi khởi động bản mới. Chuỗi migration gần đây bổ sung
+Chạy migration tới head `93c8f84d573a` trước khi khởi động bản mới. Chuỗi migration gần đây bổ sung
 `BAN.MaOrderDangPhucVu`, hai bảng hạ tầng `HAN_MUC_AI_NGAY`, `BO_NHO_DEM_SQL_AI`, các trường cấu hình
 vận hành (`SoNgayCanhBaoHetHan`, `ThoiGianGiuChoPhut`, `SoCauHoiAIMoiNgay`), khóa hạn mức AI theo
 `(BusinessDate, MaNguoiDung)`, hai bảng giữ chỗ `GIU_CHO_MON`/`CHI_TIET_GIU_CHO` và mở rộng

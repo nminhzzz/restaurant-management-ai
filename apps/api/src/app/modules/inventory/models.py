@@ -255,6 +255,7 @@ class StockMovement(Base):
             name="movement_source_matches_kind",
         ),
         Index("ix_GIAO_DICH_KHO_MaNguyenLieu_ThoiDiem", "MaNguyenLieu", "ThoiDiem"),
+        Index("ix_GIAO_DICH_KHO_BusinessDate_LoaiGiaoDich", "BusinessDate", "LoaiGiaoDich"),
     )
 
 

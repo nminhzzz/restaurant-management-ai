@@ -68,6 +68,7 @@ class Order(Base):
             name="dine_in_needs_a_table",
         ),
         Index("ix_ORDER_BusinessDate_MaBan", "BusinessDate", "MaBan"),
+        Index("ix_ORDER_BusinessDate_TrangThai", "BusinessDate", "TrangThai"),
     )
 
 
@@ -106,7 +107,10 @@ class OrderLine(Base):
         "ThoiDiemThem", DateTime, server_default=func.now(), nullable=False
     )
     status: Mapped[str] = mapped_column("TrangThai", String(20), nullable=False, default="Ch\u1edd")
-    __table_args__ = (Index("ix_CHI_TIET_ORDER_MaMon_MaOrder", "MaMon", "MaOrder"),)
+    __table_args__ = (
+        Index("ix_CHI_TIET_ORDER_MaMon_MaOrder", "MaMon", "MaOrder"),
+        Index("ix_CHI_TIET_ORDER_MaOrder_TrangThai", "MaOrder", "TrangThai"),
+    )
 
 
 class TableMoveLog(Base):
@@ -172,7 +176,10 @@ class PaymentTransaction(Base):
     )
     bank_ref: Mapped[str | None] = mapped_column("MaGiaoDichNganHang", String(100), nullable=True)
     evidence: Mapped[str | None] = mapped_column("AnhChungTu", String(500), nullable=True)
-    __table_args__ = (Index("ix_GIAO_DICH_THANH_TOAN_MaOrder_TrangThai", "MaOrder", "TrangThai"),)
+    __table_args__ = (
+        Index("ix_GIAO_DICH_THANH_TOAN_MaOrder_TrangThai", "MaOrder", "TrangThai"),
+        Index("ix_GIAO_DICH_THANH_TOAN_BusinessDate_TrangThai", "BusinessDate", "TrangThai"),
+    )
 
 
 class Invoice(Base):
@@ -208,7 +215,10 @@ class Invoice(Base):
         ForeignKey("NGUOI_DUNG.MaNguoiDung", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=True,
     )
-    __table_args__ = (Index("ix_HOA_DON_ThoiDiemXuat", "ThoiDiemXuat"),)
+    __table_args__ = (
+        Index("ix_HOA_DON_ThoiDiemXuat", "ThoiDiemXuat"),
+        Index("ix_HOA_DON_BusinessDate", "BusinessDate"),
+    )
 
 
 class KitchenTicket(Base):
