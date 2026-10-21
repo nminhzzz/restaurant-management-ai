@@ -33,7 +33,7 @@ UNION ALL
 SELECT
     'DONG_MON', ct.MaOrder, o.BusinessDate, NULL, o.TrangThai, NULL,
     NULL, NULL, NULL, NULL, NULL, NULL,
-    m.TenMon, ng.TenNhomMon, ct.SoLuong, ct.DonGia, ct.ThanhTien
+    m.TenMon, ng.TenNhomMon, ct.SoLuong, ct.DonGia, (ct.SoLuong * ct.DonGia)
 FROM CHI_TIET_ORDER ct
 JOIN `ORDER` o ON o.MaOrder = ct.MaOrder
 JOIN MON_AN m ON m.MaMon = ct.MaMon

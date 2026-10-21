@@ -435,10 +435,29 @@ export function PaymentPanel({
 
   const resolve = (outcome: "received" | "not_received") => {
     if (!qr) return;
+    let receivedAmount: number | undefined;
+    if (outcome === "received") {
+      // P1: confirming receipt must state how much actually arrived.
+      const raw = window.prompt(
+        `Số tiền thực nhận (tổng order ${total.toLocaleString("vi-VN")} ₫):`,
+        String(total),
+      );
+      if (raw === null) return;
+      receivedAmount = Number(raw);
+      if (!Number.isFinite(receivedAmount)) {
+        setMessage("Số tiền không hợp lệ.");
+        return;
+      }
+    }
     return run(async () => {
       await apiFetch(`/sales/payments/${qr.MaGiaoDich}/resolve`, {
         method: "POST",
-        body: { outcome },
+        body: {
+          outcome,
+          ...(receivedAmount !== undefined
+            ? { received_amount: receivedAmount }
+            : {}),
+        },
       });
       setMessage(
         outcome === "received"

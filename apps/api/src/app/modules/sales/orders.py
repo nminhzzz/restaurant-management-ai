@@ -97,6 +97,21 @@ async def next_display_code(session: AsyncSession, bd: date) -> str:
     return f"ORD-{bd.strftime('%d%m%y')}-{number:03d}"
 
 
+async def _lock_order(session: AsyncSession, order_id: int) -> Order:
+    """Serialise edits/cancellations with the payment path, which locks the same row."""
+    order = (
+        await session.execute(
+            select(Order)
+            .where(Order.id == order_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+    ).scalar_one_or_none()
+    if order is None:
+        raise NotFoundError("Order không tồn tại.")
+    return order
+
+
 async def write_kitchen_ticket(
     session: AsyncSession, order: Order, lines: list[OrderLine]
 ) -> KitchenTicket:
@@ -481,6 +496,7 @@ async def add_lines(
                     actor_id=actor_id,
                     hold_id=line.get("hold_id"),
                     request_line_id=line.get("request_line_id") or line.get("MaYeuCauDong"),
+                    confirm_expired=confirm_expired,
                 )
             )
     return created
@@ -506,9 +522,7 @@ async def add_line(
         ).scalar_one_or_none()
         if existing is not None:
             return existing
-    order = await session.get(Order, order_id)
-    if order is None:
-        raise NotFoundError("Order không tồn tại.")
+    order = await _lock_order(session, order_id)
     ensure_order_is_open(order)
     if quantity < 1:
         raise BusinessRuleError("Số lượng món phải lớn hơn 0.")
@@ -593,9 +607,7 @@ async def update_line(
     *,
     actor_id: int | None = None,
 ) -> OrderLine:
-    order = await session.get(Order, order_id)
-    if order is None:
-        raise NotFoundError("Order không tồn tại.")
+    order = await _lock_order(session, order_id)
     ensure_order_is_open(order)
     line = await session.get(OrderLine, line_id)
     if line is None or line.order_id != order_id:
@@ -617,6 +629,7 @@ async def update_line(
     elif delta < 0:
         await _return_line_stock(session, line, Decimal(-delta), actor_id=actor_id)
         line.quantity = quantity
+    line.total = Decimal(str(line.unit_price)) * int(line.quantity)
     await session.flush()
     return line
 
@@ -640,9 +653,7 @@ async def cancel_line(
         raise NotFoundError("Dòng món không tồn tại.")
     if line.status != LINE_WAITING:
         raise BusinessRuleError("Chỉ hủy món ở trạng thái Chờ.")
-    order = await session.get(Order, line.order_id)
-    if order is None:
-        raise NotFoundError("Order không tồn tại.")
+    order = await _lock_order(session, line.order_id)
     ensure_order_is_open(order)
     if not reason or not reason.strip():
         raise BusinessRuleError("Cần lý do hủy.")
@@ -678,9 +689,7 @@ async def cancel_line(
 async def move_table(
     session: AsyncSession, order_id: int, to_table_id: int, *, actor_id: int | None = None
 ) -> Order:
-    order = await session.get(Order, order_id)
-    if order is None:
-        raise NotFoundError("Order không tồn tại.")
+    order = await _lock_order(session, order_id)
     ensure_order_is_open(order)
     table_ids = sorted({tid for tid in (order.table_id, to_table_id) if tid is not None})
     locked = (
@@ -736,9 +745,7 @@ async def cancel_order(
     from app.modules.sales.payments import QR_PENDING, PaymentTransaction, expire_stale_qr
 
     await expire_stale_qr(session)
-    order = await session.get(Order, order_id)
-    if order is None:
-        raise NotFoundError("Order không tồn tại.")
+    order = await _lock_order(session, order_id)
     if order.status == "Chờ đối soát":
         raise BusinessRuleError("Order đang chờ đối soát QR, không thể hủy.")
     ensure_order_is_open(order)

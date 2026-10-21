@@ -70,7 +70,10 @@ async def authenticate(session: AsyncSession, username: str, password: str) -> U
 
 
 async def issue_token(user: User) -> dict:
-    token = create_access_token(str(user.id), {"role": user.role_id, "username": user.username})
+    token = create_access_token(
+        str(user.id),
+        {"role": user.role_id, "username": user.username, "ver": user.token_version},
+    )
     return {
         "access_token": token,
         "token_type": "bearer",
@@ -131,6 +134,9 @@ async def _set_user_status(
         raise NotFoundError("Kh\u00f4ng t\u00ecm th\u1ea5y t\u00e0i kho\u1ea3n.")
     before = {"TrangThai": user.status}
     user.status = status
+    if status != UserStatus.HOAT_DONG:
+        # Locking revokes tokens issued while the account was still active.
+        user.token_version = int(user.token_version or 0) + 1
     await session.flush()
     session.add(
         SystemAuditLog(
@@ -204,6 +210,9 @@ async def update_user(
                 raise BusinessRuleError(
                     "Ph\u1ea3i c\u00f2n \u00edt nh\u1ea5t m\u1ed9t qu\u1ea3n l\u00fd ho\u1ea1t \u0111\u1ed9ng."
                 )
+        if user.role_id != role_value:
+            # A role change invalidates the old token's embedded role.
+            user.token_version = int(user.token_version or 0) + 1
         user.role_id = role_value
     await session.flush()
     session.add(
@@ -227,6 +236,8 @@ async def reset_password(
     if user is None:
         raise NotFoundError("Kh\u00f4ng t\u00ecm th\u1ea5y t\u00e0i kho\u1ea3n.")
     user.password_hash = hash_password(new_password)
+    # Every JWT issued before this moment stops working.
+    user.token_version = int(user.token_version or 0) + 1
     await session.flush()
     session.add(
         SystemAuditLog(
@@ -248,6 +259,8 @@ async def change_own_password(
     if not verify_password(old_password, user.password_hash):
         raise BusinessRuleError("M\u1eadt kh\u1ea9u hi\u1ec7n t\u1ea1i kh\u00f4ng \u0111\u00fang.")
     user.password_hash = hash_password(new_password)
+    # Every JWT issued before this moment stops working.
+    user.token_version = int(user.token_version or 0) + 1
     await session.flush()
     # Self-service not audited per spec
 

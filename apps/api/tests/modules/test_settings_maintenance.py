@@ -174,3 +174,37 @@ async def test_changing_the_business_day_start_is_refused_with_a_reason(session)
 
     assert response.status_code == 422
     assert "06:00" in response.json()["error"]["message"]
+
+
+@pytest.mark.asyncio
+async def test_resetting_a_password_revokes_tokens_issued_before(session, monkeypatch):
+    """P2: a leaked token must die when the password changes, not 8 hours later."""
+    from app.core.config import get_settings
+
+    manager, cashier = await _staff(session)
+    await session.commit()
+    async with _client(session) as client:
+        login = await client.post(
+            "/api/v1/settings/auth/login",
+            json={"username": "thungan01", "password": "pass123"},
+        )
+    assert login.status_code == 200, login.text
+    old_token = login.json()["access_token"]
+
+    monkeypatch.setenv("AUTH_REVALIDATE_TOKENS", "true")
+    get_settings.cache_clear()
+    async with _client(session) as client:
+        reset = await client.post(
+            f"/api/v1/settings/users/{cashier.id}/reset-password",
+            json={"new_password": "new-pass-123"},
+            headers=_bearer(manager),
+        )
+        assert reset.status_code == 204, reset.text
+        me_old = await client.get(
+            "/api/v1/settings/auth/me",
+            headers={"Authorization": f"Bearer {old_token}"},
+        )
+    app.dependency_overrides.clear()
+    get_settings.cache_clear()
+
+    assert me_old.status_code == 401

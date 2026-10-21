@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  act,
+  waitFor,
+} from "@testing-library/react";
 
 vi.mock("@/lib/api-client", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api-client")>();
@@ -442,12 +448,21 @@ describe("PaymentPanel cash and SePay", () => {
       }
       return Promise.resolve({});
     });
+    vi.spyOn(window, "prompt").mockReturnValue("50000");
     render(<PaymentPanel orderId={1} />);
 
     fireEvent.click(
       await screen.findByRole("button", { name: "Xác nhận đã nhận tiền" }),
     );
 
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/sales/payments/1/resolve",
+        expect.objectContaining({
+          body: { outcome: "received", received_amount: 50000 },
+        }),
+      ),
+    );
     expect(await screen.findByText("Hóa đơn 9")).toBeInTheDocument();
     expect(
       screen.queryByText("Chờ xác minh thanh toán"),

@@ -116,6 +116,34 @@ async def available_quantity(
     )
 
 
+async def _release_holds_for_lot(
+    session: AsyncSession, lot_id: int, *, actor_id: int | None = None
+) -> None:
+    """FR-INV-06: a write-off that touches a held lot releases those holds."""
+    from app.modules.sales.models import Reservation, ReservationDetail
+
+    held = (
+        (
+            await session.execute(
+                select(Reservation)
+                .join(ReservationDetail, ReservationDetail.reservation_id == Reservation.id)
+                .where(
+                    ReservationDetail.lot_id == lot_id,
+                    Reservation.status == "Đang giữ",
+                    Reservation.expires_at > business_date.now().replace(tzinfo=None),
+                )
+                .with_for_update()
+            )
+        )
+        .scalars()
+        .all()
+    )
+    for reservation in held:
+        reservation.status = "Đã giải phóng"
+    if held:
+        await session.flush()
+
+
 async def ensure_no_open_stocktake(session: AsyncSession) -> None:
     """NFR-20: a counting session freezes stock-changing transactions."""
     from app.modules.inventory.models import Stocktake
@@ -192,9 +220,12 @@ async def apply_stock_movement(
             session, [lot.id for lot in lots], business_date.now().replace(tzinfo=None)
         )
     )
+    manual_issue = change.kind in ("Xuất thủ công", StockMovementType.XUAT_THU_CONG)
     total_avail = sum(
         (
-            max(
+            Decimal(str(lot_item.quantity_remaining))
+            if manual_issue
+            else max(
                 Decimal(0),
                 Decimal(str(lot_item.quantity_remaining)) - held.get(lot_item.id, Decimal(0)),
             )
@@ -213,8 +244,16 @@ async def apply_stock_movement(
             Decimal(0),
             Decimal(str(lot.quantity_remaining)) - held.get(lot.id, Decimal(0)),
         )
+        if manual_issue and avail < remaining and held.get(lot.id, Decimal(0)) > 0:
+            # The write-off needs stock that a selection is holding: release those
+            # holds in the same transaction, then draw the physical quantity.
+            await _release_holds_for_lot(session, lot.id, actor_id=actor_id)
+            held[lot.id] = Decimal(0)
+            avail = max(Decimal(0), Decimal(str(lot.quantity_remaining)))
         take = min(avail, remaining)
-        lot.quantity_remaining = avail - take
+        # Only the drawn quantity leaves the lot; held quantities stay physically
+        # present until the hold is consumed or released (FR-INV-11).
+        lot.quantity_remaining = Decimal(str(lot.quantity_remaining)) - take
         # keep status as is (simplified)
         m = StockMovement(
             ingredient_id=change.ingredient_id,
@@ -250,6 +289,8 @@ async def apply_stock_movement(
 async def reverse_movement(
     session: AsyncSession, movement: StockMovement, *, actor_id: int | None = None
 ) -> StockMovement:
+    # Returning stock during a counting session would invalidate the counted totals.
+    await ensure_no_open_stocktake(session)
     # return qty to original lot, ignore expiry
     if movement.lot_id is not None:
         lot = await session.get(IngredientLot, movement.lot_id)

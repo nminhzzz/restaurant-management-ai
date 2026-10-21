@@ -693,8 +693,13 @@ async def resolve_payment(
     user: Principal = Depends(require_roles(Role.MANAGER)),
 ):
     outcome = payload.get("outcome") or payload.get("ketQua") or ""
+    raw_amount = payload.get("received_amount") or payload.get("SoTienNhan")
     payment = await payments.resolve_reconciliation(
-        session, int(payment_id), str(outcome), actor_id=user.user_id
+        session,
+        int(payment_id),
+        str(outcome),
+        actor_id=user.user_id,
+        received_amount=Decimal(str(raw_amount)) if raw_amount is not None else None,
     )
     await session.commit()
     return {"MaGiaoDich": payment.id, "TrangThai": payment.status}

@@ -258,7 +258,7 @@ async def test_manager_can_confirm_a_verifying_payment(
 
     resolved = await api_client.post(
         f"/api/v1/sales/payments/{payment_id}/resolve",
-        json={"outcome": "received"},
+        json={"outcome": "received", "received_amount": 50000},
         headers=_auth(manager_token),
     )
 

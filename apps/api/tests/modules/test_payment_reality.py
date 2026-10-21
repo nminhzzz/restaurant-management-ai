@@ -88,7 +88,7 @@ async def test_refund_requires_a_bank_reference_and_is_stored(session):
             "outcome": "refunded",
             "note": "Hoàn một phần vì lệch phí",
             "refund_ref": "REF-2026-0001",
-            "refund_amount": "20000",
+            "refund_amount": "50000",
         },
         headers=headers,
     )
@@ -97,12 +97,12 @@ async def test_refund_requires_a_bank_reference_and_is_stored(session):
     await session.refresh(exception)
     assert exception.status == "Đã hoàn tiền"
     assert exception.refund_ref == "REF-2026-0001"
-    assert Decimal(str(exception.refund_amount)) == Decimal("20000")
+    assert Decimal(str(exception.refund_amount)) == Decimal("50000")
 
     listing = await client.get("/api/v1/sales/payment-exceptions?status=", headers=headers)
     row = listing.json()["items"][0]
     assert row["MaThamChieuHoan"] == "REF-2026-0001"
-    assert float(row["SoTienHoan"]) == 20000.0
+    assert float(row["SoTienHoan"]) == 50000.0
 
 
 @pytest.mark.anyio
@@ -250,7 +250,10 @@ async def test_sync_settles_a_transfer_when_no_webhook_arrives(
     started = await client.post(f"/api/v1/sales/orders/{order_id}/pay/qr", headers=headers)
     payment_id = started.json()["MaGiaoDich"]
 
-    async def fake_listing(**_kwargs):
+    seen_cursors: list[str | None] = []
+
+    async def fake_listing(**kwargs):
+        seen_cursors.append(kwargs.get("since_id"))
         return [
             {
                 "id": "9100",
@@ -277,8 +280,10 @@ async def test_sync_settles_a_transfer_when_no_webhook_arrives(
         )
     ).scalar_one() == 1
 
-    # The same transfer in the next listing must not settle twice.
+    # The same transfer in the next listing must not settle twice, and the cursor
+    # must be sent so a long outage cannot slide past transfers.
     assert await payments.sync_recent_transfers(factory=session_factory) == 0
+    assert seen_cursors == [None, "9100"]
     assert (
         await session.execute(
             text("SELECT COUNT(*) FROM HOA_DON WHERE MaOrder = :id"), {"id": order_id}
@@ -408,3 +413,131 @@ async def test_a_provisional_bill_creates_no_invoice(session):
             text("SELECT COUNT(*) FROM HOA_DON WHERE MaOrder = :id"), {"id": order_id}
         )
     ).scalar_one() == 0
+
+
+@pytest.mark.anyio
+async def test_reconciliation_refuses_money_that_was_not_received(session, monkeypatch):
+    """P1: 'received' must prove the full amount, not just trust the manager."""
+    monkeypatch.setenv("PAYMENT_GATEWAY", "sepay")
+    monkeypatch.setenv("SEPAY_BANK_ACCOUNT", "0123499999")
+    monkeypatch.setenv("SEPAY_BANK_CODE", "MBBank")
+    monkeypatch.setenv("SEPAY_WEBHOOK_API_KEY", "hook-key")
+    monkeypatch.setenv("SEPAY_API_TOKEN", "api-token")
+    get_settings.cache_clear()
+
+    dish, table = await _setup(session)
+    client = await _make_client(session)
+    headers, _ = await _headers(session, role="MANAGER")
+    order_id = await _submit(session, client, headers, dish, table)
+    started = await client.post(f"/api/v1/sales/orders/{order_id}/pay/qr", headers=headers)
+    payment_id = started.json()["MaGiaoDich"]
+    await payments.handle_sepay_transfer(
+        session,
+        {
+            "id": "9400",
+            "transferType": "in",
+            "transferAmount": 49000,
+            "code": f"TT{payment_id}",
+            "content": f"TT{payment_id}",
+        },
+    )
+
+    with pytest.raises(BusinessRuleError):
+        await payments.resolve_reconciliation(
+            session, payment_id, "received", actor_id=1, received_amount=50000
+        )
+
+    with pytest.raises(BusinessRuleError):
+        await payments.resolve_reconciliation(
+            session, payment_id, "received", actor_id=1, received_amount=49000
+        )
+
+    get_settings.cache_clear()
+
+
+@pytest.mark.anyio
+async def test_a_paid_transaction_cannot_have_its_bank_reference_rewritten(session):
+    """P1: the bank reference is the idempotency key of the transfer."""
+    dish, table = await _setup(session)
+    client = await _make_client(session)
+    headers, _ = await _headers(session)
+    order_id = await _submit(session, client, headers, dish, table)
+    paid = await client.post(f"/api/v1/sales/orders/{order_id}/pay/cash", headers=headers)
+    assert paid.status_code == 200
+    payment = (
+        await session.execute(
+            select(PaymentTransaction).where(PaymentTransaction.order_id == order_id)
+        )
+    ).scalar_one()
+
+    with pytest.raises(BusinessRuleError):
+        await payments.record_bank_reference(session, payment.id, "FT-FAKE")
+
+
+@pytest.mark.anyio
+async def test_quantity_edit_updates_the_line_total_and_the_ai_view(session, seed_views):
+    """P2: reports/AI read ThanhTienMon, so it must follow a quantity change."""
+    dish, table = await _setup(session)
+    client = await _make_client(session)
+    headers, _ = await _headers(session)
+    order_id = await _submit(session, client, headers, dish, table)
+    detail = (await client.get(f"/api/v1/sales/orders/{order_id}", headers=headers)).json()
+    line_id = detail["lines"][0]["MaChiTietOrder"]
+
+    edited = await client.patch(
+        f"/api/v1/sales/orders/{order_id}/lines/{line_id}",
+        json={"quantity": 3},
+        headers=headers,
+    )
+    assert edited.status_code == 200, edited.text
+
+    stored = (
+        await session.execute(
+            text(
+                "SELECT ThanhTienMon FROM vw_ai_thungan "
+                "WHERE LoaiBanGhi = 'DONG_MON' AND MaOrder = :id"
+            ),
+            {"id": order_id},
+        )
+    ).scalar_one()
+    assert float(stored) == 150000
+
+
+@pytest.mark.anyio
+async def test_a_partial_refund_keeps_the_exception_open_for_the_rest(session):
+    """P2: refunding 1.000 of 100.000 must not close the whole exception."""
+    await _setup(session)
+    exception = PaymentException(
+        bank_ref="sepay:9500",
+        amount=Decimal("100000"),
+        status="Chờ xử lý",
+        business_date=business_date.business_date_of(business_date.now()),
+    )
+    session.add(exception)
+    await session.flush()
+
+    await payments.resolve_exception(
+        session,
+        exception.id,
+        outcome="refunded",
+        actor_id=1,
+        note="Hoàn đợt 1",
+        refund_ref="REF-1",
+        refund_amount=Decimal("1000"),
+    )
+    await session.refresh(exception)
+    assert exception.status == "Chờ xử lý"
+    assert Decimal(str(exception.refund_amount)) == Decimal("1000")
+
+    await payments.resolve_exception(
+        session,
+        exception.id,
+        outcome="refunded",
+        actor_id=1,
+        note="Hoàn phần còn lại",
+        refund_ref="REF-2",
+        refund_amount=Decimal("99000"),
+    )
+    await session.refresh(exception)
+    assert exception.status == "Đã hoàn tiền"
+    assert Decimal(str(exception.refund_amount)) == Decimal("100000")

@@ -36,6 +36,8 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(
         "NgayTao", DateTime, server_default=func.now(), nullable=False
     )
+    # Incremented on password reset/change or a role change so old JWTs stop working.
+    token_version: Mapped[int] = mapped_column("PhienBanToken", Integer, nullable=False, default=0)
 
     __table_args__ = (Index("ix_NGUOI_DUNG_MaVaiTro", "MaVaiTro"),)
 
@@ -58,6 +60,8 @@ class SystemConfig(Base):
     expiry_warning_days: Mapped[int] = mapped_column(
         "SoNgayCanhBaoHetHan", Integer, nullable=False, default=3
     )
+    # Last SePay listing id already synchronised (P2: catch up after downtime).
+    sepay_cursor: Mapped[str | None] = mapped_column("MocDongBoSepay", String(50), nullable=True)
     hold_minutes: Mapped[int] = mapped_column(
         "ThoiGianGiuChoPhut", Integer, nullable=False, default=5
     )

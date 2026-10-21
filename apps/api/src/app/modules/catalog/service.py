@@ -293,8 +293,8 @@ async def schedule_price_change(
     current_bd = _bd.business_date_of(_bd.now())
     if bd <= current_bd:
         raise BusinessRuleError("BusinessDate áp dụng phải là ngày trong tương lai.")
-    # only one pending: delete existing Nháp
-    for row in (
+    # only one pending: delete existing Nháp, but keep what it contained for audit
+    superseded = (
         (
             await session.execute(
                 select(DishPriceVersion).where(
@@ -305,7 +305,16 @@ async def schedule_price_change(
         )
         .scalars()
         .all()
-    ):
+    )
+    replaced = [
+        {
+            "MaPhienBanGia": row.id,
+            "Gia": float(row.price),
+            "NgayHieuLuc": row.business_date.isoformat() if row.business_date else None,
+        }
+        for row in superseded
+    ]
+    for row in superseded:
         await session.delete(row)
     await session.flush()
     v = DishPriceVersion(
@@ -324,6 +333,7 @@ async def schedule_price_change(
             action="SCHEDULE_PRICE_CHANGE",
             target_entity="LICH_SU_GIA_MON",
             target_id=str(v.id),
+            before={"LichBiGhiDe": replaced},
             after={"Gia": float(price), "NgayHieuLuc": bd.isoformat()},
         )
     )
@@ -427,8 +437,8 @@ async def schedule_recipe_change(
         ing = await session.get(_Ing, ing_id)
         if ing is None or ing.is_deleted:
             raise BusinessRuleError(f"Nguyên liệu {ing_id} không tồn tại.")
-    # only one pending
-    for row in (
+    # only one pending: replace it, but record what was overwritten
+    superseded_recipes = (
         (
             await session.execute(
                 select(Recipe).where(
@@ -438,11 +448,23 @@ async def schedule_recipe_change(
         )
         .scalars()
         .all()
-    ):
-        # delete items
-        for ri in (
+    )
+    replaced_recipes = []
+    for row in superseded_recipes:
+        existing_items = (
             (await session.execute(select(_RI).where(_RI.recipe_id == row.id))).scalars().all()
-        ):
+        )
+        replaced_recipes.append(
+            {
+                "MaCongThuc": row.id,
+                "NgayHieuLuc": row.business_date.isoformat() if row.business_date else None,
+                "NguyenLieu": [
+                    {"MaNguyenLieu": ri.ingredient_id, "SoLuong": float(ri.quantity)}
+                    for ri in existing_items
+                ],
+            }
+        )
+        for ri in existing_items:
             await session.delete(ri)
         await session.delete(row)
     await session.flush()
@@ -470,6 +492,7 @@ async def schedule_recipe_change(
             action="SCHEDULE_RECIPE_CHANGE",
             target_entity="CONG_THUC",
             target_id=str(r.id),
+            before={"LichBiGhiDe": replaced_recipes},
             after={
                 "NguyenLieu": [
                     {"MaNguyenLieu": ing_id, "SoLuong": float(qty)} for ing_id, qty in items

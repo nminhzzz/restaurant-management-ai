@@ -200,3 +200,27 @@ def test_a_reasoning_effort_is_sent_when_configured() -> None:
 def test_no_reasoning_effort_is_sent_by_default() -> None:
     """OpenAI-style models reject unknown parameters, so the field stays opt-in."""
     assert "reasoning_effort" not in _capture_body({})
+
+
+def test_a_commercial_outage_falls_back_to_the_self_hosted_provider() -> None:
+    """Report §1.4.2: DeepSeek failing must hand over to Ollama, not only a peer model."""
+    calls: list[str] = []
+
+    class FakeOllama:
+        def complete(self, prompt: str) -> str:
+            calls.append(prompt)
+            return "SELECT 2"
+
+    def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(503, json={"error": "down"})
+
+    client = CommercialClient(
+        api_key="k",
+        model="deepseek-flash",
+        base_url="https://api.deepseek.com",
+        transport=httpx.MockTransport(handler),
+        fallback_client=FakeOllama(),
+    )
+
+    assert client.complete("hỏi") == "SELECT 2"
+    assert calls == ["hỏi"]

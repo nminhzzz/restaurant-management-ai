@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     jwt_secret: str = "dev-only-secret-replace-me-0123456789"
     jwt_algorithm: str = "HS256"
     access_token_ttl_minutes: int = 480
+    # Re-read status/role/token version on every request so a lock, role change or
+    # password reset takes effect immediately (tests disable this for speed).
+    auth_revalidate_tokens: bool = True
 
     # AI Assistant (NFR-02 response budget, NFR-16 cost control).
     # DeepSeek's OpenAI-compatible API is the default commercial provider.
@@ -45,6 +48,8 @@ class Settings(BaseSettings):
     # (master-roadmap Q5); empty means the harness falls back to a suffixed name.
     ai_config_c_model: str = ""
     ai_ollama_base_url: str = "http://localhost:11434"
+    # Commercial outage → self-hosted Ollama (report §1.4.2). Set false in CI.
+    ai_ollama_fallback: bool = True
     ai_max_rows: int = 500
     ai_response_budget_seconds: float = 8.0
     ai_daily_question_quota: int = 50

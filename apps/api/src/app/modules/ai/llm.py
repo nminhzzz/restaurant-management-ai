@@ -64,6 +64,7 @@ class CommercialClient:
         fallback_model: str = "",
         reasoning_effort: str = "",
         transport: httpx.BaseTransport | None = None,
+        fallback_client: "LlmClient | None" = None,
     ) -> None:
         self._api_key = api_key
         self.model = model
@@ -71,6 +72,7 @@ class CommercialClient:
         self._fallback_model = fallback_model
         self._reasoning_effort = reasoning_effort
         self._transport = transport
+        self._fallback_client = fallback_client
 
     def _post(self, model: str, prompt: str) -> str:
         body: dict[str, object] = {
@@ -93,6 +95,19 @@ class CommercialClient:
         return _strip_code_fence(str(message.get("content") or ""))
 
     def complete(self, prompt: str) -> str:
+        try:
+            return self._complete_commercial(prompt)
+        except httpx.HTTPError as primary_error:
+            if self._fallback_client is None or not _is_retryable(primary_error):
+                raise
+            logger.warning("ai.llm.provider_fallback reason=%s", primary_error)
+            try:
+                return self._fallback_client.complete(prompt)
+            except Exception:
+                logger.exception("ai.llm.fallback_provider_failed")
+                raise primary_error from None
+
+    def _complete_commercial(self, prompt: str) -> str:
         try:
             result = self._post(self.model, prompt)
         except httpx.HTTPError as exc:
@@ -163,6 +178,16 @@ def _build_client() -> LlmClient:
         base_url=settings.llm_base_url or default_base_url,
         fallback_model=settings.llm_fallback_model or settings.ai_config_c_model,
         reasoning_effort=settings.llm_reasoning_effort if provider == "deepseek" else "",
+        # Report §1.4.2: a commercial outage falls back to the self-hosted model,
+        # not merely to another hosted model name.
+        fallback_client=(
+            OllamaClient(
+                model=settings.llm_fallback_model or settings.llm_model,
+                base_url=settings.ai_ollama_base_url,
+            )
+            if settings.ai_ollama_fallback
+            else None
+        ),
     )
 
 

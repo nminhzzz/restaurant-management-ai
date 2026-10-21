@@ -343,3 +343,36 @@ async def test_an_expired_hold_is_rechecked_and_needs_explicit_confirmation(sess
     )
     assert accepted.status_code == 201, accepted.text
     assert accepted.json()["lines"][0]["SoLuong"] == 2
+
+
+@pytest.mark.anyio
+async def test_bulk_add_honours_the_expired_hold_confirmation(session):
+    """P2: the bulk path must pass XacNhanHetHan down to the per-line handler."""
+    from datetime import timedelta
+
+    from app.modules.sales.models import Reservation
+
+    dish, _, table = await _setup(session, stock=10)
+    client = await _make_client(session)
+    headers, _ = await _headers(session)
+    created = await client.post(
+        "/api/v1/sales/orders",
+        json={"MaBan": table.id, "lines": [{"MaMon": dish.id, "SoLuong": 1}]},
+        headers=headers,
+    )
+    order_id = created.json()["MaOrder"]
+    hold = await _hold(client, headers, dish, table, quantity=1, order_id=order_id)
+    reservation = await session.get(Reservation, hold.json()["MaGiuCho"])
+    reservation.expires_at = business_date.now() - timedelta(minutes=1)
+    await session.commit()
+
+    added = await client.post(
+        f"/api/v1/sales/orders/{order_id}/lines/bulk",
+        json={
+            "XacNhanHetHan": True,
+            "lines": [{"dish_id": dish.id, "quantity": 1, "hold_id": hold.json()["MaGiuCho"]}],
+        },
+        headers=headers,
+    )
+
+    assert added.status_code == 201, added.text

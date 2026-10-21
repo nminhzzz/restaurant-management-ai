@@ -325,6 +325,43 @@ async def test_edit_receipt_line_before_consumption_adjusts_stock(session):
     await session.refresh(ing)
     assert float(ing.stock_qty) == 9
     assert await lot_total(session, ing.id) == 9
+    from sqlalchemy import select
+
+    from app.modules.inventory.models import IngredientLot
+
+    lot = (
+        (await session.execute(select(IngredientLot).where(IngredientLot.ingredient_id == ing.id)))
+        .scalars()
+        .first()
+    )
+    assert float(lot.received_quantity) == 9
+    assert float(lot.unit_price) == 1200
+
+
+@pytest.mark.anyio
+async def test_edit_receipt_is_blocked_while_a_stocktake_is_open(session):
+    """R4: the counting session must freeze receipt edits too."""
+    ing = await _ingredient(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    created = await client.post(
+        "/api/v1/inventory/receipts",
+        json={"lines": [{"ingredient_id": ing.id, "quantity": 5, "unit_price": 1000}]},
+        headers=h,
+    )
+    rid = created.json()["MaPhieuNhap"]
+    line_id = await _first_line_id(session, rid)
+    opened = await client.post("/api/v1/inventory/stocktakes", headers=h)
+    assert opened.status_code == 201, opened.text
+
+    blocked = await client.patch(
+        f"/api/v1/inventory/receipts/{rid}",
+        json={"lines": [{"line_id": line_id, "quantity": 9, "unit_price": 1200}]},
+        headers=h,
+    )
+
+    assert blocked.status_code == 422
+    assert "kiểm kê" in blocked.json()["error"]["message"]
 
 
 @pytest.mark.anyio

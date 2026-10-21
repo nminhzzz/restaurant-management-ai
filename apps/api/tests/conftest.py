@@ -94,6 +94,8 @@ def _clear_settings_cache(
         monkeypatch.setitem(Settings.model_config, "env_file", None)
         for field in Settings.model_fields:
             monkeypatch.delenv(field.upper(), raising=False)
+        # Unit tests reuse hand-made tokens for users that may not exist in the DB.
+        monkeypatch.setenv("AUTH_REVALIDATE_TOKENS", "false")
     try:
         from app.core.config import get_settings as _gs
 

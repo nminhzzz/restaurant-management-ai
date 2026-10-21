@@ -85,11 +85,17 @@ def transfer_from_listing(item: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-async def recent_transfers(*, api_url: str, token: str, account: str) -> list[dict[str, Any]]:
+async def recent_transfers(
+    *, api_url: str, token: str, account: str, since_id: str | None = None
+) -> list[dict[str, Any]]:
+    params: dict[str, Any] = {"account_number": account, "limit": 100}
+    if since_id:
+        # v1 returns everything after this id, so a long outage can still catch up.
+        params["since_id"] = since_id
     async with httpx.AsyncClient(transport=_transport, timeout=5.0) as client:
         response = await client.get(
             f"{api_url}/transactions/list",
-            params={"account_number": account, "limit": 20},
+            params=params,
             headers={"Authorization": f"Bearer {token}"},
         )
         response.raise_for_status()

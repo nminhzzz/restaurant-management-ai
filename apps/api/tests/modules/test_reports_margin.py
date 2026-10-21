@@ -254,3 +254,60 @@ async def test_a_negative_stocktake_adjustment_is_part_of_waste(session):
 
     assert waste == Decimal("30000")
     assert uncosted == 0
+
+
+@pytest.mark.anyio
+async def test_prepared_dish_write_off_is_not_double_counted_in_05b(session):
+    """P1: 05c already carries the consumption; the classification doc adds no cost."""
+    from app.modules.catalog.models import Dish, DishGroup, Ingredient
+    from app.modules.inventory.models import StockIssue, StockIssueLine
+    from app.modules.reports import queries
+    from app.modules.sales.models import Order, OrderLine
+    from app.shared import business_date
+
+    moment = business_date.now()
+    ingredient = Ingredient(name="NL", unit="kg", min_stock=0, stock_qty=0, is_deleted=False)
+    group = DishGroup(name="Nhóm", display_order=1, is_deleted=False)
+    session.add_all([ingredient, group])
+    await session.flush()
+    dish = Dish(name="Món", group_id=group.id, is_deleted=False)
+    session.add(dish)
+    await session.flush()
+    order = Order(business_date=business_date.business_date_of(moment), order_type="Mang về")
+    session.add(order)
+    await session.flush()
+    line = OrderLine(
+        order_id=order.id, dish_id=dish.id, quantity=2, unit_price=50000, status="Đã phục vụ"
+    )
+    session.add(line)
+    await session.flush()
+
+    normal = StockIssue(created_at=moment, issue_date=moment)
+    prepared = StockIssue(created_at=moment, issue_date=moment)
+    session.add_all([normal, prepared])
+    await session.flush()
+    session.add_all(
+        [
+            StockIssueLine(
+                issue_id=normal.id,
+                ingredient_id=ingredient.id,
+                quantity=1,
+                estimated_cost=Decimal("1000"),
+            ),
+            StockIssueLine(
+                issue_id=prepared.id,
+                ingredient_id=ingredient.id,
+                quantity=1,
+                estimated_cost=Decimal("2000"),
+                order_line_id=line.id,
+                servings=1,
+            ),
+        ]
+    )
+    await session.commit()
+
+    month = moment.year * 100 + moment.month
+    waste, uncosted = await queries.waste_cost(session, month)
+
+    assert waste == Decimal("1000")
+    assert uncosted == 0

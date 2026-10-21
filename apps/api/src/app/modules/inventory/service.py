@@ -16,7 +16,11 @@ from app.modules.inventory.models import (
     Stocktake,
     StocktakeLine,
 )
-from app.modules.inventory.stock import StockChange, apply_stock_movement
+from app.modules.inventory.stock import (
+    StockChange,
+    apply_stock_movement,
+    ensure_no_open_stocktake,
+)
 from app.shared import business_date
 from app.shared.audit import SystemAuditLog
 from app.shared.enums import StocktakeStatus
@@ -174,6 +178,7 @@ async def _ensure_receipt_untouched(session: AsyncSession, receipt_id: int) -> N
 async def cancel_receipt(session: AsyncSession, actor_id: int, receipt_id: int) -> None:
     from app.shared.enums import StockMovementType
 
+    await ensure_no_open_stocktake(session)
     receipt = await session.get(GoodsReceipt, receipt_id)
     if receipt is None:
         raise NotFoundError("Không tìm thấy phiếu nhập.")
@@ -255,6 +260,7 @@ async def update_receipt(
     unit/conversion column to CHI_TIET_PHIEU_NHAP, so the edited quantity is the
     already-converted standard-unit quantity stored on the line.
     """
+    await ensure_no_open_stocktake(session)
     receipt = await session.get(GoodsReceipt, receipt_id)
     if receipt is None:
         raise NotFoundError("Không tìm thấy phiếu nhập.")
@@ -288,7 +294,11 @@ async def update_receipt(
             raise BusinessRuleError("Tồn kho sau khi sửa không được âm.")
         gl.quantity = new_qty
         gl.unit_price = new_price
+        # Keep the lot's own costing data in step with the edited receipt line:
+        # opening-stock valuation falls back to these fields (FR-REP-05a).
         lot.quantity_remaining = new_qty
+        lot.received_quantity = new_qty
+        lot.unit_price = new_price
         if ing is not None:
             ing.stock_qty = ing.stock_qty + delta
         if delta != 0:

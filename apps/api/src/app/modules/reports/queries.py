@@ -283,15 +283,16 @@ def _weekday_iso(session: AsyncSession):
     return (func.cast(func.strftime("%w", Order.created_at), Integer) + 6) % 7 + 1
 
 
+PAID_ORDER_STATUS = "Đã thanh toán"
+
+
 def _sold_orders_window(period: BusinessPeriod):
+    """Only settled orders count as sold: open/verifying/closed-unpaid are not revenue."""
     return (
         Order.business_date >= period.start,
         Order.business_date <= period.end,
-        Order.status.notin_(CANCELLED_ORDER_STATUSES),
+        Order.status == PAID_ORDER_STATUS,
     )
-
-
-PAID_ORDER_STATUS = "Đã thanh toán"
 
 
 def _paid_orders_window(period: BusinessPeriod):
@@ -504,7 +505,13 @@ async def waste_cost(session: AsyncSession, month: int) -> tuple[Decimal, int]:
         session,
         select(func.coalesce(func.sum(StockIssueLine.estimated_cost), 0))
         .join(StockIssue, StockIssue.id == StockIssueLine.issue_id)
-        .where(*window, StockIssue.stocktake_id.is_(None)),
+        # A prepared-dish write-off classifies cost that 05c already carries from the
+        # original stock movement; counting it here as well would double the cost.
+        .where(
+            *window,
+            StockIssue.stocktake_id.is_(None),
+            StockIssueLine.order_line_id.is_(None),
+        ),
     )
     uncosted = await _scalar_count(
         session,
@@ -513,6 +520,7 @@ async def waste_cost(session: AsyncSession, month: int) -> tuple[Decimal, int]:
         .where(
             *window,
             StockIssue.stocktake_id.is_(None),
+            StockIssueLine.order_line_id.is_(None),
             StockIssueLine.estimated_cost == 0,
         ),
     )

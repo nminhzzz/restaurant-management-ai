@@ -343,3 +343,73 @@ async def test_stocktake_issue_requires_a_confirmed_session(session):
         headers=h,
     )
     assert r.status_code == 422
+
+
+@pytest.mark.anyio
+async def test_manual_issue_does_not_subtract_held_quantity_from_the_lot(session):
+    """R3: the lot loses only what was drawn; held quantity stays physical."""
+    from datetime import timedelta
+    from decimal import Decimal
+    from uuid import uuid4
+
+    from app.modules.catalog.models import Dish, DishGroup
+    from app.modules.inventory.models import IngredientLot, StockIssue, StockIssueLine
+    from app.modules.inventory.stock import StockChange, apply_stock_movement
+    from app.modules.sales.models import Reservation, ReservationDetail
+    from app.shared import business_date
+
+    ing = await _ingredient(session, stock_qty=10)
+    _, user = await _headers(session)
+    group = DishGroup(name="Nhóm", display_order=1, is_deleted=False)
+    session.add(group)
+    await session.flush()
+    dish = Dish(name="Món", group_id=group.id, is_deleted=False)
+    session.add(dish)
+    await session.flush()
+    lot = IngredientLot(
+        ingredient_id=ing.id,
+        quantity_remaining=10,
+        received_quantity=10,
+        unit_price=1000,
+        status="Còn hạn",
+        received_at=business_date.now(),
+    )
+    session.add(lot)
+    await session.flush()
+    hold = Reservation(
+        selection_code=uuid4().hex,
+        user_id=user.id,
+        dish_id=dish.id,
+        quantity=9,
+        expires_at=business_date.now() + timedelta(minutes=10),
+        status="Đang giữ",
+    )
+    session.add(hold)
+    await session.flush()
+    session.add(ReservationDetail(reservation_id=hold.id, lot_id=lot.id, quantity=9))
+    await session.commit()
+
+    issue = StockIssue(reason="Hao hụt", status="Nháp", created_at=business_date.now())
+    session.add(issue)
+    await session.flush()
+    issue_line = StockIssueLine(issue_id=issue.id, ingredient_id=ing.id, quantity=2)
+    session.add(issue_line)
+    await session.flush()
+    await apply_stock_movement(
+        session,
+        StockChange(
+            ingredient_id=ing.id,
+            delta=Decimal("-2"),
+            kind="Xuất thủ công",
+            source_issue_line_id=issue_line.id,
+        ),
+    )
+    await session.commit()
+    await session.refresh(lot)
+    await session.refresh(ing)
+    await session.refresh(hold)
+
+    assert float(lot.quantity_remaining) == 8
+    assert float(ing.stock_qty) == 8
+    # The hold had to be released because the write-off used its stock.
+    assert hold.status == "Đã giải phóng"
