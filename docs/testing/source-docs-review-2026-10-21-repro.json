@@ -1,0 +1,166 @@
+[
+  {
+    "case": "checkout_keeps_unsent_holds",
+    "observed": {
+      "order_status": "Đã thanh toán",
+      "unsent_hold_status": "Đang giữ"
+    }
+  },
+  {
+    "case": "pause_overwritten_by_stock_recompute",
+    "observed": {
+      "paused_before_recompute": true,
+      "paused_after_recompute": false
+    }
+  },
+  {
+    "case": "sell_expired_lot",
+    "observed": {
+      "expiry_date": "2026-09-23",
+      "stock_after_sale": "19.0000"
+    }
+  },
+  {
+    "case": "duplicate_send",
+    "observed": {
+      "first_order": 1,
+      "retry_order": 2,
+      "stock": "18.0000"
+    }
+  },
+  {
+    "case": "system_audit_output",
+    "exception": "ValidationError",
+    "message": "1 validation error for AuditEntryOut\nuser_id\n  Input should be a valid integer [type=int_type, input_value=None, input_type=NoneType]\n    For further information visit https://errors.pydantic.dev/2.13/v/int_type"
+  },
+  {
+    "case": "http_negative_quantity",
+    "observed": {
+      "http_status": 200,
+      "body": {
+        "MaChiTietOrder": 1,
+        "SoLuong": -3
+      }
+    }
+  },
+  {
+    "case": "qr_allows_line_mutation",
+    "observed": {
+      "order_status_after_qr": "Đang mở",
+      "qr_amount": "50000.0000",
+      "modified_total": "100000.0000"
+    }
+  },
+  {
+    "case": "qr_allows_cash",
+    "observed": {
+      "order_status": "Đã thanh toán",
+      "qr_status": "Chờ xác nhận"
+    }
+  },
+  {
+    "case": "partial_submit",
+    "observed": {
+      "accepted": 1,
+      "rejected": 1,
+      "stock": "19.0000"
+    }
+  },
+  {
+    "case": "cancel_one_of_three",
+    "exception": "MultipleResultsFound",
+    "message": "Multiple rows were found when one or none was required"
+  },
+  {
+    "case": "negative_quantity",
+    "observed": {
+      "quantity": -3,
+      "total": "-150000.0000",
+      "stock": "20.0000"
+    }
+  },
+  {
+    "case": "direct_submit_steals_hold",
+    "observed": {
+      "held": 18,
+      "remaining_stock": "15.0000"
+    }
+  },
+  {
+    "case": "stocktake_allows_held_submit",
+    "observed": {
+      "stocktake_status": "Nháp",
+      "stock_after_hold_submit": "18.0000"
+    }
+  },
+  {
+    "case": "held_old_price",
+    "observed": {
+      "charged": "50000.0000",
+      "current_price": "99000"
+    }
+  },
+  {
+    "case": "expired_hold_with_sufficient_stock",
+    "exception": "BusinessRuleError",
+    "message": "Không có món nào đủ tồn kho."
+  },
+  {
+    "case": "unpaid_counts_as_revenue",
+    "observed": {
+      "order_status": "Chờ xác minh thanh toán",
+      "revenue": "50000.0000"
+    }
+  },
+  {
+    "case": "cancelled_consumption_cost",
+    "observed": {
+      "consumed_stock": "1.0000",
+      "reported_cost": "0",
+      "table_status": "Trống"
+    }
+  },
+  {
+    "case": "average_cost_and_carry",
+    "observed": {
+      "sep_avg": "1000.0000",
+      "sep_expected_with_opening": "833.3333",
+      "oct_cost_rows": 0
+    }
+  },
+  {
+    "case": "release_keeps_holds",
+    "observed": {
+      "table_status": "Trống",
+      "hold_status": "Đang giữ"
+    }
+  },
+  {
+    "case": "invoice_reprint_changes_name",
+    "observed": {
+      "before_name": "Món A",
+      "reprint_name": "Renamed after payment"
+    }
+  },
+  {
+    "case": "payment_moves_business_date",
+    "observed": {
+      "order_business_date": "2026-09-24",
+      "invoice_business_date": "2026-09-25"
+    }
+  },
+  {
+    "case": "cancel_used_receipt",
+    "observed": {
+      "receipt_status": "Đã hủy",
+      "stock": "0.0000"
+    }
+  },
+  {
+    "case": "sell_deleted_dish",
+    "observed": {
+      "dish_deleted": true,
+      "accepted_lines": 1
+    }
+  }
+]
