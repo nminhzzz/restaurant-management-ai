@@ -35,3 +35,22 @@ tính giá vốn và an toàn phiên đăng nhập. Mỗi mục đều có test 
 - Các lỗi đua (#6) được sửa bằng khóa dòng; test hiện chạy SQLite nên không tái hiện được
   tranh chấp thật. Cần một lượt kiểm thử đồng thời trên MySQL trước khi vận hành thường xuyên.
 - Chưa chạy lại chuyển khoản thật, UAT/SUS sau đợt sửa này.
+
+## Kiểm chứng đồng thời trên MySQL (22/10/2026)
+
+`scripts/verify_mysql_concurrency.py` dựng một CSDL MySQL tạm, migrate, seed tối thiểu rồi chạy
+bốn kịch bản bằng hai kết nối song song, sau đó xoá CSDL:
+
+| Kịch bản | Kết quả |
+| --- | --- |
+| Hai thu ngân thu tiền mặt cùng order | 1 thành công, 1 bị từ chối, đúng 1 hóa đơn |
+| Sửa số lượng món đồng thời với thanh toán | Hóa đơn, dòng món và bản chụp đều 150.000đ |
+| Cùng một webhook SePay gửi hai lần | 1 hóa đơn, 0 ngoại lệ giả |
+| Hai phiếu xuất tranh cùng một lô (10, xuất 6) | 1 phiếu thành công; lô và sổ cùng còn 4 |
+
+Lần chạy đầu phát hiện thêm một lỗi thật: dưới REPEATABLE READ, sau khi chờ khóa order, câu
+`SELECT` thường vẫn đọc snapshot cũ nên hóa đơn ghi 50.000đ trong khi dòng món đã sửa thành
+150.000đ. Đã sửa bằng **locking read** (`FOR UPDATE`) khi tính tổng và chụp hóa đơn; lần chạy lại
+cả bốn kịch bản đều đạt.
+
+Chưa kiểm chứng: chuyển khoản thật sau đợt sửa, UAT/SUS, và tải đồng thời ở mức nhiều quầy.

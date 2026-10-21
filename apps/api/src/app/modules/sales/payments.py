@@ -61,9 +61,12 @@ async def order_total(session: AsyncSession, order: Order) -> Decimal:
     lines = (
         (
             await session.execute(
-                select(OrderLine).where(
-                    OrderLine.order_id == order.id, OrderLine.status != LINE_CANCELLED
-                )
+                select(OrderLine)
+                .where(OrderLine.order_id == order.id, OrderLine.status != LINE_CANCELLED)
+                # A plain SELECT after waiting on the order lock may still read the
+                # pre-lock snapshot under REPEATABLE READ; locking reads see the
+                # quantity the cashier just committed.
+                .with_for_update()
             )
         )
         .scalars()
@@ -148,9 +151,12 @@ async def _invoice_snapshot(
     lines = (
         (
             await session.execute(
-                select(OrderLine).where(
-                    OrderLine.order_id == order.id, OrderLine.status != LINE_CANCELLED
-                )
+                select(OrderLine)
+                .where(OrderLine.order_id == order.id, OrderLine.status != LINE_CANCELLED)
+                # A plain SELECT after waiting on the order lock may still read the
+                # pre-lock snapshot under REPEATABLE READ; locking reads see the
+                # quantity the cashier just committed.
+                .with_for_update()
             )
         )
         .scalars()
@@ -572,6 +578,12 @@ async def handle_sepay_transfer(session: AsyncSession, body: dict[str, Any]) -> 
             reason="Không xác định được giao dịch của nhà hàng",
         )
         return "unmatched"
+
+    # Two deliveries can pass the pre-lock SELECT together. After taking the row
+    # lock, the winner's write is visible; the loser must be a duplicate, not a
+    # "duplicate money" exception.
+    if bank_ref in (payment.bank_ref, payment.gateway_transaction_id):
+        return "duplicate"
 
     order = await session.get(Order, payment.order_id)
     if order is not None:
