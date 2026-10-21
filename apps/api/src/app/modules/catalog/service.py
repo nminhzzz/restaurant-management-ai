@@ -324,6 +324,7 @@ async def schedule_price_change(
             action="SCHEDULE_PRICE_CHANGE",
             target_entity="LICH_SU_GIA_MON",
             target_id=str(v.id),
+            after={"Gia": float(price), "NgayHieuLuc": bd.isoformat()},
         )
     )
     await session.flush()
@@ -334,6 +335,11 @@ async def cancel_pending_price_change(session, actor_id: int, version_id: int):
     v = await session.get(DishPriceVersion, version_id)
     if v is None or v.status != VersionStatus.NHAP.value:
         raise NotFoundError("Không tìm thấy phiên bản chờ áp dụng.")
+    before = {
+        "Gia": float(v.price),
+        "NgayHieuLuc": v.business_date.isoformat(),
+        "TrangThai": v.status,
+    }
     await session.delete(v)
     await session.flush()
     session.add(
@@ -342,6 +348,7 @@ async def cancel_pending_price_change(session, actor_id: int, version_id: int):
             action="CANCEL_PRICE_CHANGE",
             target_entity="LICH_SU_GIA_MON",
             target_id=str(version_id),
+            before=before,
         )
     )
     await session.flush()
@@ -362,7 +369,9 @@ async def apply_price_directly(session, actor_id: int, dish_id: int, price: _Dec
             DishPriceVersion.status == VersionStatus.HIEU_LUC.value,
         )
     )
-    for row in cur.scalars().all():
+    current_rows = list(cur.scalars().all())
+    superseded = [{"MaPhienBanGia": row.id, "Gia": float(row.price)} for row in current_rows]
+    for row in current_rows:
         row.status = VersionStatus.HET_HIEU_LUC.value
         row.effective_to = _bd.now()
     await session.flush()
@@ -384,6 +393,8 @@ async def apply_price_directly(session, actor_id: int, dish_id: int, price: _Dec
             action="APPLY_PRICE_DIRECTLY",
             target_entity="LICH_SU_GIA_MON",
             target_id=str(v.id),
+            before={"PhienBanBiThayThe": superseded},
+            after={"Gia": float(price)},
         )
     )
     await session.flush()
@@ -459,6 +470,11 @@ async def schedule_recipe_change(
             action="SCHEDULE_RECIPE_CHANGE",
             target_entity="CONG_THUC",
             target_id=str(r.id),
+            after={
+                "NguyenLieu": [
+                    {"MaNguyenLieu": ing_id, "SoLuong": float(qty)} for ing_id, qty in items
+                ]
+            },
         )
     )
     await session.flush()
@@ -529,7 +545,9 @@ async def apply_recipe_directly(
             Recipe.dish_id == dish_id, Recipe.status == VersionStatus.HIEU_LUC.value
         )
     )
-    for row in cur.scalars().all():
+    current_rows = list(cur.scalars().all())
+    superseded_recipes = [{"MaCongThuc": row.id} for row in current_rows]
+    for row in current_rows:
         row.status = VersionStatus.HET_HIEU_LUC.value
         row.effective_to = _bd.now()
     await session.flush()
@@ -557,6 +575,12 @@ async def apply_recipe_directly(
             action="APPLY_RECIPE_DIRECTLY",
             target_entity="CONG_THUC",
             target_id=str(r.id),
+            before={"PhienBanBiThayThe": superseded_recipes},
+            after={
+                "NguyenLieu": [
+                    {"MaNguyenLieu": ing_id, "SoLuong": float(qty)} for ing_id, qty in items
+                ]
+            },
         )
     )
     await session.flush()

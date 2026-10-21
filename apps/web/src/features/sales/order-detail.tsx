@@ -37,6 +37,7 @@ import {
   type PickableDish,
 } from "@/features/sales/dish-picker";
 import { apiFetch } from "@/lib/api-client";
+import { escapeHtml, printDocument } from "@/lib/print";
 import { formatVnd } from "@/lib/format";
 import { useAction } from "@/lib/use-action";
 import { useResource } from "@/lib/use-resource";
@@ -183,13 +184,24 @@ export function OrderDetail({ orderId }: { orderId: number }) {
 
   async function reprintTicket(ticket: Ticket) {
     await action.run(async () => {
-      await apiFetch(
+      const printed = await apiFetch<{ NoiDung?: string | null }>(
         `/sales/orders/${orderId}/tickets/${ticket.MaPhieuBep}/reprint`,
         {
           method: "POST",
           body: {},
         },
       );
+      // FR-SALE-31/32: actually hand the ticket to the printer; if the browser
+      // blocks it, tell the backend so staff sees a failed print they can retry.
+      const opened =
+        !!printed.NoiDung &&
+        printDocument("Phiếu bếp", `<pre>${escapeHtml(printed.NoiDung)}</pre>`);
+      if (!opened) {
+        await apiFetch(
+          `/sales/orders/${orderId}/tickets/${ticket.MaPhieuBep}/print-result`,
+          { method: "POST", body: { ok: false } },
+        );
+      }
       detail.reload();
     }, "Đã gửi in lại phiếu bếp.");
   }

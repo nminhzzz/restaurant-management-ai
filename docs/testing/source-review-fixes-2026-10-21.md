@@ -34,16 +34,29 @@ Bổ sung ngoài P1: thanh toán/giải phóng bàn giải phóng lượt giữ 
 - Chạy lại trên MySQL thật (CSDL demo): số lượng âm trả 422; QR khóa order và chặn tiền mặt; hủy QR
   mở lại order; gửi danh sách có món sai không tạo order; gửi lặp cùng mã trả cùng một order.
 
-## P2 còn lại
+## P2 đã xử lý (đợt 2, 21/10/2026)
 
-Chưa xử lý trong đợt này: R16 (hold hết hạn), R19 (cờ tạm dừng độc lập), R20 (nguồn/lô phiếu xuất
-hủy), R21 (cảnh báo hạn dùng trên màn kho), R23 (bản chụp hóa đơn), R24 (in tạm tính/phiếu bếp thật),
-R25 (business date trong prompt AI), R26 (gold Q051), R27 (harness đo câu trả lời/p95), R28
-(before/after audit), R29 (cấu hình mốc 06:00), R30 (backup xác thực), R31 (lịch sử AI theo vai trò),
-R32 (order mở lại trong danh sách chưa thu), R33 (hạn mức AI theo câu hỏi).
+Toàn bộ P2 của đợt review đã xử lý:
 
-R22 (tiếp tục/hủy phiên kiểm kê) đã xử lý ở đợt bổ sung tối 21/10: `POST /inventory/stocktakes/{id}/cancel`,
-nút Hủy phiên và banner "đang có phiên nháp" trên màn Kiểm kê.
+| Mã | Cách xử lý |
+| --- | --- |
+| R16 | Lượt giữ hết hạn vẫn được kiểm tra lại khi gửi; backend trả lỗi rõ và chỉ nhận khi thu ngân xác nhận `XacNhanHetHan`, không tự gia hạn ngầm. |
+| R19 | Thêm cờ `TamDungThuCong` độc lập với `HetNguyenLieu` dẫn xuất; trạng thái hiển thị ưu tiên "Hết nguyên liệu" khi cả hai, có nút tạm dừng/mở lại trên danh sách món. |
+| R20 | Phiếu xuất hủy có nguồn (Nguyên liệu / Món đã chế biến / Kiểm kê), chọn lô cụ thể; nguồn món đã chế biến chỉ phân loại chi phí, không trừ kho lần hai; nguồn kiểm kê phải trỏ phiếu đã chốt. |
+| R21 | Trạng thái lô tính theo hạn dùng hiện tại và ngưỡng cấu hình; màn kho hiển thị hạn gần nhất, số lô sắp hết hạn/hết hạn. |
+| R23 | `HOA_DON.NoiDungChup` lưu bản chụp tên món, đơn giá, phương thức, tổng tiền; in lại đọc bản chụp thay vì dữ liệu hiện tại. |
+| R24 | Thêm phiếu tạm tính (không tạo hóa đơn/doanh thu); in lại phiếu bếp in nội dung thật và báo lỗi nếu trình duyệt chặn. In tự động ra máy in nhiệt cần print agent ngoài phạm vi MVP — ghi rõ khi nghiệm thu. |
+| R25 | Prompt nhận ngày kinh doanh hiện tại từ backend; 66/80 SQL chuẩn đổi sang `DATE(CURDATE() - INTERVAL 6 HOUR)`. |
+| R26 | Q051 tính đủ 05a+05b+05c từ `GIAO_DICH_KHO` (có `TrangThaiOrder`) và khớp `/reports/margin`. |
+| R27 | Harness chạy 3 lần/câu, báo p95, loại thời gian chạy SQL chuẩn khỏi độ trễ; ghi rõ chỉ đo độ đúng thực thi SQL. |
+| R28 | Audit ghi before/after cho tham chiếu ngân hàng, đối soát, mở lại/đóng chưa thu, cấu hình và thay giá/công thức (kèm phiên bản bị thay thế). |
+| R29 | MVP cố định mốc 06:00: API từ chối thay đổi kèm lý do, giao diện đã ghi rõ phạm vi. |
+| R30 | Bản sao lưu có `include_credentials` (mặc định vẫn ẩn hash), kèm `restore_notes` và audit cờ này. |
+| R31 | Phiên chat lưu vai trò; lịch sử chỉ đọc phiên cùng vai trò hiện tại. |
+| R32 | Khoản chưa thu theo mức order, gồm order vừa mở lại thanh toán. |
+| R33 | Hạn mức đếm câu hỏi (kể cả cache hit), không đếm lần gọi provider/retry. |
+
+R22 đã xử lý ở đợt trước (hủy phiên kiểm kê).
 
 ## Thanh toán thật
 

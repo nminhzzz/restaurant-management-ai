@@ -366,3 +366,45 @@ async def test_duplicate_bank_reference_is_rejected(session):
     ).scalar_one()
     with pytest.raises(BusinessRuleError):
         await payments.record_bank_reference(session, second_payment.id, "FT-1")
+
+
+@pytest.mark.anyio
+async def test_reprint_uses_the_issued_snapshot(session):
+    """FR-SALE-26: renaming or re-pricing a dish must not rewrite old invoices."""
+    dish, table = await _setup(session)
+    client = await _make_client(session)
+    headers, _ = await _headers(session)
+    order_id = await _submit(session, client, headers, dish, table)
+    paid = await client.post(f"/api/v1/sales/orders/{order_id}/pay/cash", headers=headers)
+    assert paid.status_code == 200
+
+    dish.name = "Tên mới sau khi in"
+    await session.commit()
+
+    invoice = await client.get(f"/api/v1/sales/orders/{order_id}/invoice", headers=headers)
+    assert invoice.status_code == 200
+    assert invoice.json()["lines"][0]["TenMon"] == "Món"
+    assert invoice.json()["SoHoaDon"] == paid.json()["invoice"]["SoHoaDon"]
+
+
+@pytest.mark.anyio
+async def test_a_provisional_bill_creates_no_invoice(session):
+    """FR-SALE-21: the pre-payment bill is a printout, not a revenue record."""
+    dish, table = await _setup(session)
+    client = await _make_client(session)
+    headers, _ = await _headers(session)
+    order_id = await _submit(session, client, headers, dish, table)
+
+    response = await client.get(
+        f"/api/v1/sales/orders/{order_id}/provisional-invoice", headers=headers
+    )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["TieuDe"].startswith("PHIẾU TẠM TÍNH")
+    assert float(body["TongTien"]) == 50000
+    assert (
+        await session.execute(
+            text("SELECT COUNT(*) FROM HOA_DON WHERE MaOrder = :id"), {"id": order_id}
+        )
+    ).scalar_one() == 0

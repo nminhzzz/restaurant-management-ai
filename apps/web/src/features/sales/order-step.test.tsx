@@ -218,6 +218,7 @@ describe("OrderStep", () => {
       expect.objectContaining({
         method: "POST",
         body: {
+          XacNhanHetHan: false,
           lines: [
             expect.objectContaining({
               dish_id: 5,

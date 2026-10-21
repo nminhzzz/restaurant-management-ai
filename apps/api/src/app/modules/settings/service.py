@@ -267,6 +267,15 @@ async def update_config(
 ) -> SystemConfig:
     d = data.model_dump(exclude_none=False) if isinstance(data, ConfigUpdate) else data
     cfg = await get_config(session)
+    before = {
+        "TenNhaHang": cfg.restaurant_name,
+        "DiaChi": cfg.address,
+        "MauHoaDon": cfg.invoice_template,
+        "NguongTonMacDinh": float(cfg.default_stock_threshold),
+        "SoNgayCanhBaoHetHan": cfg.expiry_warning_days,
+        "ThoiGianGiuChoPhut": cfg.hold_minutes,
+        "SoCauHoiAIMoiNgay": cfg.ai_daily_question_quota,
+    }
     # Only allow specific fields, ignore business_day_start
     if "TenNhaHang" in d and d["TenNhaHang"] is not None:
         cfg.restaurant_name = d["TenNhaHang"]
@@ -286,7 +295,14 @@ async def update_config(
         cfg.hold_minutes = int(d["ThoiGianGiuChoPhut"])
     if "SoCauHoiAIMoiNgay" in d and d["SoCauHoiAIMoiNgay"] is not None:
         cfg.ai_daily_question_quota = int(d["SoCauHoiAIMoiNgay"])
-    # BusinessDate locked until the effective-date history exists
+    requested_start = d.get("GioBatDauBusinessDate")
+    if requested_start is not None and str(requested_start) not in {
+        "06:00",
+        "06:00:00",
+    }:
+        raise BusinessRuleError(
+            "MVP cố định mốc Business Date 06:00; đổi mốc cần lịch sử hiệu lực theo ngày."
+        )
     await session.flush()
     session.add(
         SystemAuditLog(
@@ -294,6 +310,16 @@ async def update_config(
             action="UPDATE_CONFIG",
             target_entity="CAU_HINH_HE_THONG",
             target_id=str(cfg.id),
+            before=before,
+            after={
+                "TenNhaHang": cfg.restaurant_name,
+                "DiaChi": cfg.address,
+                "MauHoaDon": cfg.invoice_template,
+                "NguongTonMacDinh": float(cfg.default_stock_threshold),
+                "SoNgayCanhBaoHetHan": cfg.expiry_warning_days,
+                "ThoiGianGiuChoPhut": cfg.hold_minutes,
+                "SoCauHoiAIMoiNgay": cfg.ai_daily_question_quota,
+            },
         )
     )
     await session.flush()
@@ -360,24 +386,32 @@ async def list_audit_actions(session: AsyncSession) -> list[str]:
 REDACTED_BACKUP_COLUMNS = {"NGUOI_DUNG": {"MatKhauHash"}}
 
 
-async def export_backup(session: AsyncSession, actor_id: int) -> dict:
+async def export_backup(
+    session: AsyncSession, actor_id: int, *, include_credentials: bool = False
+) -> dict:
     """Dump every table and audit the export in the same transaction (NFR-10).
 
-    Rows are read through the mapped tables, so column names are the physical
-    Vietnamese ones and the file can be restored table by table. Password hashes
-    never leave the database; the manifest records which columns were removed.
+    Rows use the physical Vietnamese column names so they can be restored table by
+    table. Password hashes stay out by default; a manager may request them with
+    `include_credentials` when the export itself is protected (file encryption,
+    restricted storage), otherwise accounts must be re-secured after a restore.
     """
     now = datetime.now(UTC)
+    redactions = {} if include_credentials else REDACTED_BACKUP_COLUMNS
     data: dict[str, list[dict]] = {}
     for table in Base.metadata.sorted_tables:
         rows = (await session.execute(select(table))).mappings().all()
-        redacted = REDACTED_BACKUP_COLUMNS.get(table.name, set())
+        redacted = redactions.get(table.name, set())
         data[table.name] = [
             {key: value for key, value in dict(row).items() if key not in redacted} for row in rows
         ]
     session.add(
         SystemAuditLog(
-            user_id=actor_id, action="EXPORT_BACKUP", target_entity="SYSTEM", target_id="backup"
+            user_id=actor_id,
+            action="EXPORT_BACKUP",
+            target_entity="SYSTEM",
+            target_id="backup",
+            after={"BaoGomThongTinXacThuc": include_credentials},
         )
     )
     await session.flush()
@@ -385,10 +419,18 @@ async def export_backup(session: AsyncSession, actor_id: int) -> dict:
         "created_at": now,
         "covers_until": now,
         "tables": list(data),
+        "credentials_included": include_credentials,
         "redacted_columns": [
             f"{table}.{column}"
-            for table, columns in sorted(REDACTED_BACKUP_COLUMNS.items())
+            for table, columns in sorted(redactions.items())
             for column in sorted(columns)
+        ],
+        "restore_notes": [
+            "Tắt ứng dụng, khôi phục theo đúng thứ tự trong 'tables' (bảng cha trước).",
+            "Bật lại ứng dụng và đăng nhập bằng tài khoản quản lý đã có trong bản sao.",
+            "Nếu credentials_included=false: dùng chức năng đặt lại mật khẩu cho từng "
+            "tài khoản, hoặc tạo tài khoản quản lý mới bằng công cụ CSDL.",
+            "Bản sao có mật khẩu băm vẫn là dữ liệu nhạy cảm: mã hoá file và huỷ sau khi dùng.",
         ],
         "data": data,
     }

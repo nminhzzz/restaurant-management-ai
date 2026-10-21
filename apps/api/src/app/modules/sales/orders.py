@@ -292,7 +292,11 @@ async def _free_table(session: AsyncSession, order: Order) -> None:
 
 
 async def submit_order(
-    session: AsyncSession, payload: dict, *, actor_id: int | None = None
+    session: AsyncSession,
+    payload: dict,
+    *,
+    actor_id: int | None = None,
+    confirm_expired: bool = False,
 ) -> dict:
     now = business_date.now()
     bd = _bd_of(now)
@@ -350,7 +354,9 @@ async def submit_order(
         if hold_id is not None:
             if actor_id is None:
                 raise BusinessRuleError("Lượt giữ chỗ không hợp lệ.")
-            hold = await reservations.get_active_hold(session, int(hold_id), actor_id)
+            hold = await reservations.get_hold_for_submit(
+                session, int(hold_id), actor_id, confirm_expired=confirm_expired
+            )
             if hold.dish_id != int(dish_id) or int(hold.quantity) != quantity:
                 raise BusinessRuleError("Lượt giữ chỗ không khớp món/số lượng.")
             if hold.table_id != table_id:
@@ -455,6 +461,7 @@ async def add_lines(
     lines: list[dict],
     *,
     actor_id: int | None = None,
+    confirm_expired: bool = False,
 ) -> list[OrderLine]:
     """Validate and append all confirmed lines atomically (FR-SALE-03)."""
     created: list[OrderLine] = []
@@ -489,6 +496,7 @@ async def add_line(
     actor_id: int | None = None,
     hold_id: int | None = None,
     request_line_id: str | None = None,
+    confirm_expired: bool = False,
 ) -> OrderLine:
     if request_line_id:
         existing = (
@@ -520,7 +528,9 @@ async def add_line(
     if hold_id is not None:
         if actor_id is None:
             raise BusinessRuleError("Lượt giữ chỗ không hợp lệ.")
-        hold = await reservations.get_active_hold(session, hold_id, actor_id)
+        hold = await reservations.get_hold_for_submit(
+            session, hold_id, actor_id, confirm_expired=confirm_expired
+        )
         if hold.dish_id != dish_id or int(hold.quantity) != quantity:
             raise BusinessRuleError("Lượt giữ chỗ không khớp món/số lượng.")
         if hold.table_id != order.table_id:

@@ -240,6 +240,39 @@ async def _owned_active(session: AsyncSession, hold_id: int, user_id: int) -> Re
     return reservation
 
 
+async def get_hold_for_submit(
+    session: AsyncSession,
+    hold_id: int,
+    user_id: int,
+    *,
+    confirm_expired: bool = False,
+) -> Reservation:
+    """FR-SALE-05: an expired hold is re-checked at submit and never renewed silently."""
+    reservation = (
+        await session.execute(
+            select(Reservation).where(Reservation.id == hold_id).with_for_update()
+        )
+    ).scalar_one_or_none()
+    if reservation is None or reservation.user_id != user_id:
+        raise NotFoundError("Không tìm thấy lượt giữ chỗ.")
+    if reservation.status not in (HOLD_ACTIVE, HOLD_EXPIRED):
+        raise BusinessRuleError("Lượt giữ chỗ không còn hiệu lực.")
+    now = _now()
+    expired = reservation.status == HOLD_EXPIRED or reservation.expires_at <= now
+    if not expired:
+        return reservation
+    if not confirm_expired:
+        raise BusinessRuleError(
+            "Lượt giữ chỗ đã hết hạn. Xác nhận dùng giá và định lượng hiện tại để gửi món."
+        )
+    # The cashier explicitly confirmed: give the submit a short window, and let
+    # consume_hold re-check the dish, price and recipe versions.
+    reservation.status = HOLD_ACTIVE
+    reservation.expires_at = now + timedelta(minutes=1)
+    await session.flush()
+    return reservation
+
+
 async def update_hold(
     session: AsyncSession, *, hold_id: int, user_id: int, quantity: int
 ) -> Reservation:

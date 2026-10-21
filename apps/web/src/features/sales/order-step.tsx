@@ -269,16 +269,19 @@ export function OrderStep({
       return;
     }
     setSubmitting(true);
-    try {
-      submitRequestId.current ??= requestId();
-      let id = orderId;
-      if (id === null) {
+    submitRequestId.current ??= requestId();
+
+    // FR-SALE-05: an expired hold is re-checked on submit; the cashier must confirm
+    // using today's price/recipe instead of the backend renewing it silently.
+    async function send(confirmExpired: boolean): Promise<number> {
+      if (orderId === null) {
         const created = await apiFetch<CreatedOrder>("/sales/orders", {
           method: "POST",
           body: {
             MaBan: tableId,
             LoaiDon: tableId === null ? "Mang về" : "Tại chỗ",
             request_id: submitRequestId.current,
+            XacNhanHetHan: confirmExpired,
             lines: cart.map((l) => ({
               MaMon: l.MaMon,
               SoLuong: l.SoLuong,
@@ -288,24 +291,42 @@ export function OrderStep({
             })),
           },
         });
-        id = created.MaOrder;
-        setCart([]);
-      } else {
-        // The backend validates every line before committing any of them.
-        await apiFetch(`/sales/orders/${id}/lines/bulk`, {
-          method: "POST",
-          body: {
-            lines: cart.map((l) => ({
-              dish_id: l.MaMon,
-              quantity: l.SoLuong,
-              note: l.GhiChu || null,
-              hold_id: l.holdId,
-              request_line_id: l.RequestLineId,
-            })),
-          },
-        });
-        setCart([]);
+        return created.MaOrder;
       }
+      // The backend validates every line before committing any of them.
+      await apiFetch(`/sales/orders/${orderId}/lines/bulk`, {
+        method: "POST",
+        body: {
+          XacNhanHetHan: confirmExpired,
+          lines: cart.map((l) => ({
+            dish_id: l.MaMon,
+            quantity: l.SoLuong,
+            note: l.GhiChu || null,
+            hold_id: l.holdId,
+            request_line_id: l.RequestLineId,
+          })),
+        },
+      });
+      return orderId;
+    }
+
+    try {
+      let id: number;
+      try {
+        id = await send(false);
+      } catch (e: unknown) {
+        const message = messageOf(e, "");
+        if (
+          !message.includes("hết hạn") ||
+          !window.confirm(
+            `${message}\n\nDùng giá và định lượng hiện tại để gửi?`,
+          )
+        ) {
+          throw e;
+        }
+        id = await send(true);
+      }
+      setCart([]);
       submitRequestId.current = null;
       toast.success(`Đã gửi món của ${tableName} xuống bếp.`);
       onSent(id, next);

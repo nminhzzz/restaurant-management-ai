@@ -303,3 +303,43 @@ async def test_menu_availability_drops_after_a_hold(session):
     assert (await _hold(client, headers, dish, table, quantity=2)).status_code == 201
     after = (await client.get("/api/v1/catalog/dishes?size=200", headers=headers)).json()
     assert next(row for row in after["items"] if row["MaMon"] == dish.id)["SoSuatKhaDung"] == 3
+
+
+@pytest.mark.anyio
+async def test_an_expired_hold_is_rechecked_and_needs_explicit_confirmation(session):
+    """R16/FR-SALE-05: never renew silently, but let the cashier confirm."""
+    from datetime import timedelta
+
+    from app.modules.sales.models import Reservation
+
+    dish, _, table = await _setup(session, stock=10)
+    client = await _make_client(session)
+    headers, _ = await _headers(session)
+    hold = (await _hold(client, headers, dish, table, quantity=2)).json()
+
+    reservation = await session.get(Reservation, hold["MaGiuCho"])
+    reservation.expires_at = business_date.now() - timedelta(minutes=1)
+    await session.commit()
+
+    refused = await client.post(
+        "/api/v1/sales/orders",
+        json={
+            "MaBan": table.id,
+            "lines": [{"MaMon": dish.id, "SoLuong": 2, "hold_id": hold["MaGiuCho"]}],
+        },
+        headers=headers,
+    )
+    assert refused.status_code == 422
+    assert "hết hạn" in refused.json()["error"]["message"]
+
+    accepted = await client.post(
+        "/api/v1/sales/orders",
+        json={
+            "MaBan": table.id,
+            "XacNhanHetHan": True,
+            "lines": [{"MaMon": dish.id, "SoLuong": 2, "hold_id": hold["MaGiuCho"]}],
+        },
+        headers=headers,
+    )
+    assert accepted.status_code == 201, accepted.text
+    assert accepted.json()["lines"][0]["SoLuong"] == 2

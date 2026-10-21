@@ -104,6 +104,7 @@ async def _issue_invoice(
 ) -> Invoice:
     """Issue the single invoice of an order, retrying if another till took the number."""
     for _attempt in range(5):
+        invoice_number = await _next_invoice_number(session, business_date_value)
         invoice = Invoice(
             order_id=order.id,
             business_date=business_date_value,
@@ -111,7 +112,7 @@ async def _issue_invoice(
             print_count=1,
             payment_transaction_id=payment.id if payment else None,
             payment_method=payment.method if payment else None,
-            invoice_number=await _next_invoice_number(session, business_date_value),
+            invoice_number=invoice_number,
             issued_by=actor_id or order.created_by,
         )
         try:
@@ -120,8 +121,73 @@ async def _issue_invoice(
         except IntegrityError:
             # Another order in the same business date grabbed this number first.
             continue
+        invoice.snapshot = await _invoice_snapshot(
+            session,
+            order,
+            invoice_number=invoice_number,
+            total=total,
+            payment=payment,
+        )
+        await session.flush()
         return invoice
     raise BusinessRuleError("Không cấp được số hóa đơn, vui lòng thử lại.")
+
+
+async def _invoice_snapshot(
+    session: AsyncSession,
+    order: Order,
+    *,
+    invoice_number: str,
+    total: Decimal,
+    payment: PaymentTransaction | None,
+) -> dict[str, Any]:
+    """Freeze what the guest was billed so a later rename/re-price cannot edit history."""
+    from app.modules.catalog.models import Dish
+    from app.modules.settings.service import get_config
+
+    lines = (
+        (
+            await session.execute(
+                select(OrderLine).where(
+                    OrderLine.order_id == order.id, OrderLine.status != LINE_CANCELLED
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    dish_ids = {line.dish_id for line in lines}
+    names: dict[int, str] = {}
+    if dish_ids:
+        dishes = (await session.execute(select(Dish).where(Dish.id.in_(dish_ids)))).scalars().all()
+        names = {dish.id: dish.name for dish in dishes}
+    restaurant_name = None
+    address = None
+    try:
+        cfg = await get_config(session)
+        restaurant_name = cfg.restaurant_name
+        address = cfg.address
+    except Exception:  # a missing config must not block a payment
+        pass
+    return {
+        "SoHoaDon": invoice_number,
+        "MaOrderHienThi": order.display_code,
+        "TenNhaHang": restaurant_name,
+        "DiaChi": address,
+        "ThoiDiemXuat": business_date.now().isoformat(),
+        "PhuongThucThanhToan": payment.method if payment else None,
+        "TongTien": float(total),
+        "lines": [
+            {
+                "MaMon": line.dish_id,
+                "TenMon": names.get(line.dish_id, ""),
+                "SoLuong": line.quantity,
+                "DonGia": float(line.unit_price),
+                "ThanhTien": float(line.unit_price) * line.quantity,
+            }
+            for line in lines
+        ],
+    }
 
 
 async def _ensure_no_unsent_holds(session: AsyncSession, order: Order) -> None:
@@ -951,6 +1017,10 @@ async def reopen_payment(
     )
     if successful:
         raise BusinessRuleError("Order đã có thanh toán thành công, không thể mở lại.")
+    before = {
+        "MaGiaoDich": payment.status,
+        "MaOrder": order.status,
+    }
     payment.status = QR_CANCELLED
     order.status = "Đang mở"
     order.updated_at = business_date.now()
@@ -962,7 +1032,12 @@ async def reopen_payment(
             target_entity="GIAO_DICH_THANH_TOAN",
             target_id=str(payment.id),
             reason=reason,
-            after={"MaOrder": order.id, "TrangThai": "Đang mở"},
+            before=before,
+            after={
+                "MaGiaoDich": payment.status,
+                "MaOrder": order.status,
+                "MaGiaoDichNganHang": payment.bank_ref,
+            },
         )
     )
     await session.flush()
@@ -1023,6 +1098,7 @@ async def close_unpaid_order(
     from app.modules.sales.reservations import release_active_holds
 
     await release_active_holds(session, order_id=order.id, table_id=order.table_id)
+    before = {"TrangThai": order.status}
     order.status = PAYMENT_CLOSED_UNPAID
     order.total = await order_total(session, order)
     order.cancel_reason = reason
@@ -1035,7 +1111,12 @@ async def close_unpaid_order(
             target_entity="ORDER",
             target_id=str(order.id),
             reason=reason,
-            after={"TrangThai": PAYMENT_CLOSED_UNPAID},
+            before=before,
+            after={
+                "TrangThai": order.status,
+                "SoTienChuaThu": float(order.total),
+                "LyDo": reason,
+            },
         )
     )
     await session.flush()
@@ -1175,6 +1256,10 @@ async def record_bank_reference(
     reference = (reference or "").strip()
     if not reference:
         raise BusinessRuleError("Cần nhập mã giao dịch ngân hàng.")
+    before = {
+        "MaGiaoDichNganHang": payment.bank_ref,
+        "AnhChungTu": payment.evidence,
+    }
     payment.bank_ref = reference
     payment.evidence = evidence
     try:
@@ -1188,6 +1273,11 @@ async def record_bank_reference(
             action="RECORD_BANK_REFERENCE",
             target_entity="GIAO_DICH_THANH_TOAN",
             target_id=str(payment.id),
+            before=before,
+            after={
+                "MaGiaoDichNganHang": reference,
+                "AnhChungTu": evidence,
+            },
         )
     )
     await session.flush()
@@ -1206,6 +1296,7 @@ async def resolve_reconciliation(
         raise BusinessRuleError("outcome phải là received/not_received.")
 
     now = business_date.now()
+    before_status = payment.status
     order = await session.get(Order, payment.order_id)
     if order is None:
         raise NotFoundError("Order không tồn tại.")
@@ -1235,7 +1326,13 @@ async def resolve_reconciliation(
             action="RESOLVE_RECONCILIATION",
             target_entity="GIAO_DICH_THANH_TOAN",
             target_id=str(payment.id),
-            after={"ketQua": outcome},
+            before={"TrangThai": before_status},
+            after={
+                "ketQua": outcome,
+                "TrangThai": payment.status,
+                "MaGiaoDichNganHang": payment.bank_ref,
+                "AnhChungTu": payment.evidence,
+            },
         )
     )
     await session.flush()

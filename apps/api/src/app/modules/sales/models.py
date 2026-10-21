@@ -2,9 +2,11 @@
 
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Any
 
 from sqlalchemy import (
     DECIMAL,
+    JSON,
     CheckConstraint,
     Date,
     DateTime,
@@ -265,6 +267,8 @@ class Invoice(Base):
         nullable=True,
     )
     invoice_number: Mapped[str | None] = mapped_column("SoHoaDon", String(50), nullable=True)
+    # FR-SALE-26: a reprint must show what was issued, not today's names/prices.
+    snapshot: Mapped[dict[str, Any] | None] = mapped_column("NoiDungChup", JSON, nullable=True)
     payment_method: Mapped[str | None] = mapped_column(
         "PhuongThucThanhToan", String(20), nullable=True
     )

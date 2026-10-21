@@ -22,6 +22,7 @@ class SubmitOrderIn(BaseModel):
     order_type: str = Field(default="Tại chỗ", alias="LoaiDon")
     lines: list[OrderLineIn] = Field(min_length=1)
     request_id: str | None = Field(default=None, max_length=36)
+    confirm_expired: bool = Field(default=False, alias="XacNhanHetHan")
     model_config = {"populate_by_name": True}
 
 
@@ -55,6 +56,8 @@ class AddLineIn(BaseModel):
 
 class AddLinesIn(BaseModel):
     lines: list[AddLineIn] = Field(min_length=1)
+    confirm_expired: bool = Field(default=False, alias="XacNhanHetHan")
+    model_config = {"populate_by_name": True}
 
 
 class UpdateLineIn(BaseModel):

@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ApiError, apiFetch } from "@/lib/api-client";
+import { escapeHtml, printDocument } from "@/lib/print";
 import { formatVnd } from "@/lib/format";
 import { loadSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
@@ -56,6 +57,21 @@ type Payment = {
   bank_account?: string;
   account_name?: string;
   simulated?: boolean;
+};
+
+type ProvisionalInvoice = {
+  TieuDe: string;
+  MaOrderHienThi?: string | null;
+  TenNhaHang?: string | null;
+  DiaChi?: string | null;
+  TongTien: number;
+  lines?: Array<{
+    MaMon: number;
+    TenMon: string;
+    SoLuong: number;
+    DonGia: number;
+    ThanhTien: number;
+  }>;
 };
 
 type InvoiceDetail = {
@@ -123,6 +139,7 @@ export function PaymentPanel({
   const [reason, setReason] = useState("");
   const [bankRef, setBankRef] = useState("");
   const [invoice, setInvoice] = useState<InvoiceDetail | null>(null);
+  const [printingProvisional, setPrintingProvisional] = useState(false);
   const [method, setMethod] = useState<"cash" | "qr">("cash");
   const [given, setGiven] = useState("");
   const isManager = loadSession()?.role === "MANAGER";
@@ -178,6 +195,37 @@ export function PaymentPanel({
     // `detail` is a fresh object every render; only its stable `reload` matters here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qr, orderId, onPaid, detail.reload]);
+
+  async function printProvisional() {
+    setPrintingProvisional(true);
+    try {
+      const bill = await apiFetch<ProvisionalInvoice>(
+        `/sales/orders/${orderId}/provisional-invoice`,
+      );
+      const rows = (bill.lines ?? [])
+        .map(
+          (line) =>
+            `<tr><td>${escapeHtml(line.TenMon)} × ${line.SoLuong}</td>` +
+            `<td class="num">${line.ThanhTien.toLocaleString("vi-VN")} ₫</td></tr>`,
+        )
+        .join("");
+      const printed = printDocument(
+        bill.TieuDe,
+        `<div class="notice">${escapeHtml(bill.TieuDe)}</div>` +
+          `<h1>${escapeHtml(bill.TenNhaHang ?? "Nhà hàng")}</h1>` +
+          `<p class="muted">${escapeHtml(bill.DiaChi ?? "")}</p>` +
+          `<p class="muted">Order ${escapeHtml(bill.MaOrderHienThi ?? orderId)}</p>` +
+          `<table>${rows}</table>` +
+          `<div class="total"><span>Tổng cộng</span>` +
+          `<span>${bill.TongTien.toLocaleString("vi-VN")} ₫</span></div>`,
+      );
+      if (!printed) setMessage("Trình duyệt chặn cửa sổ in phiếu tạm tính.");
+    } catch {
+      setMessage("Không lấy được phiếu tạm tính.");
+    } finally {
+      setPrintingProvisional(false);
+    }
+  }
 
   // A paid order only needs its invoice; load it once the order settles so a
   // reload never shows the cash/QR controls again.
@@ -477,6 +525,17 @@ export function PaymentPanel({
             {formatVnd(total)}
           </span>
         </div>
+
+        {!settled && !closedUnpaid && (
+          <Button
+            variant="secondary"
+            className="w-full"
+            onClick={printProvisional}
+            disabled={printingProvisional}
+          >
+            In phiếu tạm tính
+          </Button>
+        )}
 
         {!settled && !closedUnpaid && (
           <div

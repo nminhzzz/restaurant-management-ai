@@ -29,6 +29,7 @@ from app.modules.sales.schemas import (
     ReleaseTableIn,
     SubmitOrderIn,
 )
+from app.shared import business_date
 from app.shared.audit import SystemAuditLog
 from app.shared.roles import Role
 
@@ -176,6 +177,7 @@ async def create_order(
             "request_id": payload.request_id,
         },
         actor_id=user.user_id,
+        confirm_expired=payload.confirm_expired,
     )
     await session.commit()
     body = _order_payload(result["order"], result["lines"])
@@ -273,6 +275,7 @@ async def add_order_line(
         actor_id=user.user_id,
         hold_id=payload.get("hold_id"),
         request_line_id=payload.get("request_line_id") or payload.get("MaYeuCauDong"),
+        confirm_expired=bool(payload.get("XacNhanHetHan") or payload.get("confirm_expired")),
     )
     await session.commit()
     return _line_payload(line)
@@ -291,6 +294,7 @@ async def add_order_lines(
         order_id,
         [line.model_dump() for line in payload.lines],
         actor_id=user.user_id,
+        confirm_expired=payload.confirm_expired,
     )
     await session.commit()
     return {"items": [_line_payload(line) for line in lines]}
@@ -420,7 +424,12 @@ async def reprint_ticket(
 
     record_print_result(ticket, True)
     await session.commit()
-    return {"MaPhieuBep": ticket.id, "SoLanIn": ticket.print_count}
+    # The client prints this content itself; without it "In lại" only incremented a counter.
+    return {
+        "MaPhieuBep": ticket.id,
+        "SoLanIn": ticket.print_count,
+        "NoiDung": ticket.content,
+    }
 
 
 @router.post("/orders/{order_id}/tickets/{ticket_id}/print-result")
@@ -760,6 +769,11 @@ async def resolve_payment_exception(
 
 async def _invoice_payload(session: AsyncSession, order_id: int, invoice: Invoice) -> dict:
     """FR-SALE-19/23: enough detail (restaurant info, lines, method, time) to print a receipt."""
+    if invoice.snapshot:
+        payload = dict(invoice.snapshot)
+        payload["SoHoaDon"] = invoice.invoice_number or str(invoice.id)
+        payload["SoLanIn"] = invoice.print_count
+        return payload
     from app.modules.catalog.models import Dish
     from app.modules.sales.models import PaymentTransaction
     from app.modules.settings.service import get_config
@@ -813,6 +827,62 @@ async def _invoice_payload(session: AsyncSession, order_id: int, invoice: Invoic
             }
             for line in lines
             if line.status != "Đã hủy"
+        ],
+    }
+
+
+@router.get("/orders/{order_id}/provisional-invoice")
+async def get_provisional_invoice(
+    order_id: int,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
+):
+    """FR-SALE-21: a bill to check before paying; it creates no HOA_DON and no revenue."""
+    from app.modules.catalog.models import Dish
+    from app.modules.settings.service import get_config
+
+    order = await session.get(Order, order_id)
+    if order is None:
+        raise HTTPException(status_code=404, detail="Order không tồn tại.")
+    lines = list(
+        (
+            await session.execute(
+                select(OrderLine).where(
+                    OrderLine.order_id == order_id, OrderLine.status != "Đã hủy"
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    dish_ids = {line.dish_id for line in lines}
+    names: dict[int, str] = {}
+    if dish_ids:
+        dishes = (await session.execute(select(Dish).where(Dish.id.in_(dish_ids)))).scalars().all()
+        names = {dish.id: dish.name for dish in dishes}
+    restaurant_name = None
+    address = None
+    with contextlib.suppress(Exception):
+        cfg = await get_config(session)
+        restaurant_name = cfg.restaurant_name
+        address = cfg.address
+    total = sum((Decimal(str(line.unit_price)) * int(line.quantity) for line in lines), Decimal(0))
+    return {
+        "TieuDe": "PHIẾU TẠM TÍNH - CHƯA THANH TOÁN",
+        "MaOrderHienThi": order.display_code,
+        "TenNhaHang": restaurant_name,
+        "DiaChi": address,
+        "ThoiDiemXuat": business_date.now().isoformat(),
+        "TongTien": float(total),
+        "lines": [
+            {
+                "MaMon": line.dish_id,
+                "TenMon": names.get(line.dish_id, ""),
+                "SoLuong": line.quantity,
+                "DonGia": float(line.unit_price),
+                "ThanhTien": float(line.unit_price) * int(line.quantity),
+            }
+            for line in lines
         ],
     }
 
