@@ -35,6 +35,9 @@ class Order(Base):
     display_code: Mapped[str | None] = mapped_column(
         "MaOrderHienThi", String(30), nullable=True, unique=True
     )
+    request_id: Mapped[str | None] = mapped_column(
+        "MaYeuCauGui", String(36), nullable=True, unique=True
+    )
     business_date: Mapped[date] = mapped_column("BusinessDate", Date, nullable=False)
     table_id: Mapped[int | None] = mapped_column(
         "MaBan",
@@ -107,6 +110,9 @@ class OrderLine(Base):
         "ThoiDiemThem", DateTime, server_default=func.now(), nullable=False
     )
     status: Mapped[str] = mapped_column("TrangThai", String(20), nullable=False, default="Ch\u1edd")
+    request_line_id: Mapped[str | None] = mapped_column(
+        "MaYeuCauDong", String(36), nullable=True, unique=True
+    )
     __table_args__ = (
         Index("ix_CHI_TIET_ORDER_MaMon_MaOrder", "MaMon", "MaOrder"),
         Index("ix_CHI_TIET_ORDER_MaOrder_TrangThai", "MaOrder", "TrangThai"),
@@ -179,6 +185,59 @@ class PaymentTransaction(Base):
     __table_args__ = (
         Index("ix_GIAO_DICH_THANH_TOAN_MaOrder_TrangThai", "MaOrder", "TrangThai"),
         Index("ix_GIAO_DICH_THANH_TOAN_BusinessDate_TrangThai", "BusinessDate", "TrangThai"),
+        # Two deliveries of the same bank transfer must never both settle.
+        Index("uq_GIAO_DICH_THANH_TOAN_MaGiaoDichNganHang", "MaGiaoDichNganHang", unique=True),
+    )
+
+
+class PaymentException(Base):
+    """Money that could not be applied automatically (FR-SALE-16/17).
+
+    One row per gateway transfer (`MaGiaoDichCong`), so a repeated webhook never
+    creates a second exception. A manager applies it to the order or records that
+    the refund happened outside the system.
+    """
+
+    __tablename__ = "NGOAI_LE_THANH_TOAN"
+    id: Mapped[int] = mapped_column("MaNgoaiLe", BigInteger, primary_key=True, autoincrement=True)
+    payment_transaction_id: Mapped[int | None] = mapped_column(
+        "MaGiaoDichTT",
+        ForeignKey("GIAO_DICH_THANH_TOAN.MaGiaoDichTT", ondelete="RESTRICT", onupdate="RESTRICT"),
+        nullable=True,
+    )
+    order_id: Mapped[int | None] = mapped_column(
+        "MaOrder",
+        ForeignKey("ORDER.MaOrder", ondelete="RESTRICT", onupdate="RESTRICT"),
+        nullable=True,
+    )
+    bank_ref: Mapped[str] = mapped_column(
+        "MaGiaoDichCong", String(100), nullable=False, unique=True
+    )
+    amount: Mapped[Decimal] = mapped_column("SoTien", DECIMAL(18, 4), nullable=False)
+    status: Mapped[str] = mapped_column(
+        "TrangThai", String(30), nullable=False, default="Chờ xử lý"
+    )
+    reason: Mapped[str | None] = mapped_column("LyDo", String(255), nullable=True)
+    note: Mapped[str | None] = mapped_column("GhiChu", String(255), nullable=True)
+    business_date: Mapped[date] = mapped_column("BusinessDate", Date, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        "NgayTao", DateTime, server_default=func.now(), nullable=False
+    )
+    resolved_at: Mapped[datetime | None] = mapped_column("ThoiDiemXuLy", DateTime, nullable=True)
+    resolved_by: Mapped[int | None] = mapped_column(
+        "NguoiXuLy",
+        ForeignKey("NGUOI_DUNG.MaNguoiDung", ondelete="RESTRICT", onupdate="RESTRICT"),
+        nullable=True,
+    )
+    # FR-SALE-17(c): a refund recorded outside the system needs its bank reference
+    # and the amount actually returned, not just a free-text note.
+    refund_ref: Mapped[str | None] = mapped_column("MaThamChieuHoan", String(100), nullable=True)
+    refund_amount: Mapped[Decimal | None] = mapped_column(
+        "SoTienHoan", DECIMAL(18, 4), nullable=True
+    )
+    __table_args__ = (
+        Index("ix_NGOAI_LE_THANH_TOAN_TrangThai", "TrangThai"),
+        Index("ix_NGOAI_LE_THANH_TOAN_BusinessDate", "BusinessDate"),
     )
 
 
@@ -218,6 +277,8 @@ class Invoice(Base):
     __table_args__ = (
         Index("ix_HOA_DON_ThoiDiemXuat", "ThoiDiemXuat"),
         Index("ix_HOA_DON_BusinessDate", "BusinessDate"),
+        # Report Bảng 30: SoHoaDon must not repeat.
+        Index("uq_HOA_DON_SoHoaDon", "SoHoaDon", unique=True),
     )
 
 

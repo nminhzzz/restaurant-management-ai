@@ -45,6 +45,7 @@ const HISTORY_PAGE_SIZE = 20;
 const STOCKTAKE_STATUSES = [
   { value: "Nháp", label: "Nháp" },
   { value: "Đã chốt", label: "Đã chốt" },
+  { value: "Đã hủy", label: "Đã hủy" },
 ];
 
 type HistoryFilters = { status: string; dateFrom: string; dateTo: string };
@@ -90,10 +91,12 @@ function DraftStocktake({
   stocktakeId,
   ingredients,
   onDone,
+  onCancel,
 }: {
   stocktakeId: number;
   ingredients: StockRow[];
   onDone: () => void;
+  onCancel: () => void;
 }) {
   const [counts, setCounts] = useState<Record<number, string>>({});
   const { run, pending, error } = useAction();
@@ -188,7 +191,10 @@ function DraftStocktake({
         </p>
       ) : null}
 
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <Button variant="secondary" onClick={onCancel} disabled={pending}>
+          Hủy phiên
+        </Button>
         <Button onClick={confirm} disabled={!allFilled || pending}>
           {pending ? "Đang xác nhận…" : "Xác nhận kiểm kê"}
         </Button>
@@ -212,6 +218,7 @@ export function StocktakePanel() {
   );
   const stocktakes = useResource(fetchStocktakes);
   const createAction = useAction();
+  const cancelAction = useAction();
   const [draftId, setDraftId] = useState<number | null>(null);
 
   function updateHistoryFilters(patch: Partial<HistoryFilters>) {
@@ -232,6 +239,34 @@ export function StocktakePanel() {
     );
     if (st) setDraftId(st.MaPhieuKiemKe);
   }
+
+  async function cancelStocktake(stocktakeId: number) {
+    if (
+      !window.confirm(
+        `Hủy phiên kiểm kê #${stocktakeId}? Số liệu đã đếm sẽ bị bỏ và tồn kho giữ nguyên.`,
+      )
+    ) {
+      return;
+    }
+    const done = await cancelAction.run(
+      () =>
+        apiFetch(`/inventory/stocktakes/${stocktakeId}/cancel`, {
+          method: "POST",
+        }),
+      "Đã hủy phiên kiểm kê.",
+    );
+    if (done === undefined) return;
+    setDraftId(null);
+    stock.reload();
+    stocktakes.reload();
+  }
+
+  // R22: a draft left open blocks every stock change, and after a reload the
+  // counting sheet is gone. Offer a way to resume or abandon it.
+  const openDraft =
+    stocktakes.status === "ready"
+      ? (stocktakes.data.items.find((s) => s.TrangThai === "Nháp") ?? null)
+      : null;
 
   const pastStocktakes =
     stocktakes.status === "ready"
@@ -255,6 +290,34 @@ export function StocktakePanel() {
         }
       />
 
+      {openDraft && draftId === null ? (
+        <div
+          role="status"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-control border border-warning bg-warning-subtle px-4 py-3"
+        >
+          <p className="text-sm">
+            Đang có phiên kiểm kê <strong>#{openDraft.MaPhieuKiemKe}</strong>{" "}
+            chưa chốt. Phiên này đang khóa mọi thay đổi tồn kho.
+          </p>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              onClick={() => setDraftId(openDraft.MaPhieuKiemKe)}
+            >
+              Tiếp tục kiểm kê
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={cancelAction.pending}
+              onClick={() => cancelStocktake(openDraft.MaPhieuKiemKe)}
+            >
+              Hủy phiên
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
       {draftId !== null ? (
         stock.status === "loading" ? (
           <LoadingState rows={5} />
@@ -270,6 +333,7 @@ export function StocktakePanel() {
           <DraftStocktake
             stocktakeId={draftId}
             ingredients={stock.data}
+            onCancel={() => cancelStocktake(draftId)}
             onDone={() => {
               setDraftId(null);
               stock.reload();

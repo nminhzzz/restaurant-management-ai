@@ -3,7 +3,13 @@
 import { KeyRound, LogOut, Menu, UtensilsCrossed, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 
 import { Button } from "@/components/ui/button";
 import { AssistantWidget } from "@/features/assistant/assistant-widget";
@@ -36,6 +42,14 @@ export function AppShell({ children }: { children: ReactNode }) {
     serverSessionSnapshot,
   );
   const session = useMemo(() => parseSession(stored), [stored]);
+
+  // The token lives in sessionStorage, so route protection has to run on the
+  // client; the API still rejects every call without a valid JWT.
+  useEffect(() => {
+    if (session === null) router.replace("/login");
+  }, [session, router]);
+
+  if (session === null) return null;
 
   const modules = MODULE_LIST.filter(
     (descriptor) =>

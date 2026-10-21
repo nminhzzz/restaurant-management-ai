@@ -137,6 +137,40 @@ async def create_receipt(
     return receipt
 
 
+async def _ensure_receipt_untouched(session: AsyncSession, receipt_id: int) -> None:
+    """FR-INV-02: once stock left the lot or a hold points at it, correct via stocktake."""
+    from app.modules.inventory.models import StockMovement
+    from app.modules.sales.models import Reservation, ReservationDetail
+
+    line_ids = select(GoodsReceiptLine.id).where(GoodsReceiptLine.receipt_id == receipt_id)
+    lot_ids = select(IngredientLot.id).where(IngredientLot.receipt_line_id.in_(line_ids))
+    used = (
+        await session.execute(
+            select(StockMovement.id)
+            .where(StockMovement.lot_id.in_(lot_ids), StockMovement.qty < 0)
+            .limit(1)
+        )
+    ).first()
+    if used is not None:
+        raise BusinessRuleError(
+            "Phiếu nhập đã phát sinh xuất kho, phải điều chỉnh qua kiểm kê định kỳ."
+        )
+    held = (
+        await session.execute(
+            select(ReservationDetail.lot_id)
+            .join(Reservation, Reservation.id == ReservationDetail.reservation_id)
+            .where(
+                ReservationDetail.lot_id.in_(lot_ids),
+                Reservation.status == "Đang giữ",
+                Reservation.expires_at > business_date.now().replace(tzinfo=None),
+            )
+            .limit(1)
+        )
+    ).first()
+    if held is not None:
+        raise BusinessRuleError("Lô của phiếu đang được giữ chỗ, không thể sửa/hủy phiếu.")
+
+
 async def cancel_receipt(session: AsyncSession, actor_id: int, receipt_id: int) -> None:
     from app.shared.enums import StockMovementType
 
@@ -147,6 +181,7 @@ async def cancel_receipt(session: AsyncSession, actor_id: int, receipt_id: int) 
         raise BusinessRuleError("Phiếu đã được hủy trước đó.")
     if receipt.status != "Nháp":
         raise BusinessRuleError("Chỉ được hủy phiếu ở trạng thái Nháp.")
+    await _ensure_receipt_untouched(session, receipt_id)
     lines = (
         (
             await session.execute(
@@ -225,6 +260,7 @@ async def update_receipt(
         raise NotFoundError("Không tìm thấy phiếu nhập.")
     if receipt.status != "Nháp":
         raise BusinessRuleError("Chỉ được sửa phiếu ở trạng thái Nháp.")
+    await _ensure_receipt_untouched(session, receipt_id)
     for ln in lines:
         line_id = ln["line_id"]
         new_qty = Decimal(str(ln["quantity"]))
@@ -394,6 +430,17 @@ async def create_stocktake(session: AsyncSession, actor_id: int) -> Stocktake:
     ).scalar_one_or_none()
     if existing is not None:
         raise BusinessRuleError("Đang có phiên kiểm kê chưa chốt.")
+    from app.modules.sales.models import Reservation
+    from app.modules.sales.reservations import expire_due_holds
+
+    await expire_due_holds(session)
+    active_holds = (
+        await session.execute(
+            select(func.count()).select_from(Reservation).where(Reservation.status == "Đang giữ")
+        )
+    ).scalar_one()
+    if active_holds:
+        raise BusinessRuleError("Còn lượt giữ chỗ chưa gửi, hãy xử lý trước khi kiểm kê.")
     st = Stocktake(status="Nháp", stocktake_date=business_date.now(), performed_by=actor_id)
     session.add(st)
     await session.flush()
@@ -425,6 +472,31 @@ async def list_stocktakes(
     )
     r = await session.execute(q)
     return list(r.scalars().all()), total
+
+
+async def cancel_stocktake(session: AsyncSession, actor_id: int, stocktake_id: int) -> None:
+    """Abandon an open counting sheet (R22) without touching stock.
+
+    Without this, a draft left behind after a reload keeps `ensure_no_open_stocktake`
+    blocking every stock change and there is no way out from the UI.
+    """
+    st = await session.get(Stocktake, stocktake_id)
+    if st is None:
+        raise NotFoundError("Không tìm thấy phiếu kiểm kê.")
+    if st.status != "Nháp":
+        raise BusinessRuleError("Chỉ hủy được phiên kiểm kê đang mở.")
+    st.status = "Đã hủy"
+    st.note = "Hủy phiên kiểm kê"
+    session.add(
+        SystemAuditLog(
+            user_id=actor_id,
+            action="CANCEL_STOCKTAKE",
+            target_entity="PHIEU_KIEM_KE",
+            target_id=str(st.id),
+            reason="Hủy phiên kiểm kê đang mở",
+        )
+    )
+    await session.flush()
 
 
 async def record_counts(

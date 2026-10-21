@@ -7,6 +7,7 @@ Service functions raise `AppError` subclasses (`NotFoundError`, `BusinessRuleErr
 
 import contextlib
 from datetime import date
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import func, select
@@ -21,6 +22,7 @@ from app.modules.sales import floor, orders, payments, reservations
 from app.modules.sales.gateways import sepay
 from app.modules.sales.models import Invoice, KitchenTicket, Order, OrderLine, Reservation
 from app.modules.sales.schemas import (
+    AddLinesIn,
     HoldCreate,
     HoldOut,
     HoldUpdate,
@@ -171,6 +173,7 @@ async def create_order(
             "table_id": payload.table_id,
             "order_type": payload.order_type,
             "lines": [line.model_dump() for line in payload.lines],
+            "request_id": payload.request_id,
         },
         actor_id=user.user_id,
     )
@@ -257,7 +260,9 @@ async def add_order_line(
     dish_id = payload.get("dish_id") if payload.get("dish_id") is not None else payload.get("MaMon")
     if dish_id is None:
         raise HTTPException(status_code=422, detail="Thiếu MaMon")
-    quantity = payload.get("quantity") or payload.get("SoLuong") or 1
+    quantity = int(payload.get("quantity") or payload.get("SoLuong") or 1)
+    if quantity < 1:
+        raise HTTPException(status_code=422, detail="SoLuong phải lớn hơn 0.")
     note = payload.get("note") or payload.get("GhiChu")
     line = await orders.add_line(
         session,
@@ -267,9 +272,28 @@ async def add_order_line(
         note,
         actor_id=user.user_id,
         hold_id=payload.get("hold_id"),
+        request_line_id=payload.get("request_line_id") or payload.get("MaYeuCauDong"),
     )
     await session.commit()
     return _line_payload(line)
+
+
+@router.post("/orders/{order_id}/lines/bulk", status_code=201)
+async def add_order_lines(
+    order_id: int,
+    payload: AddLinesIn,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
+):
+    """FR-SALE-03: all confirmed lines succeed or the whole submission is rolled back."""
+    lines = await orders.add_lines(
+        session,
+        order_id,
+        [line.model_dump() for line in payload.lines],
+        actor_id=user.user_id,
+    )
+    await session.commit()
+    return {"items": [_line_payload(line) for line in lines]}
 
 
 @router.patch("/orders/{order_id}/lines/{line_id}")
@@ -283,6 +307,8 @@ async def patch_order_line(
     quantity = payload.get("quantity") or payload.get("SoLuong")
     if quantity is None:
         raise HTTPException(status_code=422, detail="Thiếu SoLuong")
+    if int(quantity) < 1:
+        raise HTTPException(status_code=422, detail="SoLuong phải lớn hơn 0.")
     line = await orders.update_line(
         session, order_id, line_id, int(quantity), actor_id=user.user_id
     )
@@ -466,7 +492,10 @@ async def pay_order_cash(
     await session.commit()
     invoice = result["invoice"]
     return {
-        "invoice": {"SoHoaDon": str(invoice.id), "TongTien": float(invoice.total)},
+        "invoice": {
+            "SoHoaDon": invoice.invoice_number or str(invoice.id),
+            "TongTien": float(invoice.total),
+        },
         "MaHoaDon": invoice.id,
     }
 
@@ -482,6 +511,7 @@ async def start_order_qr(
     return {
         "MaGiaoDich": payment.id,
         "TrangThai": payment.status,
+        "SoTien": float(payment.amount),
         "ThoiDiemTaoQR": payment.created_at.isoformat() if payment.created_at else None,
         "ThoiDiemHetHan": payment.deadline.isoformat() if payment.deadline else None,
         **(await payments.qr_fields(session, payment)),
@@ -632,7 +662,12 @@ async def bank_reference(
     session: AsyncSession = Depends(get_session),
     user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
 ):
-    reference = payload.get("reference") or payload.get("MaGiaoDichNganHang") or ""
+    reference = (
+        payload.get("reference")
+        or payload.get("bank_ref")
+        or payload.get("MaGiaoDichNganHang")
+        or ""
+    )
     evidence = payload.get("evidence") or payload.get("AnhChungTu")
     payment = await payments.record_bank_reference(
         session, int(payment_id), str(reference), evidence, actor_id=user.user_id
@@ -654,6 +689,73 @@ async def resolve_payment(
     )
     await session.commit()
     return {"MaGiaoDich": payment.id, "TrangThai": payment.status}
+
+
+@router.get("/payment-exceptions")
+async def list_payment_exceptions(
+    status: str | None = None,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER)),
+):
+    """FR-SALE-17: money the gateway reported that no order could absorb."""
+    rows = await payments.list_exceptions(session, status=status)
+    return {
+        "items": [
+            {
+                "MaNgoaiLe": exception.id,
+                "MaOrder": exception.order_id,
+                "MaOrderHienThi": order_code,
+                "MaGiaoDich": exception.payment_transaction_id,
+                "MaGiaoDichCong": exception.bank_ref,
+                "SoTien": float(exception.amount),
+                "TrangThai": exception.status,
+                "LyDo": exception.reason,
+                "GhiChu": exception.note,
+                "MaThamChieuHoan": exception.refund_ref,
+                "SoTienHoan": float(exception.refund_amount)
+                if exception.refund_amount is not None
+                else None,
+                "ThoiDiemTao": exception.created_at.isoformat() if exception.created_at else None,
+                "ThoiDiemXuLy": exception.resolved_at.isoformat()
+                if exception.resolved_at
+                else None,
+                "NguoiXuLy": exception.resolved_by,
+            }
+            for exception, order_code in rows
+        ]
+    }
+
+
+@router.post("/payment-exceptions/{exception_id}/resolve")
+async def resolve_payment_exception(
+    exception_id: int,
+    payload: dict,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER)),
+):
+    outcome = payload.get("outcome") or payload.get("ketQua") or ""
+    note = payload.get("note") or payload.get("GhiChu")
+    refund_ref = payload.get("refund_ref") or payload.get("MaThamChieuHoan")
+    refund_amount = payload.get("refund_amount") or payload.get("SoTienHoan")
+    exception = await payments.resolve_exception(
+        session,
+        exception_id,
+        outcome=str(outcome),
+        actor_id=user.user_id,
+        note=str(note) if note is not None else None,
+        refund_ref=str(refund_ref) if refund_ref is not None else None,
+        refund_amount=Decimal(str(refund_amount)) if refund_amount is not None else None,
+    )
+    await session.commit()
+    return {
+        "MaNgoaiLe": exception.id,
+        "TrangThai": exception.status,
+        "MaGiaoDichCong": exception.bank_ref,
+        "MaThamChieuHoan": exception.refund_ref,
+        "SoTienHoan": float(exception.refund_amount)
+        if exception.refund_amount is not None
+        else None,
+    }
 
 
 async def _invoice_payload(session: AsyncSession, order_id: int, invoice: Invoice) -> dict:
@@ -693,7 +795,7 @@ async def _invoice_payload(session: AsyncSession, order_id: int, invoice: Invoic
         address = cfg.address
 
     return {
-        "SoHoaDon": str(invoice.id),
+        "SoHoaDon": invoice.invoice_number or str(invoice.id),
         "MaOrderHienThi": order.display_code if order else None,
         "TenNhaHang": restaurant_name,
         "DiaChi": address,

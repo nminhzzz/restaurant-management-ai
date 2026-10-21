@@ -196,6 +196,37 @@ async def test_cannot_record_counts_after_confirm(session):
 
 
 @pytest.mark.anyio
+async def test_cancel_releases_the_stock_lock(session):
+    ing = await _ingredient(session, "NL", 10)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    st = await client.post("/api/v1/inventory/stocktakes", headers=h)
+    sid = st.json()["MaPhieuKiemKe"]
+    await client.post(
+        f"/api/v1/inventory/stocktakes/{sid}/counts",
+        json=[{"ingredient_id": ing.id, "actual_qty": 3}],
+        headers=h,
+    )
+
+    cancelled = await client.post(f"/api/v1/inventory/stocktakes/{sid}/cancel", headers=h)
+    assert cancelled.status_code == 200
+
+    from app.modules.inventory.models import Stocktake
+
+    row = await session.get(Stocktake, sid)
+    await session.refresh(row)
+    assert row.status == "Đã hủy"
+    # Cancelling must not touch stock and must free the one-open-session rule.
+    await session.refresh(ing)
+    assert float(ing.stock_qty) == 10
+    again = await client.post("/api/v1/inventory/stocktakes", headers=h)
+    assert again.status_code == 201
+    # A closed sheet cannot be cancelled afterwards.
+    stale = await client.post(f"/api/v1/inventory/stocktakes/{sid}/cancel", headers=h)
+    assert stale.status_code == 422
+
+
+@pytest.mark.anyio
 async def test_negative_actual_qty_rejected(session):
     ing = await _ingredient(session, "NL", 10)
     client = await _make_client(session)

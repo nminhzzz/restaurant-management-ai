@@ -206,6 +206,8 @@ async def test_closing_unpaid_sets_a_terminal_status_without_an_invoice(
     assert float(report.json()["TongGiaVon"]) == 1000
     assert float(report.json()["items"][0]["GiaVon"]) == 1000
     assert report.json()["items"][0]["LyDo"] == "không nhận được tiền"
+    assert report.json()["items"][0]["ThoiDiemDong"] is not None
+    assert "NguoiDong" in report.json()["items"][0]
     retry = await api_client.post(
         f"/api/v1/sales/orders/{order_id}/pay/cash", headers=_auth(cashier_token)
     )
@@ -235,7 +237,7 @@ async def test_verifying_money_is_provisional_and_appears_in_pending_list(
 
     assert revenue.status_code == 200
     assert float(revenue.json()["provisional"]) == 50000
-    assert float(revenue.json()["total"]) == 50000
+    assert float(revenue.json()["total"]) == 0
     assert pending.status_code == 200
     assert any(
         row["MaGiaoDich"] == payment_id and row["TrangThai"] == "Chờ xác minh thanh toán"

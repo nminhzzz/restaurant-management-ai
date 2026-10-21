@@ -24,6 +24,7 @@ EXPECTED_TABLES = {
     "LICH_SU_DOI_BAN",
     "HOA_DON",
     "GIAO_DICH_THANH_TOAN",
+    "NGOAI_LE_THANH_TOAN",
     "PHIEU_BEP",
     "GIU_CHO_MON",
     "CHI_TIET_GIU_CHO",
@@ -63,6 +64,14 @@ EXPECTED_INDEXES = {
     ("CHI_TIET_GIU_CHO", ("MaLoNguyenLieu", "MaGiuCho")),
 }
 
+# Real money depends on these: a repeated webhook cannot settle twice and an
+# invoice number cannot be issued twice (report Bảng 30 "Không trùng lặp").
+EXPECTED_UNIQUE_INDEXES = {
+    ("HOA_DON", ("SoHoaDon",)),
+    ("GIAO_DICH_THANH_TOAN", ("MaGiaoDichNganHang",)),
+    ("NGOAI_LE_THANH_TOAN", ("MaGiaoDichCong",)),
+}
+
 
 def test_the_schema_has_the_report_tables_counter_and_technical_ai_state() -> None:
     assert set(Base.metadata.tables) == EXPECTED_TABLES
@@ -72,3 +81,21 @@ def test_the_index_strategy_of_section_3_2_3_is_present() -> None:
     for table, columns in EXPECTED_INDEXES:
         indexes = Base.metadata.tables[table].indexes
         assert any(tuple(c.name for c in index.columns) == columns for index in indexes), table
+
+
+def test_payment_identifiers_are_unique_in_the_schema() -> None:
+    from sqlalchemy import UniqueConstraint
+
+    for table, columns in EXPECTED_UNIQUE_INDEXES:
+        model = Base.metadata.tables[table]
+        unique_indexes = {
+            tuple(column.name for column in index.columns)
+            for index in model.indexes
+            if index.unique
+        }
+        unique_constraints = {
+            tuple(column.name for column in constraint.columns)
+            for constraint in model.constraints
+            if isinstance(constraint, UniqueConstraint)
+        }
+        assert columns in unique_indexes | unique_constraints, (table, columns)

@@ -14,13 +14,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import BusinessRuleError, NotFoundError
 from app.modules.catalog.models import DiningTable, Dish, DishPriceVersion, Ingredient
+from app.modules.catalog.service import ensure_dish_sellable
 from app.modules.catalog.versions import (
     active_price_version,
     active_recipe,
     recipe_items,
 )
 from app.modules.inventory.models import IngredientLot, StockMovement
-from app.modules.inventory.stock import StockChange, apply_stock_movement
+from app.modules.inventory.stock import (
+    StockChange,
+    apply_stock_movement,
+    available_quantity,
+)
 from app.modules.sales import reservations
 from app.modules.sales.models import DemOrder, KitchenTicket, Order, OrderLine
 from app.modules.sales.tickets import render_ticket
@@ -120,6 +125,10 @@ async def _resolve_line_inputs(
     session: AsyncSession, dish_id: int, quantity: int, bd: date
 ) -> tuple[OrderLine, bool, str | None]:
     """Snapshot price/recipe for a dish; the flag reports whether the line can be ordered."""
+    try:
+        await ensure_dish_sellable(session, dish_id)
+    except BusinessRuleError as exc:
+        return OrderLine(quantity=quantity, status=LINE_WAITING), False, str(exc)
     price_version = await active_price_version(session, dish_id, bd)
     recipe = await active_recipe(session, dish_id, bd)
     line = OrderLine(
@@ -140,15 +149,17 @@ async def _resolve_line_inputs(
     for item in await recipe_items(session, recipe.id):
         ingredient = await session.get(Ingredient, item.ingredient_id)
         needed = Decimal(str(item.quantity)) * quantity
-        if ingredient is None or Decimal(str(ingredient.stock_qty)) < needed:
+        if ingredient is None:
+            return line, False, "không đủ tồn kho"
+        if await available_quantity(session, item.ingredient_id) < needed:
             return line, False, "không đủ tồn kho"
     return line, True, None
 
 
 def _rejection_message(reason: str | None) -> str:
-    if reason in ("Món chưa có giá", "Món chưa có công thức hiệu lực"):
-        return reason
-    return "Không đủ tồn kho."
+    if reason == "không đủ tồn kho":
+        return "Không đủ tồn kho."
+    return reason or "Không thể gửi món."
 
 
 async def _draw_line_stock(
@@ -288,6 +299,25 @@ async def submit_order(
     order_type = payload.get("order_type") or "Tại chỗ"
     table_id = payload.get("table_id")
     lines_in: list[dict] = payload.get("lines") or []
+    request_id = payload.get("request_id")
+
+    if request_id:
+        existing_order = (
+            await session.execute(select(Order).where(Order.request_id == str(request_id)))
+        ).scalar_one_or_none()
+        if existing_order is not None:
+            existing_lines = list(
+                (
+                    await session.execute(
+                        select(OrderLine)
+                        .where(OrderLine.order_id == existing_order.id)
+                        .order_by(OrderLine.id)
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            return {"order": existing_order, "lines": existing_lines, "rejected": []}
 
     if order_type == "Mang về":
         table_id = None
@@ -305,97 +335,148 @@ async def submit_order(
         if table.status != "Trống" or table.current_order_id is not None:
             raise BusinessRuleError("Bàn đang phục vụ. Hãy giải phóng bàn trước khi mở order mới.")
 
-    display_code = await next_display_code(session, bd)
-    order = Order(
-        business_date=bd,
-        table_id=table_id,
-        order_type=order_type,
-        status="Đang mở",
-        created_by=actor_id,
-        display_code=display_code,
-        created_at=now,
-    )
-    session.add(order)
-    await session.flush()
-
-    created_lines: list[OrderLine] = []
-    rejected: list[dict] = []
+    # Validate the whole submission before writing anything (FR-SALE-03/NFR-10).
+    prepared: list[dict] = []
     for line_input in lines_in:
         dish_id = line_input.get("dish_id") or line_input.get("MaMon")
         if dish_id is None:
-            continue
+            raise BusinessRuleError("Thiếu món trong danh sách gửi.")
         quantity = int(line_input.get("quantity") or line_input.get("SoLuong") or 1)
+        if quantity < 1:
+            raise BusinessRuleError("Số lượng món phải lớn hơn 0.")
         note = line_input.get("note") or line_input.get("GhiChu")
         hold_id = line_input.get("hold_id")
 
         if hold_id is not None:
             if actor_id is None:
-                rejected.append({"MaMon": int(dish_id), "reason": "Lượt giữ chỗ không hợp lệ"})
-                continue
-            try:
-                async with session.begin_nested():
-                    hold = await reservations.get_active_hold(session, int(hold_id), actor_id)
-                    if hold.dish_id != int(dish_id) or int(hold.quantity) != quantity:
-                        raise BusinessRuleError("Lượt giữ chỗ không khớp món/số lượng")
-                    if hold.table_id != table_id:
-                        raise BusinessRuleError("Lượt giữ chỗ khác bàn")
-                    price = (
-                        await session.get(DishPriceVersion, hold.price_version_id)
-                        if hold.price_version_id is not None
-                        else None
-                    )
-                    if price is None:
-                        raise BusinessRuleError("Món chưa có giá")
-                    unit_price = Decimal(str(price.price))
-                    line = OrderLine(
-                        order_id=order.id,
-                        dish_id=int(dish_id),
-                        quantity=quantity,
-                        unit_price=unit_price,
-                        total=unit_price * quantity,
-                        price_version_id=hold.price_version_id,
-                        recipe_id=hold.recipe_id,
-                        note=note or hold.note,
-                        status=LINE_WAITING,
-                    )
-                    session.add(line)
-                    await session.flush()
-                    hold.order_id = order.id
-                    await reservations.consume_hold(
-                        session,
-                        hold,
-                        order_line_id=line.id,
-                        business_date_value=bd,
-                        actor_id=actor_id,
-                    )
-                created_lines.append(line)
-            except (BusinessRuleError, NotFoundError) as exc:
-                rejected.append({"MaMon": int(dish_id), "reason": str(exc)})
+                raise BusinessRuleError("Lượt giữ chỗ không hợp lệ.")
+            hold = await reservations.get_active_hold(session, int(hold_id), actor_id)
+            if hold.dish_id != int(dish_id) or int(hold.quantity) != quantity:
+                raise BusinessRuleError("Lượt giữ chỗ không khớp món/số lượng.")
+            if hold.table_id != table_id:
+                raise BusinessRuleError("Lượt giữ chỗ khác bàn.")
+            prepared.append(
+                {
+                    "kind": "hold",
+                    "hold": hold,
+                    "dish_id": int(dish_id),
+                    "quantity": quantity,
+                    "note": note,
+                }
+            )
             continue
 
         line, ok, reason = await _resolve_line_inputs(session, int(dish_id), quantity, bd)
         if not ok:
-            rejected.append({"MaMon": int(dish_id), "reason": reason})
-            continue
-        line.order_id = order.id
+            raise BusinessRuleError(_rejection_message(reason))
         line.note = note
-        session.add(line)
-        await session.flush()
-        await _draw_line_stock(session, line, quantity, bd, actor_id=actor_id)
-        created_lines.append(line)
+        prepared.append(
+            {
+                "kind": "direct",
+                "line": line,
+                "dish_id": int(dish_id),
+                "quantity": quantity,
+                "note": note,
+            }
+        )
 
-    if not created_lines:
-        await session.delete(order)
-        await session.flush()
-        raise BusinessRuleError("Không có món nào đủ tồn kho.")
+    if not prepared:
+        raise BusinessRuleError("Không có món nào để gửi.")
 
-    if table_id is not None:
-        assert table is not None
-        table.status = "Đang phục vụ"
-        table.current_order_id = order.id
-    await write_kitchen_ticket(session, order, created_lines)
-    await session.flush()
-    return {"order": order, "lines": created_lines, "rejected": rejected}
+    display_code = await next_display_code(session, bd)
+    async with session.begin_nested():
+        order = Order(
+            business_date=bd,
+            table_id=table_id,
+            order_type=order_type,
+            status="Đang mở",
+            created_by=actor_id,
+            display_code=display_code,
+            request_id=str(request_id) if request_id else None,
+            created_at=now,
+        )
+        session.add(order)
+        await session.flush()
+
+        created_lines: list[OrderLine] = []
+        for item in prepared:
+            if item["kind"] == "hold":
+                hold = item["hold"]
+                price = (
+                    await session.get(DishPriceVersion, hold.price_version_id)
+                    if hold.price_version_id is not None
+                    else None
+                )
+                if price is None:
+                    raise BusinessRuleError("Món chưa có giá")
+                unit_price = Decimal(str(price.price))
+                line = OrderLine(
+                    order_id=order.id,
+                    dish_id=item["dish_id"],
+                    quantity=item["quantity"],
+                    unit_price=unit_price,
+                    total=unit_price * item["quantity"],
+                    price_version_id=hold.price_version_id,
+                    recipe_id=hold.recipe_id,
+                    note=item["note"] or hold.note,
+                    status=LINE_WAITING,
+                )
+                session.add(line)
+                await session.flush()
+                hold.order_id = order.id
+                await reservations.consume_hold(
+                    session,
+                    hold,
+                    order_line_id=line.id,
+                    business_date_value=bd,
+                    actor_id=actor_id,
+                )
+            else:
+                line = item["line"]
+                line.order_id = order.id
+                session.add(line)
+                await session.flush()
+                await _draw_line_stock(session, line, item["quantity"], bd, actor_id=actor_id)
+            created_lines.append(line)
+
+        if table_id is not None:
+            table = await session.get(DiningTable, table_id)
+            assert table is not None
+            table.status = "Đang phục vụ"
+            table.current_order_id = order.id
+        await write_kitchen_ticket(session, order, created_lines)
+        await session.flush()
+    return {"order": order, "lines": created_lines, "rejected": []}
+
+
+async def add_lines(
+    session: AsyncSession,
+    order_id: int,
+    lines: list[dict],
+    *,
+    actor_id: int | None = None,
+) -> list[OrderLine]:
+    """Validate and append all confirmed lines atomically (FR-SALE-03)."""
+    created: list[OrderLine] = []
+    async with session.begin_nested():
+        for line in lines:
+            dish_id = line.get("dish_id") or line.get("MaMon")
+            quantity = int(line.get("quantity") or line.get("SoLuong") or 1)
+            if dish_id is None:
+                raise BusinessRuleError("Thiếu món trong danh sách gửi.")
+            created.append(
+                await add_line(
+                    session,
+                    order_id,
+                    int(dish_id),
+                    quantity,
+                    line.get("note") or line.get("GhiChu"),
+                    actor_id=actor_id,
+                    hold_id=line.get("hold_id"),
+                    request_line_id=line.get("request_line_id") or line.get("MaYeuCauDong"),
+                )
+            )
+    return created
 
 
 async def add_line(
@@ -407,11 +488,22 @@ async def add_line(
     *,
     actor_id: int | None = None,
     hold_id: int | None = None,
+    request_line_id: str | None = None,
 ) -> OrderLine:
+    if request_line_id:
+        existing = (
+            await session.execute(
+                select(OrderLine).where(OrderLine.request_line_id == str(request_line_id))
+            )
+        ).scalar_one_or_none()
+        if existing is not None:
+            return existing
     order = await session.get(Order, order_id)
     if order is None:
         raise NotFoundError("Order không tồn tại.")
     ensure_order_is_open(order)
+    if quantity < 1:
+        raise BusinessRuleError("Số lượng món phải lớn hơn 0.")
 
     if order.table_id is not None:
         table = (
@@ -451,6 +543,7 @@ async def add_line(
             recipe_id=hold.recipe_id,
             note=note or hold.note,
             status=LINE_WAITING,
+            request_line_id=str(request_line_id) if request_line_id else None,
         )
         session.add(line)
         await session.flush()
@@ -459,21 +552,24 @@ async def add_line(
             session,
             hold,
             order_line_id=line.id,
-            business_date_value=order.business_date,
+            business_date_value=_bd_of(business_date.now()),
             actor_id=actor_id,
         )
         await write_kitchen_ticket(session, order, [line])
         await session.flush()
         return line
 
-    line, ok, reason = await _resolve_line_inputs(session, dish_id, quantity, order.business_date)
+    line, ok, reason = await _resolve_line_inputs(
+        session, dish_id, quantity, _bd_of(business_date.now())
+    )
     if not ok:
         raise BusinessRuleError(_rejection_message(reason))
     line.order_id = order.id
     line.note = note
+    line.request_line_id = str(request_line_id) if request_line_id else None
     session.add(line)
     await session.flush()
-    await _draw_line_stock(session, line, quantity, order.business_date, actor_id=actor_id)
+    await _draw_line_stock(session, line, quantity, _bd_of(business_date.now()), actor_id=actor_id)
     await write_kitchen_ticket(session, order, [line])
     await session.flush()
     return line
@@ -496,15 +592,17 @@ async def update_line(
         raise NotFoundError("Dòng món không tồn tại.")
     if line.status != LINE_WAITING:
         raise BusinessRuleError("Chỉ sửa món ở trạng thái Chờ.")
+    if quantity < 1:
+        raise BusinessRuleError("Số lượng món phải lớn hơn 0.")
 
     delta = quantity - int(line.quantity)
     if delta > 0:
         _, ok, reason = await _resolve_line_inputs(
-            session, line.dish_id, delta, order.business_date
+            session, line.dish_id, delta, _bd_of(business_date.now())
         )
         if not ok:
             raise BusinessRuleError(_rejection_message(reason))
-        await _draw_line_stock(session, line, delta, order.business_date, actor_id=actor_id)
+        await _draw_line_stock(session, line, delta, _bd_of(business_date.now()), actor_id=actor_id)
         line.quantity = int(line.quantity) + delta
     elif delta < 0:
         await _return_line_stock(session, line, Decimal(-delta), actor_id=actor_id)
@@ -556,14 +654,13 @@ async def cancel_line(
 
     remaining = (
         await session.execute(
-            select(OrderLine).where(
+            select(OrderLine.id).where(
                 OrderLine.order_id == order.id, OrderLine.status != LINE_CANCELLED
             )
         )
-    ).scalar_one_or_none()
+    ).first()
     if remaining is None:
         await _set_order_status(session, order, "Tự động đóng")
-        await _free_table(session, order)
         await session.flush()
     return line
 
@@ -659,9 +756,9 @@ async def cancel_order(
             await _return_line_stock(session, line, Decimal(line.quantity), actor_id=actor_id)
         if line.status != LINE_CANCELLED:
             line.status = LINE_CANCELLED
+    await reservations.release_active_holds(session, order_id=order.id, table_id=order.table_id)
     await _set_order_status(session, order, "Đã hủy")
     order.cancel_reason = reason
-    await _free_table(session, order)
     session.add(
         SystemAuditLog(
             user_id=actor_id,

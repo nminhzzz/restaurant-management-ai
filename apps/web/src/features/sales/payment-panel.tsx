@@ -55,6 +55,7 @@ type Payment = {
   bank_code?: string;
   bank_account?: string;
   account_name?: string;
+  simulated?: boolean;
 };
 
 type InvoiceDetail = {
@@ -178,6 +179,26 @@ export function PaymentPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qr, orderId, onPaid, detail.reload]);
 
+  // A paid order only needs its invoice; load it once the order settles so a
+  // reload never shows the cash/QR controls again.
+  const settledNow =
+    detail.status === "ready" &&
+    detail.data.order.TrangThai === "Đã thanh toán";
+  useEffect(() => {
+    if (!settledNow) return;
+    let cancelled = false;
+    apiFetch<InvoiceDetail>(`/sales/orders/${orderId}/invoice`)
+      .then((data) => {
+        if (!cancelled) setInvoice(data);
+      })
+      .catch(() => {
+        // The "Xem hóa đơn" button stays available if this call fails.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [settledNow, orderId]);
+
   if (detail.status === "loading") return <LoadingState rows={3} />;
   if (detail.status === "error")
     return <ErrorState message={detail.message} onRetry={detail.reload} />;
@@ -239,6 +260,7 @@ export function PaymentPanel({
         }),
       );
       setInvoice(null);
+      await detail.reload();
     }, "Không tạo được mã QR.");
 
   const checkQr = () => {
@@ -274,6 +296,7 @@ export function PaymentPanel({
       setQr({ ...qr, TrangThai: "Đã hủy" });
       setRemaining(null);
       setMessage("Đã hủy giao dịch QR.");
+      await detail.reload();
     }, "Hủy QR thất bại.");
   };
 
@@ -298,6 +321,8 @@ export function PaymentPanel({
       );
       setQr({ ...qr, TrangThai: result.TrangThai });
       setMessage("Đã ghi nhận khách báo chuyển tiền; chờ quản lý xác minh.");
+      setQr(null);
+      setRemaining(null);
       await detail.reload();
     }, "Không gửi được yêu cầu xác minh.");
   };
@@ -312,6 +337,8 @@ export function PaymentPanel({
         body: { reason: reasonText },
       });
       setMessage("Đã mở lại order để thu tiền lần khác.");
+      setQr(null);
+      setRemaining(null);
       await detail.reload();
     }, "Không mở lại được thanh toán.");
   };
@@ -324,8 +351,11 @@ export function PaymentPanel({
         body: {},
       });
       setMessage("Đã áp dụng khoản tiền đến muộn và phát hành hóa đơn.");
+      setQr(null);
+      setRemaining(null);
       await detail.reload();
       await loadInvoice();
+      onPaid?.({ change: null });
     }, "Không áp dụng được khoản tiền đến muộn.");
   };
 
@@ -338,6 +368,8 @@ export function PaymentPanel({
         body: { reason: reasonText },
       });
       setMessage("Đã đóng order ở trạng thái chưa thu được tiền.");
+      setQr(null);
+      setRemaining(null);
       await detail.reload();
     }, "Không đóng được order.");
   };
@@ -365,8 +397,13 @@ export function PaymentPanel({
           ? "Đã xác nhận nhận được tiền."
           : "Đã ghi nhận không có giao dịch.",
       );
+      setQr(null);
+      setRemaining(null);
       await detail.reload();
-      if (outcome === "received") await loadInvoice();
+      if (outcome === "received") {
+        await loadInvoice();
+        onPaid?.({ change: null });
+      }
     }, "Không xử lý được đối soát.");
   };
 
@@ -441,65 +478,67 @@ export function PaymentPanel({
           </span>
         </div>
 
-        <div
-          role="radiogroup"
-          aria-label="Phương thức thanh toán"
-          className="grid grid-cols-2 gap-2"
-        >
-          {(
-            [
+        {!settled && !closedUnpaid && (
+          <div
+            role="radiogroup"
+            aria-label="Phương thức thanh toán"
+            className="grid grid-cols-2 gap-2"
+          >
+            {(
               [
-                "cash",
-                "Tiền mặt",
-                "Nhập tiền khách đưa, tính tiền thối",
-                Banknote,
-              ],
-              [
-                "qr",
-                "QR chuyển khoản",
-                "Khách quét mã, hệ thống tự xác nhận",
-                QrCode,
-              ],
-            ] as const
-          ).map(([value, title, hint, Icon]) => {
-            const disabled = value === "cash" && qrLocksCash;
-            return (
-              <label
-                key={value}
-                aria-disabled={disabled}
-                className={cn(
-                  "grid cursor-pointer gap-1 rounded-container border px-3.5 py-3 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary",
-                  activeMethod === value
-                    ? "border-ink bg-surface-sunken ring-1 ring-ink"
-                    : "border-border-strong bg-surface",
-                  disabled && "cursor-not-allowed opacity-50",
-                )}
-              >
-                <input
-                  type="radio"
-                  name={`method-${orderId}`}
-                  value={value}
-                  checked={activeMethod === value}
-                  disabled={disabled}
-                  onChange={() => setMethod(value)}
-                  className="sr-only"
-                />
-                <span className="flex items-center gap-2 text-[15px] font-bold">
-                  <Icon className="size-4" aria-hidden />
-                  {title}
-                </span>
-                <span className="text-xs text-muted">{hint}</span>
-              </label>
-            );
-          })}
-        </div>
-        {qrLocksCash && (
+                [
+                  "cash",
+                  "Tiền mặt",
+                  "Nhập tiền khách đưa, tính tiền thối",
+                  Banknote,
+                ],
+                [
+                  "qr",
+                  "QR chuyển khoản",
+                  "Khách quét mã, hệ thống tự xác nhận",
+                  QrCode,
+                ],
+              ] as const
+            ).map(([value, title, hint, Icon]) => {
+              const disabled = value === "cash" && qrLocksCash;
+              return (
+                <label
+                  key={value}
+                  aria-disabled={disabled}
+                  className={cn(
+                    "grid cursor-pointer gap-1 rounded-container border px-3.5 py-3 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary",
+                    activeMethod === value
+                      ? "border-ink bg-surface-sunken ring-1 ring-ink"
+                      : "border-border-strong bg-surface",
+                    disabled && "cursor-not-allowed opacity-50",
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name={`method-${orderId}`}
+                    value={value}
+                    checked={activeMethod === value}
+                    disabled={disabled}
+                    onChange={() => setMethod(value)}
+                    className="sr-only"
+                  />
+                  <span className="flex items-center gap-2 text-[15px] font-bold">
+                    <Icon className="size-4" aria-hidden />
+                    {title}
+                  </span>
+                  <span className="text-xs text-muted">{hint}</span>
+                </label>
+              );
+            })}
+          </div>
+        )}
+        {!settled && !closedUnpaid && qrLocksCash && (
           <p className="text-xs text-muted">
             Đang có giao dịch QR. Hủy QR để chuyển sang tiền mặt.
           </p>
         )}
 
-        {activeMethod === "cash" && (
+        {!settled && !closedUnpaid && activeMethod === "cash" && (
           <div className="space-y-3">
             <Label htmlFor={`given-${orderId}`}>Tiền khách đưa</Label>
             <Input
@@ -545,7 +584,7 @@ export function PaymentPanel({
           </div>
         )}
 
-        {activeMethod === "qr" && !live && (
+        {!settled && !closedUnpaid && activeMethod === "qr" && !live && (
           <Button
             size="pos"
             className="w-full"
@@ -557,189 +596,204 @@ export function PaymentPanel({
           </Button>
         )}
 
-        {activeMethod === "qr" && qr && qr.TrangThai !== "Đã hủy" && (
-          <div className="space-y-3 rounded-control border border-border bg-canvas p-4">
-            <div className="flex items-center justify-between gap-2">
-              <span className="flex items-center gap-2 font-medium">
-                <QrCode className="size-4" aria-hidden />
-                Giao dịch QR
-              </span>
-              <StatusBadge status={qr.TrangThai} />
-            </div>
-            {qr.qr_image_url && live && (
-              <div className="grid gap-4 sm:grid-cols-[192px_minmax(0,1fr)] sm:items-center">
-                {/* eslint-disable-next-line @next/next/no-img-element -- external SePay host, no remote host config */}
-                <img
-                  src={qr.qr_image_url}
-                  alt={`Mã VietQR thanh toán ${formatVnd(total)}`}
-                  className="size-48 rounded-control border border-border bg-white p-2"
-                />
-                <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
-                  <dt className="text-muted">Ngân hàng</dt>
-                  <dd className="font-semibold">{qr.bank_code}</dd>
-                  <dt className="text-muted">Số tài khoản</dt>
-                  <dd className="font-mono font-semibold">{qr.bank_account}</dd>
-                  <dt className="text-muted">Chủ tài khoản</dt>
-                  <dd className="font-semibold">{qr.account_name}</dd>
-                  <dt className="text-muted">Nội dung</dt>
-                  <dd className="flex items-center gap-2 font-mono text-base font-bold">
-                    {qr.payment_code}
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="icon"
-                      className="h-11 w-11 shrink-0"
-                      aria-label="Sao chép nội dung chuyển khoản"
-                      onClick={copyTransferContent}
-                    >
-                      <Copy className="size-4" aria-hidden />
-                    </Button>
-                  </dd>
-                </dl>
-                <p className="text-xs font-semibold text-warning-fg sm:col-span-2">
-                  Môi trường thử nghiệm SePay
-                </p>
-              </div>
-            )}
-            {remaining && (
-              <div className="flex items-baseline gap-2">
-                <span className="text-muted">Còn hiệu lực</span>
-                <span
-                  className={
-                    expired
-                      ? "font-semibold text-danger-fg"
-                      : "font-mono text-2xl font-medium tabular-nums"
-                  }
-                >
-                  {remaining}
+        {!settled &&
+          activeMethod === "qr" &&
+          qr &&
+          qr.TrangThai !== "Đã hủy" && (
+            <div className="space-y-3 rounded-control border border-border bg-canvas p-4">
+              <div className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-2 font-medium">
+                  <QrCode className="size-4" aria-hidden />
+                  Giao dịch QR
                 </span>
+                <StatusBadge status={qr.TrangThai} />
               </div>
-            )}
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={cancelQr}
-                disabled={!live}
-              >
-                Hủy QR
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={checkQr}
-                disabled={!live}
-              >
-                <RefreshCw />
-                Kiểm tra lại
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={createQr}
-                disabled={!!live || locked}
-              >
-                <TimerReset />
-                Tạo mã QR mới
-              </Button>
-              {expired && !reconciling && !verifying && (
-                <Button size="sm" onClick={reportBankTransfer}>
-                  Khách báo đã chuyển khoản
-                </Button>
+              {qr.qr_image_url && live && (
+                <div className="grid gap-4 sm:grid-cols-[192px_minmax(0,1fr)] sm:items-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- SePay host or a generated data URI, so next/image does not apply */}
+                  <img
+                    src={qr.qr_image_url}
+                    alt={
+                      qr.simulated
+                        ? `Mã QR mô phỏng thanh toán ${formatVnd(total)}`
+                        : `Mã VietQR thanh toán ${formatVnd(total)}`
+                    }
+                    className="size-48 rounded-control border border-border bg-white p-2"
+                  />
+                  <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
+                    {!qr.simulated && (
+                      <>
+                        <dt className="text-muted">Ngân hàng</dt>
+                        <dd className="font-semibold">{qr.bank_code}</dd>
+                        <dt className="text-muted">Số tài khoản</dt>
+                        <dd className="font-mono font-semibold">
+                          {qr.bank_account}
+                        </dd>
+                        <dt className="text-muted">Chủ tài khoản</dt>
+                        <dd className="font-semibold">{qr.account_name}</dd>
+                      </>
+                    )}
+                    <dt className="text-muted">Nội dung</dt>
+                    <dd className="flex items-center gap-2 font-mono text-base font-bold">
+                      {qr.payment_code}
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="icon"
+                        className="h-11 w-11 shrink-0"
+                        aria-label="Sao chép nội dung chuyển khoản"
+                        onClick={copyTransferContent}
+                      >
+                        <Copy className="size-4" aria-hidden />
+                      </Button>
+                    </dd>
+                  </dl>
+                  <p className="text-xs font-semibold text-warning-fg sm:col-span-2">
+                    {qr.simulated
+                      ? "Mã QR mô phỏng — không chuyển tiền thật."
+                      : "Môi trường thử nghiệm SePay"}
+                  </p>
+                </div>
               )}
-              {live && !verifying && (
-                <Button size="sm" onClick={requestVerification}>
-                  Khách báo đã chuyển tiền
-                </Button>
+              {remaining && (
+                <div className="flex items-baseline gap-2">
+                  <span className="text-muted">Còn hiệu lực</span>
+                  <span
+                    className={
+                      expired
+                        ? "font-semibold text-danger-fg"
+                        : "font-mono text-2xl font-medium tabular-nums"
+                    }
+                  >
+                    {remaining}
+                  </span>
+                </div>
               )}
-            </div>
-
-            {verifying && (
-              <div className="space-y-3 border-t border-border pt-3">
-                <p className="text-sm text-muted-fg">
-                  Order đang chờ xác minh thanh toán. Không thể thêm món hoặc
-                  thu tiền mặt cho tới khi quản lý xử lý.
-                </p>
-                {isManager && (
-                  <div className="flex flex-wrap gap-2">
-                    <Button size="sm" onClick={() => resolve("received")}>
-                      Xác nhận đã nhận tiền
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={reopenPayment}
-                    >
-                      Mở lại thanh toán
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outlineDanger"
-                      onClick={closeUnpaid}
-                    >
-                      Đóng chưa thu
-                    </Button>
-                  </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={cancelQr}
+                  disabled={!live}
+                >
+                  Hủy QR
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={checkQr}
+                  disabled={!live}
+                >
+                  <RefreshCw />
+                  Kiểm tra lại
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={createQr}
+                  disabled={!!live || locked}
+                >
+                  <TimerReset />
+                  Tạo mã QR mới
+                </Button>
+                {expired && !reconciling && !verifying && (
+                  <Button size="sm" onClick={reportBankTransfer}>
+                    Khách báo đã chuyển khoản
+                  </Button>
                 )}
-              </div>
-            )}
-
-            {closedUnpaid && (
-              <div className="space-y-3 border-t border-border pt-3">
-                <p className="text-sm text-muted-fg">
-                  Order đã đóng vì chưa thu được tiền. Khi khoản chuyển đến
-                  muộn, quản lý có thể áp dụng một lần và phát hành hóa đơn.
-                </p>
-                {isManager && qr && (
-                  <Button size="sm" onClick={applyLatePayment}>
-                    Áp dụng khoản đến muộn
+                {live && !verifying && (
+                  <Button size="sm" onClick={requestVerification}>
+                    Khách báo đã chuyển tiền
                   </Button>
                 )}
               </div>
-            )}
 
-            {reconciling && (
-              <div className="space-y-3 border-t border-border pt-3">
-                <div>
-                  <Label htmlFor={`bank-ref-${orderId}`}>
-                    Mã tham chiếu ngân hàng
-                  </Label>
-                  <div className="mt-1.5 flex gap-2">
-                    <Input
-                      id={`bank-ref-${orderId}`}
-                      className="h-10 flex-1"
-                      placeholder="Ví dụ: FT2609xxxxx"
-                      value={bankRef}
-                      onChange={(e) => setBankRef(e.target.value)}
-                    />
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={saveBankRef}
-                      disabled={bankRef.trim() === ""}
-                    >
-                      Lưu
-                    </Button>
-                  </div>
+              {verifying && (
+                <div className="space-y-3 border-t border-border pt-3">
+                  <p className="text-sm text-muted-fg">
+                    Order đang chờ xác minh thanh toán. Không thể thêm món hoặc
+                    thu tiền mặt cho tới khi quản lý xử lý.
+                  </p>
+                  {isManager && (
+                    <div className="flex flex-wrap gap-2">
+                      <Button size="sm" onClick={() => resolve("received")}>
+                        Xác nhận đã nhận tiền
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={reopenPayment}
+                      >
+                        Mở lại thanh toán
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outlineDanger"
+                        onClick={closeUnpaid}
+                      >
+                        Đóng chưa thu
+                      </Button>
+                    </div>
+                  )}
                 </div>
-                {isManager && (
-                  <div className="flex flex-wrap gap-2">
-                    <Button size="sm" onClick={() => resolve("received")}>
-                      Xác nhận đã nhận tiền
+              )}
+
+              {closedUnpaid && (
+                <div className="space-y-3 border-t border-border pt-3">
+                  <p className="text-sm text-muted-fg">
+                    Order đã đóng vì chưa thu được tiền. Khi khoản chuyển đến
+                    muộn, quản lý có thể áp dụng một lần và phát hành hóa đơn.
+                  </p>
+                  {isManager && qr && (
+                    <Button size="sm" onClick={applyLatePayment}>
+                      Áp dụng khoản đến muộn
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outlineDanger"
-                      onClick={() => resolve("not_received")}
-                    >
-                      Không có giao dịch
-                    </Button>
+                  )}
+                </div>
+              )}
+
+              {reconciling && (
+                <div className="space-y-3 border-t border-border pt-3">
+                  <div>
+                    <Label htmlFor={`bank-ref-${orderId}`}>
+                      Mã tham chiếu ngân hàng
+                    </Label>
+                    <div className="mt-1.5 flex gap-2">
+                      <Input
+                        id={`bank-ref-${orderId}`}
+                        className="h-10 flex-1"
+                        placeholder="Ví dụ: FT2609xxxxx"
+                        value={bankRef}
+                        onChange={(e) => setBankRef(e.target.value)}
+                      />
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={saveBankRef}
+                        disabled={bankRef.trim() === ""}
+                      >
+                        Lưu
+                      </Button>
+                    </div>
                   </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+                  {isManager && (
+                    <div className="flex flex-wrap gap-2">
+                      <Button size="sm" onClick={() => resolve("received")}>
+                        Xác nhận đã nhận tiền
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outlineDanger"
+                        onClick={() => resolve("not_received")}
+                      >
+                        Không có giao dịch
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
         {error && (
           <p role="alert" className="flex items-start gap-1.5 text-danger-fg">

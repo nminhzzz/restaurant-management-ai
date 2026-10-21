@@ -181,4 +181,39 @@ describe("StocktakePanel", () => {
       ),
     );
   });
+
+  it("lets the user cancel a draft left open after a reload", async () => {
+    let cancelled = false;
+    fetchMock.mockImplementation((path: string) => {
+      if (path === "/inventory/stocktakes/7/cancel") {
+        cancelled = true;
+        return Promise.resolve({ ok: true });
+      }
+      if (path.startsWith("/inventory/stocktakes")) {
+        return Promise.resolve({
+          items: cancelled ? [] : [{ MaPhieuKiemKe: 7, TrangThai: "Nháp" }],
+          total: cancelled ? 0 : 1,
+        });
+      }
+      if (path.startsWith("/inventory/stock")) {
+        return Promise.resolve({ items: stockItems });
+      }
+      return Promise.resolve({});
+    });
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    render(<StocktakePanel />);
+
+    expect(
+      await screen.findByText(/Đang có phiên kiểm kê/),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Hủy phiên" }));
+
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/inventory/stocktakes/7/cancel",
+        expect.objectContaining({ method: "POST" }),
+      ),
+    );
+  });
 });

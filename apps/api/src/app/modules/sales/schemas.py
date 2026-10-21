@@ -21,6 +21,7 @@ class SubmitOrderIn(BaseModel):
     table_id: int | None = Field(default=None, alias="MaBan")
     order_type: str = Field(default="Tại chỗ", alias="LoaiDon")
     lines: list[OrderLineIn] = Field(min_length=1)
+    request_id: str | None = Field(default=None, max_length=36)
     model_config = {"populate_by_name": True}
 
 
@@ -49,6 +50,11 @@ class AddLineIn(BaseModel):
     quantity: int = Field(ge=1)
     note: str | None = None
     hold_id: int | None = None
+    request_line_id: str | None = Field(default=None, max_length=36)
+
+
+class AddLinesIn(BaseModel):
+    lines: list[AddLineIn] = Field(min_length=1)
 
 
 class UpdateLineIn(BaseModel):

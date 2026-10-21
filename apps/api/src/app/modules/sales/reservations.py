@@ -13,8 +13,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import BusinessRuleError, NotFoundError
 from app.modules.catalog.models import DiningTable, Ingredient, Recipe, RecipeItem
+from app.modules.catalog.service import ensure_dish_sellable
 from app.modules.catalog.versions import active_price_version, active_recipe, recipe_items
 from app.modules.inventory.models import IngredientLot, StockMovement
+from app.modules.inventory.stock import ensure_no_open_stocktake
 from app.modules.sales.models import Order, Reservation, ReservationDetail
 from app.modules.settings.service import get_config
 from app.shared import business_date
@@ -167,6 +169,8 @@ async def create_hold(
 ) -> Reservation:
     if quantity <= 0:
         raise BusinessRuleError("Số lượng phải lớn hơn 0.")
+    await ensure_no_open_stocktake(session)
+    await ensure_dish_sellable(session, dish_id)
     now = _now()
     bd = _business_date()
     price = await active_price_version(session, dish_id, bd)
@@ -241,7 +245,9 @@ async def update_hold(
 ) -> Reservation:
     if quantity <= 0:
         raise BusinessRuleError("Số lượng phải lớn hơn 0.")
+    await ensure_no_open_stocktake(session)
     reservation = await _owned_active(session, hold_id, user_id)
+    await ensure_dish_sellable(session, reservation.dish_id)
     current = int(reservation.quantity)
     if quantity == current:
         return reservation
@@ -284,6 +290,28 @@ async def release_hold(session: AsyncSession, *, hold_id: int, user_id: int) -> 
     )
     await session.flush()
     return reservation
+
+
+async def release_active_holds(
+    session: AsyncSession, *, order_id: int | None = None, table_id: int | None = None
+) -> int:
+    """FR-CAT-18/FR-SALE-13: leaving an order/table must not keep stock reserved."""
+    conditions = [Reservation.status == HOLD_ACTIVE]
+    if order_id is not None:
+        conditions.append(Reservation.order_id == order_id)
+    if table_id is not None:
+        conditions.append(Reservation.table_id == table_id)
+    if len(conditions) == 1:
+        return 0
+    rows = list((await session.execute(select(Reservation).where(*conditions))).scalars().all())
+    for reservation in rows:
+        reservation.status = HOLD_RELEASED
+        await session.execute(
+            delete(ReservationDetail).where(ReservationDetail.reservation_id == reservation.id)
+        )
+    if rows:
+        await session.flush()
+    return len(rows)
 
 
 async def expire_due_holds(session: AsyncSession) -> int:
@@ -336,6 +364,17 @@ async def consume_hold(
     """Convert a hold into stock consumption exactly once (FR-SALE-03, FR-INV-03)."""
     if reservation.status != HOLD_ACTIVE:
         raise BusinessRuleError("Lượt giữ chỗ không còn hiệu lực.")
+    await ensure_no_open_stocktake(session)
+    await ensure_dish_sellable(session, reservation.dish_id)
+    today = _business_date()
+    current_price = await active_price_version(session, reservation.dish_id, today)
+    if current_price is not None and current_price.id != reservation.price_version_id:
+        raise BusinessRuleError(
+            f"Giá món đã thay đổi thành {current_price.price}; vui lòng chọn lại món."
+        )
+    current_recipe = await active_recipe(session, reservation.dish_id, today)
+    if current_recipe is not None and current_recipe.id != reservation.recipe_id:
+        raise BusinessRuleError("Công thức món đã thay đổi; vui lòng chọn lại món.")
     details = list(
         (
             await session.execute(
@@ -354,8 +393,12 @@ async def consume_hold(
                 select(IngredientLot).where(IngredientLot.id == detail.lot_id).with_for_update()
             )
         ).scalar_one_or_none()
-        if lot is None or Decimal(str(lot.quantity_remaining)) < Decimal(str(detail.quantity)):
-            raise BusinessRuleError("Lô giữ chỗ không còn đủ số lượng.")
+        if (
+            lot is None
+            or Decimal(str(lot.quantity_remaining)) < Decimal(str(detail.quantity))
+            or (lot.expiry_date is not None and lot.expiry_date < today)
+        ):
+            raise BusinessRuleError("Lô giữ chỗ không còn đủ số lượng hoặc đã hết hạn.")
         ingredient = await session.get(Ingredient, lot.ingredient_id)
         if ingredient is None:
             raise BusinessRuleError("Nguyên liệu không tồn tại.")

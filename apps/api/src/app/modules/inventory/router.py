@@ -134,6 +134,17 @@ async def record_counts(
     return {"ok": True}
 
 
+@router.post("/stocktakes/{sid}/cancel")
+async def cancel_stocktake(
+    sid: int,
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    session: AsyncSession = Depends(get_session),
+):
+    await svc.cancel_stocktake(session, user.user_id, sid)
+    await session.commit()
+    return {"ok": True}
+
+
 @router.post("/stocktakes/{sid}/confirm")
 async def confirm_stocktake(
     sid: int,

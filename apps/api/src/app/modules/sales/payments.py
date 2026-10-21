@@ -10,14 +10,22 @@ from decimal import Decimal, InvalidOperation
 from typing import Any, cast
 
 import httpx
+import segno
 from sqlalchemy import and_, func, or_, select, update
 from sqlalchemy.engine import CursorResult
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.config import get_settings
 from app.core.errors import BusinessRuleError, NotFoundError, UnauthenticatedError
 from app.modules.sales.gateways import sepay, simulator
-from app.modules.sales.models import Invoice, Order, OrderLine, PaymentTransaction
+from app.modules.sales.models import (
+    Invoice,
+    Order,
+    OrderLine,
+    PaymentException,
+    PaymentTransaction,
+)
 from app.modules.sales.orders import LINE_CANCELLED
 from app.shared import business_date
 from app.shared.audit import SystemAuditLog
@@ -32,7 +40,12 @@ QR_EXPIRED = "Hết hạn"
 QR_RECONCILING = "Chờ đối soát"
 QR_DISPUTED = "Tranh chấp"
 QR_VERIFYING = "Chờ xác minh thanh toán"
+QR_PENDING_ORDER = "Chờ xác nhận thanh toán"
 PAYMENT_CLOSED_UNPAID = "Đóng \u2013 chưa thu được tiền"
+
+EXCEPTION_PENDING = "Chờ xử lý"
+EXCEPTION_APPLIED = "Đã áp dụng"
+EXCEPTION_REFUNDED = "Đã hoàn tiền"
 
 
 def sign_payload(payload: str) -> str:
@@ -65,6 +78,21 @@ def _settle(order: Order, status: str, now: datetime) -> None:
     order.closed_at = now
 
 
+async def _next_invoice_number(session: AsyncSession, business_date_value: date) -> str:
+    """FR-SALE-21/Bảng 30: one sequence per business date, e.g. HD-20261021-0007."""
+    prefix = f"HD-{business_date_value:%Y%m%d}-"
+    last = (
+        await session.execute(
+            select(func.max(Invoice.invoice_number)).where(
+                Invoice.business_date == business_date_value,
+                Invoice.invoice_number.like(f"{prefix}%"),
+            )
+        )
+    ).scalar_one_or_none()
+    sequence = int(str(last).rsplit("-", 1)[1]) + 1 if last else 1
+    return f"{prefix}{sequence:04d}"
+
+
 async def _issue_invoice(
     session: AsyncSession,
     order: Order,
@@ -72,18 +100,47 @@ async def _issue_invoice(
     business_date_value: date,
     total: Decimal,
     payment: PaymentTransaction | None = None,
+    actor_id: int | None = None,
 ) -> Invoice:
-    invoice = Invoice(
-        order_id=order.id,
-        business_date=business_date_value,
-        total=total,
-        print_count=1,
-        payment_transaction_id=payment.id if payment else None,
-        payment_method=payment.method if payment else None,
-    )
-    session.add(invoice)
-    await session.flush()
-    return invoice
+    """Issue the single invoice of an order, retrying if another till took the number."""
+    for _attempt in range(5):
+        invoice = Invoice(
+            order_id=order.id,
+            business_date=business_date_value,
+            total=total,
+            print_count=1,
+            payment_transaction_id=payment.id if payment else None,
+            payment_method=payment.method if payment else None,
+            invoice_number=await _next_invoice_number(session, business_date_value),
+            issued_by=actor_id or order.created_by,
+        )
+        try:
+            async with session.begin_nested():
+                session.add(invoice)
+        except IntegrityError:
+            # Another order in the same business date grabbed this number first.
+            continue
+        return invoice
+    raise BusinessRuleError("Không cấp được số hóa đơn, vui lòng thử lại.")
+
+
+async def _ensure_no_unsent_holds(session: AsyncSession, order: Order) -> None:
+    from app.modules.sales.models import Reservation
+
+    conditions = [
+        Reservation.status == "Đang giữ",
+        Reservation.expires_at > business_date.now().replace(tzinfo=None),
+    ]
+    target = [Reservation.order_id == order.id]
+    if order.table_id is not None:
+        target.append(Reservation.table_id == order.table_id)
+    found = (
+        await session.execute(select(Reservation.id).where(*conditions, or_(*target)).limit(1))
+    ).first()
+    if found is not None:
+        raise BusinessRuleError(
+            "Còn món chưa gửi trong lượt chọn, hãy gửi hoặc bỏ trước khi thanh toán."
+        )
 
 
 async def pay_cash(session: AsyncSession, order_id: int, *, actor_id: int | None = None) -> dict:
@@ -102,6 +159,18 @@ async def pay_cash(session: AsyncSession, order_id: int, *, actor_id: int | None
     from app.modules.sales.orders import ensure_order_is_open
 
     ensure_order_is_open(order)
+    await _ensure_no_unsent_holds(session, order)
+    live_qr = (
+        await session.execute(
+            select(PaymentTransaction.id).where(
+                PaymentTransaction.order_id == order.id,
+                PaymentTransaction.method == "QR",
+                PaymentTransaction.status == QR_PENDING,
+            )
+        )
+    ).first()
+    if live_qr is not None:
+        raise BusinessRuleError("Giao dịch QR đang chờ xác nhận, không thể thu tiền mặt.")
     existing = (
         await session.execute(select(Invoice).where(Invoice.order_id == order.id))
     ).scalar_one_or_none()
@@ -110,7 +179,7 @@ async def pay_cash(session: AsyncSession, order_id: int, *, actor_id: int | None
 
     total = await order_total(session, order)
     order.total = total
-    bd = business_date.business_date_of(now)
+    bd = order.business_date
     payment = PaymentTransaction(
         order_id=order.id,
         amount=total,
@@ -121,7 +190,7 @@ async def pay_cash(session: AsyncSession, order_id: int, *, actor_id: int | None
     session.add(payment)
     await session.flush()
     invoice = await _issue_invoice(
-        session, order, business_date_value=bd, total=total, payment=payment
+        session, order, business_date_value=bd, total=total, payment=payment, actor_id=actor_id
     )
     _settle(order, "Đã thanh toán", now)
     await session.flush()
@@ -132,12 +201,20 @@ async def start_qr(
     session: AsyncSession, order_id: int, *, actor_id: int | None = None
 ) -> PaymentTransaction:
     await expire_stale_qr(session)
-    order = await session.get(Order, order_id)
+    order = (
+        await session.execute(
+            select(Order)
+            .where(Order.id == order_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+    ).scalar_one_or_none()
     if order is None:
         raise NotFoundError("Order không tồn tại.")
     from app.modules.sales.orders import ensure_order_is_open
 
     ensure_order_is_open(order)
+    await _ensure_no_unsent_holds(session, order)
     live = (
         await session.execute(
             select(PaymentTransaction).where(
@@ -156,17 +233,23 @@ async def start_qr(
         amount=await order_total(session, order),
         method="QR",
         status=QR_PENDING,
-        business_date=business_date.business_date_of(now),
+        business_date=order.business_date,
         created_at=now,
         deadline=now + QR_LIFETIME,
     )
     session.add(payment)
+    order.status = QR_PENDING_ORDER
+    order.updated_at = now
     await session.flush()
     return payment
 
 
 async def confirm_payment(
-    session: AsyncSession, payment: PaymentTransaction, *, bank_ref: str | None = None
+    session: AsyncSession,
+    payment: PaymentTransaction,
+    *,
+    bank_ref: str | None = None,
+    actor_id: int | None = None,
 ) -> dict:
     """Settle a pending QR payment whose amount the caller has already checked."""
     order = await session.get(Order, payment.order_id)
@@ -179,11 +262,15 @@ async def confirm_payment(
         .execution_options(populate_existing=True)
     )
     # Re-check under lock: another transaction may have settled/cancelled this
-    # payment or order between the caller's check and this call.
-    if payment.status not in (QR_PENDING, QR_VERIFYING) or order.status not in (
-        "Đang mở",
+    # payment or order between the caller's check and this call. Expired and
+    # cancelled QRs are accepted here because FR-SALE-16 lets late money settle
+    # an order that is still open.
+    if payment.status not in (
+        QR_PENDING,
         QR_VERIFYING,
-    ):
+        QR_EXPIRED,
+        QR_CANCELLED,
+    ) or order.status not in ("Đang mở", QR_PENDING_ORDER, QR_VERIFYING):
         raise BusinessRuleError("Giao dịch hoặc order đã đổi trạng thái trước khi xác nhận.")
     total = await order_total(session, order)
     order.total = total
@@ -192,7 +279,12 @@ async def confirm_payment(
         payment.bank_ref = bank_ref
     await session.flush()
     invoice = await _issue_invoice(
-        session, order, business_date_value=payment.business_date, total=total, payment=payment
+        session,
+        order,
+        business_date_value=payment.business_date,
+        total=total,
+        payment=payment,
+        actor_id=actor_id,
     )
     _settle(order, "Đã thanh toán", business_date.now())
     await session.flush()
@@ -222,7 +314,22 @@ async def to_reconciliation(
 
 async def qr_fields(session: AsyncSession, payment: PaymentTransaction) -> dict[str, Any]:
     settings = get_settings()
-    if settings.payment_gateway != "sepay" or payment.method != "QR":
+    if payment.method != "QR":
+        return {}
+    if settings.payment_gateway == "simulator":
+        # A real image so the screen can be reviewed offline; it encodes the mock
+        # transfer, not a bank payload, and the UI labels it as simulated.
+        code = f"SIM{payment.id}"
+        payload = f"SIMULATED|{code}|{int(Decimal(str(payment.amount)))}"
+        return {
+            "qr_image_url": segno.make(payload).svg_data_uri(scale=5, border=2),
+            "payment_code": code,
+            "bank_code": "MÔ PHỎNG",
+            "bank_account": "0000000000",
+            "account_name": "Thanh toán mô phỏng",
+            "simulated": True,
+        }
+    if settings.payment_gateway != "sepay":
         return {}
     code = sepay.payment_code(payment.id, settings.sepay_payment_prefix)
     return {
@@ -239,21 +346,110 @@ async def qr_fields(session: AsyncSession, payment: PaymentTransaction) -> dict[
     }
 
 
-async def _record_unmatched(
-    session: AsyncSession, payment: PaymentTransaction, bank_ref: str
-) -> None:
-    """Money arrived for a payment we cannot auto-settle: log it for a human, never
-    reopen or re-invoice the order."""
-    payment.bank_ref = payment.bank_ref or bank_ref
+async def _has_success_or_invoice(session: AsyncSession, order_id: int) -> bool:
+    successful = await session.scalar(
+        select(func.count())
+        .select_from(PaymentTransaction)
+        .where(
+            PaymentTransaction.order_id == order_id,
+            PaymentTransaction.status == QR_SUCCESS,
+        )
+    )
+    invoice = await session.scalar(
+        select(func.count()).select_from(Invoice).where(Invoice.order_id == order_id)
+    )
+    return bool(successful or invoice)
+
+
+async def _was_reopened(session: AsyncSession, payment_id: int) -> bool:
+    """FR-SALE-16: money for a payment a manager already reopened is an exception."""
+    count = await session.scalar(
+        select(func.count())
+        .select_from(SystemAuditLog)
+        .where(
+            SystemAuditLog.action == "REOPEN_PAYMENT",
+            SystemAuditLog.target_entity == "GIAO_DICH_THANH_TOAN",
+            SystemAuditLog.target_id == str(payment_id),
+        )
+    )
+    return bool(count)
+
+
+async def _cancel_other_qrs(session: AsyncSession, order_id: int, *, keep_payment_id: int) -> None:
+    """FR-SALE-16: late money voids a newer QR that has not received money."""
+    rows = (
+        (
+            await session.execute(
+                select(PaymentTransaction).where(
+                    PaymentTransaction.order_id == order_id,
+                    PaymentTransaction.id != keep_payment_id,
+                    PaymentTransaction.method == "QR",
+                    PaymentTransaction.status.in_((QR_PENDING, QR_VERIFYING)),
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    for other in rows:
+        other.status = QR_CANCELLED
+        session.add(
+            SystemAuditLog(
+                user_id=None,
+                action="LATE_PAYMENT_VOIDS_QR",
+                target_entity="GIAO_DICH_THANH_TOAN",
+                target_id=str(other.id),
+                after={"MaOrder": order_id, "GiaoDichDuocApDung": keep_payment_id},
+            )
+        )
+    if rows:
+        await session.flush()
+
+
+async def record_exception(
+    session: AsyncSession,
+    *,
+    payment: PaymentTransaction | None,
+    order_id: int | None,
+    bank_ref: str,
+    amount: Decimal,
+    reason: str,
+) -> PaymentException:
+    """Keep unmatched money for a human, once per gateway transaction."""
+    existing = (
+        await session.execute(select(PaymentException).where(PaymentException.bank_ref == bank_ref))
+    ).scalar_one_or_none()
+    if existing is not None:
+        return existing
+    exception = PaymentException(
+        payment_transaction_id=payment.id if payment is not None else None,
+        order_id=order_id if order_id is not None else (payment.order_id if payment else None),
+        bank_ref=bank_ref,
+        amount=amount,
+        reason=reason,
+        status=EXCEPTION_PENDING,
+        business_date=business_date.business_date_of(business_date.now()),
+    )
+    try:
+        async with session.begin_nested():
+            session.add(exception)
+    except IntegrityError:
+        # A concurrent delivery of the same transfer won the unique constraint.
+        return (
+            await session.execute(
+                select(PaymentException).where(PaymentException.bank_ref == bank_ref)
+            )
+        ).scalar_one()
     session.add(
         SystemAuditLog(
             user_id=None,
             action="WEBHOOK_UNMATCHED",
-            target_entity="GIAO_DICH_THANH_TOAN",
-            target_id=str(payment.id),
+            target_entity="NGOAI_LE_THANH_TOAN",
+            target_id=str(exception.id),
         )
     )
     await session.flush()
+    return exception
 
 
 async def handle_sepay_transfer(session: AsyncSession, body: dict[str, Any]) -> str:
@@ -272,7 +468,12 @@ async def handle_sepay_transfer(session: AsyncSession, body: dict[str, Any]) -> 
             select(PaymentTransaction.id).where(PaymentTransaction.bank_ref == bank_ref)
         )
     ).first()
-    if seen is not None:
+    seen_exception = (
+        await session.execute(
+            select(PaymentException.id).where(PaymentException.bank_ref == bank_ref)
+        )
+    ).first()
+    if seen is not None or seen_exception is not None:
         return "duplicate"
 
     payment_id = sepay.payment_id_of(transfer, settings.sepay_payment_prefix)
@@ -289,22 +490,41 @@ async def handle_sepay_transfer(session: AsyncSession, body: dict[str, Any]) -> 
         ).scalar_one_or_none()
     if payment is None:
         logger.warning("Unmatched SePay transfer sepay_id=%s", transfer.sepay_id)
-        session.add(
-            SystemAuditLog(
-                user_id=None,
-                action="WEBHOOK_UNMATCHED",
-                target_entity="GIAO_DICH_THANH_TOAN",
-                target_id=bank_ref,
-            )
+        await record_exception(
+            session,
+            payment=None,
+            order_id=None,
+            bank_ref=bank_ref,
+            amount=transfer.amount,
+            reason="Không xác định được giao dịch của nhà hàng",
         )
-        await session.flush()
         return "unmatched"
+
+    order = await session.get(Order, payment.order_id)
+    if order is not None:
+        order = (
+            await session.execute(
+                select(Order)
+                .where(Order.id == order.id)
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
+        ).scalar_one_or_none()
+
     if payment.method != "QR":
         logger.warning(
             "SePay transfer sepay_id=%s matched a non-QR payment=%s", transfer.sepay_id, payment.id
         )
-        await _record_unmatched(session, payment, bank_ref)
+        await record_exception(
+            session,
+            payment=payment,
+            order_id=payment.order_id,
+            bank_ref=bank_ref,
+            amount=transfer.amount,
+            reason="Tiền về cho giao dịch không phải QR",
+        )
         return "unmatched"
+
     if payment.status == QR_SUCCESS:
         # New money for a payment that is already settled: never double-invoice.
         logger.warning(
@@ -312,46 +532,91 @@ async def handle_sepay_transfer(session: AsyncSession, body: dict[str, Any]) -> 
             transfer.sepay_id,
             payment.id,
         )
-        await _record_unmatched(session, payment, bank_ref)
+        await record_exception(
+            session,
+            payment=payment,
+            order_id=payment.order_id,
+            bank_ref=bank_ref,
+            amount=transfer.amount,
+            reason="Thu trùng cho giao dịch đã thanh toán",
+        )
         return "unmatched"
 
-    order = await session.get(Order, payment.order_id)
-    if order is not None:
-        await session.execute(
-            select(Order)
-            .where(Order.id == order.id)
-            .with_for_update()
-            .execution_options(populate_existing=True)
-        )
-    if order is None or order.status not in ("Đang mở", QR_VERIFYING):
-        # Money for an order that is already settled or cancelled: record it for a human,
-        # never reopen or re-invoice the order.
-        logger.warning(
-            "SePay transfer sepay_id=%s unmatched: order for payment=%s is not open",
-            transfer.sepay_id,
-            payment.id,
-        )
-        await _record_unmatched(session, payment, bank_ref)
-        return "unmatched"
-
-    total = await order_total(session, order)
-    if payment.status in (QR_PENDING, QR_VERIFYING) and transfer.amount == total:
-        try:
-            await confirm_payment(session, payment, bank_ref=bank_ref)
-            return "confirmed"
-        except BusinessRuleError:
-            # Lost a race with another confirmation/cancellation: record it, don't 500.
-            logger.warning(
-                "SePay transfer sepay_id=%s raced payment=%s; recording for review",
-                transfer.sepay_id,
-                payment.id,
-            )
-            await _record_unmatched(session, payment, bank_ref)
-            return "unmatched"
-    await to_reconciliation(
-        session, payment, bank_ref=bank_ref, action="WEBHOOK_NEEDS_RECONCILIATION"
+    total = await order_total(session, order) if order is not None else Decimal(0)
+    reopened = await _was_reopened(session, payment.id)
+    late = payment.status in (QR_EXPIRED, QR_CANCELLED)
+    normal = payment.status in (QR_PENDING, QR_VERIFYING)
+    already_paid = await _has_success_or_invoice(session, order.id) if order is not None else False
+    order_open = order is not None and order.status in (
+        "Đang mở",
+        QR_PENDING_ORDER,
+        QR_VERIFYING,
     )
-    return "reconciling"
+    if order is None:
+        await record_exception(
+            session,
+            payment=payment,
+            order_id=payment.order_id,
+            bank_ref=bank_ref,
+            amount=transfer.amount,
+            reason="Order của giao dịch không còn tồn tại",
+        )
+        return "unmatched"
+
+    if order_open and transfer.amount == total and not already_paid:
+        if normal or (late and not reopened):
+            try:
+                await _cancel_other_qrs(session, order.id, keep_payment_id=payment.id)
+                await confirm_payment(session, payment, bank_ref=bank_ref)
+                return "confirmed"
+            except BusinessRuleError:
+                # Lost a race with another confirmation/cancellation: record it, don't 500.
+                logger.warning(
+                    "SePay transfer sepay_id=%s raced payment=%s; recording for review",
+                    transfer.sepay_id,
+                    payment.id,
+                )
+                await record_exception(
+                    session,
+                    payment=payment,
+                    order_id=order.id,
+                    bank_ref=bank_ref,
+                    amount=transfer.amount,
+                    reason="Giao dịch đã đổi trạng thái trước khi xác nhận",
+                )
+                return "unmatched"
+        else:
+            await record_exception(
+                session,
+                payment=payment,
+                order_id=order.id,
+                bank_ref=bank_ref,
+                amount=transfer.amount,
+                reason="Order đã mở lại thanh toán; quản lý cần áp dụng khoản cũ",
+            )
+            return "unmatched"
+
+    await record_exception(
+        session,
+        payment=payment,
+        order_id=order.id if order is not None else payment.order_id,
+        bank_ref=bank_ref,
+        amount=transfer.amount,
+        reason=(
+            "Order đã đóng, đã hủy hoặc đã thanh toán bằng giao dịch khác"
+            if not order_open or already_paid
+            else "Số tiền không khớp với order"
+        ),
+    )
+    if order_open and not already_paid and transfer.amount != total:
+        await to_reconciliation(
+            session,
+            payment,
+            bank_ref=bank_ref,
+            action="WEBHOOK_NEEDS_RECONCILIATION",
+        )
+        return "reconciling"
+    return "unmatched"
 
 
 async def check_payment(session: AsyncSession, payment_id: int) -> PaymentTransaction:
@@ -359,10 +624,12 @@ async def check_payment(session: AsyncSession, payment_id: int) -> PaymentTransa
     payment = await session.get(PaymentTransaction, payment_id)
     if payment is None:
         raise NotFoundError("Giao dịch không tồn tại.")
+    # A late transfer is the common case once a QR lapses, so "Kiểm tra lại" must
+    # also ask the gateway for expired/verifying payments, not only live ones.
     if (
         settings.payment_gateway == "sepay"
         and settings.sepay_api_token
-        and payment.status == QR_PENDING
+        and payment.status in (QR_PENDING, QR_EXPIRED, QR_VERIFYING)
     ):
         try:
             rows = await sepay.recent_transfers(
@@ -452,6 +719,10 @@ async def cancel_qr(
     if payment.status != QR_PENDING:
         raise BusinessRuleError("Chỉ hủy QR đang chờ.")
     payment.status = QR_CANCELLED
+    order = await session.get(Order, payment.order_id)
+    if order is not None and order.status == QR_PENDING_ORDER:
+        order.status = "Đang mở"
+        order.updated_at = business_date.now()
     session.add(
         SystemAuditLog(
             user_id=actor_id,
@@ -473,6 +744,25 @@ async def expire_stale_qr(session: AsyncSession) -> int:
     write time instead of trusting a snapshot read earlier.
     """
     now = business_date.now()
+    stale_order_ids = set(
+        (
+            await session.execute(
+                select(PaymentTransaction.order_id).where(
+                    PaymentTransaction.method == "QR",
+                    PaymentTransaction.status == QR_PENDING,
+                    or_(
+                        PaymentTransaction.deadline < now,
+                        and_(
+                            PaymentTransaction.deadline.is_(None),
+                            PaymentTransaction.created_at < now - QR_LIFETIME,
+                        ),
+                    ),
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
     result = cast(
         CursorResult,
         await session.execute(
@@ -494,8 +784,82 @@ async def expire_stale_qr(session: AsyncSession) -> int:
     )
     expired = result.rowcount or 0
     if expired:
+        await session.execute(
+            update(Order)
+            .where(Order.id.in_(stale_order_ids), Order.status == QR_PENDING_ORDER)
+            .values(status="Đang mở", updated_at=now)
+        )
         await session.flush()
     return expired
+
+
+async def expire_qr_tick(*, factory: async_sessionmaker[AsyncSession] | None = None) -> int:
+    """Expire stale QRs without waiting for a cashier to open the payment screen.
+
+    FR-SALE-14 says a QR lapses after 10 minutes; the lazy check in the request
+    paths only helps if someone is looking at the order.
+    """
+    if factory is None:
+        from app.core.database import get_session_factory
+
+        factory = get_session_factory()
+    async with factory() as session:
+        try:
+            expired = await expire_stale_qr(session)
+            await session.commit()
+            return expired
+        except Exception:
+            await session.rollback()
+            raise
+
+
+async def sync_recent_transfers(*, factory: async_sessionmaker[AsyncSession] | None = None) -> int:
+    """Settle transfers from the bank listing when a webhook was missed or unavailable.
+
+    One listing call covers every recent transfer, and `handle_sepay_transfer` is
+    idempotent per gateway id, so running this alongside a webhook is safe.
+    """
+    settings = get_settings()
+    if settings.payment_gateway != "sepay" or not settings.sepay_api_token:
+        return 0
+    try:
+        rows = await sepay.recent_transfers(
+            api_url=settings.sepay_api_url,
+            token=settings.sepay_api_token,
+            account=settings.sepay_bank_account,
+        )
+    except httpx.HTTPError:
+        logger.warning("SePay transaction listing failed; will retry on the next tick")
+        return 0
+    if factory is None:
+        from app.core.database import get_session_factory
+
+        factory = get_session_factory()
+
+    confirmed = 0
+    for row in rows:
+        try:
+            body = sepay.transfer_from_listing(row)
+            transfer = sepay.parse_transfer(body)
+        except (ValueError, InvalidOperation):
+            logger.warning("Skipped a malformed SePay listing row")
+            continue
+        # Money that does not reference one of our payments is ordinary bank
+        # activity (rent, suppliers, old transfers). Recording every such row as a
+        # payment exception would bury the ones a manager must actually resolve.
+        if sepay.payment_id_of(transfer, settings.sepay_payment_prefix) is None:
+            continue
+        async with factory() as session:
+            try:
+                result = await handle_sepay_transfer(session, body)
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                logger.exception("Could not apply a SePay listing transfer")
+                continue
+        if result == "confirmed":
+            confirmed += 1
+    return confirmed
 
 
 async def request_verification(
@@ -527,7 +891,7 @@ async def request_verification(
     ).scalar_one_or_none()
     if order is None:
         raise NotFoundError("Order không tồn tại.")
-    if order.status != "Đang mở":
+    if order.status not in ("Đang mở", QR_PENDING_ORDER):
         raise BusinessRuleError("Order đã đổi trạng thái trước khi yêu cầu xác minh.")
     payment.status = QR_VERIFYING
     order.status = QR_VERIFYING
@@ -656,6 +1020,9 @@ async def close_unpaid_order(
     )
     for payment in payments:
         payment.status = PAYMENT_CLOSED_UNPAID
+    from app.modules.sales.reservations import release_active_holds
+
+    await release_active_holds(session, order_id=order.id, table_id=order.table_id)
     order.status = PAYMENT_CLOSED_UNPAID
     order.total = await order_total(session, order)
     order.cancel_reason = reason
@@ -731,7 +1098,12 @@ async def apply_late_payment(
         payment.bank_ref = bank_ref
     await session.flush()
     invoice = await _issue_invoice(
-        session, order, business_date_value=payment.business_date, total=total, payment=payment
+        session,
+        order,
+        business_date_value=payment.business_date,
+        total=total,
+        payment=payment,
+        actor_id=actor_id,
     )
     _settle(order, "Đã thanh toán", business_date.now())
     session.add(
@@ -773,7 +1145,7 @@ async def mark_for_reconciliation(
     ).scalar_one_or_none()
     if order is None:
         raise NotFoundError("Order không tồn tại.")
-    if order.status != "Đang mở":
+    if order.status not in ("Đang mở", QR_PENDING_ORDER):
         raise BusinessRuleError("Order đã đổi trạng thái trước khi đối soát.")
     payment.status = QR_RECONCILING
     _settle(order, QR_RECONCILING, business_date.now())
@@ -800,8 +1172,16 @@ async def record_bank_reference(
     payment = await session.get(PaymentTransaction, payment_id)
     if payment is None:
         raise NotFoundError("Giao dịch không tồn tại.")
+    reference = (reference or "").strip()
+    if not reference:
+        raise BusinessRuleError("Cần nhập mã giao dịch ngân hàng.")
     payment.bank_ref = reference
     payment.evidence = evidence
+    try:
+        async with session.begin_nested():
+            await session.flush()
+    except IntegrityError as exc:
+        raise BusinessRuleError("Mã giao dịch ngân hàng đã dùng cho giao dịch khác.") from exc
     session.add(
         SystemAuditLog(
             user_id=actor_id,
@@ -834,7 +1214,12 @@ async def resolve_reconciliation(
         total = await order_total(session, order)
         order.total = total
         await _issue_invoice(
-            session, order, business_date_value=payment.business_date, total=total, payment=payment
+            session,
+            order,
+            business_date_value=payment.business_date,
+            total=total,
+            payment=payment,
+            actor_id=actor_id,
         )
         _settle(order, "Đã thanh toán", now)
     else:
@@ -866,3 +1251,177 @@ async def reprint_invoice(session: AsyncSession, order_id: int) -> Invoice:
     invoice.print_count = int(invoice.print_count) + 1
     await session.flush()
     return invoice
+
+
+async def list_exceptions(
+    session: AsyncSession, *, status: str | None = None
+) -> list[tuple[PaymentException, str | None]]:
+    """FR-SALE-17: money waiting for a manager, newest first."""
+    stmt = (
+        select(PaymentException, Order.display_code)
+        .outerjoin(Order, Order.id == PaymentException.order_id)
+        .order_by(PaymentException.created_at.desc(), PaymentException.id.desc())
+    )
+    if status:
+        stmt = stmt.where(PaymentException.status == status)
+    rows = (await session.execute(stmt)).all()
+    return [(row[0], row[1]) for row in rows]
+
+
+async def _apply_exception_money(
+    session: AsyncSession, exception: PaymentException, *, actor_id: int | None
+) -> None:
+    if exception.payment_transaction_id is None:
+        raise BusinessRuleError("Khoản này không gắn với giao dịch của order.")
+    payment = (
+        await session.execute(
+            select(PaymentTransaction)
+            .where(PaymentTransaction.id == exception.payment_transaction_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+    ).scalar_one_or_none()
+    if payment is None:
+        raise NotFoundError("Giao dịch không tồn tại.")
+    order = (
+        await session.execute(
+            select(Order)
+            .where(Order.id == payment.order_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+    ).scalar_one_or_none()
+    if order is None:
+        raise NotFoundError("Order không tồn tại.")
+    if await _has_success_or_invoice(session, order.id):
+        raise BusinessRuleError("Order đã có thanh toán/hóa đơn, chỉ có thể hoàn tiền.")
+    total = await order_total(session, order)
+    if Decimal(str(exception.amount)) != total:
+        raise BusinessRuleError("Số tiền không còn khớp với order, chỉ có thể hoàn tiền.")
+
+    if order.status == PAYMENT_CLOSED_UNPAID and payment.status == PAYMENT_CLOSED_UNPAID:
+        await apply_late_payment(
+            session, payment.id, actor_id=actor_id, bank_ref=exception.bank_ref
+        )
+        return
+    if order.status not in ("Đang mở", QR_RECONCILING, QR_VERIFYING):
+        raise BusinessRuleError("Order không ở trạng thái có thể áp dụng khoản tiền.")
+
+    await _cancel_other_qrs(session, order.id, keep_payment_id=payment.id)
+    payment.status = QR_SUCCESS
+    payment.bank_ref = exception.bank_ref
+    order.total = total
+    await session.flush()
+    await _issue_invoice(
+        session,
+        order,
+        business_date_value=payment.business_date,
+        total=total,
+        payment=payment,
+        actor_id=actor_id,
+    )
+    _settle(order, "Đã thanh toán", business_date.now())
+    await session.flush()
+
+
+async def _release_reconciling_payment(session: AsyncSession, exception: PaymentException) -> None:
+    """Refunded money frees the order again, but never reopens a settled bill.
+
+    A wrong-amount transfer puts the order in "Chờ đối soát". Once that money is
+    returned, the guest still owes the bill: the order must go back to "Đang mở"
+    so a new cash/QR payment can be taken.
+    """
+    if exception.payment_transaction_id is None:
+        return
+    payment = await session.get(PaymentTransaction, exception.payment_transaction_id)
+    if payment is None or payment.status not in (QR_RECONCILING, QR_VERIFYING):
+        return
+    order = (
+        await session.execute(
+            select(Order)
+            .where(Order.id == payment.order_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+    ).scalar_one_or_none()
+    if order is None:
+        return
+    if order.status not in (QR_RECONCILING, QR_VERIFYING):
+        return
+    if await _has_success_or_invoice(session, order.id):
+        return
+    payment.status = QR_CANCELLED
+    order.status = "Đang mở"
+    order.updated_at = business_date.now()
+    order.closed_at = None
+    await session.flush()
+
+
+async def resolve_exception(
+    session: AsyncSession,
+    exception_id: int,
+    *,
+    outcome: str,
+    actor_id: int | None,
+    note: str | None = None,
+    refund_ref: str | None = None,
+    refund_amount: Decimal | None = None,
+) -> PaymentException:
+    """FR-SALE-17: apply the money to its order or record an external refund."""
+    if outcome not in ("applied", "refunded"):
+        raise BusinessRuleError("Kết quả xử lý phải là applied hoặc refunded.")
+    exception = (
+        await session.execute(
+            select(PaymentException)
+            .where(PaymentException.id == exception_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+    ).scalar_one_or_none()
+    if exception is None:
+        raise NotFoundError("Khoản ngoại lệ không tồn tại.")
+    if exception.status != EXCEPTION_PENDING:
+        raise BusinessRuleError("Khoản ngoại lệ đã được xử lý.")
+    if outcome == "refunded":
+        if not (note or "").strip():
+            raise BusinessRuleError("Cần ghi chú hoàn tiền ngoài hệ thống.")
+        refund_ref = (refund_ref or "").strip()
+        if not refund_ref:
+            raise BusinessRuleError("Cần nhập mã tham chiếu hoàn tiền của ngân hàng.")
+        released = (
+            Decimal(str(refund_amount))
+            if refund_amount is not None
+            else Decimal(str(exception.amount))
+        )
+        if released <= 0 or released > Decimal(str(exception.amount)):
+            raise BusinessRuleError("Số tiền hoàn phải lớn hơn 0 và không vượt số tiền đã nhận.")
+        exception.refund_ref = refund_ref
+        exception.refund_amount = released
+    if outcome == "applied":
+        await _apply_exception_money(session, exception, actor_id=actor_id)
+    else:
+        await _release_reconciling_payment(session, exception)
+
+    exception.status = EXCEPTION_APPLIED if outcome == "applied" else EXCEPTION_REFUNDED
+    exception.note = (note or "").strip() or None
+    exception.resolved_at = business_date.now()
+    exception.resolved_by = actor_id
+    session.add(
+        SystemAuditLog(
+            user_id=actor_id,
+            action="RESOLVE_PAYMENT_EXCEPTION",
+            target_entity="NGOAI_LE_THANH_TOAN",
+            target_id=str(exception.id),
+            after={
+                "ketQua": outcome,
+                "MaGiaoDichCong": exception.bank_ref,
+                "MaThamChieuHoan": exception.refund_ref,
+                "SoTienHoan": float(exception.refund_amount)
+                if exception.refund_amount is not None
+                else None,
+            },
+            reason=exception.note,
+        )
+    )
+    await session.flush()
+    return exception
