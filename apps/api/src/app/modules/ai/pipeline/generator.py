@@ -72,6 +72,10 @@ async def generate_sql(
     store = runtime.get_runtime_store()
     # Store naive UTC in MySQL DATETIME; BusinessDate itself uses restaurant time.
     cache_now = now.astimezone(UTC).replace(tzinfo=None)
+    # NFR-16 counts questions, not provider calls: a cache hit is still a question
+    # answered, and a retry inside one question must not burn a second slot.
+    call_day = business_date.business_date_of(business_date.now())
+    await store.reserve_call(call_day, quota, user_id or 0)
     cached = await store.get_sql(cache_key, cache_now)
     if cached is not None:
         try:
@@ -86,9 +90,6 @@ async def generate_sql(
         prompt = base_prompt
         if last_error is not None:
             prompt += f"\n\nLần trước câu SQL chưa hợp lệ: {last_error}. Hãy sửa lại."
-        # Recompute BusinessDate on retries crossing the restaurant's 06:00 boundary.
-        call_day = business_date.business_date_of(business_date.now())
-        await store.reserve_call(call_day, quota, user_id or 0)
         raw = await asyncio.to_thread(client.complete, prompt) or ""
         text = raw.strip()
 

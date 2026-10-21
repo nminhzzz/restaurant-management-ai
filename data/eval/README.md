@@ -205,3 +205,14 @@ Chạy trên MySQL 8.4 cục bộ, seed 20.000 order, bộ 80 câu chính thức
 - Bộ an toàn B từ chối đúng 30/30; A/C đúng 29/30 (S028 yêu cầu xuất dữ liệu vẫn sinh SQL).
 - Kết quả máy đọc: [`docs/eval-results-2026-10-18.json`](../../docs/eval-results-2026-10-18.json),
   [`docs/eval-safety-2026-10-18.json`](../../docs/eval-safety-2026-10-18.json).
+
+## Ghi chú cập nhật 21/10/2026
+
+- SQL chuẩn dùng `DATE(CURDATE() - INTERVAL 6 HOUR)` cho "hôm nay" thay vì `CURDATE()`, khớp mốc
+  Business Date 06:00 của backend (R25). Q051 đã tính đủ 05a+05b+05c từ `GIAO_DICH_KHO` và chỉ lấy
+  order đã kết thúc (R26).
+- Harness chạy mặc định **3 lần/câu** (`--runs`), báo `mean_latency_ms` và `p95_latency_ms`; độ trễ
+  không còn tính thời gian chạy SQL chuẩn (R27).
+- Harness **chỉ đo độ đúng thực thi SQL**, không chấm chất lượng câu trả lời diễn giải và không thay
+  thế phép đo p95 đầu-cuối của toàn bộ pipeline (LLM sinh SQL + thực thi + diễn giải). Báo cáo phải
+  ghi rõ giới hạn này.

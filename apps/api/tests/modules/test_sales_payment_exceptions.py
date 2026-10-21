@@ -326,3 +326,29 @@ async def test_a_late_payment_reopens_the_money_and_issues_one_invoice(
         headers=_auth(manager_token),
     )
     assert report.json()["SoLuong"] == 0
+
+
+@pytest.mark.anyio
+async def test_a_reopened_order_stays_in_the_pending_list(
+    api_client, session, manager_token, cashier_token
+):
+    """FR-REP-02 / FR-SALE-23: reopening cancels the old QR but the order still owes money."""
+    dish, table = await _setup(session)
+    order_id, payment_id = await _open_order(api_client, cashier_token, dish, table)
+    await api_client.post(
+        f"/api/v1/sales/payments/{payment_id}/request-verification",
+        headers=_auth(cashier_token),
+    )
+    reopened = await api_client.post(
+        f"/api/v1/sales/payments/{payment_id}/reopen",
+        json={"reason": "Khách chưa chuyển"},
+        headers=_auth(manager_token),
+    )
+    assert reopened.status_code == 200
+
+    pending = await api_client.get("/api/v1/reports/pending-payments", headers=_auth(manager_token))
+    assert pending.status_code == 200
+    rows = [row for row in pending.json()["items"] if row["MaOrder"] == order_id]
+    assert rows, "order vừa mở lại đã biến mất khỏi danh sách khoản chưa thu"
+    assert rows[0]["TrangThai"] == "Đã mở lại \u2013 chờ thu"
+    assert float(rows[0]["SoTien"]) == 50000

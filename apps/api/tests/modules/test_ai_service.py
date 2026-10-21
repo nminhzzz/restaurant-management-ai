@@ -261,3 +261,24 @@ async def test_a_refused_turn_says_so_in_kind(
     assert body["kind"] == "refused"
     assert body["headline"] == body["answer"]
     assert body["scope_note"] is None
+
+
+@pytest.mark.anyio
+async def test_history_is_scoped_to_the_role_that_asked(
+    api_client, token_for, seed_views, fake_llm, ai_engine
+):
+    """FR-AI-01/05: switching roles must not expose the previous role's answers."""
+    cashier = token_for(Role.CASHIER, user_id=1)
+    manager = token_for(Role.MANAGER, user_id=1)
+    fake_llm.reply("SELECT COUNT(*) AS SoDon FROM vw_ai_thungan")
+
+    session_id = (await _chat(api_client, cashier, "hôm nay bao nhiêu đơn?")).json()["session_id"]
+
+    own = await api_client.get(f"/api/v1/assistant/sessions/{session_id}", headers=_auth(cashier))
+    assert own.status_code == 200
+
+    other = await api_client.get(f"/api/v1/assistant/sessions/{session_id}", headers=_auth(manager))
+    assert other.status_code == 404
+
+    listing = await api_client.get("/api/v1/assistant/sessions", headers=_auth(manager))
+    assert listing.json()["items"] == []

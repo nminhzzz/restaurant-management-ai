@@ -799,6 +799,7 @@ async def pending_payments(
     ).all()
     now = business_date.now().replace(tzinfo=None)
     out: list[PendingPayment] = []
+    seen_orders: set[int] = set()
     for payment, order in rows:
         waited = 0
         if payment.created_at is not None:
@@ -813,6 +814,61 @@ async def pending_payments(
                 TrangThai=payment.status,
                 ThoiGianChoPhut=waited,
                 KetQuaGanNhat=payment.bank_ref or payment.evidence or payment.status,
+            )
+        )
+        seen_orders.add(order.id)
+
+    # FR-SALE-23 / FR-REP-02: reopening a payment cancels the old transaction and
+    # returns the order to "Đang mở". Filtering only live transaction statuses made
+    # the unpaid order disappear from this list until a new QR existed.
+    reopened_ids = (
+        select(func.cast(SystemAuditLog.target_id, Integer))
+        .where(
+            SystemAuditLog.target_entity == "GIAO_DICH_THANH_TOAN",
+            SystemAuditLog.action.in_(("REOPEN_PAYMENT", "REQUEST_VERIFICATION")),
+        )
+        .scalar_subquery()
+    )
+    reopened_conditions: list[Any] = [
+        PaymentTransaction.id.in_(reopened_ids),
+        PaymentTransaction.status == "Đã hủy",
+        Order.status.in_(("Đang mở", STATUS_VERIFYING)),
+        ~select(Invoice.id).where(Invoice.order_id == Order.id).exists(),
+    ]
+    if period is not None:
+        reopened_conditions += [
+            PaymentTransaction.business_date >= period.start,
+            PaymentTransaction.business_date <= period.end,
+        ]
+    reopened_rows = (
+        await session.execute(
+            select(PaymentTransaction, Order)
+            .join(Order, Order.id == PaymentTransaction.order_id)
+            .where(*reopened_conditions)
+            .order_by(PaymentTransaction.created_at.asc())
+        )
+    ).all()
+    for payment, order in reopened_rows:
+        if order.id in seen_orders:
+            continue
+        total = await session.execute(
+            select(func.coalesce(func.sum(OrderLine.unit_price * OrderLine.quantity), 0)).where(
+                OrderLine.order_id == order.id, OrderLine.status != LINE_CANCELLED
+            )
+        )
+        waited = 0
+        if order.updated_at is not None:
+            waited = max(0, int((now - order.updated_at).total_seconds() // 60))
+        out.append(
+            PendingPayment(
+                MaOrder=order.id,
+                MaOrderHienThi=order.display_code,
+                MaGiaoDich=payment.id,
+                PhuongThuc=payment.method,
+                SoTien=Decimal(str(total.scalar_one() or 0)),
+                TrangThai="Đã mở lại \u2013 chờ thu",
+                ThoiGianChoPhut=waited,
+                KetQuaGanNhat="Quản lý đã mở lại thanh toán",
             )
         )
     return out

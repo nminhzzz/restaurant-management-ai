@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import REPO_ROOT
 from app.modules.ai.scope import ROLE_VIEWS
+from app.shared import business_date
 from app.shared.roles import Role
 
 _EXAMPLES_PATH = REPO_ROOT / "data" / "eval" / "questions.example.jsonl"
@@ -174,7 +175,11 @@ async def build_prompt(
         "Hệ quản trị là MySQL 8.4: chỉ dùng cú pháp MySQL (CURDATE(), NOW(), DATE_SUB, "
         "DATE_FORMAT, LIMIT), không dùng GETDATE, TOP hay cú pháp của hệ quản trị khác.",
         "Ngày kinh doanh nằm ở cột BusinessDate (một ngày kinh doanh chạy từ 06:00 tới "
-        "06:00 hôm sau); 'hôm nay' nghĩa là BusinessDate = CURDATE().",
+        "06:00 hôm sau).",
+        # CURDATE() is wrong before 06:00: the business day is still yesterday.
+        "'Hôm nay' nghĩa là BusinessDate = "
+        f"'{business_date.business_date_of(business_date.now()):%Y-%m-%d}'; "
+        "hãy dùng đúng hằng ngày này thay vì CURDATE() khi câu hỏi nói hôm nay/hôm qua.",
         f"Phạm vi dữ liệu của vai trò này: {ROLE_SCOPE_NOTE[role]}.",
         "Nếu câu hỏi nằm ngoài phạm vi hoặc còn thiếu thông tin, hãy trả lời bắt đầu bằng "
         "'CLARIFY:' kèm một câu hỏi làm rõ thay vì đoán.",

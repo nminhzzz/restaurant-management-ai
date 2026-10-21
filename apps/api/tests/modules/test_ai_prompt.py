@@ -77,5 +77,8 @@ async def test_the_prompt_names_the_sql_dialect_even_without_examples(session, s
     prompt = await build_prompt(session, "Hôm nay có bao nhiêu đơn?", role, examples=[])
 
     assert "MySQL 8.4" in prompt
-    assert "CURDATE()" in prompt
+    # The current business day is injected by the backend; CURDATE() would be wrong
+    # between 00:00 and 06:00, when the business day is still yesterday.
+    assert "2026-09-24" in prompt
+    assert "thay vì CURDATE()" in prompt
     assert "BusinessDate" in prompt

@@ -488,7 +488,9 @@ async def seed_views(engine: AsyncEngine) -> None:
         _QUANLY_COLUMNS,
         {
             "LoaiBanGhi": "'GIAO_DICH_KHO'",
+            "MaOrder": "ct.MaOrder",
             "BusinessDate": "g.BusinessDate",
+            "TrangThaiOrder": "o.TrangThai",
             "MaNguyenLieu": "g.MaNguyenLieu",
             "TenNguyenLieu": "n.TenNguyenLieu",
             "DonViTinh": "n.DonViTinh",
@@ -617,6 +619,8 @@ async def seed_views(engine: AsyncEngine) -> None:
                 "JOIN NGUYEN_LIEU n ON n.MaNguyenLieu = gv.MaNguyenLieu "
                 f"UNION ALL SELECT {quanly_giao_dich_kho} FROM GIAO_DICH_KHO g "
                 "JOIN NGUYEN_LIEU n ON n.MaNguyenLieu = g.MaNguyenLieu "
+                "LEFT JOIN CHI_TIET_ORDER ct ON ct.MaChiTietOrder = g.MaChiTietOrder "
+                "LEFT JOIN `ORDER` o ON o.MaOrder = ct.MaOrder "
                 f"UNION ALL SELECT {quanly_phieu_nhap} FROM CHI_TIET_PHIEU_NHAP ct "
                 "JOIN PHIEU_NHAP_KHO pn ON pn.MaPhieuNhap = ct.MaPhieuNhap "
                 "JOIN NGUYEN_LIEU n ON n.MaNguyenLieu = ct.MaNguyenLieu "

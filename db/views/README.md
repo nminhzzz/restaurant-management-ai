@@ -93,3 +93,9 @@ giữ)` trên chính các lô đủ điều kiện. Hai cột được NULL-pad 
 Test: `apps/api/tests/schema/test_ai_views.py` assert `set(view_columns) == expected` trên MySQL
 (integration) và assert `vw_ai_thungan`/`vw_ai_kho` không lẫn cột bị cấm (NFR-06/12, FR-AI-03/04).
 
+
+### Ghi chú cập nhật 21/10/2026
+
+Nhánh `GIAO_DICH_KHO` giờ điền `MaOrder` và `TrangThaiOrder` cho các giao dịch
+`Trừ tự động`/`Hoàn kho` (NULL với nhập kho, xuất thủ công và điều chỉnh kiểm kê). Nhờ đó câu hỏi
+lợi nhuận gộp tách được giá vốn của order đã thanh toán/hủy/đóng chưa thu theo FR-REP-04–05.
