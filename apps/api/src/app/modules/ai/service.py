@@ -110,7 +110,15 @@ async def answer(
             columns = list(rows[0].keys()) if rows else []
             spec = charts.choose_chart(columns, rows)
             columns_meta = labels.describe_columns(columns, rows)
-            interpretation = await interpreter.interpret(session, normalized, sql_text, rows, role)
+        # The SQL and its rows are ready; a slow prose call must not throw them away.
+        remaining = settings.ai_response_budget_seconds - (time.perf_counter() - started)
+        try:
+            async with asyncio.timeout(max(0.5, remaining)):
+                interpretation = await interpreter.interpret(
+                    session, normalized, sql_text, rows, role
+                )
+        except TimeoutError:
+            interpretation = interpreter.fallback(rows, role)
     except ClarificationNeeded as exc:
         await _record(
             session,

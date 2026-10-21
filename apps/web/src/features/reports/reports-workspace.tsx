@@ -6,6 +6,7 @@ import { ComparisonReport } from "@/features/reports/comparison-report";
 import { DishRanking } from "@/features/reports/dish-ranking";
 import { HourlyReport } from "@/features/reports/hourly-report";
 import { MarginReport } from "@/features/reports/margin-report";
+import { PaymentReview } from "@/features/reports/payment-review";
 import { RevenueChart } from "@/features/reports/revenue-chart";
 
 const TABS = [
@@ -15,6 +16,7 @@ const TABS = [
   { value: "margin", label: "Lợi nhuận" },
   { value: "comparison", label: "So sánh" },
   { value: "cancelled", label: "Order hủy" },
+  { value: "payments", label: "Thanh toán" },
 ];
 
 export function ReportsWorkspace() {
@@ -44,6 +46,9 @@ export function ReportsWorkspace() {
       </TabsContent>
       <TabsContent value="cancelled">
         <CancelledReport />
+      </TabsContent>
+      <TabsContent value="payments">
+        <PaymentReview />
       </TabsContent>
     </Tabs>
   );

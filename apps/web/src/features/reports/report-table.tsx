@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 import { DataPagination } from "@/components/data-pagination";
 import { SearchFilter } from "@/components/filter-bar";
@@ -22,7 +22,7 @@ export function ReportTable({
   searchColumn = 0,
 }: {
   headers: string[];
-  rows: (string | number)[][];
+  rows: ReactNode[][];
   /** Enables client-side paging when set (report tables page at 10/page). */
   pageSize?: number;
   /** Enables a search box filtering on `searchColumn` when set. */

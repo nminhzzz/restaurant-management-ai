@@ -21,7 +21,7 @@ from app.modules.ai.pipeline.prompt import ROLE_SCOPE_NOTE
 from app.modules.ai.scope import ROLE_VIEWS
 from app.shared.roles import Role
 
-EMPTY_ANSWER = "Không có dữ liệu nào phù hợp với câu hỏi trong phạm vi được phép."
+EMPTY_ANSWER = "Truy vấn hợp lệ nhưng không có dòng dữ liệu nào thỏa điều kiện của câu hỏi."
 FALLBACK_ANSWER = "Kết quả đã được truy vấn nhưng chưa diễn giải được thành câu trả lời."
 
 PROMPT = (
@@ -49,6 +49,17 @@ class Interpretation:
     scope_note: str
 
 
+def fallback(rows: list[dict[str, Any]], role: Role) -> Interpretation:
+    """A truthful answer when the model cannot finish in time (NFR-02).
+
+    The data and the SQL are already correct; only the prose is missing, so the user
+    still gets the table/chart instead of a failed turn.
+    """
+    note = scope_note(role)
+    answer = StructuredAnswer(headline=EMPTY_ANSWER if not rows else FALLBACK_ANSWER)
+    return Interpretation(answer, compose_answer(answer, note), note)
+
+
 async def interpret(
     session: AsyncSession,
     question: str,
@@ -59,8 +70,7 @@ async def interpret(
     """A structured Vietnamese answer; the scope note is always appended by code."""
     note = scope_note(role)
     if not rows:
-        answer = StructuredAnswer(headline=EMPTY_ANSWER)
-        return Interpretation(answer, compose_answer(answer, note), note)
+        return fallback(rows, role)
 
     prompt = PROMPT.format(question=question, sql=sql, count=len(rows), rows=rows[:20])
     raw = await asyncio.to_thread(llm.get_client().complete, prompt) or ""

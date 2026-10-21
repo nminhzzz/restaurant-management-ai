@@ -112,14 +112,36 @@ async def test_the_cancelled_report_includes_consumed_ingredient_cost(
     )
     session.add(order)
     await session.flush()
+    line = OrderLine(
+        order_id=order.id,
+        dish_id=september_data.dish.id,
+        quantity=2,
+        unit_price=Decimal("50000"),
+        recipe_id=september_data.recipe.id,
+        status="Đã phục vụ",
+    )
+    session.add(line)
+    await session.flush()
+
+    # FR-REP-05c reads the stock ledger: the served line really consumed 1 kg
+    # (2 portions x 0.5 kg) and was not returned when the order was cancelled.
+    from sqlalchemy import select
+
+    from app.modules.catalog.models import RecipeItem
+    from app.modules.inventory.models import StockMovement
+
+    item = (
+        await session.execute(
+            select(RecipeItem).where(RecipeItem.recipe_id == september_data.recipe.id)
+        )
+    ).scalar_one()
     session.add(
-        OrderLine(
-            order_id=order.id,
-            dish_id=september_data.dish.id,
-            quantity=2,
-            unit_price=Decimal("50000"),
-            recipe_id=september_data.recipe.id,
-            status="Đã phục vụ",
+        StockMovement(
+            ingredient_id=item.ingredient_id,
+            kind="Trừ tự động",
+            qty=Decimal("-1"),
+            business_date=date(2026, 9, 21),
+            order_line_id=line.id,
         )
     )
     await session.commit()
@@ -131,6 +153,16 @@ async def test_the_cancelled_report_includes_consumed_ingredient_cost(
 
     assert Decimal(item["GiaVon"]) == Decimal("10000")
     assert Decimal(body["TongGiaVon"]) >= Decimal("10000")
+
+    costs = (
+        await api_client.get(
+            "/api/v1/reports/costs",
+            headers=_auth(manager_token),
+            params={"month": "2026-09"},
+        )
+    ).json()
+    assert Decimal(costs["DonHuyChuaThu"]) == Decimal("10000")
+    assert Decimal(costs["TongGiaVon"]) >= Decimal("10000")
 
 
 @pytest.mark.anyio

@@ -19,6 +19,7 @@ from decimal import Decimal
 from scripts.seed.catalog import CatalogIds, build_catalogue
 from scripts.seed.config import (
     CANCELLED_ORDER_RATIO,
+    TAKEAWAY_RATIO,
     CASH_PAYMENT_RATIO,
     DISH_POWER_LAW_EXPONENT,
     DISPUTE_RATIO,
@@ -197,13 +198,14 @@ async def _place_order(
             {"MaMon": dish_id, "SoLuong": rng.randint(1, 3), "GhiChu": None}
             for dish_id in rng.choices(ids.dish_ids, weights=weights, k=rng.randint(1, 4))
         ]
+        takeaway = rng.random() < TAKEAWAY_RATIO
         try:
             async with session.begin_nested():
                 result = await orders_service.submit_order(
                     session,
                     {
-                        "table_id": rng.choice(ids.table_ids),
-                        "order_type": "Tại chỗ",
+                        "table_id": None if takeaway else rng.choice(ids.table_ids),
+                        "order_type": "Mang về" if takeaway else "Tại chỗ",
                         "lines": lines,
                     },
                     actor_id=ids.manager_id,
@@ -221,7 +223,11 @@ async def _place_order(
                     await payments_service.pay_cash(session, order.id, actor_id=ids.manager_id)
                 else:
                     await _settle_qr(session, order.id, rng)
-                table = await session.get(DiningTable, order.table_id)
+                table = (
+                    await session.get(DiningTable, order.table_id)
+                    if order.table_id is not None
+                    else None
+                )
                 if table is not None and table.current_order_id == order.id:
                     await release_table(session, table.id, order.id, actor_id=ids.manager_id)
         except BusinessRuleError as exc:

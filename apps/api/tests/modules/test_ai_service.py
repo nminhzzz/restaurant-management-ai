@@ -137,6 +137,35 @@ async def test_a_slow_turn_is_cut_off_at_the_response_budget(session, seed_views
 
 
 @pytest.mark.anyio
+async def test_a_slow_interpretation_still_returns_the_rows(
+    session, seed_views, fake_llm, ai_engine, monkeypatch
+):
+    """NFR-02: a late prose call must not discard SQL that already succeeded."""
+    import asyncio
+
+    from app.core.config import get_settings
+    from app.modules.ai.pipeline import interpreter
+
+    monkeypatch.setenv("AI_RESPONSE_BUDGET_SECONDS", "0.4")
+    get_settings.cache_clear()
+    fake_llm.reply("SELECT COUNT(*) AS SoDon FROM vw_ai_thungan")
+
+    async def slow(*args, **kwargs):
+        await asyncio.sleep(0.5)
+        raise AssertionError("interpretation should have been cut off")
+
+    monkeypatch.setattr(interpreter, "interpret", slow)
+    try:
+        response = await answer(session, "hỏi", Role.CASHIER, user_id=1)
+    finally:
+        get_settings.cache_clear()
+
+    assert response.kind == "answer"
+    assert response.data
+    assert response.answer.startswith(interpreter.FALLBACK_ANSWER)
+
+
+@pytest.mark.anyio
 async def test_every_message_shown_to_the_user_is_vietnamese(
     api_client, cashier_token, seed_views, fake_llm, ai_engine
 ):

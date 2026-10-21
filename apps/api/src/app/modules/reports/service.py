@@ -110,6 +110,7 @@ async def costs(session: AsyncSession, month: str) -> CostBreakdownOut:
     return CostBreakdownOut(
         NguyenLieu=result.NguyenLieu,
         HaoHut=result.HaoHut,
+        DonHuyChuaThu=result.DonHuyChuaThu,
         TongGiaVon=result.TongGiaVon,
         TamTinh=result.TamTinh,
         SoDongChuaTinhGiaVon=result.SoDongChuaTinhGiaVon,
@@ -199,6 +200,8 @@ async def closed_unpaid(session: AsyncSession, month: str) -> ClosedUnpaidReport
                 TongTien=item.TongTien,
                 GiaVon=item.GiaVon,
                 LyDo=item.LyDo,
+                NguoiDong=item.NguoiDong,
+                ThoiDiemDong=item.ThoiDiemDong,
             )
             for item in result.items
         ],

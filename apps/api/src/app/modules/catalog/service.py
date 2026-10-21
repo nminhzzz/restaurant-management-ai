@@ -946,6 +946,18 @@ async def list_tables(session):
     return list(r.scalars().all())
 
 
+async def ensure_dish_sellable(session, dish_id: int):
+    """The single backend check for FR-CAT-04/26/27: deleted, draft or blocked dishes."""
+    from app.modules.catalog.models import Dish
+
+    dish = await session.get(Dish, dish_id)
+    if dish is None or dish.is_deleted:
+        raise BusinessRuleError("Món không tồn tại hoặc đã bị xóa.")
+    if dish.out_of_stock:
+        raise BusinessRuleError("Món đang hết nguyên liệu hoặc tạm dừng phục vụ.")
+    return dish
+
+
 async def set_manual_out_of_stock(session, actor_id: int, dish_id: int, value: bool):
     d = await session.get(Dish, dish_id)
     if d is None or d.is_deleted:

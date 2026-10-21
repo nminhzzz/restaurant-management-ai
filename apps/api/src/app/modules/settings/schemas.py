@@ -93,7 +93,7 @@ class BackupDump(BaseModel):
 
 class AuditEntryOut(BaseModel):
     MaNhatKy: int = Field(validation_alias="id")
-    MaNguoiDung: int = Field(validation_alias="user_id")
+    MaNguoiDung: int | None = Field(default=None, validation_alias="user_id")
     ThoiDiem: datetime = Field(validation_alias="occurred_at")
     LoaiThaoTac: str = Field(validation_alias="action")
     DoiTuong: str = Field(validation_alias="target_entity")

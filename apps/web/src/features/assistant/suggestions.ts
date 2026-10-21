@@ -27,7 +27,7 @@ const BY_ROLE: Record<string, Suggestion[]> = {
     {
       topic: "Kho",
       module: "inventory",
-      text: "Những lô nào sắp hết hạn trong tuần này?",
+      text: "Nguyên liệu nào có tồn kho thấp nhất?",
     },
     {
       topic: "Báo cáo",
@@ -37,7 +37,7 @@ const BY_ROLE: Record<string, Suggestion[]> = {
     {
       topic: "Cài đặt",
       module: "settings",
-      text: "Hôm nay có bao nhiêu hoá đơn đã thanh toán?",
+      text: "Tháng này có bao nhiêu hoá đơn đã thanh toán?",
     },
   ],
   CASHIER: [
@@ -59,7 +59,7 @@ const BY_ROLE: Record<string, Suggestion[]> = {
     {
       topic: "Món ăn",
       module: "catalog",
-      text: "Món nào bán chạy nhất hôm nay?",
+      text: "Món nào bán chạy nhất tuần này?",
     },
   ],
   WAREHOUSE: [

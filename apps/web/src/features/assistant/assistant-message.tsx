@@ -10,7 +10,7 @@ import {
   ShieldCheck,
   UtensilsCrossed,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -31,21 +31,34 @@ function Elapsed() {
 function Points({
   headline,
   highlights,
+  reveal = false,
 }: {
   headline: string;
   highlights: string[];
+  reveal?: boolean;
 }) {
   return (
     <>
-      <p className="text-base leading-[25px] font-bold text-pretty">
+      <p
+        className={cn(
+          "text-base leading-[25px] font-bold text-pretty",
+          reveal && "assistant-reveal",
+        )}
+      >
         {headline}
       </p>
       {highlights.length > 0 && (
         <ul className="grid gap-1.5 text-[15px] leading-[23px]">
-          {highlights.map((point) => (
+          {highlights.map((point, index) => (
             <li
               key={point}
-              className="grid grid-cols-[14px_minmax(0,1fr)] gap-2"
+              className={cn(
+                "grid grid-cols-[14px_minmax(0,1fr)] gap-2",
+                reveal && "assistant-reveal",
+              )}
+              style={
+                reveal ? { animationDelay: `${90 * (index + 1)}ms` } : undefined
+              }
             >
               <span aria-hidden className="mt-[9px] size-1.5 bg-ink" />
               <span>{point}</span>
@@ -69,6 +82,16 @@ export function AssistantMessage({
   onAsk: (text: string) => void;
 }) {
   const result = turn.result;
+  // Only a turn that just finished may animate; restored history and the first render
+  // of an old answer stay still.
+  const previousStatus = useRef(turn.status);
+  const [reveal, setReveal] = useState(false);
+  useEffect(() => {
+    if (previousStatus.current === "pending" && turn.status === "done") {
+      setReveal(true);
+    }
+    previousStatus.current = turn.status;
+  }, [turn.status]);
 
   async function copy() {
     if (!result) return;
@@ -93,13 +116,19 @@ export function AssistantMessage({
   let body: React.ReactNode;
   if (turn.status === "pending") {
     body = (
-      <p
-        role="status"
-        className="flex h-8 items-center gap-2.5 font-medium text-muted"
-      >
-        <span aria-hidden className="size-2 bg-ink motion-safe:animate-pulse" />
-        Đang phân tích câu hỏi · <Elapsed /> giây
-      </p>
+      <div role="status" className="grid gap-2.5">
+        <p className="flex h-8 items-center gap-2.5 font-medium text-muted">
+          <span
+            aria-hidden
+            className="size-2 bg-ink motion-safe:animate-pulse"
+          />
+          Đang phân tích câu hỏi · <Elapsed /> giây
+        </p>
+        <div aria-hidden className="grid max-w-md gap-1.5">
+          <span className="h-3 w-3/4 rounded bg-surface-sunken motion-safe:animate-pulse" />
+          <span className="h-3 w-1/2 rounded bg-surface-sunken motion-safe:animate-pulse" />
+        </div>
+      </div>
     );
   } else if (turn.status === "failed") {
     body = (
@@ -178,10 +207,30 @@ export function AssistantMessage({
         <Points
           headline={result.headline || result.answer}
           highlights={result.highlights}
+          reveal={reveal}
         />
-        <ResultTabs result={result} />
+        <div
+          className={cn("grid gap-3.5", reveal && "assistant-reveal")}
+          style={
+            reveal
+              ? { animationDelay: `${90 * (result.highlights.length + 1)}ms` }
+              : undefined
+          }
+        >
+          <ResultTabs result={result} />
+        </div>
         {result.scope_note && (
-          <p className="flex items-start gap-2 text-[12.5px] leading-[18px] text-subtle">
+          <p
+            className={cn(
+              "flex items-start gap-2 text-[12.5px] leading-[18px] text-subtle",
+              reveal && "assistant-reveal",
+            )}
+            style={
+              reveal
+                ? { animationDelay: `${90 * (result.highlights.length + 2)}ms` }
+                : undefined
+            }
+          >
             <ShieldCheck className="mt-px size-3.5 shrink-0" aria-hidden />
             {result.scope_note} Trợ lý chỉ đọc, không sửa dữ liệu.
           </p>

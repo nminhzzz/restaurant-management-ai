@@ -45,6 +45,9 @@ revision: ## Sinh migration mới: make revision m="add order tables"
 seed: ## Sinh dữ liệu mô phỏng 12 tháng
 	cd $(API) && uv run python ../../scripts/seed/generate.py
 
+audit-eval: ## Kiểm tra bộ câu hỏi đánh giá trên CSDL: make audit-eval d=restaurant_demo
+	cd $(API) && uv run python ../../scripts/audit_eval_questions.py --database $(or $(d),restaurant)
+
 bench-reports: ## Đo thời gian endpoint báo cáo (NFR-01/NFR-03): make bench-reports m=2026-09
 	cd $(API) && uv run python ../../scripts/bench_reports.py --month $(or $(m),$(shell date +%Y-%m))
 

@@ -47,12 +47,20 @@ COLUMN_NOTES: dict[str, str] = {
         "vì các cột khác chỉ có dữ liệu ở đúng nhánh của nó"
     ),
     "BusinessDate": "ngày kinh doanh, mốc 06:00 → 06:00 hôm sau",
-    "MaOrder": "mã đơn hàng",
-    "TrangThaiOrder": "trạng thái order (Đang mở, Đã thanh toán, Đã hủy, ...)",
+    "MaOrder": "mã đơn hàng; có ở các nhánh ORDER, DONG_MON, HOA_DON và THANH_TOAN",
+    "TrangThaiOrder": (
+        "trạng thái order: Đang mở, Chờ xác nhận, Chờ xác minh thanh toán, Chờ đối soát, "
+        "Tranh chấp, Đã thanh toán, Đã hủy, Tự động đóng, Đóng \u2013 chưa thu được tiền"
+    ),
     "LyDoHuyOrder": "lý do hủy order, chỉ có ở LoaiBanGhi = 'ORDER'",
-    "MaHoaDon": "mã hóa đơn",
-    "TongTien": "tổng tiền của hóa đơn",
-    "SoTien": "số tiền của giao dịch thanh toán thành công",
+    "MaHoaDon": (
+        "mã hóa đơn, chỉ có ở LoaiBanGhi = 'HOA_DON'; mỗi hóa đơn chỉ phát hành sau khi "
+        "thanh toán thành công"
+    ),
+    "TongTien": "tổng tiền của hóa đơn, chỉ có ở LoaiBanGhi = 'HOA_DON'",
+    "MaGiaoDich": "mã giao dịch thanh toán, chỉ có ở LoaiBanGhi = 'THANH_TOAN'",
+    "PhuongThuc": "hình thức thanh toán (Tiền mặt/QR), chỉ có ở LoaiBanGhi = 'THANH_TOAN'",
+    "SoTien": ("số tiền của giao dịch thanh toán thành công, chỉ có ở LoaiBanGhi = 'THANH_TOAN'"),
     "ThoiDiemXuat": "thời điểm xuất hóa đơn",
     "TenMon": "tên món ăn, ở LoaiBanGhi = 'DONG_MON'",
     "TenNhom": "tên nhóm món",

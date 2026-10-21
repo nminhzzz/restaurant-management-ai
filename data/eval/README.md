@@ -86,10 +86,26 @@ view, độ khó):
 (`MaHoaDon`, `MaGiaoDich`, `PhuongThuc`, `LoaiGiaoDich`, ...) chỉ có dữ liệu ở đúng một nhánh nên
 không bị ảnh hưởng.
 
-**Hạn chế đã biết, ngoài phạm vi sửa (không chạm vào seed/migrations)**: `D022` ("lô nào sắp hết
-hạn", chỉ nằm trong tập phát triển) luôn trả về rỗng trên dữ liệu mô phỏng hiện tại vì
-`NGUYEN_LIEU.SoNgayBaoQuan` là `NULL` cho toàn bộ 68 nguyên liệu, nên `HanSuDungLo` không bao giờ
-có giá trị; SQL đúng theo đặc tả, chỉ là dữ liệu seed chưa phủ trường hạn sử dụng.
+**Dữ liệu và câu hỏi phụ thuộc thời điểm**: các câu dùng `CURDATE()` chỉ trả về dòng khi CSDL đánh
+giá được seed cho đúng ngày chạy (seed mặc định kết thúc ở ngày chạy). Câu hỏi về "hôm nay" vì vậy
+có thể rỗng nếu chạy trên dữ liệu cũ; đó là giới hạn dữ liệu, không phải SQL sai. `scripts/seed`
+đã gán `SoNgayBaoQuan` từ 21/10/2026 nên các câu hỏi hạn dùng (`D022`, lô sắp hết hạn) có dữ liệu
+trên lần seed mới; CSDL cũ cần seed lại hoặc backfill `LO_NGUYEN_LIEU.HanSuDung`.
+
+### Đợt rà soát 21/10/2026
+
+- `Q060` bỏ điều kiện "đang bị giữ chỗ": giữ chỗ chỉ tồn tại trong lúc khách đang chọn món nên
+  câu hỏi luôn rỗng trên dữ liệu seed; thay bằng điều kiện có xuất kho trong 30 ngày qua.
+- `Q064` đổi từ câu trùng với `Q004` ("đơn mang về hôm nay") sang tổng tiền thu QR trong tháng.
+- Tập phát triển: `D008`, `D026` không còn trùng câu hỏi với bộ chính thức (`Q047`, `Q013`);
+  `D015` đổi sang câu có dữ liệu (nguyên liệu nhiều lô còn hàng nhất); `D030` sửa alias `Thang`
+  trùng tên cột của view và đổi sang câu hỏi đơn mang về theo tháng.
+- Seed sinh thêm **20% order mang về** (`TAKEAWAY_RATIO`) để dữ liệu phủ luồng bán hàng này.
+- Thêm `scripts/audit_eval_questions.py` và `make audit-eval`: kiểm tra cấu trúc, trùng câu hỏi,
+  guard và chạy toàn bộ SQL chuẩn bằng tài khoản chỉ-đọc của từng vai trò.
+
+Các thay đổi nội dung câu hỏi làm kết quả trong `docs/eval-results.json` không còn so sánh trực tiếp
+được với bộ hiện tại; cần chạy lại harness trước khi trích dẫn số liệu mới.
 
 ## Ba cấu hình đối chứng
 
@@ -118,6 +134,12 @@ Harness chạy qua đúng pipeline của Phase 6, nên cần CSDL đã seed và 
 make db-up && make migrate && make seed     # dữ liệu 12 tháng
 ./scripts/apply_grants.sh                   # view + ba tài khoản chỉ-đọc
 cd apps/api && uv run python ../../data/eval/harness.py --configs A,B,C --out ../../docs/eval-results.json
+```
+
+Trước khi chạy harness, kiểm tra bộ câu hỏi trên đúng CSDL đánh giá:
+
+```bash
+make audit-eval d=restaurant_eval
 ```
 
 Bộ an toàn chạy riêng, không trộn vào mẫu số 80 câu:

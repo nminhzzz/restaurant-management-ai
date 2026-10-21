@@ -10,6 +10,7 @@ import {
   StatCard,
 } from "@/components/page-states";
 import { Bars } from "@/features/reports/chart";
+import { ClosedUnpaidPanel } from "@/features/reports/closed-unpaid-panel";
 import { currentMonth, MonthPicker } from "@/features/reports/period-picker";
 import { ReportTable } from "@/features/reports/report-table";
 import { apiFetch } from "@/lib/api-client";
@@ -142,6 +143,7 @@ export function CancelledReport() {
           </section>
         </>
       )}
+      <ClosedUnpaidPanel month={month} />
     </div>
   );
 }

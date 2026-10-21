@@ -1,6 +1,6 @@
 """Monthly costing and reports share the 06:00 business-date boundary."""
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 
 import pytest
@@ -10,9 +10,11 @@ from app.modules.inventory.costing import backfill_issue_costs, close_month
 from app.modules.inventory.models import (
     GoodsReceipt,
     GoodsReceiptLine,
+    IngredientLot,
     MonthlyAverageCost,
     StockIssue,
     StockIssueLine,
+    StockMovement,
 )
 from app.modules.reports.queries import waste_cost
 from tests.modules.test_inventory_costing import _headers, _ingredient, _make_client
@@ -124,3 +126,66 @@ async def test_backfill_rounds_fractional_cost_to_database_scale(session):
     await session.flush()
     assert await backfill_issue_costs(session, 202609) == 1
     assert line.estimated_cost == Decimal("411.4814")
+
+
+@pytest.mark.anyio
+async def test_average_cost_includes_opening_stock_and_carries_forward(session):
+    ingredient = await _ingredient(session)
+    # Opening: 1 kg received in August at 1.000/kg.
+    opening_receipt = GoodsReceipt(receipt_date=datetime(2026, 8, 31, 9))
+    session.add(opening_receipt)
+    await session.flush()
+    opening_line = GoodsReceiptLine(
+        receipt_id=opening_receipt.id,
+        ingredient_id=ingredient.id,
+        quantity=Decimal("1"),
+        unit_price=Decimal("1000"),
+    )
+    session.add(opening_line)
+    await session.flush()
+    session.add(
+        IngredientLot(
+            ingredient_id=ingredient.id,
+            receipt_line_id=opening_line.id,
+            quantity_remaining=Decimal("1"),
+            received_quantity=Decimal("1"),
+            unit_price=Decimal("1000"),
+            received_at=datetime(2026, 8, 31, 9),
+            status="Còn hạn",
+            is_adjustment=False,
+        )
+    )
+    session.add(
+        StockMovement(
+            ingredient_id=ingredient.id,
+            kind="Nhập",
+            qty=Decimal("1"),
+            business_date=date(2026, 8, 31),
+            receipt_line_id=opening_line.id,
+        )
+    )
+    receipt = GoodsReceipt(receipt_date=datetime(2026, 9, 10, 9))
+    session.add(receipt)
+    await session.flush()
+    session.add(
+        GoodsReceiptLine(
+            receipt_id=receipt.id,
+            ingredient_id=ingredient.id,
+            quantity=Decimal("2"),
+            unit_price=Decimal("2000"),
+        )
+    )
+    await session.commit()
+
+    rows = await close_month(session, 202609)
+    ingredient_rows = [row for row in rows if row.ingredient_id == ingredient.id]
+    assert len(ingredient_rows) == 1
+    # (1.000 opening value + 4.000 purchase) / (1 + 2) = 1.666,6667
+    assert Decimal(str(ingredient_rows[0].avg_cost)) == Decimal("1666.6667")
+
+    # October has no purchase; the September unit cost must carry over.
+    october_rows = await close_month(session, 202610)
+    october = [row for row in october_rows if row.ingredient_id == ingredient.id]
+    assert len(october) == 1
+    assert Decimal(str(october[0].avg_cost)) == Decimal("1666.6667")
+    assert Decimal(str(october[0].total_qty)) == 0

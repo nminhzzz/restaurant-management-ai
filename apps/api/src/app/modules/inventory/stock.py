@@ -1,10 +1,10 @@
 """Core stock movement — FIFO + row locking (Phase 3 Task 1)."""
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import BusinessRuleError
@@ -55,13 +55,64 @@ async def lots_for_fifo(
         IngredientLot.quantity_remaining > 0,
     ]
     if not allow_expired:
-        conds.append(IngredientLot.status != LotStatus.HET_HAN.value)
+        today = business_date.business_date_of(business_date.now())
+        conds.extend(
+            [
+                IngredientLot.status != LotStatus.HET_HAN.value,
+                (IngredientLot.expiry_date.is_(None)) | (IngredientLot.expiry_date >= today),
+            ]
+        )
     r = await session.execute(
         select(IngredientLot)
         .where(*conds)
         .order_by(IngredientLot.received_at.asc(), IngredientLot.id.asc())
     )
     return list(r.scalars().all())
+
+
+async def _held_by_lot(
+    session: AsyncSession, lot_ids: list[int], now: datetime
+) -> dict[int, Decimal]:
+    """Quantities promised to active customer selections (FR-INV-10/11)."""
+    if not lot_ids:
+        return {}
+    from app.modules.sales.models import Reservation, ReservationDetail
+
+    rows = (
+        await session.execute(
+            select(ReservationDetail.lot_id, func.sum(ReservationDetail.quantity))
+            .join(Reservation, Reservation.id == ReservationDetail.reservation_id)
+            .where(
+                ReservationDetail.lot_id.in_(lot_ids),
+                Reservation.status == "Đang giữ",
+                Reservation.expires_at > now,
+            )
+            .group_by(ReservationDetail.lot_id)
+        )
+    ).all()
+    return {int(lot_id): Decimal(str(qty or 0)) for lot_id, qty in rows}
+
+
+async def available_quantity(
+    session: AsyncSession, ingredient_id: int, *, lot_ids: list[int] | None = None
+) -> Decimal:
+    """Stock that a direct order may draw after holds and expired lots are excluded."""
+    lots = await lots_for_fifo(session, ingredient_id)
+    if lot_ids is not None:
+        lots = [lot for lot in lots if lot.id in set(lot_ids)]
+    held = await _held_by_lot(
+        session, [lot.id for lot in lots], business_date.now().replace(tzinfo=None)
+    )
+    return sum(
+        (
+            max(
+                Decimal(0),
+                Decimal(str(lot.quantity_remaining)) - held.get(lot.id, Decimal(0)),
+            )
+            for lot in lots
+        ),
+        Decimal(0),
+    )
 
 
 async def ensure_no_open_stocktake(session: AsyncSession) -> None:
@@ -125,18 +176,37 @@ async def apply_stock_movement(
             pass
         return movements
 
-    # delta < 0: FIFO draw
+    # delta < 0: FIFO draw, limited to what is neither held nor expired.
     need = -delta
     lots = await lots_for_fifo(session, change.ingredient_id, allow_expired=change.allow_expired)
-    total_avail = sum(Decimal(str(lot_item.quantity_remaining)) for lot_item in lots)
+    held = (
+        {}
+        if change.allow_expired
+        else await _held_by_lot(
+            session, [lot.id for lot in lots], business_date.now().replace(tzinfo=None)
+        )
+    )
+    total_avail = sum(
+        (
+            max(
+                Decimal(0),
+                Decimal(str(lot_item.quantity_remaining)) - held.get(lot_item.id, Decimal(0)),
+            )
+            for lot_item in lots
+        ),
+        Decimal(0),
+    )
     if total_avail < need:
-        raise BusinessRuleError("Không đủ tồn kho.")
+        raise BusinessRuleError("Không đủ tồn kho khả dụng.")
 
     remaining = need
     for lot in lots:
         if remaining <= 0:
             break
-        avail = Decimal(str(lot.quantity_remaining))
+        avail = max(
+            Decimal(0),
+            Decimal(str(lot.quantity_remaining)) - held.get(lot.id, Decimal(0)),
+        )
         take = min(avail, remaining)
         lot.quantity_remaining = avail - take
         # keep status as is (simplified)

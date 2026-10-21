@@ -214,20 +214,25 @@ describe("OrderStep", () => {
 
     await vi.waitFor(() => expect(onSent).toHaveBeenCalledWith(142, "floor"));
     expect(fetchMock).toHaveBeenCalledWith(
-      "/sales/orders/142/lines",
+      "/sales/orders/142/lines/bulk",
       expect.objectContaining({
         method: "POST",
-        body: expect.objectContaining({
-          MaMon: 5,
-          SoLuong: 1,
-          GhiChu: null,
-          hold_id: 99,
-        }),
+        body: {
+          lines: [
+            expect.objectContaining({
+              dish_id: 5,
+              quantity: 1,
+              note: null,
+              hold_id: 99,
+              request_line_id: expect.any(String),
+            }),
+          ],
+        },
       }),
     );
   });
 
-  it("keeps the sent total right after a partial add-more failure", async () => {
+  it("keeps the whole cart when a bulk add-more request fails", async () => {
     const onSent = vi.fn();
     const routes: Record<string, unknown> = {
       "/catalog/tables": [{ MaBan: 4, TenBan: "Bàn 04" }],
@@ -248,20 +253,16 @@ describe("OrderStep", () => {
         ],
       },
     };
-    fetchMock.mockImplementation(
-      (path: string, options?: { body?: { MaMon: number } }) => {
-        if (path === "/sales/orders/142/lines") {
-          if (options?.body?.MaMon === 5)
-            return Promise.resolve({ MaChiTietOrder: 9 });
-          return Promise.reject(
-            new ApiError(409, "OUT_OF_STOCK", "Hết nguyên liệu."),
-          );
-        }
-        return Promise.resolve(
-          Object.entries(routes).find(([p]) => path.startsWith(p))?.[1] ?? {},
+    fetchMock.mockImplementation((path: string) => {
+      if (path === "/sales/orders/142/lines/bulk") {
+        return Promise.reject(
+          new ApiError(409, "OUT_OF_STOCK", "Hết nguyên liệu."),
         );
-      },
-    );
+      }
+      return Promise.resolve(
+        Object.entries(routes).find(([p]) => path.startsWith(p))?.[1] ?? {},
+      );
+    });
 
     render(
       <OrderStep tableId={4} orderId={142} onBack={vi.fn()} onSent={onSent} />,
@@ -278,10 +279,10 @@ describe("OrderStep", () => {
 
     expect(await screen.findByRole("alert")).toBeInTheDocument();
     expect(onSent).not.toHaveBeenCalled();
-    // Phở bò was confirmed and left the cart; Gỏi cuốn failed and stayed.
-    expect(screen.queryByLabelText("Số lượng Phở bò")).not.toBeInTheDocument();
+    // FR-SALE-03: the whole batch fails, so both lines stay in the cart.
+    expect(screen.getByLabelText("Số lượng Phở bò")).toBeInTheDocument();
     expect(screen.getByLabelText("Số lượng Gỏi cuốn")).toBeInTheDocument();
-    // sent (130.000) + confirmed Phở bò (65.000) + unsent Gỏi cuốn (30.000)
+    // sent (130.000) + unsent Phở bò (65.000) + unsent Gỏi cuốn (30.000)
     expect(screen.getByTestId("cart-total")).toHaveTextContent("225.000 ₫");
   });
 
