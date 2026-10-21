@@ -130,7 +130,10 @@ async def display_status(session, dish_or_id) -> str:
         return "DRAFT"
     try:
         r = await session.execute(
-            text("SELECT DaXoa, ChuaCoCongThuc, HetNguyenLieu FROM MON_AN WHERE MaMon=:id"),
+            text(
+                "SELECT DaXoa, ChuaCoCongThuc, HetNguyenLieu, TamDungThuCong "
+                "FROM MON_AN WHERE MaMon=:id"
+            ),
             {"id": dish_id},
         )
         row = r.mappings().first()
@@ -142,6 +145,8 @@ async def display_status(session, dish_or_id) -> str:
             return "Nháp"
         if row["HetNguyenLieu"]:
             return "Hết nguyên liệu"
+        if row["TamDungThuCong"]:
+            return "Tạm dừng phục vụ"
         return "Hoạt động"
     except Exception:
         return "DRAFT"

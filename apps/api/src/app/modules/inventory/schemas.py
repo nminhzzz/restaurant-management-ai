@@ -41,10 +41,16 @@ class ReceiptOut(BaseModel):
 class IssueLineIn(BaseModel):
     ingredient_id: int
     quantity: float = Field(gt=0)
+    lot_id: int | None = None
+    order_line_id: int | None = None
+    servings: int | None = Field(default=None, gt=0)
 
 
 class IssueCreate(BaseModel):
     reason: str = Field(default="Hao hụt")
+    # FR-INV-05: only "Nguyên liệu" creates a stock movement.
+    source: str = Field(default="Nguyên liệu")
+    stocktake_id: int | None = None
     lines: list[IssueLineIn] = Field(min_length=1, max_length=100)
 
 
@@ -72,3 +78,7 @@ class StockRowOut(BaseModel):
     SoLuongTon: float
     MucTonToiThieuApDung: float
     CanhBaoTonThap: bool
+    HanSuDungGanNhat: str | None = None
+    SoLoHetHan: int = 0
+    SoLoSapHetHan: int = 0
+    CanhBaoHanSuDung: bool = False

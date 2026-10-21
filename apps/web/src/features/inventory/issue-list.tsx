@@ -68,13 +68,23 @@ const loadIngredients = () =>
     (d) => d.items || [],
   );
 
-type DraftLine = { key: string; ingredientId: string; quantity: string };
+type DraftLine = {
+  key: string;
+  ingredientId: string;
+  quantity: string;
+  lotId: string;
+  orderLineId: string;
+  servings: string;
+};
 
 function emptyLine(): DraftLine {
   return {
     key: Math.random().toString(36).slice(2),
     ingredientId: "",
     quantity: "",
+    lotId: "",
+    orderLineId: "",
+    servings: "",
   };
 }
 
@@ -88,6 +98,8 @@ function IssueForm({
   const formId = useId();
   const { run, pending, error: actionError } = useAction();
   const [reason, setReason] = useState<string>(ISSUE_REASONS[0]);
+  const [source, setSource] = useState<string>("Nguyên liệu");
+  const [stocktakeId, setStocktakeId] = useState("");
   const [lines, setLines] = useState<DraftLine[]>([emptyLine()]);
   const [error, setError] = useState<string | null>(null);
 
@@ -107,15 +119,30 @@ function IssueForm({
       setError("Số lượng phải lớn hơn 0.");
       return;
     }
+    if (source === "Món đã chế biến") {
+      if (lines.some((l) => !l.orderLineId || !(Number(l.servings) > 0))) {
+        setError("Nguồn món đã chế biến cần mã dòng món và số suất hủy.");
+        return;
+      }
+    }
+    if (source === "Kiểm kê" && !stocktakeId) {
+      setError("Chọn phiếu kiểm kê đã chốt.");
+      return;
+    }
     const result = await run(
       () =>
         apiFetch("/inventory/issues", {
           method: "POST",
           body: {
             reason,
+            source,
+            stocktake_id: stocktakeId ? Number(stocktakeId) : null,
             lines: lines.map((l) => ({
               ingredient_id: Number(l.ingredientId),
               quantity: Number(l.quantity),
+              lot_id: l.lotId ? Number(l.lotId) : null,
+              order_line_id: l.orderLineId ? Number(l.orderLineId) : null,
+              servings: l.servings ? Number(l.servings) : null,
             })),
           },
         }),
@@ -126,20 +153,45 @@ function IssueForm({
 
   return (
     <div className="space-y-4">
-      <FormField id={`${formId}-reason`} label="Lý do">
-        <Select value={reason} onValueChange={setReason}>
-          <SelectTrigger id={`${formId}-reason`}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {ISSUE_REASONS.map((r) => (
-              <SelectItem key={r} value={r}>
-                {r}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </FormField>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <FormField id={`${formId}-reason`} label="Lý do">
+          <Select value={reason} onValueChange={setReason}>
+            <SelectTrigger id={`${formId}-reason`}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ISSUE_REASONS.map((r) => (
+                <SelectItem key={r} value={r}>
+                  {r}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </FormField>
+        <FormField id={`${formId}-source`} label="Nguồn">
+          <Select value={source} onValueChange={setSource}>
+            <SelectTrigger id={`${formId}-source`}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Nguyên liệu">Nguyên liệu</SelectItem>
+              <SelectItem value="Món đã chế biến">Món đã chế biến</SelectItem>
+              <SelectItem value="Kiểm kê">Kiểm kê</SelectItem>
+            </SelectContent>
+          </Select>
+        </FormField>
+      </div>
+      {source === "Kiểm kê" ? (
+        <FormField id={`${formId}-stocktake`} label="Mã phiếu kiểm kê đã chốt">
+          <Input
+            id={`${formId}-stocktake`}
+            type="number"
+            min={1}
+            value={stocktakeId}
+            onChange={(e) => setStocktakeId(e.target.value)}
+          />
+        </FormField>
+      ) : null}
 
       <div className="space-y-3">
         {lines.map((line, index) => (
@@ -171,6 +223,48 @@ function IssueForm({
                 </Select>
               </FormField>
             </div>
+            {source === "Nguyên liệu" ? (
+              <FormField
+                id={`${formId}-lot-${line.key}`}
+                label="Mã lô (tuỳ chọn)"
+              >
+                <Input
+                  id={`${formId}-lot-${line.key}`}
+                  type="number"
+                  min={1}
+                  value={line.lotId}
+                  onChange={(e) =>
+                    updateLine(line.key, { lotId: e.target.value })
+                  }
+                />
+              </FormField>
+            ) : null}
+            {source === "Món đã chế biến" ? (
+              <>
+                <FormField id={`${formId}-line-${line.key}`} label="Dòng món">
+                  <Input
+                    id={`${formId}-line-${line.key}`}
+                    type="number"
+                    min={1}
+                    value={line.orderLineId}
+                    onChange={(e) =>
+                      updateLine(line.key, { orderLineId: e.target.value })
+                    }
+                  />
+                </FormField>
+                <FormField id={`${formId}-sv-${line.key}`} label="Số suất">
+                  <Input
+                    id={`${formId}-sv-${line.key}`}
+                    type="number"
+                    min={1}
+                    value={line.servings}
+                    onChange={(e) =>
+                      updateLine(line.key, { servings: e.target.value })
+                    }
+                  />
+                </FormField>
+              </>
+            ) : null}
             <FormField id={`${formId}-qty-${line.key}`} label="Số lượng">
               <Input
                 id={`${formId}-qty-${line.key}`}

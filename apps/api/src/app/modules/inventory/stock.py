@@ -22,6 +22,7 @@ class StockChange:
     allow_expired: bool = False
     business_date: date | None = None
     source_order_line_id: int | None = None
+    lot_ids: list[int] | None = None
     source_receipt_line_id: int | None = None
     source_issue_line_id: int | None = None
     source_stocktake_line_id: int | None = None
@@ -179,6 +180,11 @@ async def apply_stock_movement(
     # delta < 0: FIFO draw, limited to what is neither held nor expired.
     need = -delta
     lots = await lots_for_fifo(session, change.ingredient_id, allow_expired=change.allow_expired)
+    if change.lot_ids is not None:
+        selected = set(change.lot_ids)
+        lots = [lot for lot in lots if lot.id in selected]
+        if not lots:
+            raise BusinessRuleError("Lô đã chọn không còn đủ hàng để xuất.")
     held = (
         {}
         if change.allow_expired

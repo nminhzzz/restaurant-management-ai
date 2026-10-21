@@ -31,6 +31,10 @@ type StockRow = {
   SoLuongTon?: number;
   MucTonToiThieuApDung?: number;
   CanhBaoTonThap: boolean;
+  HanSuDungGanNhat?: string | null;
+  SoLoHetHan?: number;
+  SoLoSapHetHan?: number;
+  CanhBaoHanSuDung?: boolean;
 };
 
 type StockResponse = { items: StockRow[]; total?: number };
@@ -151,6 +155,7 @@ export function StockTable({
                 <TableHead>Nguyên liệu</TableHead>
                 <TableHead className="text-right">Tồn hiện tại</TableHead>
                 <TableHead className="text-right">Mức tối thiểu</TableHead>
+                <TableHead>Hạn dùng gần nhất</TableHead>
                 <TableHead>Trạng thái</TableHead>
                 {onRestock ? (
                   <TableHead className="text-right">Thao tác</TableHead>
@@ -178,6 +183,27 @@ export function StockTable({
                     {formatNumber(it.MucTonToiThieuApDung)}
                   </TableCell>
                   <TableCell>
+                    {it.HanSuDungGanNhat ? (
+                      <span className="flex flex-wrap items-center gap-1.5">
+                        <span className="tabular-nums">
+                          {it.HanSuDungGanNhat}
+                        </span>
+                        {it.SoLoHetHan ? (
+                          <Badge tone="danger">
+                            {it.SoLoHetHan} lô hết hạn
+                          </Badge>
+                        ) : null}
+                        {it.SoLoSapHetHan ? (
+                          <Badge tone="warning">
+                            {it.SoLoSapHetHan} lô sắp hết hạn
+                          </Badge>
+                        ) : null}
+                      </span>
+                    ) : (
+                      <span className="text-muted">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
                     <StockBadge row={it} />
                   </TableCell>
                   {onRestock ? (
@@ -201,7 +227,7 @@ export function StockTable({
               {items.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={onRestock ? 5 : 4}
+                    colSpan={onRestock ? 6 : 5}
                     className="py-8 text-center text-muted"
                   >
                     Không có nguyên liệu nào khớp bộ lọc.

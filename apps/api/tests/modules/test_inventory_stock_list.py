@@ -150,3 +150,53 @@ async def test_deleted_ingredient_excluded_from_stock_list(session):
     r = await client.get("/api/v1/inventory/stock", headers=h)
     ids = {row["MaNguyenLieu"] for row in r.json()["items"]}
     assert ing.id not in ids
+
+
+@pytest.mark.anyio
+async def test_stock_rows_warn_about_lots_near_or_past_expiry(session):
+    """FR-INV-14: the lot state follows today and the configured threshold."""
+    from datetime import timedelta
+
+    from app.modules.inventory.models import IngredientLot
+    from app.shared import business_date
+
+    ing = Ingredient(name="Sữa", unit="l", min_stock=0, stock_qty=10, is_deleted=False)
+    session.add(ing)
+    await session.flush()
+    today = business_date.business_date_of(business_date.now())
+    session.add_all(
+        [
+            IngredientLot(
+                ingredient_id=ing.id,
+                quantity_remaining=4,
+                status="Còn hạn",
+                received_at=business_date.now(),
+                expiry_date=today + timedelta(days=1),
+            ),
+            IngredientLot(
+                ingredient_id=ing.id,
+                quantity_remaining=2,
+                status="Còn hạn",
+                received_at=business_date.now(),
+                expiry_date=today - timedelta(days=1),
+            ),
+            IngredientLot(
+                ingredient_id=ing.id,
+                quantity_remaining=4,
+                status="Còn hạn",
+                received_at=business_date.now(),
+                expiry_date=today + timedelta(days=30),
+            ),
+        ]
+    )
+    await session.commit()
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+
+    r = await client.get("/api/v1/inventory/stock", headers=h)
+
+    row = next(x for x in r.json()["items"] if x["MaNguyenLieu"] == ing.id)
+    assert row["SoLoHetHan"] == 1
+    assert row["SoLoSapHetHan"] == 1
+    assert row["CanhBaoHanSuDung"] is True
+    assert row["HanSuDungGanNhat"] == (today - timedelta(days=1)).isoformat()

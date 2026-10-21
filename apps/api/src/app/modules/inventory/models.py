@@ -155,6 +155,13 @@ class StockIssueLine(Base):
     estimated_cost: Mapped[Decimal] = mapped_column(
         "GiaVonUocTinh", DECIMAL(18, 4), nullable=False, default=0
     )
+    # FR-INV-05 source "Món đã chế biến": classify consumed cost, never draw again.
+    order_line_id: Mapped[int | None] = mapped_column(
+        "MaChiTietOrder",
+        ForeignKey("CHI_TIET_ORDER.MaChiTietOrder", ondelete="RESTRICT", onupdate="RESTRICT"),
+        nullable=True,
+    )
+    servings: Mapped[int | None] = mapped_column("SoSuatHuy", Integer, nullable=True)
 
 
 class Stocktake(Base):

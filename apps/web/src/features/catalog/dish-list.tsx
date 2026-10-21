@@ -1,6 +1,14 @@
 "use client";
 
-import { ImageOff, Pencil, Plus, Trash2, UtensilsCrossed } from "lucide-react";
+import {
+  ImageOff,
+  Pause,
+  Pencil,
+  Play,
+  Plus,
+  Trash2,
+  UtensilsCrossed,
+} from "lucide-react";
 import { useState } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -222,6 +230,7 @@ export function DishList() {
   const create = useAction();
   const edit = useAction();
   const del = useAction();
+  const pause = useAction();
 
   const dishes = catalog.status === "ready" ? catalog.data.dishes : null;
   const groups = catalog.status === "ready" ? catalog.data.groups : [];
@@ -290,6 +299,21 @@ export function DishList() {
       setDeleteDish(null);
       catalog.reload();
     }, "Đã xóa món.");
+  }
+
+  // FR-CAT-26: pausing is manual and independent of the derived shortage flag.
+  function handlePause(dish: Dish) {
+    const next = !dish.TamDungThuCong;
+    void pause.run(
+      async () => {
+        await apiFetch(`/catalog/dishes/${dish.MaMon}/visibility`, {
+          method: "PATCH",
+          body: { TamDungThuCong: next },
+        });
+        catalog.reload();
+      },
+      next ? "Đã tạm dừng món." : "Đã mở lại món.",
+    );
   }
 
   const addButton = canWrite ? (
@@ -377,6 +401,16 @@ export function DishList() {
                           onClick={() => setEditDish(d)}
                         >
                           <Pencil />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={
+                            d.TamDungThuCong ? "Mở lại món" : "Tạm dừng món"
+                          }
+                          onClick={() => handlePause(d)}
+                        >
+                          {d.TamDungThuCong ? <Play /> : <Pause />}
                         </Button>
                         <Button
                           variant="ghost"

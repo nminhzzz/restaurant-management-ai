@@ -35,6 +35,8 @@ async def display_status_for(session: AsyncSession, dish: Dish) -> str:
         return "Nháp"
     if dish.out_of_stock:
         return "Hết nguyên liệu"
+    if dish.manual_paused:
+        return "Tạm dừng phục vụ"
     return "Hoạt động"
 
 
@@ -953,23 +955,34 @@ async def ensure_dish_sellable(session, dish_id: int):
     dish = await session.get(Dish, dish_id)
     if dish is None or dish.is_deleted:
         raise BusinessRuleError("Món không tồn tại hoặc đã bị xóa.")
+    reasons = []
     if dish.out_of_stock:
-        raise BusinessRuleError("Món đang hết nguyên liệu hoặc tạm dừng phục vụ.")
+        reasons.append("hết nguyên liệu")
+    if dish.manual_paused:
+        reasons.append("tạm dừng phục vụ")
+    if reasons:
+        raise BusinessRuleError(f"Món đang {' và '.join(reasons)}.")
     return dish
 
 
-async def set_manual_out_of_stock(session, actor_id: int, dish_id: int, value: bool):
+async def set_manual_paused(session, actor_id: int, dish_id: int, value: bool):
+    """FR-CAT-26: pause a dish by hand without touching the derived shortage flag."""
     d = await session.get(Dish, dish_id)
     if d is None or d.is_deleted:
         raise NotFoundError("Không tìm thấy món ăn.")
-    d.out_of_stock = value
+    if d.manual_paused == value:
+        return d
+    before = {"TamDungThuCong": bool(d.manual_paused)}
+    d.manual_paused = value
     await session.flush()
     session.add(
         SystemAuditLog(
             user_id=actor_id,
-            action="SET_MANUAL_OUT_OF_STOCK",
+            action="SET_MANUAL_PAUSE",
             target_entity="MON_AN",
             target_id=str(dish_id),
+            before=before,
+            after={"TamDungThuCong": bool(value)},
         )
     )
     await session.flush()

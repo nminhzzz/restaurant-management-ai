@@ -2,6 +2,7 @@ export type Dish = {
   MaMon: number;
   TenMon: string;
   TrangThai: string;
+  TamDungThuCong?: boolean;
   MaNhomMon?: number | null;
   GiaHienTai?: number | null;
   HinhAnh?: string | null;

@@ -134,6 +134,7 @@ async def list_dishes(
                 GiaHienTai=_money(prices.get(d.id)),
                 SoSuatKhaDung=portions.get(d.id, 0),
                 TrangThai=status,
+                TamDungThuCong=bool(d.manual_paused),
                 DaXoa=d.is_deleted,
             )
         )
@@ -165,6 +166,7 @@ async def create_dish(
         HinhAnh=d.image_url,
         GiaHienTai=payload.GiaHienTai,
         TrangThai=status,
+        TamDungThuCong=bool(d.manual_paused),
         DaXoa=d.is_deleted,
     )
 
@@ -198,6 +200,7 @@ async def update_dish(
         HinhAnh=d.image_url,
         GiaHienTai=price,
         TrangThai=status,
+        TamDungThuCong=bool(d.manual_paused),
         DaXoa=d.is_deleted,
     )
 
@@ -546,8 +549,8 @@ async def update_visibility(
     user: Principal = Depends(require_roles(Role.MANAGER)),
     session: AsyncSession = Depends(get_session),
 ) -> DishOut:
-    if payload.HetNguyenLieu is not None:
-        await svc.set_manual_out_of_stock(session, user.user_id, dish_id, payload.HetNguyenLieu)
+    if payload.TamDungThuCong is not None:
+        await svc.set_manual_paused(session, user.user_id, dish_id, payload.TamDungThuCong)
     await session.commit()
     d = await svc.get_dish(session, dish_id)
     assert d is not None
@@ -561,5 +564,6 @@ async def update_visibility(
         HinhAnh=d.image_url,
         GiaHienTai=price,
         TrangThai=status,
+        TamDungThuCong=bool(d.manual_paused),
         DaXoa=d.is_deleted,
     )

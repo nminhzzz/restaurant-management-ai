@@ -9,6 +9,7 @@ from app.main import app
 from app.modules.catalog.models import Ingredient
 from app.modules.settings.models import User
 from app.modules.settings.service import seed_reference_data
+from app.shared import business_date
 from tests.helpers import lot_total, movements_for
 
 
@@ -210,3 +211,135 @@ async def test_list_issues_total_reflects_all_rows_across_pages(session):
     body = r.json()
     assert body["total"] == 3
     assert len(body["items"]) == 2
+
+
+@pytest.mark.anyio
+async def test_issue_can_draw_from_a_selected_lot(session):
+    """FR-INV-05/BR-LOT-01: the operator may choose which lot to write off."""
+    from sqlalchemy import select
+
+    from app.modules.inventory.models import IngredientLot
+
+    ing = await _ingredient(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    await _receipt(session, client, h, ing, 4)
+    first_lot = (
+        (await session.execute(select(IngredientLot).where(IngredientLot.ingredient_id == ing.id)))
+        .scalars()
+        .first()
+    )
+    await _receipt(session, client, h, ing, 6)
+    lots = (
+        (
+            await session.execute(
+                select(IngredientLot)
+                .where(IngredientLot.ingredient_id == ing.id)
+                .order_by(IngredientLot.id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    later_lot = lots[-1]
+
+    r = await client.post(
+        "/api/v1/inventory/issues",
+        json={
+            "reason": "Hết hạn",
+            "source": "Nguyên liệu",
+            "lines": [{"ingredient_id": ing.id, "quantity": 3, "lot_id": later_lot.id}],
+        },
+        headers=h,
+    )
+
+    assert r.status_code == 201, r.text
+    await session.refresh(first_lot)
+    await session.refresh(later_lot)
+    assert float(first_lot.quantity_remaining) == 4
+    assert float(later_lot.quantity_remaining) == 3
+
+
+@pytest.mark.anyio
+async def test_prepared_dish_issue_only_classifies_cost(session):
+    """FR-INV-05: source "Món đã chế biến" must not subtract stock again."""
+    from app.modules.catalog.models import Dish, DishGroup
+    from app.modules.sales.models import Order, OrderLine
+
+    ing = await _ingredient(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    await _receipt(session, client, h, ing, 10)
+    group = DishGroup(name="Món", display_order=1, is_deleted=False)
+    session.add(group)
+    await session.flush()
+    dish = Dish(name="Phở", group_id=group.id, is_deleted=False)
+    session.add(dish)
+    await session.flush()
+    order = Order(business_date=business_date.now().date(), table_id=None, order_type="Mang về")
+    session.add(order)
+    await session.flush()
+    line = OrderLine(
+        order_id=order.id,
+        dish_id=dish.id,
+        quantity=2,
+        unit_price=50000,
+        status="Đã phục vụ",
+    )
+    session.add(line)
+    await session.commit()
+
+    r = await client.post(
+        "/api/v1/inventory/issues",
+        json={
+            "reason": "Món bỏ",
+            "source": "Món đã chế biến",
+            "lines": [
+                {
+                    "ingredient_id": ing.id,
+                    "quantity": 2,
+                    "order_line_id": line.id,
+                    "servings": 2,
+                }
+            ],
+        },
+        headers=h,
+    )
+
+    assert r.status_code == 201, r.text
+    await session.refresh(ing)
+    assert float(ing.stock_qty) == 10
+    again = await client.post(
+        "/api/v1/inventory/issues",
+        json={
+            "reason": "Món bỏ",
+            "source": "Món đã chế biến",
+            "lines": [
+                {
+                    "ingredient_id": ing.id,
+                    "quantity": 1,
+                    "order_line_id": line.id,
+                    "servings": 1,
+                }
+            ],
+        },
+        headers=h,
+    )
+    assert again.status_code == 422
+
+
+@pytest.mark.anyio
+async def test_stocktake_issue_requires_a_confirmed_session(session):
+    ing = await _ingredient(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    r = await client.post(
+        "/api/v1/inventory/issues",
+        json={
+            "reason": "Hủy do kiểm kê",
+            "source": "Kiểm kê",
+            "lines": [{"ingredient_id": ing.id, "quantity": 1}],
+        },
+        headers=h,
+    )
+    assert r.status_code == 422

@@ -107,13 +107,16 @@ class Dish(Base):
     image_url: Mapped[str | None] = mapped_column("HinhAnh", String(500), nullable=True)
     missing_recipe: Mapped[bool] = mapped_column("ChuaCoCongThuc", default=True, nullable=False)
     out_of_stock: Mapped[bool] = mapped_column("HetNguyenLieu", default=False, nullable=False)
+    # FR-CAT-26: the manager's pause is independent of the derived shortage flag.
+    manual_paused: Mapped[bool] = mapped_column("TamDungThuCong", default=False, nullable=False)
     status: Mapped[str | None] = mapped_column(
         "TrangThai",
         String(20),
         Computed(
             (
                 "CASE WHEN ChuaCoCongThuc=1 THEN 'Nháp' WHEN HetNguyenLieu=1 "
-                "THEN 'Hết nguyên liệu' ELSE 'Hoạt động' END"
+                "THEN 'Hết nguyên liệu' WHEN TamDungThuCong=1 "
+                "THEN 'Tạm dừng phục vụ' ELSE 'Hoạt động' END"
             ),
             persisted=True,
         ),

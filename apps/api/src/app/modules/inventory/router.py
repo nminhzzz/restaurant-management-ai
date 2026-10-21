@@ -102,7 +102,12 @@ async def create_issue(
     session: AsyncSession = Depends(get_session),
 ):
     iss = await svc.create_issue(
-        session, user.user_id, payload.reason, [ln.model_dump() for ln in payload.lines]
+        session,
+        user.user_id,
+        payload.reason,
+        [ln.model_dump() for ln in payload.lines],
+        source=payload.source,
+        stocktake_id=payload.stocktake_id,
     )
     await session.commit()
     return {"MaPhieuXuat": iss.id}
