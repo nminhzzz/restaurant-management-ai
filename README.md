@@ -40,13 +40,62 @@ Next.js (web)  ──HTTP──▶  FastAPI (api)  ──SQL──▶  MySQL
 ## Bắt đầu
 
 ```bash
-make setup      # cài dependencies cho cả api và web
-make db-up      # khởi động MySQL bằng docker compose
-make env        # tạo tập biến môi trường cục bộ từ file mẫu
-make migrate    # áp dụng migration tạo/cập nhật schema
+git clone https://github.com/nminhzzz/restaurant-management-ai.git
+cd restaurant-management-ai
+make setup      # uv sync (api) + pnpm install (web)
+make db-up      # MySQL 8.4 bằng docker compose
+make env        # copy .env.example -> .env (chỉ khi chưa có)
+```
+
+Sửa `.env` trước khi chạy:
+
+- **Bắt buộc cho trợ lý AI:** đặt `AI_API_KEY` (DeepSeek). Không có key thì đặt
+  `AI_PROVIDER=fake` để trợ lý trả lời giả lập, hoặc `AI_PROVIDER=ollama` nếu đã chạy Ollama.
+- Đặt `AI_LLM_TIMEOUT_SECONDS=5.0`. Mẫu `.env.example` hiện còn ghi `1.5`, giá trị này làm
+  prompt đầy đủ (~4.200 ký tự, ~3 giây) luôn timeout và trợ lý trả lỗi.
+- **Thanh toán:** giữ `PAYMENT_GATEWAY=simulator` để demo không cần ngân hàng; muốn chuyển
+  khoản thật thì xem `docs/payment-sepay-setup.md`.
+
+```bash
+make migrate    # schema (view AI không nằm trong migration, xem bước dưới)
+```
+
+Tạo view phân quyền và tài khoản chỉ-đọc cho trợ lý AI (một lần cho mỗi CSDL):
+
+```bash
+export AI_READONLY_PASSWORD_MANAGER='...' AI_READONLY_PASSWORD_CASHIER='...' \
+       AI_READONLY_PASSWORD_WAREHOUSE='...'
+./scripts/apply_grants.sh
+```
+
+Sau đó điền ba URL tương ứng vào `.env`:
+
+```dotenv
+AI_READONLY_URL_MANAGER=mysql+asyncmy://ai_manager:<mật-khẩu>@localhost:3306/restaurant?charset=utf8mb4
+AI_READONLY_URL_CASHIER=mysql+asyncmy://ai_cashier:<mật-khẩu>@localhost:3306/restaurant?charset=utf8mb4
+AI_READONLY_URL_WAREHOUSE=mysql+asyncmy://ai_warehouse:<mật-khẩu>@localhost:3306/restaurant?charset=utf8mb4
+```
+
+Nếu bỏ trống ba URL này, chế độ `local` dùng tạm tài khoản chính; chỉ phù hợp để thử, không đạt
+NFR-06.
+
+```bash
+make seed       # dữ liệu 12 tháng + tài khoản seed_* (chỉ chạy trên CSDL chưa có món)
 make api        # http://localhost:8000/docs
 make web        # http://localhost:3000
 ```
+
+Tài khoản seed: `seed_manager`, `seed_cashier`, `seed_warehouse` — mật khẩu `matkhau123`.
+Muốn thêm doanh thu sát ngày để xem biểu đồ/báo cáo:
+
+```bash
+uv run --project apps/api python scripts/seed/demo_recent.py --days 14 --per-day 10
+```
+
+Kiểm tra nhanh sau khi chạy: `curl localhost:8000/health`, đăng nhập web, mở Bán hàng/Báo cáo/Trợ lý.
+
+**Lưu ý:** `make seed` từ chối CSDL đã có món. Muốn làm lại từ đầu, tạo CSDL mới hoặc
+`docker compose down -v` (xoá toàn bộ dữ liệu MySQL — chỉ làm khi chắc chắn).
 
 ## Lệnh thường dùng
 
