@@ -19,6 +19,7 @@ import { saveSession } from "@/lib/session";
 describe("AppShell", () => {
   afterEach(() => {
     sessionStorage.clear();
+    localStorage.clear();
     replace.mockReset();
     push.mockReset();
   });

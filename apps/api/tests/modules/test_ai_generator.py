@@ -237,3 +237,19 @@ async def test_provider_failure_keeps_committed_reservation(
     await session.rollback()
     async with ai_runtime_store.session_factory() as state_session:
         assert await state_session.scalar(select(AiDailyUsage.calls)) == 1
+
+
+@pytest.mark.anyio
+async def test_generation_prompt_includes_the_session_history(session, fake_llm, seed_views):
+    """Follow-ups are resolved from prior turns instead of asking again."""
+    fake_llm.reply("SELECT COUNT(*) FROM vw_ai_thungan")
+
+    await generate_sql(
+        session,
+        "từng ngày trong tháng",
+        Role.CASHIER,
+        history=[("Doanh thu 7 ngày gần nhất?", "SELECT 1", None)],
+    )
+
+    assert "Doanh thu 7 ngày gần nhất?" in (fake_llm.last_prompt or "")
+    assert "Ngữ cảnh hội thoại" in (fake_llm.last_prompt or "")

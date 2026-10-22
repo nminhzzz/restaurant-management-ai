@@ -160,8 +160,14 @@ async def build_prompt(
     question: str,
     role: Role,
     examples: Sequence[object] | None = None,
+    history: Sequence[tuple[str, str | None, str | None]] | None = None,
 ) -> str:
-    """Instructions + the role's schema + few-shot examples + the question."""
+    """Instructions + schema + examples + recent conversation + the question.
+
+    `history` entries are (question, sql, answer summary) from the same session. A
+    short follow-up such as "doanh thu thôi" is meaningless without them, which is
+    why the assistant used to ask the same clarification over and over.
+    """
     view = ROLE_VIEWS[role]
     shots = list(examples) if examples is not None else _load_examples(role)
 
@@ -181,8 +187,12 @@ async def build_prompt(
         f"'{business_date.business_date_of(business_date.now()):%Y-%m-%d}'; "
         "hãy dùng đúng hằng ngày này thay vì CURDATE() khi câu hỏi nói hôm nay/hôm qua.",
         f"Phạm vi dữ liệu của vai trò này: {ROLE_SCOPE_NOTE[role]}.",
+        "Quy ước khoảng thời gian: 'tháng này' = từ ngày kinh doanh đầu tháng đến hôm nay; "
+        "'tháng trước' = trọn tháng dương lịch trước; 'N ngày gần nhất' = N ngày kinh doanh "
+        "kết thúc hôm nay; '1 tháng nay' = 30 ngày gần nhất.",
         "Nếu câu hỏi nằm ngoài phạm vi hoặc còn thiếu thông tin, hãy trả lời bắt đầu bằng "
-        "'CLARIFY:' kèm một câu hỏi làm rõ thay vì đoán.",
+        "'CLARIFY:' kèm một câu hỏi làm rõ thay vì đoán. Chỉ hỏi lại khi thực sự không thể "
+        "suy ra từ ngữ cảnh hội thoại bên dưới.",
         "",
         await schema_block(session, role),
     ]
@@ -197,6 +207,19 @@ async def build_prompt(
                 asked = getattr(example, "question", "")
                 sql = getattr(example, "sql", "")
             parts.append(f"- Hỏi: {asked}\n  SQL: {sql}")
+
+    if history:
+        parts += ["", "Ngữ cảnh hội thoại gần nhất:"]
+        for previous_question, previous_sql, previous_answer in list(history)[-4:]:
+            parts.append(f"- Người dùng: {previous_question}")
+            if previous_sql:
+                parts.append(f"  SQL đã dùng: {previous_sql}")
+            elif previous_answer:
+                parts.append(f"  Trợ lý đã hỏi lại: {previous_answer[:200]}")
+        parts.append(
+            "Nếu câu hỏi mới là câu nối tiếp (ví dụ 'doanh thu thôi', 'từng ngày trong "
+            "tháng'), hãy dùng ngữ cảnh trên để hoàn thiện câu hỏi rồi trả SQL luôn."
+        )
 
     parts += ["", f"Câu hỏi: {question}", "SQL:"]
     return "\n".join(parts)

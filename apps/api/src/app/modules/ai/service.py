@@ -102,10 +102,21 @@ async def answer(
     chat_session = await _resolve_session(session, user_id, session_id, role)
     normalized = normalize.normalize_question(question)
     sql_text: str | None = None
+    history_rows = (
+        await session.execute(
+            select(AssistantQuery.question, AssistantQuery.sql_text, AssistantQuery.summary)
+            .where(AssistantQuery.session_id == chat_session.id)
+            .order_by(AssistantQuery.id.desc())
+            .limit(4)
+        )
+    ).all()
+    history = [(str(row[0]), row[1], row[2]) for row in reversed(history_rows)]
 
     try:
         async with asyncio.timeout(settings.ai_response_budget_seconds):
-            sql_text = await generator.generate_sql(session, normalized, role, user_id)
+            sql_text = await generator.generate_sql(
+                session, normalized, role, user_id, history=history
+            )
             rows = await executor.execute(
                 sql_text, role=role, timeout_seconds=settings.ai_sql_timeout_seconds
             )

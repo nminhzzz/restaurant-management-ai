@@ -2,14 +2,14 @@
 
 import { CircleAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useSyncExternalStore, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import { homePathFor } from "@/lib/modules";
-import { saveSession } from "@/lib/session";
+import { saveSession, sessionNotice, subscribeSession } from "@/lib/session";
 
 interface TokenRes {
   access_token: string;
@@ -23,6 +23,11 @@ export function LoginForm() {
   const [pass, setPass] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const notice = useSyncExternalStore(
+    subscribeSession,
+    sessionNotice,
+    () => null,
+  );
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -48,6 +53,11 @@ export function LoginForm() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
+      {notice && (
+        <p role="status" className="text-muted">
+          {notice}
+        </p>
+      )}
       <div className="space-y-1.5">
         <Label htmlFor="login-user">Tên đăng nhập</Label>
         <Input

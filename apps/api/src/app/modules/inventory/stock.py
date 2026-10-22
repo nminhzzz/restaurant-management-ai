@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import BusinessRuleError
@@ -41,7 +41,7 @@ async def lock_ingredient(session: AsyncSession, ingredient_id: int) -> Ingredie
     q = select(Ingredient).where(Ingredient.id == ingredient_id)
     if dialect == "mysql":
         q = q.with_for_update()
-    r = await session.execute(q)
+    r = await session.execute(q.execution_options(populate_existing=True))
     ing = r.scalar_one_or_none()
     if ing is None:
         raise BusinessRuleError("Nguyên liệu không tồn tại.")
@@ -49,7 +49,7 @@ async def lock_ingredient(session: AsyncSession, ingredient_id: int) -> Ingredie
 
 
 async def lots_for_fifo(
-    session: AsyncSession, ingredient_id: int, *, allow_expired: bool = False
+    session: AsyncSession, ingredient_id: int, *, allow_expired: bool = False, lock: bool = False
 ) -> list[IngredientLot]:
     conds = [
         IngredientLot.ingredient_id == ingredient_id,
@@ -63,35 +63,41 @@ async def lots_for_fifo(
                 (IngredientLot.expiry_date.is_(None)) | (IngredientLot.expiry_date >= today),
             ]
         )
-    r = await session.execute(
+    statement = (
         select(IngredientLot)
         .where(*conds)
         .order_by(IngredientLot.received_at.asc(), IngredientLot.id.asc())
     )
+    if lock:
+        statement = statement.with_for_update().execution_options(populate_existing=True)
+    r = await session.execute(statement)
     return list(r.scalars().all())
 
 
 async def _held_by_lot(
-    session: AsyncSession, lot_ids: list[int], now: datetime
+    session: AsyncSession, lot_ids: list[int], now: datetime, *, lock: bool = False
 ) -> dict[int, Decimal]:
     """Quantities promised to active customer selections (FR-INV-10/11)."""
     if not lot_ids:
         return {}
     from app.modules.sales.models import Reservation, ReservationDetail
 
-    rows = (
-        await session.execute(
-            select(ReservationDetail.lot_id, func.sum(ReservationDetail.quantity))
-            .join(Reservation, Reservation.id == ReservationDetail.reservation_id)
-            .where(
-                ReservationDetail.lot_id.in_(lot_ids),
-                Reservation.status == "Đang giữ",
-                Reservation.expires_at > now,
-            )
-            .group_by(ReservationDetail.lot_id)
+    statement = (
+        select(ReservationDetail.lot_id, ReservationDetail.quantity)
+        .join(Reservation, Reservation.id == ReservationDetail.reservation_id)
+        .where(
+            ReservationDetail.lot_id.in_(lot_ids),
+            Reservation.status == "Đang giữ",
+            Reservation.expires_at > now,
         )
-    ).all()
-    return {int(lot_id): Decimal(str(qty or 0)) for lot_id, qty in rows}
+    )
+    if lock:
+        statement = statement.with_for_update()
+    rows = (await session.execute(statement)).all()
+    quantities: dict[int, Decimal] = {}
+    for lot_id, qty in rows:
+        quantities[int(lot_id)] = quantities.get(int(lot_id), Decimal(0)) + Decimal(str(qty))
+    return quantities
 
 
 async def available_quantity(
@@ -207,7 +213,9 @@ async def apply_stock_movement(
 
     # delta < 0: FIFO draw, limited to what is neither held nor expired.
     need = -delta
-    lots = await lots_for_fifo(session, change.ingredient_id, allow_expired=change.allow_expired)
+    lots = await lots_for_fifo(
+        session, change.ingredient_id, allow_expired=change.allow_expired, lock=True
+    )
     if change.lot_ids is not None:
         selected = set(change.lot_ids)
         lots = [lot for lot in lots if lot.id in selected]
@@ -217,7 +225,7 @@ async def apply_stock_movement(
         {}
         if change.allow_expired
         else await _held_by_lot(
-            session, [lot.id for lot in lots], business_date.now().replace(tzinfo=None)
+            session, [lot.id for lot in lots], business_date.now().replace(tzinfo=None), lock=True
         )
     )
     manual_issue = change.kind in ("Xuất thủ công", StockMovementType.XUAT_THU_CONG)

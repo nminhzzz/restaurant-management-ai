@@ -82,18 +82,9 @@ def _settle(order: Order, status: str, now: datetime) -> None:
 
 
 async def _next_invoice_number(session: AsyncSession, business_date_value: date) -> str:
-    """FR-SALE-21/Bảng 30: one sequence per business date, e.g. HD-20261021-0007."""
-    prefix = f"HD-{business_date_value:%Y%m%d}-"
-    last = (
-        await session.execute(
-            select(func.max(Invoice.invoice_number)).where(
-                Invoice.business_date == business_date_value,
-                Invoice.invoice_number.like(f"{prefix}%"),
-            )
-        )
-    ).scalar_one_or_none()
-    sequence = int(str(last).rsplit("-", 1)[1]) + 1 if last else 1
-    return f"{prefix}{sequence:04d}"
+    from app.modules.sales.invoice_numbers import next_invoice_number
+
+    return await next_invoice_number(session, business_date_value)
 
 
 async def _issue_invoice(
@@ -651,10 +642,15 @@ async def handle_sepay_transfer(session: AsyncSession, body: dict[str, Any]) -> 
     if order_open and transfer.amount == total and not already_paid:
         if normal or (late and not reopened):
             try:
-                await _cancel_other_qrs(session, order.id, keep_payment_id=payment.id)
-                await confirm_payment(session, payment, bank_ref=bank_ref)
+                async with session.begin_nested():
+                    await _cancel_other_qrs(session, order.id, keep_payment_id=payment.id)
+                    await confirm_payment(session, payment, bank_ref=bank_ref)
                 return "confirmed"
             except BusinessRuleError:
+                # Rolling back a savepoint expires changed ORM objects. Reload
+                # explicitly before logging or recording the unmatched money.
+                await session.refresh(payment)
+                await session.refresh(order)
                 # Lost a race with another confirmation/cancellation: record it, don't 500.
                 logger.warning(
                     "SePay transfer sepay_id=%s raced payment=%s; recording for review",
@@ -928,15 +924,21 @@ async def sync_recent_transfers(*, factory: async_sessionmaker[AsyncSession] | N
 
     confirmed = 0
     processed_id = cursor
+    try:
+        rows = sorted(rows, key=lambda row: int(str(row["id"])))
+    except (KeyError, TypeError, ValueError):
+        logger.error("SePay listing has an invalid id; cursor was not advanced")
+        return 0
     for row in rows:
         row_id = row.get("id")
+        if cursor is not None and int(str(row_id)) < int(cursor):
+            continue
         try:
             body = sepay.transfer_from_listing(row)
             transfer = sepay.parse_transfer(body)
         except (ValueError, InvalidOperation):
             logger.warning("Skipped a malformed SePay listing row")
-            processed_id = str(row_id) if row_id is not None else processed_id
-            continue
+            break
         # Money that does not reference one of our payments is ordinary bank
         # activity (rent, suppliers, old transfers). Recording every such row as a
         # payment exception would bury the ones a manager must actually resolve.
@@ -960,7 +962,15 @@ async def sync_recent_transfers(*, factory: async_sessionmaker[AsyncSession] | N
         async with session_factory() as setup_session:
             config = (await setup_session.execute(select(SystemConfig))).scalar_one_or_none()
             if config is not None:
-                config.sepay_cursor = processed_id
+                # Another worker may already have committed a newer cursor.
+                await setup_session.execute(
+                    update(SystemConfig)
+                    .where(
+                        SystemConfig.id == config.id,
+                        SystemConfig.sepay_cursor == cursor,
+                    )
+                    .values(sepay_cursor=processed_id)
+                )
                 await setup_session.commit()
     return confirmed
 
@@ -1382,18 +1392,22 @@ async def resolve_reconciliation(
         pending = (
             (
                 await session.execute(
-                    select(PaymentException).where(
+                    select(PaymentException)
+                    .where(
                         PaymentException.payment_transaction_id == payment.id,
                         PaymentException.status == EXCEPTION_PENDING,
                     )
+                    .with_for_update()
+                    .execution_options(populate_existing=True)
                 )
             )
             .scalars()
             .all()
         )
-        if any(Decimal(str(item.amount)) != total for item in pending):
+        if pending:
             raise BusinessRuleError(
-                "Còn khoản chênh lệch chưa xử lý; hãy áp dụng hoặc hoàn tiền trước."
+                "Còn khoản ngoại lệ chưa xử lý; hãy dùng thao tác áp dụng hoặc hoàn tiền "
+                "trong danh sách ngoại lệ để tránh ghi nhận cùng khoản tiền hai lần."
             )
         payment.status = QR_SUCCESS
         order.total = total
@@ -1486,6 +1500,8 @@ async def _apply_exception_money(
     if await _has_success_or_invoice(session, order.id):
         raise BusinessRuleError("Order đã có thanh toán/hóa đơn, chỉ có thể hoàn tiền.")
     total = await order_total(session, order)
+    if Decimal(str(exception.refund_amount or 0)) > 0:
+        raise BusinessRuleError("Khoản tiền đã hoàn một phần, chỉ có thể hoàn tiếp phần còn lại.")
     if Decimal(str(exception.amount)) != total:
         raise BusinessRuleError("Số tiền không còn khớp với order, chỉ có thể hoàn tiền.")
 
@@ -1560,6 +1576,26 @@ async def resolve_exception(
     """FR-SALE-17: apply the money to its order or record an external refund."""
     if outcome not in ("applied", "refunded"):
         raise BusinessRuleError("Kết quả xử lý phải là applied hoặc refunded.")
+    # All money paths lock payment -> order -> exception. Looking up immutable
+    # linkage first avoids taking the exception lock in the opposite order to
+    # reconciliation/webhooks.
+    linkage = await session.scalar(
+        select(PaymentException.payment_transaction_id).where(PaymentException.id == exception_id)
+    )
+    if linkage is not None:
+        linked_payment = await session.scalar(
+            select(PaymentTransaction)
+            .where(PaymentTransaction.id == linkage)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        if linked_payment is not None:
+            await session.execute(
+                select(Order)
+                .where(Order.id == linked_payment.order_id)
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
     exception = (
         await session.execute(
             select(PaymentException)

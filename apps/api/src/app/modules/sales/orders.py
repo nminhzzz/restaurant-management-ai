@@ -25,6 +25,8 @@ from app.modules.inventory.stock import (
     StockChange,
     apply_stock_movement,
     available_quantity,
+    ensure_no_open_stocktake,
+    lock_ingredient,
 )
 from app.modules.sales import reservations
 from app.modules.sales.models import DemOrder, KitchenTicket, Order, OrderLine
@@ -206,17 +208,23 @@ async def _return_line_stock(
     """Return the ingredients for `dishes` portions of this line, FIFO per drawn movement."""
     if line.recipe_id is None or dishes <= 0:
         return
+    await ensure_no_open_stocktake(session)
     needed: dict[int, Decimal] = {}
     for item in await recipe_items(session, line.recipe_id):
         needed[item.ingredient_id] = needed.get(item.ingredient_id, Decimal(0)) + (
             Decimal(str(item.quantity)) * dishes
         )
+    locked_ingredients = {
+        ingredient_id: await lock_ingredient(session, ingredient_id)
+        for ingredient_id in sorted(needed)
+    }
     drawings = list(
         (
             await session.execute(
                 select(StockMovement)
                 .where(StockMovement.order_line_id == line.id, StockMovement.qty < 0)
                 .order_by(StockMovement.id.asc())
+                .with_for_update()
             )
         )
         .scalars()
@@ -229,9 +237,9 @@ async def _return_line_stock(
     reversals = (
         (
             await session.execute(
-                select(StockMovement).where(
-                    StockMovement.order_line_id == line.id, StockMovement.qty > 0
-                )
+                select(StockMovement)
+                .where(StockMovement.order_line_id == line.id, StockMovement.qty > 0)
+                .with_for_update()
             )
         )
         .scalars()
@@ -259,10 +267,15 @@ async def _return_line_stock(
                 continue
             take = min(drawn - skip, remaining)
             skip = Decimal(0)
-            lot = await session.get(IngredientLot, movement.lot_id)
+            lot = await session.scalar(
+                select(IngredientLot)
+                .where(IngredientLot.id == movement.lot_id)
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
             if lot is not None:
                 lot.quantity_remaining = Decimal(str(lot.quantity_remaining)) + take
-            ingredient = await session.get(Ingredient, ingredient_id)
+            ingredient = locked_ingredients[ingredient_id]
             if ingredient is not None:
                 ingredient.stock_qty = Decimal(str(ingredient.stock_qty)) + take
             session.add(

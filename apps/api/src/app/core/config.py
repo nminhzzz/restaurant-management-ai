@@ -50,6 +50,9 @@ class Settings(BaseSettings):
     ai_ollama_base_url: str = "http://localhost:11434"
     # Commercial outage → self-hosted Ollama (report §1.4.2). Set false in CI.
     ai_ollama_fallback: bool = True
+    ai_ollama_model: str = "qwen2.5:7b"
+    # The full schema prompt takes ~3s; 1.5-3s made every real call time out (22/10).
+    ai_llm_timeout_seconds: float = Field(default=5.0, gt=0, le=8)
     ai_max_rows: int = 500
     ai_response_budget_seconds: float = 8.0
     ai_daily_question_quota: int = 50

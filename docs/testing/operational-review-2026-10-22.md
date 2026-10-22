@@ -1,8 +1,8 @@
 # Sửa lỗi vận hành sau review 22/10/2026
 
-Phạm vi: 16 phát hiện trong đợt review độc lập (6 P1, 10 P2) về đối soát, bảo toàn tồn kho,
-tính giá vốn và an toàn phiên đăng nhập. Mỗi mục đều có test hồi quy; `make gate` xanh
-(593 test API, 172 test web).
+Đợt sửa đầu xử lý 16 phát hiện về đối soát, tồn kho, giá vốn và phiên đăng nhập;
+`make gate` khi đó đạt 593 test API và 172 test web. Rà soát vòng 2 phát hiện các nhánh
+còn thiếu; thay đổi và phạm vi kiểm chứng mới được ghi ở cuối tài liệu.
 
 ## P1
 
@@ -54,3 +54,34 @@ Lần chạy đầu phát hiện thêm một lỗi thật: dưới REPEATABLE RE
 cả bốn kịch bản đều đạt.
 
 Chưa kiểm chứng: chuyển khoản thật sau đợt sửa, UAT/SUS, và tải đồng thời ở mức nhiều quầy.
+
+
+## Bổ sung sau review vòng 2
+
+Đã sửa các nhánh còn thiếu, kèm test thất bại trước sửa và test hồi quy:
+
+| Phạm vi | Thay đổi |
+| --- | --- |
+| Đối soát có ngoại lệ | Không xác nhận qua đường thủ công khi còn ngoại lệ; dùng một đường áp dụng/hoàn tiền trong danh sách ngoại lệ. Khoản đã hoàn một phần chỉ được hoàn tiếp phần còn lại. |
+| Webhook | Xác nhận và cấp hóa đơn nằm trong savepoint; lỗi cấp hóa đơn hoàn tác trạng thái thanh toán trước khi ghi nhận ngoại lệ. |
+| Kiểm kê | Đường hoàn kho thực tế `_return_line_stock` kiểm tra phiên kiểm kê đang mở. |
+| Tồn kho đồng thời | Khóa và giữ tham chiếu tới nguyên liệu đã làm mới; cập nhật trên dữ liệu hiện hành, không đọc lại snapshot cũ. |
+| Hold hết hạn | Phân bổ lại theo giá/công thức hiện hành và trừ lượng đang giữ của lượt khác; khóa nguyên liệu trước lượt giữ, đọc tổng giữ chỗ hiện hành khi ghi. Các truy vấn hiển thị không khóa lượt giữ. |
+| Số hóa đơn | Bảng kỹ thuật `DEM_HOA_DON` cấp số nguyên tử trong transaction; migration `c7f2d8a9e301` khởi tạo từ số hóa đơn đã phát hành. |
+| SePay | Xử lý ID tăng dần, đọc tối đa 5.000 dòng của API v1, dừng trước giao dịch lỗi, cập nhật con trỏ có điều kiện. Cửa sổ đầy thì từ chối tiến mốc và yêu cầu đối soát lịch sử, tránh bỏ qua khoản chưa thấy. |
+| SQL AI | Phân giải CTE theo scope; CTE lồng nhau không cho phép đọc bảng thật cùng tên ở bên ngoài. |
+| Fallback AI | Deadline tuyệt đối cho từng lần gọi provider; thread hết hạn chỉ có thể kết thúc lời gọi của nó, không tự gọi tiếp provider. Timeout mặc định 1,5 giây; model Ollama riêng qua `AI_OLLAMA_MODEL` (mặc định `qwen2.5:7b`, cần được cài trên Ollama). |
+| Phiên đăng nhập | 401 xóa đúng phiên bị từ chối và chuyển về đăng nhập có thông báo; phản hồi cũ không xóa phiên mới. Đổi mật khẩu kết thúc phiên đã bị thu hồi. Hiện vẫn dùng access JWT 8 giờ, chưa thêm refresh token. |
+
+Script MySQL nay kiểm chứng thêm: nhập 5 + 7 giữ đúng tổng lô và tổng nguyên liệu 12;
+cấp số hóa đơn với snapshot cũ; migration tiếp tục từ số hóa đơn hiện hữu;
+hold hết hạn không lấy lượng của lượt mới; hoàn kho và gửi hold sau một phiếu nhập khác
+vừa commit không làm mất cập nhật. Tổng cộng 10 ca trên CSDL tạm đều đạt.
+
+Lượt đọc độc lập đã kiểm tra lại thứ tự khóa và việc giữ đối tượng ORM sau khóa.
+Chưa chạy lại chuyển khoản thật hoặc UAT/SUS. Các kiểm thử trên CSDL tạm không chứng minh
+mọi lịch xen kẽ đồng thời hoặc mọi lỗi của ngân hàng trong vận hành.
+
+Kết quả cuối lượt sửa: `make gate` đạt **606 test API + 176 test web**, bao gồm
+format/lint/typecheck/build. `make migrate` đã áp dụng `c7f2d8a9e301` vào CSDL cục bộ
+đang cấu hình; `alembic current` xác nhận ở head. Chưa commit hoặc triển khai mã.

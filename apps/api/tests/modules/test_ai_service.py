@@ -162,7 +162,8 @@ async def test_a_slow_interpretation_still_returns_the_rows(
 
     assert response.kind == "answer"
     assert response.data
-    assert response.answer.startswith(interpreter.FALLBACK_ANSWER)
+    # The prose call was cut off; the deterministic numeric summary still answers.
+    assert "tổng số đơn" in response.answer.lower()
 
 
 @pytest.mark.anyio

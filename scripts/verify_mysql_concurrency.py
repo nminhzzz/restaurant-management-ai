@@ -42,9 +42,7 @@ def env_value(name: str) -> str:
     return match.group(1).strip()
 
 
-def docker_mysql(
-    sql: str, *, db: str | None = None
-) -> subprocess.CompletedProcess[str]:
+def docker_mysql(sql: str, *, db: str | None = None) -> subprocess.CompletedProcess[str]:
     parsed = urlsplit(env_value("DATABASE_URL"))
     command = [
         "docker",
@@ -161,9 +159,7 @@ async def seed() -> dict[str, int]:
         )
         session.add(recipe)
         await session.flush()
-        session.add(
-            RecipeItem(recipe_id=recipe.id, ingredient_id=ingredient.id, quantity=1)
-        )
+        session.add(RecipeItem(recipe_id=recipe.id, ingredient_id=ingredient.id, quantity=1))
         session.add(
             IngredientLot(
                 ingredient_id=ingredient.id,
@@ -174,14 +170,14 @@ async def seed() -> dict[str, int]:
                 received_at=business_date.now(),
             )
         )
-        session.add(DiningTable(name="Bàn KT", is_deleted=False, status="Trống"))
+        session.add(DiningTable(name=f"Bàn KT {group.id}", is_deleted=False, status="Trống"))
         await session.commit()
         return {"dish_id": dish.id, "ingredient_id": ingredient.id}
 
 
 async def make_order(dish_id: int, quantity: int = 1) -> int:
-    from app.modules.sales import orders
     from app.modules.catalog.models import DiningTable
+    from app.modules.sales import orders
 
     async with Session() as session:
         table = (
@@ -222,9 +218,7 @@ async def scenario_cash_race(dish_id: int) -> None:
     async with Session() as session:
         invoices = (
             await session.execute(
-                select(func.count())
-                .select_from(Invoice)
-                .where(Invoice.order_id == order_id)
+                select(func.count()).select_from(Invoice).where(Invoice.order_id == order_id)
             )
         ).scalar_one()
     check(
@@ -241,9 +235,7 @@ async def scenario_edit_vs_pay(dish_id: int) -> None:
     order_id = await make_order(dish_id)
     async with Session() as session:
         line = (
-            await session.execute(
-                select(OrderLine).where(OrderLine.order_id == order_id)
-            )
+            await session.execute(select(OrderLine).where(OrderLine.order_id == order_id))
         ).scalar_one()
         line_id = line.id
     outcomes = await asyncio.gather(
@@ -259,8 +251,7 @@ async def scenario_edit_vs_pay(dish_id: int) -> None:
         assert order is not None and line is not None
         line_total = Decimal(str(line.unit_price)) * int(line.quantity)
         snapshot_total = sum(
-            Decimal(str(item["ThanhTien"]))
-            for item in (invoice.snapshot or {}).get("lines", [])
+            Decimal(str(item["ThanhTien"])) for item in (invoice.snapshot or {}).get("lines", [])
         )
     check(
         "sửa món đồng thời với thanh toán",
@@ -294,9 +285,7 @@ async def scenario_duplicate_webhook(dish_id: int) -> None:
     async with Session() as session:
         invoices = (
             await session.execute(
-                select(func.count())
-                .select_from(Invoice)
-                .where(Invoice.order_id == order_id)
+                select(func.count()).select_from(Invoice).where(Invoice.order_id == order_id)
             )
         ).scalar_one()
         payment = await session.get(PaymentTransaction, payment_id)
@@ -326,9 +315,7 @@ async def scenario_stock_oversell(ingredient_id: int) -> None:
         lot = (
             (
                 await session.execute(
-                    select(IngredientLot).where(
-                        IngredientLot.ingredient_id == ingredient_id
-                    )
+                    select(IngredientLot).where(IngredientLot.ingredient_id == ingredient_id)
                 )
             )
             .scalars()
@@ -370,6 +357,230 @@ async def scenario_stock_oversell(ingredient_id: int) -> None:
     )
 
 
+async def scenario_receipt_snapshot() -> None:
+    from app.modules.catalog.models import Ingredient
+    from app.modules.inventory import service as inventory
+    from app.modules.inventory.models import IngredientLot
+
+    async with Session() as session:
+        ingredient = Ingredient(
+            name="NL nhập đồng thời", unit="kg", min_stock=0, stock_qty=0, is_deleted=False
+        )
+        session.add(ingredient)
+        await session.commit()
+        iid = ingredient.id
+    async with Session() as stale:
+        cached = await stale.get(Ingredient, iid)
+        assert cached is not None and cached.stock_qty == 0
+        async with Session() as fresh:
+            await inventory.create_receipt(
+                fresh, None, None, None, [{"ingredient_id": iid, "quantity": 5, "unit_price": 1000}]
+            )
+            await fresh.commit()
+        await inventory.create_receipt(
+            stale, None, None, None, [{"ingredient_id": iid, "quantity": 7, "unit_price": 1000}]
+        )
+        await stale.commit()
+    async with Session() as session:
+        ingredient = await session.get(Ingredient, iid)
+        lots = await session.scalar(
+            select(func.sum(IngredientLot.quantity_remaining)).where(
+                IngredientLot.ingredient_id == iid
+            )
+        )
+        assert ingredient is not None
+        check(
+            "phiếu nhập với snapshot cũ",
+            ingredient.stock_qty == lots == Decimal(12),
+            f"stock={ingredient.stock_qty} lots={lots}",
+        )
+
+
+async def scenario_invoice_snapshot(dish_id: int, url: str) -> None:
+    from app.modules.sales import payments
+    from app.modules.sales.models import Invoice
+
+    first = await make_order(dish_id)
+    second = await make_order(dish_id)
+    async with Session() as stale:
+        await stale.execute(select(Invoice.id))
+        async with Session() as fresh:
+            await payments.pay_cash(fresh, first)
+            await fresh.commit()
+        result = await payments.pay_cash(stale, second)
+        await stale.commit()
+        check("cấp hóa đơn với snapshot cũ", result["invoice"].total == Decimal(50000))
+    order_id = await make_order(dish_id)
+    async with Session() as session:
+        last = await session.scalar(select(func.max(Invoice.invoice_number)))
+        expected = int(str(last).rsplit("-", 1)[1]) + 1
+    subprocess.run(
+        ["uv", "run", "alembic", "downgrade", "b8e2a4c9d1f7"],
+        cwd=API,
+        env={**os.environ, "DATABASE_URL": url},
+        check=True,
+        capture_output=True,
+    )
+    migrate(url)
+    async with Session() as session:
+        result = await payments.pay_cash(session, order_id)
+        await session.commit()
+        number = int(result["invoice"].invoice_number.rsplit("-", 1)[1])
+        check(
+            "migration giữ số hóa đơn hiện hữu",
+            number == expected,
+            f"sequence={number} expected={expected}",
+        )
+
+
+async def scenario_hold_snapshot(dish_id: int, iid: int) -> None:
+    from datetime import timedelta
+
+    from app.core.errors import BusinessRuleError
+    from app.core.security import hash_password
+    from app.modules.catalog.models import Ingredient
+    from app.modules.inventory.models import IngredientLot
+    from app.modules.sales import orders, reservations
+    from app.modules.sales.models import Reservation
+    from app.modules.settings.models import User
+    from app.shared import business_date
+
+    async with Session() as session:
+        ingredient = await session.get(Ingredient, iid)
+        lot = await session.scalar(
+            select(IngredientLot).where(IngredientLot.ingredient_id == iid).limit(1)
+        )
+        assert ingredient is not None and lot is not None
+        ingredient.stock_qty = lot.quantity_remaining = 1
+        user = User(
+            username="hold_snapshot",
+            password_hash=hash_password("test-password"),
+            full_name="Kiểm thử",
+            role_id="CASHIER",
+            status="Hoạt động",
+        )
+        session.add(user)
+        await session.commit()
+        uid = user.id
+        old = await reservations.create_hold(
+            session, user_id=uid, selection_code=None, table_id=None, dish_id=dish_id, quantity=1
+        )
+        old.expires_at = business_date.now().replace(tzinfo=None) - timedelta(minutes=1)
+        await session.commit()
+        old_id = old.id
+    async with Session() as stale:
+        await stale.execute(select(Ingredient.id))
+        async with Session() as fresh:
+            active = await reservations.create_hold(
+                fresh, user_id=uid, selection_code=None, table_id=None, dish_id=dish_id, quantity=1
+            )
+            await fresh.commit()
+            active_id = active.id
+        refused = False
+        try:
+            await orders.submit_order(
+                stale,
+                {
+                    "order_type": "Mang về",
+                    "lines": [{"dish_id": dish_id, "quantity": 1, "hold_id": old_id}],
+                },
+                actor_id=uid,
+                confirm_expired=True,
+            )
+        except BusinessRuleError:
+            refused = True
+        await stale.rollback()
+    async with Session() as session:
+        active = await session.get(Reservation, active_id)
+        ingredient = await session.get(Ingredient, iid)
+        assert active is not None and ingredient is not None
+        check(
+            "hold hết hạn với snapshot cũ",
+            refused and ingredient.stock_qty == 1 and active.status == reservations.HOLD_ACTIVE,
+        )
+
+
+async def scenario_return_and_consume_snapshot() -> None:
+    from app.core.security import hash_password
+    from app.modules.catalog.models import Ingredient
+    from app.modules.inventory import service as inventory
+    from app.modules.inventory.models import IngredientLot
+    from app.modules.sales import orders, reservations
+    from app.modules.sales.models import Invoice, OrderLine
+    from app.modules.settings.models import User
+
+    data = await seed()
+    iid, dish_id = data["ingredient_id"], data["dish_id"]
+    order_id = await make_order(dish_id)
+    async with Session() as stale:
+        line = await stale.scalar(select(OrderLine).where(OrderLine.order_id == order_id))
+        assert line is not None
+        async with Session() as fresh:
+            await inventory.create_receipt(
+                fresh, None, None, None, [{"ingredient_id": iid, "quantity": 5, "unit_price": 1000}]
+            )
+            await fresh.commit()
+        await orders.cancel_line(stale, line.id, "Kiểm thử snapshot")
+        await stale.commit()
+    async with Session() as session:
+        ingredient = await session.get(Ingredient, iid)
+        lots = await session.scalar(
+            select(func.sum(IngredientLot.quantity_remaining)).where(
+                IngredientLot.ingredient_id == iid
+            )
+        )
+        assert ingredient is not None
+        check(
+            "hoàn kho sau nhập đồng thời",
+            ingredient.stock_qty == lots == Decimal(1005),
+            f"stock={ingredient.stock_qty} lots={lots}",
+        )
+        user = User(
+            username="consume_snapshot",
+            password_hash=hash_password("test-password"),
+            full_name="Kiểm thử",
+            role_id="CASHIER",
+            status="Hoạt động",
+        )
+        session.add(user)
+        await session.commit()
+        uid = user.id
+        hold = await reservations.create_hold(
+            session, user_id=uid, selection_code=None, table_id=None, dish_id=dish_id, quantity=1
+        )
+        await session.commit()
+        hid = hold.id
+    async with Session() as stale:
+        await stale.execute(select(Invoice.id))
+        async with Session() as fresh:
+            await inventory.create_receipt(
+                fresh, None, None, None, [{"ingredient_id": iid, "quantity": 5, "unit_price": 1000}]
+            )
+            await fresh.commit()
+        await orders.submit_order(
+            stale,
+            {
+                "order_type": "Mang về",
+                "lines": [{"dish_id": dish_id, "quantity": 1, "hold_id": hid}],
+            },
+            actor_id=uid,
+        )
+        await stale.commit()
+    async with Session() as session:
+        ingredient = await session.get(Ingredient, iid)
+        lots = await session.scalar(
+            select(func.sum(IngredientLot.quantity_remaining)).where(
+                IngredientLot.ingredient_id == iid
+            )
+        )
+        assert ingredient is not None
+        check(
+            "gửi hold sau nhập đồng thời",
+            ingredient.stock_qty == lots == Decimal(1009),
+            f"stock={ingredient.stock_qty} lots={lots}",
+        )
+
+
 async def main() -> int:
     name = f"restaurant_verify_{int(time.time())}"
     url = create_database(name)
@@ -384,6 +595,10 @@ async def main() -> int:
         await scenario_edit_vs_pay(data["dish_id"])
         await scenario_duplicate_webhook(data["dish_id"])
         await scenario_stock_oversell(data["ingredient_id"])
+        await scenario_receipt_snapshot()
+        await scenario_invoice_snapshot(data["dish_id"], url)
+        await scenario_hold_snapshot(data["dish_id"], data["ingredient_id"])
+        await scenario_return_and_consume_snapshot()
         print("\nAll concurrency checks passed on MySQL.")
         return 0
     finally:

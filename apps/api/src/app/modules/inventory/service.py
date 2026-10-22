@@ -20,6 +20,7 @@ from app.modules.inventory.stock import (
     StockChange,
     apply_stock_movement,
     ensure_no_open_stocktake,
+    lock_ingredient,
 )
 from app.shared import business_date
 from app.shared.audit import SystemAuditLog
@@ -80,11 +81,7 @@ async def create_receipt(
         unit_price = Decimal(str(ln.get("unit_price") or 0))
         if unit_price < 0:
             raise BusinessRuleError("Đơn giá không được âm.")
-        from app.modules.catalog.models import Ingredient
-
-        ing = await session.get(Ingredient, ingredient_id)
-        if ing is None:
-            raise BusinessRuleError("Nguyên liệu không tồn tại.")
+        ing = await lock_ingredient(session, ingredient_id)
         gl = GoodsReceiptLine(
             receipt_id=receipt.id,
             ingredient_id=ingredient_id,

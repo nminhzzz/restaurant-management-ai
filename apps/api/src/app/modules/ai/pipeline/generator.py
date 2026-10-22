@@ -5,7 +5,6 @@ retries. Transport fallback inside the adapter and result interpretation are not
 additional SQL generations. Each reservation commits before invoking the model.
 """
 
-import asyncio
 import hashlib
 import json
 from datetime import UTC
@@ -29,7 +28,11 @@ _GUARD_FINGERPRINT = hashlib.sha256(Path(guard.__file__).read_bytes()).hexdigest
 
 
 async def generate_sql(
-    session: AsyncSession, question: str, role: Role, user_id: int | None = None
+    session: AsyncSession,
+    question: str,
+    role: Role,
+    user_id: int | None = None,
+    history: list[tuple[str, str | None, str | None]] | None = None,
 ) -> str:
     """Return SQL only after validation, including when it came from shared cache."""
     settings = get_settings()
@@ -45,7 +48,7 @@ async def generate_sql(
         pass
     # Schema reflection uses the caller's connection and never locks runtime tables.
     # Include the full prompt: view columns, examples and prompt policy all matter.
-    base_prompt = await build_prompt(session, normalized, role)
+    base_prompt = await build_prompt(session, normalized, role, history=history)
     now = business_date.now()
     day = business_date.business_date_of(now)
     cache_context = {
@@ -90,7 +93,7 @@ async def generate_sql(
         prompt = base_prompt
         if last_error is not None:
             prompt += f"\n\nLần trước câu SQL chưa hợp lệ: {last_error}. Hãy sửa lại."
-        raw = await asyncio.to_thread(client.complete, prompt) or ""
+        raw = await llm.complete_async(client, prompt) or ""
         text = raw.strip()
 
         if text.upper().startswith(CLARIFY_PREFIX):

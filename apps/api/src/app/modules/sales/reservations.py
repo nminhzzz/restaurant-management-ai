@@ -8,7 +8,7 @@ from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from uuid import uuid4
 
-from sqlalchemy import delete, func, or_, select
+from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import BusinessRuleError, NotFoundError
@@ -45,30 +45,43 @@ async def _hold_minutes(session: AsyncSession) -> int:
 
 
 async def _active_holds_by_lot(
-    session: AsyncSession, lot_ids: list[int], now: datetime
+    session: AsyncSession, lot_ids: list[int], now: datetime, *, lock: bool = False
 ) -> dict[int, Decimal]:
     if not lot_ids:
         return {}
-    rows = await session.execute(
-        select(ReservationDetail.lot_id, func.sum(ReservationDetail.quantity))
+    statement = (
+        select(ReservationDetail.lot_id, ReservationDetail.quantity)
         .join(Reservation, Reservation.id == ReservationDetail.reservation_id)
         .where(
             ReservationDetail.lot_id.in_(lot_ids),
             Reservation.status == HOLD_ACTIVE,
             Reservation.expires_at > now,
         )
-        .group_by(ReservationDetail.lot_id)
     )
-    return {lot_id: Decimal(str(quantity or 0)) for lot_id, quantity in rows}
+    if lock:
+        statement = statement.with_for_update().execution_options(populate_existing=True)
+    rows = await session.execute(statement)
+    quantities: dict[int, Decimal] = {}
+    for lot_id, quantity in rows:
+        quantities[lot_id] = quantities.get(lot_id, Decimal(0)) + Decimal(str(quantity))
+    return quantities
 
 
-async def _lock_ingredients(session: AsyncSession, ingredient_ids: list[int]) -> None:
+async def _lock_ingredients(
+    session: AsyncSession, ingredient_ids: list[int]
+) -> dict[int, Ingredient]:
     ids = sorted(set(ingredient_ids))
     if not ids:
-        return
-    await session.execute(
-        select(Ingredient).where(Ingredient.id.in_(ids)).order_by(Ingredient.id).with_for_update()
+        return {}
+    result = await session.execute(
+        select(Ingredient)
+        .where(Ingredient.id.in_(ids))
+        .order_by(Ingredient.id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
     )
+
+    return {ingredient.id: ingredient for ingredient in result.scalars()}
 
 
 async def _eligible_lots(
@@ -89,7 +102,7 @@ async def _eligible_lots(
         .order_by(IngredientLot.received_at.asc(), IngredientLot.id.asc())
     )
     if lock:
-        statement = statement.with_for_update()
+        statement = statement.with_for_update().execution_options(populate_existing=True)
     return list((await session.execute(statement)).scalars().all())
 
 
@@ -97,7 +110,7 @@ async def _allocate(
     session: AsyncSession, ingredient_id: int, need: Decimal, now: datetime
 ) -> list[tuple[IngredientLot, Decimal]]:
     lots = await _eligible_lots(session, ingredient_id, now)
-    held = await _active_holds_by_lot(session, [lot.id for lot in lots], now)
+    held = await _active_holds_by_lot(session, [lot.id for lot in lots], now, lock=True)
     allocations: list[tuple[IngredientLot, Decimal]] = []
     remaining = need
     for lot in lots:
@@ -223,14 +236,47 @@ async def create_hold(
     return reservation
 
 
-async def _owned_active(session: AsyncSession, hold_id: int, user_id: int) -> Reservation:
-    reservation = (
-        await session.execute(
-            select(Reservation).where(Reservation.id == hold_id).with_for_update()
-        )
-    ).scalar_one_or_none()
-    if reservation is None or reservation.user_id != user_id:
+async def _lock_owned_hold(
+    session: AsyncSession, hold_id: int, user_id: int
+) -> tuple[Reservation, set[int]]:
+    # Lock ingredient rows before an existing reservation, matching create_hold
+    # and manual write-offs. Metadata here is advisory; validate after the lock.
+    dish_id = await session.scalar(
+        select(Reservation.dish_id).where(Reservation.id == hold_id, Reservation.user_id == user_id)
+    )
+    if dish_id is None:
         raise NotFoundError("Không tìm thấy lượt giữ chỗ.")
+    ingredient_ids = list(
+        await session.scalars(
+            select(RecipeItem.ingredient_id)
+            .join(Recipe, Recipe.id == RecipeItem.recipe_id)
+            .where(Recipe.dish_id == dish_id)
+        )
+    )
+    locked = await _lock_ingredients(session, ingredient_ids)
+    reservation = await session.scalar(
+        select(Reservation)
+        .where(Reservation.id == hold_id, Reservation.user_id == user_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    if reservation is None:
+        raise NotFoundError("Không tìm thấy lượt giữ chỗ.")
+    if reservation.recipe_id is not None:
+        current_ids = set(
+            await session.scalars(
+                select(RecipeItem.ingredient_id)
+                .where(RecipeItem.recipe_id == reservation.recipe_id)
+                .with_for_update()
+            )
+        )
+        if not current_ids.issubset(locked):
+            raise BusinessRuleError("Công thức đã thay đổi trong lúc gửi, vui lòng thử lại.")
+    return reservation, set(locked)
+
+
+async def _owned_active(session: AsyncSession, hold_id: int, user_id: int) -> Reservation:
+    reservation, _locked_ids = await _lock_owned_hold(session, hold_id, user_id)
     if reservation.status != HOLD_ACTIVE:
         raise BusinessRuleError("Lượt giữ chỗ không còn hiệu lực.")
     if reservation.expires_at <= _now():
@@ -248,13 +294,7 @@ async def get_hold_for_submit(
     confirm_expired: bool = False,
 ) -> Reservation:
     """FR-SALE-05: an expired hold is re-checked at submit and never renewed silently."""
-    reservation = (
-        await session.execute(
-            select(Reservation).where(Reservation.id == hold_id).with_for_update()
-        )
-    ).scalar_one_or_none()
-    if reservation is None or reservation.user_id != user_id:
-        raise NotFoundError("Không tìm thấy lượt giữ chỗ.")
+    reservation, locked_ids = await _lock_owned_hold(session, hold_id, user_id)
     if reservation.status not in (HOLD_ACTIVE, HOLD_EXPIRED):
         raise BusinessRuleError("Lượt giữ chỗ không còn hiệu lực.")
     now = _now()
@@ -265,10 +305,39 @@ async def get_hold_for_submit(
         raise BusinessRuleError(
             "Lượt giữ chỗ đã hết hạn. Xác nhận dùng giá và định lượng hiện tại để gửi món."
         )
-    # The cashier explicitly confirmed: give the submit a short window, and let
-    # consume_hold re-check the dish, price and recipe versions.
-    reservation.status = HOLD_ACTIVE
-    reservation.expires_at = now + timedelta(minutes=1)
+    await ensure_no_open_stocktake(session)
+    await ensure_dish_sellable(session, reservation.dish_id)
+    today = _business_date()
+    price = await active_price_version(session, reservation.dish_id, today)
+    recipe = await active_recipe(session, reservation.dish_id, today)
+    if price is None or recipe is None:
+        raise BusinessRuleError("Món chưa có giá hoặc công thức hiệu lực.")
+    items = await recipe_items(session, recipe.id)
+    if not {item.ingredient_id for item in items}.issubset(locked_ids):
+        raise BusinessRuleError("Công thức đã thay đổi trong lúc gửi, vui lòng thử lại.")
+    # Expired allocations promise nothing. Rebuild them against stock still free
+    # after every other active selection, using today's confirmed price/recipe.
+    async with session.begin_nested():
+        reservation.status = HOLD_EXPIRED
+        await session.execute(
+            delete(ReservationDetail).where(ReservationDetail.reservation_id == reservation.id)
+        )
+        await session.flush()
+        allocations: list[tuple[IngredientLot, Decimal]] = []
+        for item in items:
+            allocations.extend(
+                await _allocate(
+                    session,
+                    item.ingredient_id,
+                    Decimal(str(item.quantity)) * reservation.quantity,
+                    now,
+                )
+            )
+        await _add_details(session, reservation, allocations)
+        reservation.price_version_id = price.id
+        reservation.recipe_id = recipe.id
+        reservation.expires_at = _expiry_for(now, 1, [lot for lot, _ in allocations])
+        reservation.status = HOLD_ACTIVE
     await session.flush()
     return reservation
 
@@ -419,11 +488,20 @@ async def consume_hold(
         .scalars()
         .all()
     )
+    locked_ingredients = await _lock_ingredients(
+        session,
+        [item.ingredient_id for item in await recipe_items(session, reservation.recipe_id)]
+        if reservation.recipe_id is not None
+        else [],
+    )
     affected: list[int] = []
     for detail in details:
         lot = (
             await session.execute(
-                select(IngredientLot).where(IngredientLot.id == detail.lot_id).with_for_update()
+                select(IngredientLot)
+                .where(IngredientLot.id == detail.lot_id)
+                .with_for_update()
+                .execution_options(populate_existing=True)
             )
         ).scalar_one_or_none()
         if (
@@ -432,7 +510,7 @@ async def consume_hold(
             or (lot.expiry_date is not None and lot.expiry_date < today)
         ):
             raise BusinessRuleError("Lô giữ chỗ không còn đủ số lượng hoặc đã hết hạn.")
-        ingredient = await session.get(Ingredient, lot.ingredient_id)
+        ingredient = locked_ingredients.get(lot.ingredient_id)
         if ingredient is None:
             raise BusinessRuleError("Nguyên liệu không tồn tại.")
         quantity = Decimal(str(detail.quantity))

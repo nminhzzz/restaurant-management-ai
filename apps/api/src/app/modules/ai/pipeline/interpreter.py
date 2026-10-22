@@ -5,8 +5,8 @@ rule 16): the sentence that tells the reader which view the numbers came from mu
 depend on the model choosing to mention it.
 """
 
-import asyncio
 from dataclasses import dataclass
+from datetime import date, datetime
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,7 +22,6 @@ from app.modules.ai.scope import ROLE_VIEWS
 from app.shared.roles import Role
 
 EMPTY_ANSWER = "Truy vấn hợp lệ nhưng không có dòng dữ liệu nào thỏa điều kiện của câu hỏi."
-FALLBACK_ANSWER = "Kết quả đã được truy vấn nhưng chưa diễn giải được thành câu trả lời."
 
 PROMPT = (
     "Bạn là trợ lý dữ liệu của một nhà hàng. Chỉ dựa trên kết quả truy vấn dưới đây, "
@@ -49,14 +48,88 @@ class Interpretation:
     scope_note: str
 
 
-def fallback(rows: list[dict[str, Any]], role: Role) -> Interpretation:
-    """A truthful answer when the model cannot finish in time (NFR-02).
+FALLBACK_LABELS = {
+    "DoanhThu": "doanh thu",
+    "TongTien": "tổng tiền",
+    "SoTien": "số tiền",
+    "SoDon": "số đơn",
+    "SoLuong": "số lượng",
+    "SoHoaDon": "số hóa đơn",
+}
 
-    The data and the SQL are already correct; only the prose is missing, so the user
-    still gets the table/chart instead of a failed turn.
+
+def _is_number(value: Any) -> bool:
+    if value is None or isinstance(value, bool):
+        return False
+    try:
+        float(str(value))
+    except (TypeError, ValueError):
+        return False
+    return True
+
+
+def _money(value: float) -> str:
+    return f"{value:,.0f} ₫".replace(",", ".")
+
+
+def _day(value: Any) -> str:
+    text = str(value)[:10]
+    try:
+        return datetime.strptime(text, "%Y-%m-%d").strftime("%d/%m/%Y")
+    except ValueError:
+        return text
+
+
+def fallback(rows: list[dict[str, Any]], role: Role) -> Interpretation:
+    """A truthful, numeric answer when the model cannot finish in time (NFR-02).
+
+    The SQL and rows are already correct. Instead of "chưa diễn giải được", sum the
+    main numeric column and point at the peak day, so the turn still answers.
     """
     note = scope_note(role)
-    answer = StructuredAnswer(headline=EMPTY_ANSWER if not rows else FALLBACK_ANSWER)
+    if not rows:
+        answer = StructuredAnswer(headline=EMPTY_ANSWER)
+        return Interpretation(answer, compose_answer(answer, note), note)
+
+    columns = list(rows[0])
+    numeric = [column for column in columns if all(_is_number(row.get(column)) for row in rows)]
+
+    def looks_like_date(value: Any) -> bool:
+        if isinstance(value, (date, datetime)):
+            return True
+        text = str(value)
+        return len(text) >= 10 and text[4] == "-" and text[7] == "-"
+
+    date_column = next(
+        (column for column in columns if all(looks_like_date(row.get(column)) for row in rows)),
+        None,
+    )
+    headlines: list[str] = []
+    highlights: list[str] = []
+    if numeric:
+        key = numeric[-1]
+        label = FALLBACK_LABELS.get(key, key)
+        values = [float(row[key]) for row in rows]
+        total = sum(values)
+        if date_column is not None:
+            peak = max(rows, key=lambda row: float(row[key]))
+            headlines.append(f"{len(rows)} ngày có dữ liệu; tổng {label} là {_money(total)}.")
+            highlights.append(f"Tổng {label}: {_money(total)}.")
+            highlights.append(
+                f"Cao nhất: {_money(float(peak[key]))} vào {_day(peak[date_column])}."
+            )
+            highlights.append(f"Trung bình mỗi ngày: {_money(total / len(rows))}.")
+        else:
+            headlines.append(f"{len(rows)} dòng dữ liệu; tổng {label} là {_money(total)}.")
+            highlights.append(f"Tổng {label}: {_money(total)}.")
+            highlights.append(f"Trung bình mỗi dòng: {_money(total / len(rows))}.")
+            if len(values) > 1:
+                highlights.append(f"Cao nhất: {_money(max(values))}.")
+                highlights.append(f"Thấp nhất: {_money(min(values))}.")
+    else:
+        headlines.append(f"Có {len(rows)} dòng dữ liệu thỏa câu hỏi.")
+
+    answer = StructuredAnswer(headline=" ".join(headlines), highlights=highlights[:4])
     return Interpretation(answer, compose_answer(answer, note), note)
 
 
@@ -73,8 +146,9 @@ async def interpret(
         return fallback(rows, role)
 
     prompt = PROMPT.format(question=question, sql=sql, count=len(rows), rows=rows[:20])
-    raw = await asyncio.to_thread(llm.get_client().complete, prompt) or ""
+    raw = await llm.complete_async(llm.get_client(), prompt) or ""
     answer = parse_model_answer(raw)
     if not answer.headline:
-        answer = StructuredAnswer(headline=FALLBACK_ANSWER)
+        # The model returned prose we cannot parse; keep the numeric summary instead.
+        return fallback(rows, role)
     return Interpretation(answer, compose_answer(answer, note), note)

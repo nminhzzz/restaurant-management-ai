@@ -31,6 +31,12 @@ class DemOrder(Base):
     count: Mapped[int] = mapped_column("SoDaCap", Integer, nullable=False, default=1)
 
 
+class InvoiceCounter(Base):
+    __tablename__ = "DEM_HOA_DON"
+    business_date: Mapped[date] = mapped_column("BusinessDate", Date, primary_key=True)
+    count: Mapped[int] = mapped_column("SoDaCap", Integer, nullable=False, default=0)
+
+
 class Order(Base):
     __tablename__ = "ORDER"
     id: Mapped[int] = mapped_column("MaOrder", BigInteger, primary_key=True, autoincrement=True)

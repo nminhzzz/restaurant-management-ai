@@ -141,3 +141,11 @@ def test_into_outfile_is_rejected() -> None:
 def test_unparsable_input_is_rejected(sql: str) -> None:
     with pytest.raises(BusinessRuleError):
         guard(sql)
+
+
+def test_a_nested_cte_does_not_authorise_an_outer_base_table() -> None:
+    with pytest.raises(BusinessRuleError):
+        guard(
+            "SELECT HoTen FROM NGUOI_DUNG WHERE EXISTS "
+            "(WITH NGUOI_DUNG AS (SELECT * FROM vw_ai_kho) SELECT 1 FROM NGUOI_DUNG)"
+        )

@@ -56,7 +56,8 @@ def choose_chart(columns: list[str], rows: list[dict[str, Any]]) -> ChartSpec | 
     y = [numeric[-1]] if _looks_like_share(numeric[-1]) else [numeric[0]]
 
     if _looks_like_date(x):
-        return ChartSpec(type="line", x=x, y=y)
+        # A line needs two points; a single day still deserves a visible bar.
+        return ChartSpec(type="line" if len(rows) >= 2 else "bar", x=x, y=y)
 
     values = [_number(row.get(y[0])) or 0.0 for row in rows]
     if _looks_like_share(y[0]) and 0 < sum(values) <= 101:

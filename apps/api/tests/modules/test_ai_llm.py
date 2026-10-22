@@ -224,3 +224,66 @@ def test_a_commercial_outage_falls_back_to_the_self_hosted_provider() -> None:
 
     assert client.complete("hỏi") == "SELECT 2"
     assert calls == ["hỏi"]
+
+
+def test_provider_timeout_leaves_time_for_fallback_inside_the_response_budget() -> None:
+    """A stalled primary must time out before the assistant's outer deadline."""
+    from app.core.config import get_settings
+
+    observed = []
+
+    class AvailableFallback:
+        def complete(self, prompt):
+            return "SELECT 1 FROM vw_ai_kho"
+
+    def handler(request):
+        observed.append(request.extensions["timeout"]["read"])
+        raise httpx.ReadTimeout("Primary stalled", request=request)
+
+    client = CommercialClient(
+        api_key="test",
+        model="primary",
+        base_url="https://test",
+        transport=httpx.MockTransport(handler),
+        fallback_client=AvailableFallback(),
+    )
+    assert client.complete("question") == "SELECT 1 FROM vw_ai_kho"
+    # Leave ~2.5s for the interpretation call; a real schema prompt takes ~3s.
+    assert observed[0] <= get_settings().ai_response_budget_seconds - 2.0
+
+
+@pytest.mark.anyio
+async def test_async_provider_deadline_reaches_fallback_even_when_primary_thread_stalls(
+    monkeypatch,
+):
+    import asyncio
+    import threading
+
+    from app.core.config import get_settings
+    from app.modules.ai import llm
+
+    monkeypatch.setenv("AI_LLM_TIMEOUT_SECONDS", "0.05")
+    get_settings.cache_clear()
+    release = threading.Event()
+
+    class AvailableFallback:
+        def complete(self, prompt):
+            return "SELECT 1 FROM vw_ai_kho"
+
+    client = CommercialClient(
+        api_key="test",
+        model="primary",
+        base_url="https://test",
+        fallback_client=AvailableFallback(),
+    )
+
+    def stalled_post(model, prompt):
+        release.wait(2)
+        return "late primary answer"
+
+    monkeypatch.setattr(client, "_post", stalled_post)
+    try:
+        result = await asyncio.wait_for(llm.complete_async(client, "question"), timeout=0.5)
+        assert result == "SELECT 1 FROM vw_ai_kho"
+    finally:
+        release.set()

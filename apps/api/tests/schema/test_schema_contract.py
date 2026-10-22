@@ -40,6 +40,7 @@ EXPECTED_TABLES = {
     "PHIEN_CHAT_AI",
     "TRUY_VAN_AI",
     "DEM_ORDER",
+    "DEM_HOA_DON",
     "HAN_MUC_AI_NGAY",
     "BO_NHO_DEM_SQL_AI",
 }
