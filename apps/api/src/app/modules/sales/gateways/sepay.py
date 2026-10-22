@@ -13,7 +13,10 @@ from urllib.parse import urlencode
 
 import httpx
 
+from app.core.errors import BusinessRuleError
+
 QR_IMAGE_BASE = "https://qr.sepay.vn/img"
+LISTING_LIMIT = 5000
 
 # Tests swap this for httpx.MockTransport; production uses the default transport.
 _transport: httpx.AsyncBaseTransport | None = None
@@ -85,13 +88,26 @@ def transfer_from_listing(item: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-async def recent_transfers(*, api_url: str, token: str, account: str) -> list[dict[str, Any]]:
+async def recent_transfers(
+    *, api_url: str, token: str, account: str, since_id: str | None = None
+) -> list[dict[str, Any]]:
+    params: dict[str, Any] = {"account_number": account, "limit": LISTING_LIMIT}
+    if since_id:
+        # v1 is inclusive and returns newest first; callers must process ascending.
+        params["since_id"] = since_id
     async with httpx.AsyncClient(transport=_transport, timeout=5.0) as client:
         response = await client.get(
             f"{api_url}/transactions/list",
-            params={"account_number": account, "limit": 20},
+            params=params,
             headers={"Authorization": f"Bearer {token}"},
         )
         response.raise_for_status()
         rows = response.json().get("transactions") or []
+    if len(rows) >= LISTING_LIMIT:
+        # v1 exposes no ID upper bound/pagination. A full window might hide older
+        # money: fail closed rather than falsely advancing past unseen transfers.
+        raise BusinessRuleError(
+            "Danh sách SePay đạt 5.000 giao dịch; chưa tiến mốc đồng bộ. "
+            "Cần đối soát lịch sử ngân hàng trước khi tiếp tục."
+        )
     return [row for row in rows if isinstance(row, dict)]

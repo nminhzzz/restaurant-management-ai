@@ -118,7 +118,7 @@ export function FloorStep({
   }
 
   return (
-    <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+    <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
       <div className="min-w-0 space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           <form
@@ -170,7 +170,7 @@ export function FloorStep({
           </p>
         )}
 
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2">
           {visible.map((table) => {
             const busy = kindOf(table) === "busy";
             return (
@@ -187,8 +187,8 @@ export function FloorStep({
                   selected === table.MaBan && "border-ink ring-1 ring-ink",
                 )}
               >
-                <span className="flex items-center justify-between gap-2 text-lg font-bold tracking-tight">
-                  {table.TenBan}
+                <span className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-lg font-bold tracking-tight">
+                  <span className="whitespace-nowrap">{table.TenBan}</span>
                   <StatusBadge status={table.TrangThai} />
                 </span>
                 {table.order ? (
@@ -213,7 +213,7 @@ export function FloorStep({
         </div>
       </div>
 
-      <aside className="space-y-3 lg:sticky lg:top-4">
+      <aside className="space-y-3 xl:sticky xl:top-4">
         {active && (
           <section
             aria-label={`Order ${active.TenBan}`}

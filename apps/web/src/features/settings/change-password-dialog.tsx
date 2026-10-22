@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { apiFetch } from "@/lib/api-client";
+import { expireSession, loadSession } from "@/lib/session";
 import { useAction } from "@/lib/use-action";
 
 const EMPTY = { current: "", next: "", confirm: "" };
@@ -40,15 +41,23 @@ export function ChangePasswordDialog({
 
   async function submit() {
     if (!canSubmit) return;
+    const token = loadSession()?.token;
     const result = await run(
       () =>
         apiFetch("/settings/auth/change-password", {
           method: "POST",
           body: { old_password: form.current, new_password: form.next },
         }),
-      "Đã đổi mật khẩu.",
+      "Đã đổi mật khẩu. Vui lòng đăng nhập lại.",
     );
-    if (result !== undefined) close(false);
+    if (result !== undefined) {
+      if (token)
+        expireSession(
+          token,
+          "Đã đổi mật khẩu. Vui lòng đăng nhập lại bằng mật khẩu mới.",
+        );
+      close(false);
+    }
   }
 
   return (

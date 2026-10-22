@@ -102,7 +102,12 @@ async def create_issue(
     session: AsyncSession = Depends(get_session),
 ):
     iss = await svc.create_issue(
-        session, user.user_id, payload.reason, [ln.model_dump() for ln in payload.lines]
+        session,
+        user.user_id,
+        payload.reason,
+        [ln.model_dump() for ln in payload.lines],
+        source=payload.source,
+        stocktake_id=payload.stocktake_id,
     )
     await session.commit()
     return {"MaPhieuXuat": iss.id}
@@ -130,6 +135,17 @@ async def record_counts(
         sid,
         [(c.ingredient_id, __import__("decimal").Decimal(str(c.actual_qty))) for c in counts],
     )
+    await session.commit()
+    return {"ok": True}
+
+
+@router.post("/stocktakes/{sid}/cancel")
+async def cancel_stocktake(
+    sid: int,
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    session: AsyncSession = Depends(get_session),
+):
+    await svc.cancel_stocktake(session, user.user_id, sid)
     await session.commit()
     return {"ok": True}
 

@@ -91,3 +91,25 @@ async def test_an_empty_result_is_explained_not_left_blank(session, fake_llm):
     result = await interpret(session, "hôm qua bao nhiêu đơn?", "SELECT 1", [], Role.CASHIER)
     assert "không có" in result.answer.headline.lower()
     assert fake_llm.calls == 0
+
+
+def test_a_single_day_result_is_still_a_visible_chart() -> None:
+    """A one-row answer used to produce a line with no drawable segment."""
+    spec = choose_chart(
+        columns=["BusinessDate", "DoanhThu"],
+        rows=[{"BusinessDate": "2026-10-21", "DoanhThu": 170000}],
+    )
+
+    assert spec is not None
+    assert spec.type == "bar"
+
+
+def test_fallback_still_reports_the_numbers_when_prose_times_out():
+    """A timeout must not produce a blank answer: sum and peak stay available."""
+    from app.modules.ai.pipeline.interpreter import fallback
+
+    result = fallback(time_series_rows, Role.MANAGER)
+
+    assert "2 ngày" in result.text
+    assert "220.000" in result.text
+    assert "02/09/2026" in result.text

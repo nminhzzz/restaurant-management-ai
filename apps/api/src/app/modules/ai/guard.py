@@ -18,6 +18,7 @@ from collections.abc import Iterable
 import sqlglot
 from sqlglot import exp
 from sqlglot.errors import ParseError
+from sqlglot.optimizer.scope import traverse_scope
 
 from app.core.errors import BusinessRuleError
 
@@ -56,10 +57,6 @@ SQL_REJECTED_MESSAGE = "Không thể tạo truy vấn an toàn cho câu hỏi n�
 
 def _relation_name(table: exp.Table) -> str:
     return table.name.lower()
-
-
-def _collect_cte_names(expression: exp.Expression) -> set[str]:
-    return {cte.alias_or_name.lower() for cte in expression.find_all(exp.CTE)}
 
 
 def _function_name(node: exp.Expr) -> str | None:
@@ -129,11 +126,14 @@ def validate_sql(
             raise BusinessRuleError(SQL_REJECTED_MESSAGE)
 
     allowed = {view.lower() for view in allowed_views}
-    permitted_names = allowed | _collect_cte_names(expression)
     for table in expression.find_all(exp.Table):
         if table.db or table.catalog:
             raise BusinessRuleError(SQL_REJECTED_MESSAGE)
-        if _relation_name(table) not in permitted_names:
-            raise BusinessRuleError(SQL_REJECTED_MESSAGE)
+    # Resolve CTE aliases in their own lexical scope. A CTE in a nested SELECT
+    # cannot authorise a real table of the same name in an enclosing query.
+    for scope in traverse_scope(expression):
+        for source in scope.sources.values():
+            if isinstance(source, exp.Table) and _relation_name(source) not in allowed:
+                raise BusinessRuleError(SQL_REJECTED_MESSAGE)
 
     return _apply_row_ceiling(expression, max_rows).sql(dialect=_DIALECT)

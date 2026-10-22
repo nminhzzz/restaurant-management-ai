@@ -201,6 +201,53 @@ INGREDIENT_NAMES: tuple[str, ...] = (
     "Đá viên",
 )
 
+# Demo data must exercise the low-stock and near-expiry questions, so dry goods get a
+# long shelf life while meat, seafood, noodles and produce expire within the week.
+_MEAT_PREFIXES = (
+    "Thịt",
+    "Sườn",
+    "Giò",
+    "Đùi",
+    "Cánh",
+    "Gà",
+    "Cá",
+    "Tôm",
+    "Mực",
+    "Nghêu",
+    "Ghẹ",
+    "Ốc",
+)
+_FRESH_PREFIXES = (
+    "Bún",
+    "Bánh phở",
+    "Rau",
+    "Cải",
+    "Xà lách",
+    "Giá đỗ",
+    "Dưa leo",
+    "Cà chua",
+    "Cà rốt",
+    "Củ cải",
+    "Nấm",
+    "Đu đủ",
+    "Chuối",
+    "Dừa",
+    "Chanh",
+    "Quất",
+    "Hành lá",
+    "Rau thơm",
+)
+
+
+def shelf_days_for(name: str) -> int:
+    """Deterministic shelf life so generated lots have a meaningful expiry date."""
+    if name.startswith(_MEAT_PREFIXES):
+        return 3
+    if name.startswith(_FRESH_PREFIXES):
+        return 7
+    return 365
+
+
 SUPPLIER_NAMES: tuple[str, ...] = (
     "Chợ đầu mối",
     "Hải sản Biển Đông",
@@ -302,7 +349,7 @@ async def seed_catalog(session: AsyncSession, config: SeedConfig) -> CatalogIds:
         ingredient_ids: dict[str, int] = {}
         for name in plan.ingredient_names:
             ingredient = await catalog_service.create_ingredient(
-                session, manager_id, name, "kg", 5
+                session, manager_id, name, "kg", 5, shelf_days_for(name)
             )
             ingredient_ids[name] = ingredient.id
 

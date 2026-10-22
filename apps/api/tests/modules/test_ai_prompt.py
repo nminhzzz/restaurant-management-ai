@@ -77,5 +77,23 @@ async def test_the_prompt_names_the_sql_dialect_even_without_examples(session, s
     prompt = await build_prompt(session, "Hôm nay có bao nhiêu đơn?", role, examples=[])
 
     assert "MySQL 8.4" in prompt
-    assert "CURDATE()" in prompt
+    # The current business day is injected by the backend; CURDATE() would be wrong
+    # between 00:00 and 06:00, when the business day is still yesterday.
+    assert "2026-09-24" in prompt
+    assert "thay vì CURDATE()" in prompt
     assert "BusinessDate" in prompt
+
+
+@pytest.mark.anyio
+async def test_the_prompt_carries_the_recent_conversation(session, seed_views):
+    """A follow-up such as 'doanh thu thôi' only makes sense with the prior turn."""
+    prompt = await build_prompt(
+        session,
+        "doanh thu thôi",
+        Role.MANAGER,
+        examples=[],
+        history=[("Doanh thu 7 ngày gần nhất?", "SELECT 1", None)],
+    )
+
+    assert "Ngữ cảnh hội thoại" in prompt
+    assert "Doanh thu 7 ngày gần nhất?" in prompt

@@ -23,6 +23,7 @@ type MarginResponse = {
 type CostBreakdownResponse = {
   NguyenLieu: string;
   HaoHut: string;
+  DonHuyChuaThu?: string;
   TongGiaVon: string;
   TamTinh: boolean;
   SoDongChuaTinhGiaVon: number;
@@ -110,6 +111,15 @@ export function MarginReport() {
       value: Number(costs.NguyenLieu),
     },
     { key: "HaoHut", label: "Hao hụt", value: Number(costs.HaoHut) },
+    ...(Number(costs.DonHuyChuaThu ?? 0) > 0
+      ? [
+          {
+            key: "DonHuyChuaThu",
+            label: "Đơn hủy/chưa thu",
+            value: Number(costs.DonHuyChuaThu),
+          },
+        ]
+      : []),
   ];
 
   const dishItems = [...dishCosts.items]
@@ -163,6 +173,14 @@ export function MarginReport() {
           rows={[
             ["Nguyên liệu", formatVnd(costs.NguyenLieu)],
             ["Hao hụt", formatVnd(costs.HaoHut)],
+            ...(Number(costs.DonHuyChuaThu ?? 0) > 0
+              ? [
+                  ["Đơn hủy/chưa thu", formatVnd(costs.DonHuyChuaThu ?? 0)] as [
+                    string,
+                    string,
+                  ],
+                ]
+              : []),
             ["Tổng giá vốn", formatVnd(costs.TongGiaVon)],
           ]}
           pageSize={10}

@@ -4,7 +4,7 @@ Money is `Decimal` on purpose: Pydantic serialises it to a JSON string, so a cli
 never sees a float-rounded figure (see the plan's data contract).
 """
 
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
 from pydantic import BaseModel
@@ -68,6 +68,7 @@ class MarginOut(BaseModel):
 class CostBreakdownOut(BaseModel):
     NguyenLieu: Decimal
     HaoHut: Decimal
+    DonHuyChuaThu: Decimal = Decimal(0)
     TongGiaVon: Decimal
     TamTinh: bool
     SoDongChuaTinhGiaVon: int
@@ -132,6 +133,8 @@ class ClosedUnpaidOrderOut(BaseModel):
     TongTien: Decimal
     GiaVon: Decimal
     LyDo: str | None
+    NguoiDong: str | None = None
+    ThoiDiemDong: datetime | None = None
 
 
 class ClosedUnpaidReportOut(BaseModel):

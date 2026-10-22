@@ -142,6 +142,10 @@ async def test_qr_starts(session):
     assert r.status_code == 201
     j = r.json()
     assert j["TrangThai"] == "Chờ xác nhận"
+    # The simulator still renders a reviewable QR image, labelled as simulated.
+    assert j["payment_code"] == f"SIM{j['MaGiaoDich']}"
+    assert j["qr_image_url"].startswith("data:image/svg+xml")
+    assert j["simulated"] is True
 
 
 @pytest.mark.anyio

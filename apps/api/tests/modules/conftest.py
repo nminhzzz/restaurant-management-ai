@@ -606,7 +606,7 @@ async def orders_in_september(session):
     """Ranking data where the top seller by quantity is not the top by revenue."""
     by_quantity = await _r_dish(session, "Món số lượng")
     by_revenue = await _r_dish(session, "Món doanh thu")
-    order = await _r_order(session, bd=_sep(13), order_type="Mang về")
+    order = await _r_order(session, bd=_sep(13), status="Đã thanh toán", order_type="Mang về")
     await _r_line(session, order, by_quantity, 5, 20000)
     await _r_line(session, order, by_revenue, 1, 300000)
     await session.commit()
@@ -621,7 +621,7 @@ async def orders_in_september(session):
 async def order_with_cancelled_line(session):
     kept = await _r_dish(session, "Món giữ")
     dropped = await _r_dish(session, "Món đã hủy")
-    order = await _r_order(session, bd=_sep(13), order_type="Mang về")
+    order = await _r_order(session, bd=_sep(13), status="Đã thanh toán", order_type="Mang về")
     await _r_line(session, order, kept, 1, 30000)
     await _r_line(session, order, dropped, 4, 30000, status="Đã hủy")
     await session.commit()
@@ -636,6 +636,7 @@ async def order_at_0130(session):
     order = await _r_order(
         session,
         bd=date(2026, 9, 24),
+        status="Đã thanh toán",
         order_type="Mang về",
         at=placed_at,
     )
@@ -741,9 +742,9 @@ async def write_off_after_backfill(session, write_off_before_month_close):
 async def orders_in_two_months(session):
     august_dish = await _r_dish(session, "Món tháng 8")
     september_dish = await _r_dish(session, "Món tháng 9")
-    august = await _r_order(session, bd=_aug(10), order_type="Mang về")
+    august = await _r_order(session, bd=_aug(10), status="Đã thanh toán", order_type="Mang về")
     await _r_line(session, august, august_dish, 2, 30000)
-    september = await _r_order(session, bd=_sep(10), order_type="Mang về")
+    september = await _r_order(session, bd=_sep(10), status="Đã thanh toán", order_type="Mang về")
     await _r_line(session, september, september_dish, 1, 30000)
     await session.commit()
     return SimpleNamespace(left_month="2026-08", right_month="2026-09")

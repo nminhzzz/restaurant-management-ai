@@ -46,13 +46,15 @@ SCOPE_REFUSED_ANSWER = "Câu hỏi này nằm ngoài phạm vi dữ liệu mà v
 
 
 async def _resolve_session(
-    session: AsyncSession, user_id: int, session_id: int | None
+    session: AsyncSession, user_id: int, session_id: int | None, role: Role
 ) -> ChatSession:
     if session_id is not None:
         existing = await session.get(ChatSession, session_id)
-        if existing is not None and existing.user_id == user_id:
+        # A session belongs to one role: switching roles must not continue a
+        # conversation that already received data from another scope (R31).
+        if existing is not None and existing.user_id == user_id and existing.role_id == role.value:
             return existing
-    chat_session = ChatSession(user_id=user_id, role_id=None)
+    chat_session = ChatSession(user_id=user_id, role_id=role.value)
     session.add(chat_session)
     await session.flush()
     return chat_session
@@ -97,20 +99,39 @@ async def answer(
     """Answer one question within the caller's role scope, and log the turn."""
     settings = get_settings()
     started = time.perf_counter()
-    chat_session = await _resolve_session(session, user_id, session_id)
+    chat_session = await _resolve_session(session, user_id, session_id, role)
     normalized = normalize.normalize_question(question)
     sql_text: str | None = None
+    history_rows = (
+        await session.execute(
+            select(AssistantQuery.question, AssistantQuery.sql_text, AssistantQuery.summary)
+            .where(AssistantQuery.session_id == chat_session.id)
+            .order_by(AssistantQuery.id.desc())
+            .limit(4)
+        )
+    ).all()
+    history = [(str(row[0]), row[1], row[2]) for row in reversed(history_rows)]
 
     try:
         async with asyncio.timeout(settings.ai_response_budget_seconds):
-            sql_text = await generator.generate_sql(session, normalized, role, user_id)
+            sql_text = await generator.generate_sql(
+                session, normalized, role, user_id, history=history
+            )
             rows = await executor.execute(
                 sql_text, role=role, timeout_seconds=settings.ai_sql_timeout_seconds
             )
             columns = list(rows[0].keys()) if rows else []
             spec = charts.choose_chart(columns, rows)
             columns_meta = labels.describe_columns(columns, rows)
-            interpretation = await interpreter.interpret(session, normalized, sql_text, rows, role)
+        # The SQL and its rows are ready; a slow prose call must not throw them away.
+        remaining = settings.ai_response_budget_seconds - (time.perf_counter() - started)
+        try:
+            async with asyncio.timeout(max(0.5, remaining)):
+                interpretation = await interpreter.interpret(
+                    session, normalized, sql_text, rows, role
+                )
+        except TimeoutError:
+            interpretation = interpreter.fallback(rows, role)
     except ClarificationNeeded as exc:
         await _record(
             session,
@@ -229,7 +250,7 @@ def _title(question: str) -> str:
 
 
 async def list_sessions(
-    session: AsyncSession, user_id: int, page: int, size: int
+    session: AsyncSession, user_id: int, role: Role, page: int, size: int
 ) -> tuple[list[SessionSummary], int]:
     """The caller's sessions that hold at least one turn, most recent activity first."""
     stats = (
@@ -245,7 +266,7 @@ async def list_sessions(
     base = (
         select(ChatSession, stats.c.turns, stats.c.first_id, stats.c.last_at)
         .join(stats, stats.c.sid == ChatSession.id)
-        .where(ChatSession.user_id == user_id)
+        .where(ChatSession.user_id == user_id, ChatSession.role_id == role.value)
     )
     total = (await session.execute(select(func.count()).select_from(base.subquery()))).scalar_one()
     rows = (
@@ -277,10 +298,13 @@ async def list_sessions(
     return items, total
 
 
-async def session_detail(session: AsyncSession, user_id: int, session_id: int) -> SessionDetail:
+async def session_detail(
+    session: AsyncSession, user_id: int, role: Role, session_id: int
+) -> SessionDetail:
     chat = await session.get(ChatSession, session_id)
-    # Someone else's session answers exactly like a missing one.
-    if chat is None or chat.user_id != user_id:
+    # Someone else's session (or one from another role) answers exactly like a
+    # missing one, so history cannot leak a scope the caller no longer has.
+    if chat is None or chat.user_id != user_id or chat.role_id != role.value:
         raise NotFoundError("Không tìm thấy cuộc trò chuyện.")
     turns = (
         (

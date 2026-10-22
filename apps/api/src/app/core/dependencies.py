@@ -44,11 +44,17 @@ async def get_current_user(
         user_id = int(str(claims["sub"]))
         username = str(claims.get("username", ""))
         role = Role(str(claims["role"]))
-        # A token is a snapshot: locking an account or changing its role must take
-        # effect without waiting for the eight-hour token to expire (NFR-19).
-        if get_settings().environment != "local":
+        # A token is a snapshot: locking an account, changing its role or resetting
+        # the password must take effect without waiting for the eight-hour token.
+        if get_settings().auth_revalidate_tokens or get_settings().environment != "local":
             user = await session.get(User, user_id)
-            if user is None or user.status != UserStatus.HOAT_DONG:
+            # Tokens issued before the token-version migration carry no "ver".
+            token_version = int(str(claims.get("ver", 0) or 0))
+            if (
+                user is None
+                or user.status != UserStatus.HOAT_DONG
+                or user.token_version != token_version
+            ):
                 raise UnauthenticatedError("Phiên đăng nhập không hợp lệ.")
             username = user.username
             role = Role(user.role_id)

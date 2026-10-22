@@ -206,6 +206,8 @@ async def test_closing_unpaid_sets_a_terminal_status_without_an_invoice(
     assert float(report.json()["TongGiaVon"]) == 1000
     assert float(report.json()["items"][0]["GiaVon"]) == 1000
     assert report.json()["items"][0]["LyDo"] == "không nhận được tiền"
+    assert report.json()["items"][0]["ThoiDiemDong"] is not None
+    assert "NguoiDong" in report.json()["items"][0]
     retry = await api_client.post(
         f"/api/v1/sales/orders/{order_id}/pay/cash", headers=_auth(cashier_token)
     )
@@ -235,7 +237,7 @@ async def test_verifying_money_is_provisional_and_appears_in_pending_list(
 
     assert revenue.status_code == 200
     assert float(revenue.json()["provisional"]) == 50000
-    assert float(revenue.json()["total"]) == 50000
+    assert float(revenue.json()["total"]) == 0
     assert pending.status_code == 200
     assert any(
         row["MaGiaoDich"] == payment_id and row["TrangThai"] == "Chờ xác minh thanh toán"
@@ -256,7 +258,7 @@ async def test_manager_can_confirm_a_verifying_payment(
 
     resolved = await api_client.post(
         f"/api/v1/sales/payments/{payment_id}/resolve",
-        json={"outcome": "received"},
+        json={"outcome": "received", "received_amount": 50000},
         headers=_auth(manager_token),
     )
 
@@ -324,3 +326,29 @@ async def test_a_late_payment_reopens_the_money_and_issues_one_invoice(
         headers=_auth(manager_token),
     )
     assert report.json()["SoLuong"] == 0
+
+
+@pytest.mark.anyio
+async def test_a_reopened_order_stays_in_the_pending_list(
+    api_client, session, manager_token, cashier_token
+):
+    """FR-REP-02 / FR-SALE-23: reopening cancels the old QR but the order still owes money."""
+    dish, table = await _setup(session)
+    order_id, payment_id = await _open_order(api_client, cashier_token, dish, table)
+    await api_client.post(
+        f"/api/v1/sales/payments/{payment_id}/request-verification",
+        headers=_auth(cashier_token),
+    )
+    reopened = await api_client.post(
+        f"/api/v1/sales/payments/{payment_id}/reopen",
+        json={"reason": "Khách chưa chuyển"},
+        headers=_auth(manager_token),
+    )
+    assert reopened.status_code == 200
+
+    pending = await api_client.get("/api/v1/reports/pending-payments", headers=_auth(manager_token))
+    assert pending.status_code == 200
+    rows = [row for row in pending.json()["items"] if row["MaOrder"] == order_id]
+    assert rows, "order vừa mở lại đã biến mất khỏi danh sách khoản chưa thu"
+    assert rows[0]["TrangThai"] == "Đã mở lại \u2013 chờ thu"
+    assert float(rows[0]["SoTien"]) == 50000

@@ -80,7 +80,9 @@ class ConfigUpdate(BaseModel):
     SoNgayCanhBaoHetHan: int | None = Field(default=None, ge=0)
     ThoiGianGiuChoPhut: int | None = Field(default=None, gt=0)
     SoCauHoiAIMoiNgay: int | None = Field(default=None, gt=0)
-    # GioBatDauBusinessDate needs an effective-date history, so it stays fixed for now.
+    # Kept in the contract so a client that tries to change it gets a clear refusal
+    # instead of a silent no-op; changing it needs an effective-date history.
+    GioBatDauBusinessDate: str | None = None
 
 
 class BackupDump(BaseModel):
@@ -88,12 +90,14 @@ class BackupDump(BaseModel):
     covers_until: datetime
     tables: list[str]
     redacted_columns: list[str] = []
+    credentials_included: bool = False
+    restore_notes: list[str] = []
     data: dict[str, list[dict[str, Any]]]
 
 
 class AuditEntryOut(BaseModel):
     MaNhatKy: int = Field(validation_alias="id")
-    MaNguoiDung: int = Field(validation_alias="user_id")
+    MaNguoiDung: int | None = Field(default=None, validation_alias="user_id")
     ThoiDiem: datetime = Field(validation_alias="occurred_at")
     LoaiThaoTac: str = Field(validation_alias="action")
     DoiTuong: str = Field(validation_alias="target_entity")

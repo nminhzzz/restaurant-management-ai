@@ -204,9 +204,10 @@ async def audit_log_actions(
 
 @router.post("/backup", response_model=BackupDump)
 async def backup(
+    include_credentials: bool = Query(False),
     user: Principal = Depends(require_roles(Role.MANAGER)),
     session: AsyncSession = Depends(get_session),
 ) -> BackupDump:
-    dump = await svc.export_backup(session, user.user_id)
+    dump = await svc.export_backup(session, user.user_id, include_credentials=include_credentials)
     await session.commit()
     return BackupDump(**dump)

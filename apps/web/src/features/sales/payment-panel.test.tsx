@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  act,
+  waitFor,
+} from "@testing-library/react";
 
 vi.mock("@/lib/api-client", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api-client")>();
@@ -407,6 +413,63 @@ describe("PaymentPanel cash and SePay", () => {
     expect(
       screen.getByRole("button", { name: "Đóng chưa thu" }),
     ).toBeInTheDocument();
+  });
+
+  it("drops the stale QR block and shows the invoice after confirming money", async () => {
+    saveSession({ token: "t", role: "MANAGER", username: "quanly" });
+    let confirmed = false;
+    fetchMock.mockImplementation((path: string) => {
+      if (path === "/sales/payments/1/resolve") {
+        confirmed = true;
+        return Promise.resolve({});
+      }
+      if (path === "/sales/orders/1/invoice") {
+        return Promise.resolve({
+          SoHoaDon: "9",
+          TongTien: 50000,
+          SoLanIn: 1,
+          lines: [],
+        });
+      }
+      if (path === "/sales/orders/1/payments") {
+        return Promise.resolve({
+          items: [
+            qr({
+              TrangThai: confirmed ? "Thành công" : "Chờ xác minh thanh toán",
+            }),
+          ],
+        });
+      }
+      if (path === "/sales/orders/1") {
+        return Promise.resolve({
+          ...openOrder,
+          TrangThai: confirmed ? "Đã thanh toán" : "Chờ xác minh thanh toán",
+        });
+      }
+      return Promise.resolve({});
+    });
+    vi.spyOn(window, "prompt").mockReturnValue("50000");
+    render(<PaymentPanel orderId={1} />);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Xác nhận đã nhận tiền" }),
+    );
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/sales/payments/1/resolve",
+        expect.objectContaining({
+          body: { outcome: "received", received_amount: 50000 },
+        }),
+      ),
+    );
+    expect(await screen.findByText("Hóa đơn 9")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Chờ xác minh thanh toán"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("radio", { name: /Tiền mặt/ }),
+    ).not.toBeInTheDocument();
   });
 });
 

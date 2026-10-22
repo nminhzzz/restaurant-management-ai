@@ -137,6 +137,36 @@ async def test_a_slow_turn_is_cut_off_at_the_response_budget(session, seed_views
 
 
 @pytest.mark.anyio
+async def test_a_slow_interpretation_still_returns_the_rows(
+    session, seed_views, fake_llm, ai_engine, monkeypatch
+):
+    """NFR-02: a late prose call must not discard SQL that already succeeded."""
+    import asyncio
+
+    from app.core.config import get_settings
+    from app.modules.ai.pipeline import interpreter
+
+    monkeypatch.setenv("AI_RESPONSE_BUDGET_SECONDS", "0.4")
+    get_settings.cache_clear()
+    fake_llm.reply("SELECT COUNT(*) AS SoDon FROM vw_ai_thungan")
+
+    async def slow(*args, **kwargs):
+        await asyncio.sleep(0.5)
+        raise AssertionError("interpretation should have been cut off")
+
+    monkeypatch.setattr(interpreter, "interpret", slow)
+    try:
+        response = await answer(session, "hỏi", Role.CASHIER, user_id=1)
+    finally:
+        get_settings.cache_clear()
+
+    assert response.kind == "answer"
+    assert response.data
+    # The prose call was cut off; the deterministic numeric summary still answers.
+    assert "tổng số đơn" in response.answer.lower()
+
+
+@pytest.mark.anyio
 async def test_every_message_shown_to_the_user_is_vietnamese(
     api_client, cashier_token, seed_views, fake_llm, ai_engine
 ):
@@ -232,3 +262,24 @@ async def test_a_refused_turn_says_so_in_kind(
     assert body["kind"] == "refused"
     assert body["headline"] == body["answer"]
     assert body["scope_note"] is None
+
+
+@pytest.mark.anyio
+async def test_history_is_scoped_to_the_role_that_asked(
+    api_client, token_for, seed_views, fake_llm, ai_engine
+):
+    """FR-AI-01/05: switching roles must not expose the previous role's answers."""
+    cashier = token_for(Role.CASHIER, user_id=1)
+    manager = token_for(Role.MANAGER, user_id=1)
+    fake_llm.reply("SELECT COUNT(*) AS SoDon FROM vw_ai_thungan")
+
+    session_id = (await _chat(api_client, cashier, "hôm nay bao nhiêu đơn?")).json()["session_id"]
+
+    own = await api_client.get(f"/api/v1/assistant/sessions/{session_id}", headers=_auth(cashier))
+    assert own.status_code == 200
+
+    other = await api_client.get(f"/api/v1/assistant/sessions/{session_id}", headers=_auth(manager))
+    assert other.status_code == 404
+
+    listing = await api_client.get("/api/v1/assistant/sessions", headers=_auth(manager))
+    assert listing.json()["items"] == []

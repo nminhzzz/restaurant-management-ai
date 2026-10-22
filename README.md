@@ -79,13 +79,18 @@ mọi yêu cầu trong bản báo cáo cập nhật đã được nghiệm thu.
 độ đúng thực thi A/B/C lần lượt **56,84% / 66,32% / 57,89%**. Đây là kết quả đã lưu trên bộ 95 câu,
 không phải kết quả cho kế hoạch đánh giá mới gồm 80 câu trong báo cáo.
 
-Chạy AI hoặc thực nghiệm mới cần cấu hình `AI_PROVIDER`, `LLM_MODEL`, `AI_API_KEY` và các URL
+Thanh toán QR thật dùng SePay: xem [hướng dẫn cấu hình](docs/payment-sepay-setup.md) và script
+kiểm thử chuyển tiền thật `scripts/sepay_smoke.py`. Chạy AI hoặc thực nghiệm mới cần cấu hình `AI_PROVIDER`, `LLM_MODEL`, `AI_API_KEY` và các URL
 CSDL chỉ-đọc; unit test dùng client giả, không cần khóa API. QR có adapter giả lập mặc định và
 adapter SePay tùy cấu hình (`PAYMENT_GATEWAY`). Unit test không đọc cấu hình/khóa local.
 
-Kết quả mới nhất: [đợt sửa nợ kỹ thuật ngày 18/10/2026](docs/testing/technical-debt-2026-10-18.md),
-gồm view AI, lịch giá/công thức, xác thực/phân quyền, kiểm kê/giá vốn, cấu hình vận hành,
-hạn mức AI theo người dùng và báo cáo thanh toán chưa hoàn tất. Kết quả trước đó:
+Kết quả mới nhất: [xử lý review source–docs ngày 21/10/2026](docs/testing/source-review-fixes-2026-10-21.md)
+(15 phát hiện P1) và [đợt chỉnh trợ lý AI](docs/testing/technical-debt-2026-10-21.md),
+gồm gợi ý câu hỏi khớp phạm vi view, prompt rõ nhánh dữ liệu và giữ dữ liệu khi diễn giải chậm.
+Trước đó: [đợt bổ sung thanh toán ngày 20/10/2026](docs/testing/technical-debt-2026-10-20.md),
+gồm danh sách ngoại lệ thanh toán (FR-SALE-16/17), báo cáo thanh toán chờ và đóng chưa thu trên giao diện,
+cùng các lỗi trạng thái QR sau khi quản lý xử lý. Kết quả trước đó:
+[đợt sửa nợ kỹ thuật ngày 18/10/2026](docs/testing/technical-debt-2026-10-18.md),
 [đợt trả sáu khoản nợ kỹ thuật ngày 17/10/2026](docs/testing/technical-debt-2026-10-17.md),
 gồm giải phóng bàn, mốc tháng 06:00, CI MySQL, seed có kiểm chứng và cache/hạn mức AI lưu MySQL.
 Nhật ký [kiểm chứng trước sửa](docs/testing/results-2026-10-17.md) được giữ riêng để truy vết.

@@ -85,11 +85,26 @@ def test_a_non_ascii_header_does_not_raise():
     assert sepay.api_key_matches("Apikey khóa", "secret-key") is False
 
 
+def test_placeholder_credentials_are_rejected(monkeypatch):
+    from app.core.config import validate_runtime_settings
+
+    monkeypatch.setenv("PAYMENT_GATEWAY", "sepay")
+    monkeypatch.setenv("SEPAY_BANK_ACCOUNT", "...")
+    monkeypatch.setenv("SEPAY_BANK_CODE", "...")
+    monkeypatch.setenv("SEPAY_WEBHOOK_API_KEY", "...")
+    get_settings.cache_clear()
+    with pytest.raises(RuntimeError):
+        validate_runtime_settings(get_settings())
+    get_settings.cache_clear()
+
+
 def test_selecting_sepay_without_credentials_fails_at_startup(monkeypatch):
+    from app.core.config import validate_runtime_settings
+
     monkeypatch.setenv("PAYMENT_GATEWAY", "sepay")
     get_settings.cache_clear()
     with pytest.raises(RuntimeError, match="SEPAY"):
-        get_settings()
+        validate_runtime_settings(get_settings())
 
 
 @pytest.mark.anyio

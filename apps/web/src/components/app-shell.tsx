@@ -3,7 +3,13 @@
 import { KeyRound, LogOut, Menu, UtensilsCrossed, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 
 import { Button } from "@/components/ui/button";
 import { AssistantWidget } from "@/features/assistant/assistant-widget";
@@ -12,12 +18,15 @@ import { MODULE_LIST, homePathFor } from "@/lib/modules";
 import { roleLabel } from "@/lib/roles";
 import {
   clearSession,
+  loadSession,
   parseSession,
   serverSessionSnapshot,
   sessionSnapshot,
   subscribeSession,
 } from "@/lib/session";
 import { cn } from "@/lib/utils";
+
+const subscribeToHydration = () => () => {};
 
 const sidebarIconButton =
   "text-sidebar-muted hover:bg-sidebar-hover hover:text-white focus-visible:ring-white focus-visible:ring-offset-sidebar";
@@ -27,6 +36,15 @@ export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  // Server rendering cannot read localStorage; redirecting before the browser has
+  // read the stored session is what forced a fresh login on every reload.
+  // `useSyncExternalStore` gives false during SSR/hydration and true afterwards
+  // without a setState-in-effect cascade.
+  const mounted = useSyncExternalStore(
+    subscribeToHydration,
+    () => true,
+    () => false,
+  );
 
   // The session lives in sessionStorage: `useSyncExternalStore` reads it on the client
   // and answers `null` on the server, so the two renders cannot disagree.
@@ -36,6 +54,15 @@ export function AppShell({ children }: { children: ReactNode }) {
     serverSessionSnapshot,
   );
   const session = useMemo(() => parseSession(stored), [stored]);
+
+  // The token lives in localStorage (8h TTL), so route protection has to run on the
+  // client; the API still rejects every call without a valid JWT.
+  useEffect(() => {
+    if (!mounted) return;
+    if (loadSession() === null) router.replace("/login");
+  }, [mounted, stored, router]);
+
+  if (!mounted || session === null) return null;
 
   const modules = MODULE_LIST.filter(
     (descriptor) =>

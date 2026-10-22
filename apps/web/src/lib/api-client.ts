@@ -1,5 +1,5 @@
 import { env } from "@/lib/env";
-import { authHeaders } from "@/lib/session";
+import { authHeaders, expireSession } from "@/lib/session";
 import type { ApiErrorBody } from "@/types/api";
 
 export class ApiError extends Error {
@@ -44,6 +44,14 @@ export async function apiFetch<T>(
   const payload: unknown = await response.json().catch(() => null);
 
   if (!response.ok) {
+    const rejectedToken = headers.Authorization?.replace(/^Bearer /, "");
+    if (
+      response.status === 401 &&
+      rejectedToken &&
+      path !== "/settings/auth/login"
+    ) {
+      expireSession(rejectedToken);
+    }
     const error = (payload as ApiErrorBody | null)?.error;
     throw new ApiError(
       response.status,

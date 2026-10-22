@@ -17,6 +17,7 @@ Run against a seeded database with that database's read-only accounts in place:
 import argparse
 import asyncio
 import json
+import math
 import sys
 import time
 from collections.abc import AsyncIterator
@@ -94,8 +95,19 @@ class ConfigResult:
     refusal_rate: float
     mean_latency_ms: float
     relaxed_accuracy: float = 0.0
+    p95_latency_ms: float = 0.0
+    runs: int = 1
     failures: list[Failure] = field(default_factory=list)
     outcomes: list[Outcome] = field(default_factory=list)
+
+
+def percentile(values: list[float], fraction: float) -> float:
+    """Nearest-rank percentile; p95 with 20 samples is the 19th value."""
+    if not values:
+        return 0.0
+    ordered = sorted(values)
+    index = max(0, min(len(ordered) - 1, math.ceil(fraction * len(ordered)) - 1))
+    return ordered[index]
 
 
 def accuracy_by(result: ConfigResult, key: str, relaxed: bool = False) -> dict[str, float]:
@@ -197,13 +209,38 @@ async def _generate(session: AsyncSession, config: Config, question: str, role: 
 
 
 async def run_configuration(
-    config: Config, questions: list[Any], session: AsyncSession | None = None
+    config: Config,
+    questions: list[Any],
+    session: AsyncSession | None = None,
+    runs: int = 1,
 ) -> ConfigResult:
-    """Run one configuration over the set and measure the four Appendix 4 metrics."""
+    """Run one configuration and report SQL execution accuracy plus latency."""
+    runs = max(1, runs)
     if session is not None:
-        return await _run(config, questions, session)
+        return await _repeat(config, questions, session, runs)
     async with open_session() as opened:
-        return await _run(config, questions, opened)
+        return await _repeat(config, questions, opened, runs)
+
+
+async def _repeat(
+    config: Config, questions: list[Any], session: AsyncSession, runs: int
+) -> ConfigResult:
+    results = [await _run(config, questions, session) for _ in range(runs)]
+    if runs == 1:
+        return results[0]
+    latencies = [outcome.latency_ms for result in results for outcome in result.outcomes]
+    return ConfigResult(
+        config=config.value,
+        execution_accuracy=sum(r.execution_accuracy for r in results) / runs,
+        error_rate=sum(r.error_rate for r in results) / runs,
+        refusal_rate=sum(r.refusal_rate for r in results) / runs,
+        mean_latency_ms=sum(latencies) / len(latencies) if latencies else 0.0,
+        relaxed_accuracy=sum(r.relaxed_accuracy for r in results) / runs,
+        p95_latency_ms=percentile(latencies, 0.95),
+        runs=runs,
+        failures=[failure for r in results for failure in r.failures],
+        outcomes=[outcome for r in results for outcome in r.outcomes],
+    )
 
 
 async def _run(config: Config, questions: list[Any], session: AsyncSession) -> ConfigResult:
@@ -219,8 +256,11 @@ async def _run(config: Config, questions: list[Any], session: AsyncSession) -> C
         started: float,
         sql: str = "",
         relaxed: bool | None = None,
+        overhead_ms: float = 0.0,
     ) -> None:
-        elapsed = (time.perf_counter() - started) * 1000
+        # Latency measures the assistant (SQL generation + running its SQL). The
+        # reference query is benchmark bookkeeping and must not inflate it.
+        elapsed = (time.perf_counter() - started) * 1000 - overhead_ms
         latencies.append(elapsed)
         print(
             f"[{config.value}] {len(outcomes) + 1}/{len(questions)} {question['id']} "
@@ -279,15 +319,18 @@ async def _run(config: Config, questions: list[Any], session: AsyncSession) -> C
             record(question, "sai", started, sql)
             continue
 
+        reference_ms = 0.0
         try:
             produced = await executor.execute(
                 sql, role=role, timeout_seconds=settings.ai_sql_timeout_seconds
             )
+            gold_started = time.perf_counter()
             reference = await executor.execute(
                 question["sql"],
                 role=role,
                 timeout_seconds=settings.ai_sql_timeout_seconds,
             )
+            reference_ms = (time.perf_counter() - gold_started) * 1000
         except Exception as exc:
             errors += 1
             failures.append(Failure(question_id, f"lỗi thực thi: {exc}"))
@@ -296,13 +339,20 @@ async def _run(config: Config, questions: list[Any], session: AsyncSession) -> C
 
         if expected_refusal:
             failures.append(Failure(question_id, "câu vượt quyền nhưng vẫn trả dữ liệu"))
-            record(question, "sai", started, sql)
+            record(question, "sai", started, sql, overhead_ms=reference_ms)
         elif strict_match(produced, reference):
             correct += 1
-            record(question, "đúng", started, sql)
+            record(question, "đúng", started, sql, overhead_ms=reference_ms)
         else:
             failures.append(Failure(question_id, "kết quả khác SQL chuẩn"))
-            record(question, "sai", started, sql, relaxed_match(produced, reference))
+            record(
+                question,
+                "sai",
+                started,
+                sql,
+                relaxed_match(produced, reference),
+                overhead_ms=reference_ms,
+            )
 
     total = len(questions) or 1
     return ConfigResult(
@@ -312,6 +362,7 @@ async def _run(config: Config, questions: list[Any], session: AsyncSession) -> C
         refusal_rate=refusals / total,
         mean_latency_ms=sum(latencies) / len(latencies) if latencies else 0.0,
         relaxed_accuracy=sum(outcome.relaxed for outcome in outcomes) / total,
+        p95_latency_ms=percentile(latencies, 0.95),
         failures=failures,
         outcomes=outcomes,
     )
@@ -326,6 +377,8 @@ def compare(results: list[ConfigResult]) -> ComparisonTable:
             "error_rate": round(result.error_rate, 4),
             "refusal_rate": round(result.refusal_rate, 4),
             "mean_latency_ms": round(result.mean_latency_ms, 1),
+            "p95_latency_ms": round(result.p95_latency_ms, 1),
+            "runs": result.runs,
             "failures": len(result.failures),
             "relaxed_accuracy": round(result.relaxed_accuracy, 4),
             "by_difficulty": accuracy_by(result, "difficulty"),
@@ -338,8 +391,10 @@ def compare(results: list[ConfigResult]) -> ComparisonTable:
     return ComparisonTable(rows=rows)
 
 
-async def run_harness(config: Config, questions: list[Any], out: Path) -> ConfigResult:
-    result = await run_configuration(config, questions)
+async def run_harness(
+    config: Config, questions: list[Any], out: Path, runs: int = 1
+) -> ConfigResult:
+    result = await run_configuration(config, questions, runs=runs)
     out.write_text(
         json.dumps(
             {
@@ -348,6 +403,8 @@ async def run_harness(config: Config, questions: list[Any], out: Path) -> Config
                 "error_rate": result.error_rate,
                 "refusal_rate": result.refusal_rate,
                 "mean_latency_ms": result.mean_latency_ms,
+                "p95_latency_ms": result.p95_latency_ms,
+                "runs": result.runs,
                 "failures": [asdict(failure) for failure in result.failures],
             },
             ensure_ascii=False,
@@ -358,9 +415,14 @@ async def run_harness(config: Config, questions: list[Any], out: Path) -> Config
     return result
 
 
-async def _main(configs: list[Config], out: Path, questions_path: Path | None = None) -> int:
+async def _main(
+    configs: list[Config],
+    out: Path,
+    questions_path: Path | None = None,
+    runs: int = 1,
+) -> int:
     questions = load_questions(questions_path)
-    results = [await run_configuration(config, questions) for config in configs]
+    results = [await run_configuration(config, questions, runs=runs) for config in configs]
     table = compare(results)
     detail = {
         result.config: {
@@ -377,7 +439,8 @@ async def _main(configs: list[Config], out: Path, questions_path: Path | None = 
         print(
             f"{row['config']}: chính xác {row['execution_accuracy']:.2%} · "
             f"lỗi {row['error_rate']:.2%} · từ chối {row['refusal_rate']:.2%} · "
-            f"{row['mean_latency_ms']:.0f} ms · theo độ khó {row['by_difficulty']} · "
+            f"{row['mean_latency_ms']:.0f} ms (p95 {row['p95_latency_ms']:.0f} ms, "
+            f"{row['runs']} lần) · theo độ khó {row['by_difficulty']} · "
             f"nới lỏng {row['relaxed_accuracy']:.2%} {row['by_difficulty_relaxed']}"
         )
     print(f"Đã ghi {out}")
@@ -387,6 +450,12 @@ async def _main(configs: list[Config], out: Path, questions_path: Path | None = 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--configs", default="A,B,C")
+    parser.add_argument(
+        "--runs",
+        type=int,
+        default=3,
+        help="Số lần chạy mỗi cấu hình (mặc định 3) để tính p95 độ trễ",
+    )
     parser.add_argument("--out", default="eval-results.json")
     parser.add_argument(
         "--questions",
@@ -396,4 +465,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     chosen = [Config(name.strip()) for name in args.configs.split(",") if name.strip()]
     questions_path = Path(args.questions) if args.questions else None
-    raise SystemExit(asyncio.run(_main(chosen, Path(args.out), questions_path)))
+    raise SystemExit(asyncio.run(_main(chosen, Path(args.out), questions_path, args.runs)))

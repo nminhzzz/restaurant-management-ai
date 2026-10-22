@@ -38,7 +38,7 @@ async def list_sessions(
     size: int = Query(30, ge=1, le=100),
     session: AsyncSession = Depends(get_session),
 ) -> Page[SessionSummary]:
-    items, total = await service.list_sessions(session, user.user_id, page, size)
+    items, total = await service.list_sessions(session, user.user_id, user.role, page, size)
     return Page[SessionSummary](items=items, total=total, page=page, size=size)
 
 
@@ -46,4 +46,4 @@ async def list_sessions(
 async def get_session_detail(
     session_id: int, user: CurrentUser, session: AsyncSession = Depends(get_session)
 ) -> SessionDetail:
-    return await service.session_detail(session, user.user_id, session_id)
+    return await service.session_detail(session, user.user_id, user.role, session_id)

@@ -1,5 +1,7 @@
 """Shared pytest fixtures - Phase 0 foundation."""
 
+# ruff: noqa: E402 - settings must be adjusted before app.main imports them.
+
 import os
 import re
 from collections.abc import AsyncIterator, Callable, Iterator
@@ -22,6 +24,11 @@ import app.modules.sales.models
 import app.modules.settings.models
 import app.shared.audit  # noqa: F401
 from app.core.config import REPO_ROOT, Settings, get_settings
+
+# Unit tests must never inherit the developer's local .env (payment gateway, API keys).
+# The autouse fixture clears env vars later, but app.main reads settings on import.
+Settings.model_config["env_file"] = None
+
 from app.core.security import create_access_token
 from app.main import app as fastapi_app
 from app.shared import business_date
@@ -87,6 +94,8 @@ def _clear_settings_cache(
         monkeypatch.setitem(Settings.model_config, "env_file", None)
         for field in Settings.model_fields:
             monkeypatch.delenv(field.upper(), raising=False)
+        # Unit tests reuse hand-made tokens for users that may not exist in the DB.
+        monkeypatch.setenv("AUTH_REVALIDATE_TOKENS", "false")
     try:
         from app.core.config import get_settings as _gs
 
@@ -100,6 +109,27 @@ def _clear_settings_cache(
         _gs2.cache_clear()
     except Exception:
         pass
+
+
+@pytest.fixture(autouse=True)
+def _integration_env(
+    request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch
+) -> Iterator[None]:
+    """Integration tests must use the real developer/CI configuration.
+
+    `Settings.model_config["env_file"]` is disabled above so unit tests never touch
+    the local `.env`; integration tests, however, need the per-role read-only URLs
+    from it (CI passes them as environment variables instead).
+    """
+    if request.node.get_closest_marker("integration") is None:
+        yield
+        return
+    env_file = REPO_ROOT / ".env"
+    if env_file.exists():
+        monkeypatch.setitem(Settings.model_config, "env_file", env_file)
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
 
 
 @pytest.fixture(autouse=True)
@@ -460,7 +490,9 @@ async def seed_views(engine: AsyncEngine) -> None:
         _QUANLY_COLUMNS,
         {
             "LoaiBanGhi": "'GIAO_DICH_KHO'",
+            "MaOrder": "ct.MaOrder",
             "BusinessDate": "g.BusinessDate",
+            "TrangThaiOrder": "o.TrangThai",
             "MaNguyenLieu": "g.MaNguyenLieu",
             "TenNguyenLieu": "n.TenNguyenLieu",
             "DonViTinh": "n.DonViTinh",
@@ -589,6 +621,8 @@ async def seed_views(engine: AsyncEngine) -> None:
                 "JOIN NGUYEN_LIEU n ON n.MaNguyenLieu = gv.MaNguyenLieu "
                 f"UNION ALL SELECT {quanly_giao_dich_kho} FROM GIAO_DICH_KHO g "
                 "JOIN NGUYEN_LIEU n ON n.MaNguyenLieu = g.MaNguyenLieu "
+                "LEFT JOIN CHI_TIET_ORDER ct ON ct.MaChiTietOrder = g.MaChiTietOrder "
+                "LEFT JOIN `ORDER` o ON o.MaOrder = ct.MaOrder "
                 f"UNION ALL SELECT {quanly_phieu_nhap} FROM CHI_TIET_PHIEU_NHAP ct "
                 "JOIN PHIEU_NHAP_KHO pn ON pn.MaPhieuNhap = ct.MaPhieuNhap "
                 "JOIN NGUYEN_LIEU n ON n.MaNguyenLieu = ct.MaNguyenLieu "

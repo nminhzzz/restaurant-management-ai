@@ -222,9 +222,9 @@ async def test_rejected_when_out_of_stock(session):
         },
         headers=headers,
     )
-    assert r.status_code == 201
-    assert [x["MaMon"] for x in r.json()["lines"]] == [d.id]
-    assert r.json()["rejected"] == [{"MaMon": d2.id, "reason": "không đủ tồn kho"}]
+    assert r.status_code == 422
+    # FR-SALE-03/NFR-10: nothing is accepted when one line cannot be fulfilled.
+    assert r.json()["error"]["code"] == "BUSINESS_RULE_VIOLATION"
 
 
 @pytest.mark.anyio
@@ -370,9 +370,7 @@ async def test_rejected_when_no_active_price(session):
         headers=headers,
     )
 
-    assert r.status_code == 201, r.text
-    assert [x["MaMon"] for x in r.json()["lines"]] == [d.id]
-    assert r.json()["rejected"] == [{"MaMon": unpriced.id, "reason": "Món chưa có giá"}]
+    assert r.status_code == 422, r.text
 
 
 @pytest.mark.anyio
@@ -437,11 +435,7 @@ async def test_rejected_when_no_active_recipe(session):
         headers=headers,
     )
 
-    assert r.status_code == 201, r.text
-    assert [x["MaMon"] for x in r.json()["lines"]] == [d.id]
-    assert r.json()["rejected"] == [
-        {"MaMon": recipe_less.id, "reason": "Món chưa có công thức hiệu lực"}
-    ]
+    assert r.status_code == 422, r.text
 
 
 @pytest.mark.anyio

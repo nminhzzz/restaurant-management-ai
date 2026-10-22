@@ -12,6 +12,7 @@ EXPECTED = {
         "MaVaiTro",
         "TrangThai",
         "NgayTao",
+        "PhienBanToken",
     },
     "CAU_HINH_HE_THONG": {
         "MaCauHinh",
@@ -23,6 +24,7 @@ EXPECTED = {
         "SoNgayCanhBaoHetHan",
         "ThoiGianGiuChoPhut",
         "SoCauHoiAIMoiNgay",
+        "MocDongBoSepay",
     },
 }
 

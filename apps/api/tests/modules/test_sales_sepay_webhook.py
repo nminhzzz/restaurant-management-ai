@@ -83,7 +83,7 @@ async def test_a_wrong_api_key_is_rejected(session, sepay_env):
         HOOK, json=_body(r.json()["MaGiaoDich"], 50000), headers={"Authorization": "Apikey nope"}
     )
     assert resp.status_code == 401
-    assert await order_status(session, oid) == "Đang mở"
+    assert await order_status(session, oid) == "Chờ xác nhận thanh toán"
 
 
 @pytest.mark.anyio
@@ -102,7 +102,7 @@ async def test_an_outgoing_transfer_is_ignored(session, sepay_env):
     await client.post(
         HOOK, json=_body(r.json()["MaGiaoDich"], 50000, direction="out"), headers=AUTH
     )
-    assert await order_status(session, oid) == "Đang mở"
+    assert await order_status(session, oid) == "Chờ xác nhận thanh toán"
 
 
 @pytest.mark.anyio
@@ -111,7 +111,7 @@ async def test_a_transfer_without_our_code_is_acknowledged_but_not_applied(sessi
     body = {**_body(0, 50000), "content": "tien an trua"}
     resp = await client.post(HOOK, json=body, headers=AUTH)
     assert resp.json() == {"success": True}
-    assert await order_status(session, oid) == "Đang mở"
+    assert await order_status(session, oid) == "Chờ xác nhận thanh toán"
 
 
 @pytest.mark.anyio
@@ -123,11 +123,116 @@ async def test_a_wrong_amount_goes_to_reconciliation(session, sepay_env):
 
 
 @pytest.mark.anyio
-async def test_a_transfer_after_expiry_goes_to_reconciliation(session, sepay_env, monkeypatch):
-    client, _, oid, r = await _qr(session)
+async def test_a_transfer_after_expiry_settles_late_and_voids_the_new_qr(
+    session, sepay_env, monkeypatch
+):
+    """FR-SALE-16: late money settles the open order and cancels a newer empty QR."""
+    client, h, oid, r = await _qr(session)
+    pid = r.json()["MaGiaoDich"]
     monkeypatch.setattr(business_date, "now", lambda: FIXED_NOW + timedelta(minutes=11))
-    await client.post(HOOK, json=_body(r.json()["MaGiaoDich"], 50000), headers=AUTH)
-    assert await order_status(session, oid) == "Chờ đối soát"
+    await client.get(f"/api/v1/sales/orders/{oid}", headers=h)
+    second = await client.post(f"/api/v1/sales/orders/{oid}/pay/qr", headers=h)
+    newer_pid = second.json()["MaGiaoDich"]
+
+    await client.post(HOOK, json=_body(pid, 50000), headers=AUTH)
+
+    assert await order_status(session, oid) == "Đã thanh toán"
+    assert await _invoices(session, oid) == 1
+    row = await session.execute(
+        text("SELECT TrangThai FROM GIAO_DICH_THANH_TOAN WHERE MaGiaoDichTT=:id"),
+        {"id": newer_pid},
+    )
+    assert row.scalar_one() == "Đã hủy"
+
+
+@pytest.mark.anyio
+async def test_money_for_a_reopened_payment_becomes_an_exception(session, sepay_env):
+    """FR-SALE-16: a manager already reopened this payment, so do not settle it."""
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    hm, _ = await _headers(session, role="MANAGER", username="boss")
+    d, t = await _setup(session)
+    oid = await _submit(session, client, h, d, t)
+    pid = (await client.post(f"/api/v1/sales/orders/{oid}/pay/qr", headers=h)).json()["MaGiaoDich"]
+    await client.post(f"/api/v1/sales/payments/{pid}/request-verification", headers=h)
+    await client.post(
+        f"/api/v1/sales/payments/{pid}/reopen", json={"reason": "khách đổi ý"}, headers=hm
+    )
+
+    await client.post(HOOK, json=_body(pid, 50000), headers=AUTH)
+
+    assert await order_status(session, oid) == "Đang mở"
+    assert await _invoices(session, oid) == 0
+
+
+@pytest.mark.anyio
+async def test_a_closed_unpaid_exception_can_be_applied_once(session, sepay_env):
+    """FR-SALE-17(b): applying late money issues exactly one invoice."""
+    client, h, oid, r = await _qr(session)
+    pid = r.json()["MaGiaoDich"]
+    await client.post(f"/api/v1/sales/payments/{pid}/request-verification", headers=h)
+    hm, _ = await _headers(session, role="MANAGER", username="boss")
+    await client.post(
+        f"/api/v1/sales/orders/{oid}/close-unpaid", json={"reason": "hết ca"}, headers=hm
+    )
+    await client.post(HOOK, json=_body(pid, 50000, sepay_id=31), headers=AUTH)
+
+    listing = await client.get("/api/v1/sales/payment-exceptions", headers=hm)
+    assert listing.status_code == 200
+    items = listing.json()["items"]
+    assert len(items) == 1 and items[0]["TrangThai"] == "Chờ xử lý"
+
+    resp = await client.post(
+        f"/api/v1/sales/payment-exceptions/{items[0]['MaNgoaiLe']}/resolve",
+        json={"outcome": "applied"},
+        headers=hm,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["TrangThai"] == "Đã áp dụng"
+    assert await order_status(session, oid) == "Đã thanh toán"
+    assert await _invoices(session, oid) == 1
+
+
+@pytest.mark.anyio
+async def test_a_duplicate_transfer_can_only_be_refunded(session, sepay_env):
+    client, h, oid, r = await _qr(session)
+    pid = r.json()["MaGiaoDich"]
+    hm, _ = await _headers(session, role="MANAGER", username="boss")
+    await client.post(HOOK, json=_body(pid, 50000, sepay_id=41), headers=AUTH)
+    await client.post(HOOK, json=_body(pid, 50000, sepay_id=42), headers=AUTH)
+
+    items = (await client.get("/api/v1/sales/payment-exceptions", headers=hm)).json()["items"]
+    assert len(items) == 1
+    unpaid = await client.post(
+        f"/api/v1/sales/payment-exceptions/{items[0]['MaNgoaiLe']}/resolve",
+        json={"outcome": "refunded"},
+        headers=hm,
+    )
+    assert unpaid.status_code == 422
+
+    resp = await client.post(
+        f"/api/v1/sales/payment-exceptions/{items[0]['MaNgoaiLe']}/resolve",
+        json={
+            "outcome": "refunded",
+            "note": "đã hoàn tiền mặt tại quầy",
+            "refund_ref": "PT-2026-0007",
+        },
+        headers=hm,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["TrangThai"] == "Đã hoàn tiền"
+    assert resp.json()["MaThamChieuHoan"] == "PT-2026-0007"
+    assert await _invoices(session, oid) == 1
+
+
+@pytest.mark.anyio
+async def test_the_same_gateway_transfer_creates_one_exception(session, sepay_env):
+    client, _, _, _ = await _qr(session)
+    body = {**_body(0, 50000, sepay_id=51), "content": "tien an trua"}
+    await client.post(HOOK, json=body, headers=AUTH)
+    await client.post(HOOK, json=body, headers=AUTH)
+    count = await session.execute(text("SELECT COUNT(*) FROM NGOAI_LE_THANH_TOAN"))
+    assert count.scalar_one() == 1
 
 
 @pytest.mark.anyio
@@ -195,7 +300,7 @@ async def test_the_simulator_hook_is_absent_when_sepay_is_active(session, sepay_
     )
 
     assert resp.status_code == 404
-    assert await order_status(session, oid) == "Đang mở"
+    assert await order_status(session, oid) == "Chờ xác nhận thanh toán"
 
 
 @pytest.mark.anyio
@@ -215,7 +320,7 @@ async def test_the_simulator_hook_refuses_a_signed_body_without_an_amount(sessio
     )
 
     assert resp.status_code == 422
-    assert await order_status(session, oid) == "Đang mở"
+    assert await order_status(session, oid) == "Chờ xác nhận thanh toán"
 
 
 @pytest.mark.anyio
@@ -266,7 +371,7 @@ async def test_check_tolerates_a_sepay_api_failure(session, sepay_env, monkeypat
 
     assert resp.status_code == 200
     assert resp.json()["TrangThai"] == "Chờ xác nhận"
-    assert await order_status(session, oid) == "Đang mở"
+    assert await order_status(session, oid) == "Chờ xác nhận thanh toán"
 
 
 @pytest.mark.anyio

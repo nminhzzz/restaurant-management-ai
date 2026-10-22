@@ -149,7 +149,9 @@ async def test_only_manager_resolve(session):
     )
     assert r2.status_code == 403
     r3 = await client.post(
-        f"/api/v1/sales/payments/{pid}/resolve", json={"outcome": "received"}, headers=hm
+        f"/api/v1/sales/payments/{pid}/resolve",
+        json={"outcome": "received", "received_amount": 50000},
+        headers=hm,
     )
     assert r3.status_code == 200
 

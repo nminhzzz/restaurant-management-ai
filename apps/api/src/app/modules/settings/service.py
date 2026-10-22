@@ -70,7 +70,10 @@ async def authenticate(session: AsyncSession, username: str, password: str) -> U
 
 
 async def issue_token(user: User) -> dict:
-    token = create_access_token(str(user.id), {"role": user.role_id, "username": user.username})
+    token = create_access_token(
+        str(user.id),
+        {"role": user.role_id, "username": user.username, "ver": user.token_version},
+    )
     return {
         "access_token": token,
         "token_type": "bearer",
@@ -131,6 +134,9 @@ async def _set_user_status(
         raise NotFoundError("Kh\u00f4ng t\u00ecm th\u1ea5y t\u00e0i kho\u1ea3n.")
     before = {"TrangThai": user.status}
     user.status = status
+    if status != UserStatus.HOAT_DONG:
+        # Locking revokes tokens issued while the account was still active.
+        user.token_version = int(user.token_version or 0) + 1
     await session.flush()
     session.add(
         SystemAuditLog(
@@ -204,6 +210,9 @@ async def update_user(
                 raise BusinessRuleError(
                     "Ph\u1ea3i c\u00f2n \u00edt nh\u1ea5t m\u1ed9t qu\u1ea3n l\u00fd ho\u1ea1t \u0111\u1ed9ng."
                 )
+        if user.role_id != role_value:
+            # A role change invalidates the old token's embedded role.
+            user.token_version = int(user.token_version or 0) + 1
         user.role_id = role_value
     await session.flush()
     session.add(
@@ -227,6 +236,8 @@ async def reset_password(
     if user is None:
         raise NotFoundError("Kh\u00f4ng t\u00ecm th\u1ea5y t\u00e0i kho\u1ea3n.")
     user.password_hash = hash_password(new_password)
+    # Every JWT issued before this moment stops working.
+    user.token_version = int(user.token_version or 0) + 1
     await session.flush()
     session.add(
         SystemAuditLog(
@@ -248,6 +259,8 @@ async def change_own_password(
     if not verify_password(old_password, user.password_hash):
         raise BusinessRuleError("M\u1eadt kh\u1ea9u hi\u1ec7n t\u1ea1i kh\u00f4ng \u0111\u00fang.")
     user.password_hash = hash_password(new_password)
+    # Every JWT issued before this moment stops working.
+    user.token_version = int(user.token_version or 0) + 1
     await session.flush()
     # Self-service not audited per spec
 
@@ -267,6 +280,15 @@ async def update_config(
 ) -> SystemConfig:
     d = data.model_dump(exclude_none=False) if isinstance(data, ConfigUpdate) else data
     cfg = await get_config(session)
+    before = {
+        "TenNhaHang": cfg.restaurant_name,
+        "DiaChi": cfg.address,
+        "MauHoaDon": cfg.invoice_template,
+        "NguongTonMacDinh": float(cfg.default_stock_threshold),
+        "SoNgayCanhBaoHetHan": cfg.expiry_warning_days,
+        "ThoiGianGiuChoPhut": cfg.hold_minutes,
+        "SoCauHoiAIMoiNgay": cfg.ai_daily_question_quota,
+    }
     # Only allow specific fields, ignore business_day_start
     if "TenNhaHang" in d and d["TenNhaHang"] is not None:
         cfg.restaurant_name = d["TenNhaHang"]
@@ -286,7 +308,14 @@ async def update_config(
         cfg.hold_minutes = int(d["ThoiGianGiuChoPhut"])
     if "SoCauHoiAIMoiNgay" in d and d["SoCauHoiAIMoiNgay"] is not None:
         cfg.ai_daily_question_quota = int(d["SoCauHoiAIMoiNgay"])
-    # BusinessDate locked until the effective-date history exists
+    requested_start = d.get("GioBatDauBusinessDate")
+    if requested_start is not None and str(requested_start) not in {
+        "06:00",
+        "06:00:00",
+    }:
+        raise BusinessRuleError(
+            "MVP cố định mốc Business Date 06:00; đổi mốc cần lịch sử hiệu lực theo ngày."
+        )
     await session.flush()
     session.add(
         SystemAuditLog(
@@ -294,6 +323,16 @@ async def update_config(
             action="UPDATE_CONFIG",
             target_entity="CAU_HINH_HE_THONG",
             target_id=str(cfg.id),
+            before=before,
+            after={
+                "TenNhaHang": cfg.restaurant_name,
+                "DiaChi": cfg.address,
+                "MauHoaDon": cfg.invoice_template,
+                "NguongTonMacDinh": float(cfg.default_stock_threshold),
+                "SoNgayCanhBaoHetHan": cfg.expiry_warning_days,
+                "ThoiGianGiuChoPhut": cfg.hold_minutes,
+                "SoCauHoiAIMoiNgay": cfg.ai_daily_question_quota,
+            },
         )
     )
     await session.flush()
@@ -360,24 +399,32 @@ async def list_audit_actions(session: AsyncSession) -> list[str]:
 REDACTED_BACKUP_COLUMNS = {"NGUOI_DUNG": {"MatKhauHash"}}
 
 
-async def export_backup(session: AsyncSession, actor_id: int) -> dict:
+async def export_backup(
+    session: AsyncSession, actor_id: int, *, include_credentials: bool = False
+) -> dict:
     """Dump every table and audit the export in the same transaction (NFR-10).
 
-    Rows are read through the mapped tables, so column names are the physical
-    Vietnamese ones and the file can be restored table by table. Password hashes
-    never leave the database; the manifest records which columns were removed.
+    Rows use the physical Vietnamese column names so they can be restored table by
+    table. Password hashes stay out by default; a manager may request them with
+    `include_credentials` when the export itself is protected (file encryption,
+    restricted storage), otherwise accounts must be re-secured after a restore.
     """
     now = datetime.now(UTC)
+    redactions = {} if include_credentials else REDACTED_BACKUP_COLUMNS
     data: dict[str, list[dict]] = {}
     for table in Base.metadata.sorted_tables:
         rows = (await session.execute(select(table))).mappings().all()
-        redacted = REDACTED_BACKUP_COLUMNS.get(table.name, set())
+        redacted = redactions.get(table.name, set())
         data[table.name] = [
             {key: value for key, value in dict(row).items() if key not in redacted} for row in rows
         ]
     session.add(
         SystemAuditLog(
-            user_id=actor_id, action="EXPORT_BACKUP", target_entity="SYSTEM", target_id="backup"
+            user_id=actor_id,
+            action="EXPORT_BACKUP",
+            target_entity="SYSTEM",
+            target_id="backup",
+            after={"BaoGomThongTinXacThuc": include_credentials},
         )
     )
     await session.flush()
@@ -385,10 +432,18 @@ async def export_backup(session: AsyncSession, actor_id: int) -> dict:
         "created_at": now,
         "covers_until": now,
         "tables": list(data),
+        "credentials_included": include_credentials,
         "redacted_columns": [
             f"{table}.{column}"
-            for table, columns in sorted(REDACTED_BACKUP_COLUMNS.items())
+            for table, columns in sorted(redactions.items())
             for column in sorted(columns)
+        ],
+        "restore_notes": [
+            "Tắt ứng dụng, khôi phục theo đúng thứ tự trong 'tables' (bảng cha trước).",
+            "Bật lại ứng dụng và đăng nhập bằng tài khoản quản lý đã có trong bản sao.",
+            "Nếu credentials_included=false: dùng chức năng đặt lại mật khẩu cho từng "
+            "tài khoản, hoặc tạo tài khoản quản lý mới bằng công cụ CSDL.",
+            "Bản sao có mật khẩu băm vẫn là dữ liệu nhạy cảm: mã hoá file và huỷ sau khi dùng.",
         ],
         "data": data,
     }

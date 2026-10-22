@@ -116,6 +116,9 @@ async def release_table(
         raise NotFoundError("Không tìm thấy bàn.")
     if table.status != "Đang phục vụ" or table.current_order_id != expected_order_id:
         raise BusinessRuleError("Bàn đã thay đổi. Vui lòng tải lại sơ đồ bàn.")
+    from app.modules.sales.reservations import release_active_holds
+
+    await release_active_holds(session, order_id=expected_order_id, table_id=table.id)
     table.status = "Trống"
     table.current_order_id = None
     session.add(

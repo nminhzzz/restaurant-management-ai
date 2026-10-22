@@ -97,17 +97,37 @@ async def test_the_cache_does_not_leak_across_roles(session, fake_llm, seed_view
 
 
 @pytest.mark.anyio
-async def test_retry_reserves_quota_before_each_model_call(
+async def test_retry_inside_one_question_uses_a_single_quota_slot(
     session, fake_llm, seed_views, monkeypatch
 ):
+    """NFR-16: the quota counts questions, not provider attempts."""
     from app.core.config import get_settings
 
     monkeypatch.setenv("AI_DAILY_QUESTION_QUOTA", "1")
     get_settings.cache_clear()
     fake_llm.reply_sequence(["DELETE FROM vw_ai_thungan", "SELECT 1 FROM vw_ai_thungan"])
-    with pytest.raises(QuotaExceeded):
-        await generate_sql(session, "hỏi", Role.CASHIER)
+
+    sql = await generate_sql(session, "hỏi", Role.CASHIER)
+
+    assert "vw_ai_thungan" in sql
+    assert fake_llm.calls == 2
+
+
+@pytest.mark.anyio
+async def test_a_cache_hit_still_counts_as_a_question(session, fake_llm, seed_views, monkeypatch):
+    """NFR-16: cache saves provider cost but the guest still asked a question."""
+    from app.core.config import get_settings
+
+    monkeypatch.setenv("AI_DAILY_QUESTION_QUOTA", "2")
+    get_settings.cache_clear()
+    fake_llm.reply("SELECT COUNT(*) FROM vw_ai_thungan")
+
+    await generate_sql(session, "hôm nay bao nhiêu đơn", Role.CASHIER)
+    await generate_sql(session, "hôm nay bao nhiêu đơn", Role.CASHIER)
     assert fake_llm.calls == 1
+
+    with pytest.raises(QuotaExceeded):
+        await generate_sql(session, "hôm nay bao nhiêu đơn", Role.CASHIER)
 
 
 @pytest.mark.anyio
@@ -184,7 +204,8 @@ async def test_failed_turn_usage_survives_request_rollback(
         await generate_sql(session, "hỏi", Role.CASHIER)
     await session.rollback()
     async with ai_runtime_store.session_factory() as state_session:
-        assert await state_session.scalar(select(AiDailyUsage.calls)) == 2
+        # One question was asked even though both SQL attempts were rejected.
+        assert await state_session.scalar(select(AiDailyUsage.calls)) == 1
 
 
 @pytest.mark.anyio
@@ -216,3 +237,19 @@ async def test_provider_failure_keeps_committed_reservation(
     await session.rollback()
     async with ai_runtime_store.session_factory() as state_session:
         assert await state_session.scalar(select(AiDailyUsage.calls)) == 1
+
+
+@pytest.mark.anyio
+async def test_generation_prompt_includes_the_session_history(session, fake_llm, seed_views):
+    """Follow-ups are resolved from prior turns instead of asking again."""
+    fake_llm.reply("SELECT COUNT(*) FROM vw_ai_thungan")
+
+    await generate_sql(
+        session,
+        "từng ngày trong tháng",
+        Role.CASHIER,
+        history=[("Doanh thu 7 ngày gần nhất?", "SELECT 1", None)],
+    )
+
+    assert "Doanh thu 7 ngày gần nhất?" in (fake_llm.last_prompt or "")
+    assert "Ngữ cảnh hội thoại" in (fake_llm.last_prompt or "")

@@ -71,7 +71,8 @@ async def test_revenue_can_be_split_by_order_type(
         )
     ).json()
 
-    assert {row["key"] for row in body["items"]} == {"Tại chỗ", "Mang về"}
+    # Pending money has no invoice yet, so it is not a revenue line (FR-REP-02).
+    assert {row["key"] for row in body["items"]} == {"Tại chỗ"}
 
 
 @pytest.mark.anyio
@@ -115,7 +116,8 @@ async def test_a_transaction_awaiting_reconciliation_is_provisional_revenue(
     ).json()
 
     assert Decimal(body["provisional"]) == order_awaiting_reconciliation.total
-    assert Decimal(body["total"]) >= Decimal(body["provisional"])
+    assert Decimal(body["total"]) == 0
+    assert body["SoDon"] == 0
 
 
 @pytest.mark.anyio
@@ -127,7 +129,8 @@ async def test_marking_a_dispute_subtracts_it_from_revenue(
         await api_client.get(REVENUE, headers=_auth(manager_token), params={"granularity": "month"})
     ).json()
 
-    assert Decimal(body["total"]) == invoices_in_september.total - disputed_payment.total
+    # A dispute was never revenue: marking it changes nothing in the revenue total.
+    assert Decimal(body["total"]) == invoices_in_september.total
 
 
 @pytest.mark.anyio

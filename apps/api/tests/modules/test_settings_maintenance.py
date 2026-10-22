@@ -124,3 +124,87 @@ async def test_the_backup_contains_the_data_of_every_table_and_is_audited(sessio
         )
     ).scalar_one()
     assert audited.user_id == manager.id
+
+
+@pytest.mark.asyncio
+async def test_the_backup_can_include_credentials_with_restore_notes(session):
+    """R30: a restore needs either the hashes or an explicit re-credential procedure."""
+    manager, _ = await _staff(session)
+    await session.commit()
+
+    async with _client(session) as client:
+        response = await client.post(
+            "/api/v1/settings/backup?include_credentials=true", headers=_bearer(manager)
+        )
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    dump = response.json()
+    assert dump["credentials_included"] is True
+    assert dump["redacted_columns"] == []
+    assert all("MatKhauHash" in row for row in dump["data"]["NGUOI_DUNG"])
+    assert any("đặt lại mật khẩu" in note for note in dump["restore_notes"])
+    audited = (
+        (
+            await session.execute(
+                select(SystemAuditLog)
+                .where(SystemAuditLog.action == "EXPORT_BACKUP")
+                .order_by(SystemAuditLog.id.desc())
+            )
+        )
+        .scalars()
+        .first()
+    )
+    assert audited.after == {"BaoGomThongTinXacThuc": True}
+
+
+@pytest.mark.asyncio
+async def test_changing_the_business_day_start_is_refused_with_a_reason(session):
+    """R29: the MVP fixes 06:00; a request must fail loudly, not silently."""
+    manager, _ = await _staff(session)
+    await session.commit()
+
+    async with _client(session) as client:
+        response = await client.put(
+            "/api/v1/settings/config",
+            json={"GioBatDauBusinessDate": "04:00"},
+            headers=_bearer(manager),
+        )
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 422
+    assert "06:00" in response.json()["error"]["message"]
+
+
+@pytest.mark.asyncio
+async def test_resetting_a_password_revokes_tokens_issued_before(session, monkeypatch):
+    """P2: a leaked token must die when the password changes, not 8 hours later."""
+    from app.core.config import get_settings
+
+    manager, cashier = await _staff(session)
+    await session.commit()
+    async with _client(session) as client:
+        login = await client.post(
+            "/api/v1/settings/auth/login",
+            json={"username": "thungan01", "password": "pass123"},
+        )
+    assert login.status_code == 200, login.text
+    old_token = login.json()["access_token"]
+
+    monkeypatch.setenv("AUTH_REVALIDATE_TOKENS", "true")
+    get_settings.cache_clear()
+    async with _client(session) as client:
+        reset = await client.post(
+            f"/api/v1/settings/users/{cashier.id}/reset-password",
+            json={"new_password": "new-pass-123"},
+            headers=_bearer(manager),
+        )
+        assert reset.status_code == 204, reset.text
+        me_old = await client.get(
+            "/api/v1/settings/auth/me",
+            headers={"Authorization": f"Bearer {old_token}"},
+        )
+    app.dependency_overrides.clear()
+    get_settings.cache_clear()
+
+    assert me_old.status_code == 401

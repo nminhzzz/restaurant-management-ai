@@ -11,13 +11,84 @@ from app.modules.inventory.models import (
     IngredientLot,
     MonthlyAverageCost,
     StockIssueLine,
+    StockMovement,
 )
 from app.shared import business_date as _bd
 
 
+async def _previous_costs(session: AsyncSession, month: int) -> dict[int, Decimal]:
+    """Latest known average cost before `month` (FR-REP-05a carry-forward)."""
+    rows = (
+        await session.execute(
+            select(
+                MonthlyAverageCost.ingredient_id,
+                MonthlyAverageCost.month,
+                MonthlyAverageCost.avg_cost,
+            )
+            .where(MonthlyAverageCost.month < month)
+            .order_by(
+                MonthlyAverageCost.ingredient_id.asc(),
+                MonthlyAverageCost.month.desc(),
+            )
+        )
+    ).all()
+    out: dict[int, Decimal] = {}
+    for ingredient_id, _month, avg in rows:
+        out.setdefault(int(ingredient_id), Decimal(str(avg)))
+    return out
+
+
+async def _opening_state(
+    session: AsyncSession, month: int, previous: dict[int, Decimal]
+) -> tuple[dict[int, Decimal], dict[int, Decimal]]:
+    """Quantity and value of stock at the start of the month.
+
+    The ledger is the source of truth: the sum of every movement before the month
+    is the quantity on hand. Value uses the previous month's average when it exists;
+    otherwise the weighted purchase price of the lots received before the month.
+    """
+    start, _ = _bd.business_month_range(month)
+    qty_rows = (
+        await session.execute(
+            select(StockMovement.ingredient_id, func.sum(StockMovement.qty))
+            .where(StockMovement.business_date < start.date())
+            .group_by(StockMovement.ingredient_id)
+        )
+    ).all()
+    quantities = {
+        int(ingredient_id): max(Decimal(str(qty or 0)), Decimal(0))
+        for ingredient_id, qty in qty_rows
+    }
+
+    lot_rows = (
+        await session.execute(
+            select(
+                IngredientLot.ingredient_id,
+                func.sum(IngredientLot.received_quantity),
+                func.sum(IngredientLot.received_quantity * IngredientLot.unit_price),
+            )
+            .where(IngredientLot.received_at < start)
+            .group_by(IngredientLot.ingredient_id)
+        )
+    ).all()
+    lot_avg: dict[int, Decimal] = {}
+    for ingredient_id, qty, total in lot_rows:
+        if qty and Decimal(str(qty)) > 0:
+            lot_avg[int(ingredient_id)] = Decimal(str(total)) / Decimal(str(qty))
+
+    values: dict[int, Decimal] = {}
+    for ingredient_id, qty in quantities.items():
+        unit = previous.get(ingredient_id) or lot_avg.get(ingredient_id) or Decimal(0)
+        values[ingredient_id] = qty * unit
+    return quantities, values
+
+
 async def close_month(session: AsyncSession, month: int) -> list[MonthlyAverageCost]:
     start, end = _bd.business_month_range(month)
-    # aggregate per ingredient
+    previous = await _previous_costs(session, month)
+    opening_qty, opening_value = await _opening_state(session, month, previous)
+
+    # Purchases in the month, excluding cancelled receipts and stocktake-surplus lines.
     q = (
         select(
             GoodsReceiptLine.ingredient_id,
@@ -29,34 +100,42 @@ async def close_month(session: AsyncSession, month: int) -> list[MonthlyAverageC
         .where(
             GoodsReceipt.receipt_date >= start,
             GoodsReceipt.receipt_date < end,
-            # A cancelled receipt never entered stock; a stocktake-surplus line is a
-            # reconciliation document with unit_price 0 and must not dilute the average.
             GoodsReceipt.status != "Đã hủy",
             or_(IngredientLot.is_adjustment.is_(False), IngredientLot.id.is_(None)),
         )
         .group_by(GoodsReceiptLine.ingredient_id)
     )
-    rows = (await session.execute(q)).all()
-    out = []
-    for ing_id, qty, total in rows:
-        if not qty:
+    purchases = {
+        int(row[0]): (Decimal(str(row[1] or 0)), Decimal(str(row[2] or 0)))
+        for row in (await session.execute(q)).all()
+    }
+
+    ingredient_ids = sorted(set(opening_qty) | set(purchases))
+    out: list[MonthlyAverageCost] = []
+    for ing_id in ingredient_ids:
+        buy_qty, buy_total = purchases.get(ing_id, (Decimal(0), Decimal(0)))
+        open_qty = opening_qty.get(ing_id, Decimal(0))
+        denominator = open_qty + buy_qty
+        if denominator > 0:
+            avg = (opening_value.get(ing_id, Decimal(0)) + buy_total) / denominator
+        elif ing_id in previous:
+            # No stock movement and no purchase: keep last month's unit cost so a later
+            # report can still cost anything that was consumed from carried stock.
+            avg = previous[ing_id]
+        else:
             continue
-        # The column is DECIMAL(18,4); quantising here keeps the stored value exact and
-        # silences MySQL's "Data truncated" warning without changing the average.
-        avg = (Decimal(str(total)) / Decimal(str(qty))).quantize(
-            Decimal("0.0001"), rounding=ROUND_HALF_UP
-        )
+        avg = avg.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
         existing = await session.get(MonthlyAverageCost, {"ingredient_id": ing_id, "month": month})
         if existing:
             existing.avg_cost = avg
-            existing.total_qty = qty
+            existing.total_qty = buy_qty
             existing.computed_at = _bd.now()
         else:
             existing = MonthlyAverageCost(
                 ingredient_id=ing_id,
                 month=month,
                 avg_cost=avg,
-                total_qty=qty,
+                total_qty=buy_qty,
                 computed_at=_bd.now(),
             )
             session.add(existing)

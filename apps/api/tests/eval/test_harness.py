@@ -56,6 +56,20 @@ async def test_the_four_metrics_of_appendix_4_are_reported(fake_llm, questions):
     assert result.error_rate >= 0
     assert result.refusal_rate >= 0
     assert result.mean_latency_ms >= 0
+    assert result.p95_latency_ms >= 0
+
+
+@pytest.mark.anyio
+async def test_repeated_runs_report_a_p95_and_the_run_count(fake_llm, one_question):
+    """R27: the evaluation method asks for repeated runs, not one pass."""
+    fake_llm.reply(f"SELECT COUNT(MaOrder) AS so_don FROM {one_question['view']}")
+
+    result = await run_configuration(Config.A, [one_question], runs=3)
+
+    assert result.runs == 3
+    assert result.execution_accuracy == 1.0
+    assert len(result.outcomes) == 3
+    assert result.p95_latency_ms >= 0
 
 
 @pytest.mark.anyio

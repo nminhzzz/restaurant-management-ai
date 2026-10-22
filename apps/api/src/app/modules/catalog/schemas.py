@@ -73,6 +73,7 @@ class DishOut(BaseModel):
     GiaHienTai: float | None = None
     SoSuatKhaDung: int | None = None
     TrangThai: str
+    TamDungThuCong: bool = False
     DaXoa: bool = Field(validation_alias="is_deleted")
 
     model_config = {"from_attributes": True, "populate_by_name": True}
@@ -219,6 +220,8 @@ class TableOut(BaseModel):
 
 
 class VisibilityUpdate(BaseModel):
-    HetNguyenLieu: bool | None = None
+    """FR-CAT-26: only the manual pause is writable; shortage is derived."""
+
+    TamDungThuCong: bool | None = None
 
     model_config = {"extra": "forbid"}

@@ -246,7 +246,7 @@ async def test_cancel_order_refused_while_qr_pending(session):
         f"/api/v1/sales/orders/{oid}/cancel", json={"reason": "khách đổi ý"}, headers=h_mgr
     )
     assert r.status_code == 422
-    assert await order_status(session, oid) == "Đang mở"
+    assert await order_status(session, oid) == "Chờ xác nhận thanh toán"
 
 
 @pytest.mark.anyio
@@ -305,7 +305,8 @@ async def test_cancelling_last_live_line_auto_closes_order(session):
     assert r.status_code == 200
     assert await ingredient_total(session, d) == before + 1
     assert await order_status(session, oid) == "Tự động đóng"
-    assert await table_status(session, t.id) == "Trống"
+    # Cancelling lines does not prove the guests left; release is explicit (FR-CAT-18).
+    assert await table_status(session, t.id) == "Đang phục vụ"
 
 
 @pytest.mark.anyio

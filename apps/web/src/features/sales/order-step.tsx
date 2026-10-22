@@ -12,7 +12,7 @@ import {
   Trash2,
   UtensilsCrossed,
 } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -46,7 +46,15 @@ type CartLine = {
   SoLuong: number;
   GhiChu: string;
   holdId: number;
+  RequestLineId: string;
 };
+
+function requestId(): string {
+  return (
+    globalThis.crypto?.randomUUID?.() ??
+    `req-${Date.now()}-${Math.random().toString(36).slice(2)}`
+  );
+}
 
 type CreatedOrder = {
   MaOrder: number;
@@ -130,13 +138,8 @@ export function OrderStep({
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  // Lines confirmed by the server during this visit but not yet reflected in
-  // `menu.data.order` (no reload happens on a partial failure, so the total
-  // would otherwise undercount them until the next full reload).
-  const [extraSent, setExtraSent] = useState<
-    { MaMon: number; SoLuong: number; DonGia: number }[]
-  >([]);
-
+  // Reused across retries so a lost response cannot create a second order.
+  const submitRequestId = useRef<string | null>(null);
   if (menu.status === "loading") return <LoadingState rows={6} />;
   if (menu.status === "error")
     return <ErrorState message={menu.message} onRetry={menu.reload} />;
@@ -147,24 +150,13 @@ export function OrderStep({
       ? "Mang về"
       : (tables.find((t) => t.MaBan === tableId)?.TenBan ?? `Bàn #${tableId}`);
   const sent = (order?.lines ?? []).filter((l) => l.TrangThai !== "Đã hủy");
-  // `extraSent` covers lines the server already confirmed but that a partial
-  // failure kept out of `order.lines` (no reload happens on error).
-  const sentDisplay = [
-    ...sent.map((l) => ({
-      key: `line-${l.MaChiTietOrder}`,
-      MaMon: l.MaMon,
-      SoLuong: l.SoLuong,
-      DonGia: l.DonGia,
-      TrangThai: l.TrangThai,
-    })),
-    ...extraSent.map((l, i) => ({
-      key: `extra-${i}-${l.MaMon}`,
-      MaMon: l.MaMon,
-      SoLuong: l.SoLuong,
-      DonGia: l.DonGia,
-      TrangThai: "Chờ",
-    })),
-  ];
+  const sentDisplay = sent.map((l) => ({
+    key: `line-${l.MaChiTietOrder}`,
+    MaMon: l.MaMon,
+    SoLuong: l.SoLuong,
+    DonGia: l.DonGia,
+    TrangThai: l.TrangThai,
+  }));
   const sentTotal = sentDisplay.reduce(
     (sum, l) => sum + l.DonGia * l.SoLuong,
     0,
@@ -219,6 +211,7 @@ export function OrderStep({
             SoLuong: hold.SoLuong ?? 1,
             GhiChu: "",
             holdId: hold.MaGiuCho,
+            RequestLineId: requestId(),
           },
         ];
       });
@@ -276,47 +269,65 @@ export function OrderStep({
       return;
     }
     setSubmitting(true);
-    try {
-      let id = orderId;
-      if (id === null) {
+    submitRequestId.current ??= requestId();
+
+    // FR-SALE-05: an expired hold is re-checked on submit; the cashier must confirm
+    // using today's price/recipe instead of the backend renewing it silently.
+    async function send(confirmExpired: boolean): Promise<number> {
+      if (orderId === null) {
         const created = await apiFetch<CreatedOrder>("/sales/orders", {
           method: "POST",
           body: {
             MaBan: tableId,
             LoaiDon: tableId === null ? "Mang về" : "Tại chỗ",
+            request_id: submitRequestId.current,
+            XacNhanHetHan: confirmExpired,
             lines: cart.map((l) => ({
               MaMon: l.MaMon,
               SoLuong: l.SoLuong,
               GhiChu: l.GhiChu || null,
               hold_id: l.holdId,
+              request_line_id: l.RequestLineId,
             })),
           },
         });
-        id = created.MaOrder;
-        const skipped = created.rejected?.length ?? 0;
-        if (skipped > 0) toast.warning(`Bỏ qua ${skipped} món thiếu tồn kho.`);
-        setCart([]);
-      } else {
-        // One line per request: a failure keeps the unsent lines in the cart,
-        // and the already-confirmed ones move into `extraSent` so the total
-        // stays right until the next reload.
-        for (const line of [...cart]) {
-          await apiFetch(`/sales/orders/${id}/lines`, {
-            method: "POST",
-            body: {
-              MaMon: line.MaMon,
-              SoLuong: line.SoLuong,
-              GhiChu: line.GhiChu || null,
-              hold_id: line.holdId,
-            },
-          });
-          setExtraSent((prev) => [
-            ...prev,
-            { MaMon: line.MaMon, SoLuong: line.SoLuong, DonGia: line.DonGia },
-          ]);
-          setCart((prev) => prev.filter((l) => l.MaMon !== line.MaMon));
-        }
+        return created.MaOrder;
       }
+      // The backend validates every line before committing any of them.
+      await apiFetch(`/sales/orders/${orderId}/lines/bulk`, {
+        method: "POST",
+        body: {
+          XacNhanHetHan: confirmExpired,
+          lines: cart.map((l) => ({
+            dish_id: l.MaMon,
+            quantity: l.SoLuong,
+            note: l.GhiChu || null,
+            hold_id: l.holdId,
+            request_line_id: l.RequestLineId,
+          })),
+        },
+      });
+      return orderId;
+    }
+
+    try {
+      let id: number;
+      try {
+        id = await send(false);
+      } catch (e: unknown) {
+        const message = messageOf(e, "");
+        if (
+          !message.includes("hết hạn") ||
+          !window.confirm(
+            `${message}\n\nDùng giá và định lượng hiện tại để gửi?`,
+          )
+        ) {
+          throw e;
+        }
+        id = await send(true);
+      }
+      setCart([]);
+      submitRequestId.current = null;
       toast.success(`Đã gửi món của ${tableName} xuống bếp.`);
       onSent(id, next);
     } catch (e: unknown) {
@@ -349,7 +360,7 @@ export function OrderStep({
           <div
             role="tablist"
             aria-label="Nhóm món"
-            className="flex max-w-full gap-1 overflow-x-auto border-b border-border"
+            className="flex max-w-full flex-wrap gap-1 border-b border-border"
           >
             {[{ MaNhomMon: null, TenNhom: "Tất cả" }, ...usedGroups].map(
               (g) => (

@@ -35,6 +35,8 @@ async def display_status_for(session: AsyncSession, dish: Dish) -> str:
         return "Nháp"
     if dish.out_of_stock:
         return "Hết nguyên liệu"
+    if dish.manual_paused:
+        return "Tạm dừng phục vụ"
     return "Hoạt động"
 
 
@@ -291,8 +293,8 @@ async def schedule_price_change(
     current_bd = _bd.business_date_of(_bd.now())
     if bd <= current_bd:
         raise BusinessRuleError("BusinessDate áp dụng phải là ngày trong tương lai.")
-    # only one pending: delete existing Nháp
-    for row in (
+    # only one pending: delete existing Nháp, but keep what it contained for audit
+    superseded = (
         (
             await session.execute(
                 select(DishPriceVersion).where(
@@ -303,7 +305,16 @@ async def schedule_price_change(
         )
         .scalars()
         .all()
-    ):
+    )
+    replaced = [
+        {
+            "MaPhienBanGia": row.id,
+            "Gia": float(row.price),
+            "NgayHieuLuc": row.business_date.isoformat() if row.business_date else None,
+        }
+        for row in superseded
+    ]
+    for row in superseded:
         await session.delete(row)
     await session.flush()
     v = DishPriceVersion(
@@ -322,6 +333,8 @@ async def schedule_price_change(
             action="SCHEDULE_PRICE_CHANGE",
             target_entity="LICH_SU_GIA_MON",
             target_id=str(v.id),
+            before={"LichBiGhiDe": replaced},
+            after={"Gia": float(price), "NgayHieuLuc": bd.isoformat()},
         )
     )
     await session.flush()
@@ -332,6 +345,11 @@ async def cancel_pending_price_change(session, actor_id: int, version_id: int):
     v = await session.get(DishPriceVersion, version_id)
     if v is None or v.status != VersionStatus.NHAP.value:
         raise NotFoundError("Không tìm thấy phiên bản chờ áp dụng.")
+    before = {
+        "Gia": float(v.price),
+        "NgayHieuLuc": v.business_date.isoformat(),
+        "TrangThai": v.status,
+    }
     await session.delete(v)
     await session.flush()
     session.add(
@@ -340,6 +358,7 @@ async def cancel_pending_price_change(session, actor_id: int, version_id: int):
             action="CANCEL_PRICE_CHANGE",
             target_entity="LICH_SU_GIA_MON",
             target_id=str(version_id),
+            before=before,
         )
     )
     await session.flush()
@@ -360,7 +379,9 @@ async def apply_price_directly(session, actor_id: int, dish_id: int, price: _Dec
             DishPriceVersion.status == VersionStatus.HIEU_LUC.value,
         )
     )
-    for row in cur.scalars().all():
+    current_rows = list(cur.scalars().all())
+    superseded = [{"MaPhienBanGia": row.id, "Gia": float(row.price)} for row in current_rows]
+    for row in current_rows:
         row.status = VersionStatus.HET_HIEU_LUC.value
         row.effective_to = _bd.now()
     await session.flush()
@@ -382,6 +403,8 @@ async def apply_price_directly(session, actor_id: int, dish_id: int, price: _Dec
             action="APPLY_PRICE_DIRECTLY",
             target_entity="LICH_SU_GIA_MON",
             target_id=str(v.id),
+            before={"PhienBanBiThayThe": superseded},
+            after={"Gia": float(price)},
         )
     )
     await session.flush()
@@ -414,8 +437,8 @@ async def schedule_recipe_change(
         ing = await session.get(_Ing, ing_id)
         if ing is None or ing.is_deleted:
             raise BusinessRuleError(f"Nguyên liệu {ing_id} không tồn tại.")
-    # only one pending
-    for row in (
+    # only one pending: replace it, but record what was overwritten
+    superseded_recipes = (
         (
             await session.execute(
                 select(Recipe).where(
@@ -425,11 +448,23 @@ async def schedule_recipe_change(
         )
         .scalars()
         .all()
-    ):
-        # delete items
-        for ri in (
+    )
+    replaced_recipes = []
+    for row in superseded_recipes:
+        existing_items = (
             (await session.execute(select(_RI).where(_RI.recipe_id == row.id))).scalars().all()
-        ):
+        )
+        replaced_recipes.append(
+            {
+                "MaCongThuc": row.id,
+                "NgayHieuLuc": row.business_date.isoformat() if row.business_date else None,
+                "NguyenLieu": [
+                    {"MaNguyenLieu": ri.ingredient_id, "SoLuong": float(ri.quantity)}
+                    for ri in existing_items
+                ],
+            }
+        )
+        for ri in existing_items:
             await session.delete(ri)
         await session.delete(row)
     await session.flush()
@@ -457,6 +492,12 @@ async def schedule_recipe_change(
             action="SCHEDULE_RECIPE_CHANGE",
             target_entity="CONG_THUC",
             target_id=str(r.id),
+            before={"LichBiGhiDe": replaced_recipes},
+            after={
+                "NguyenLieu": [
+                    {"MaNguyenLieu": ing_id, "SoLuong": float(qty)} for ing_id, qty in items
+                ]
+            },
         )
     )
     await session.flush()
@@ -527,7 +568,9 @@ async def apply_recipe_directly(
             Recipe.dish_id == dish_id, Recipe.status == VersionStatus.HIEU_LUC.value
         )
     )
-    for row in cur.scalars().all():
+    current_rows = list(cur.scalars().all())
+    superseded_recipes = [{"MaCongThuc": row.id} for row in current_rows]
+    for row in current_rows:
         row.status = VersionStatus.HET_HIEU_LUC.value
         row.effective_to = _bd.now()
     await session.flush()
@@ -555,6 +598,12 @@ async def apply_recipe_directly(
             action="APPLY_RECIPE_DIRECTLY",
             target_entity="CONG_THUC",
             target_id=str(r.id),
+            before={"PhienBanBiThayThe": superseded_recipes},
+            after={
+                "NguyenLieu": [
+                    {"MaNguyenLieu": ing_id, "SoLuong": float(qty)} for ing_id, qty in items
+                ]
+            },
         )
     )
     await session.flush()
@@ -946,18 +995,41 @@ async def list_tables(session):
     return list(r.scalars().all())
 
 
-async def set_manual_out_of_stock(session, actor_id: int, dish_id: int, value: bool):
+async def ensure_dish_sellable(session, dish_id: int):
+    """The single backend check for FR-CAT-04/26/27: deleted, draft or blocked dishes."""
+    from app.modules.catalog.models import Dish
+
+    dish = await session.get(Dish, dish_id)
+    if dish is None or dish.is_deleted:
+        raise BusinessRuleError("Món không tồn tại hoặc đã bị xóa.")
+    reasons = []
+    if dish.out_of_stock:
+        reasons.append("hết nguyên liệu")
+    if dish.manual_paused:
+        reasons.append("tạm dừng phục vụ")
+    if reasons:
+        raise BusinessRuleError(f"Món đang {' và '.join(reasons)}.")
+    return dish
+
+
+async def set_manual_paused(session, actor_id: int, dish_id: int, value: bool):
+    """FR-CAT-26: pause a dish by hand without touching the derived shortage flag."""
     d = await session.get(Dish, dish_id)
     if d is None or d.is_deleted:
         raise NotFoundError("Không tìm thấy món ăn.")
-    d.out_of_stock = value
+    if d.manual_paused == value:
+        return d
+    before = {"TamDungThuCong": bool(d.manual_paused)}
+    d.manual_paused = value
     await session.flush()
     session.add(
         SystemAuditLog(
             user_id=actor_id,
-            action="SET_MANUAL_OUT_OF_STOCK",
+            action="SET_MANUAL_PAUSE",
             target_entity="MON_AN",
             target_id=str(dish_id),
+            before=before,
+            after={"TamDungThuCong": bool(value)},
         )
     )
     await session.flush()

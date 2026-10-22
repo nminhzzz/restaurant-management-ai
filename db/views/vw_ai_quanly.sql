@@ -58,7 +58,7 @@ UNION ALL
 SELECT
     'DONG_MON', ct.MaOrder, o.BusinessDate, NULL, o.TrangThai, NULL, NULL,
     NULL, NULL, NULL, NULL, NULL, NULL,
-    m.TenMon, ng.TenNhomMon, ct.SoLuong, ct.DonGia, ct.ThanhTien,
+    m.TenMon, ng.TenNhomMon, ct.SoLuong, ct.DonGia, (ct.SoLuong * ct.DonGia),
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
     NULL, NULL, NULL, NULL, NULL, NULL
 FROM CHI_TIET_ORDER ct
@@ -137,7 +137,7 @@ FROM GIA_BINH_QUAN_THANG gv
 JOIN NGUYEN_LIEU n ON n.MaNguyenLieu = gv.MaNguyenLieu
 UNION ALL
 SELECT
-    'GIAO_DICH_KHO', NULL, g.BusinessDate, NULL, NULL, NULL, NULL,
+    'GIAO_DICH_KHO', ct.MaOrder, g.BusinessDate, NULL, o.TrangThai, NULL, NULL,
     NULL, NULL, NULL, NULL, NULL, NULL,
     NULL, NULL, NULL, NULL, NULL,
     g.MaNguyenLieu, n.TenNguyenLieu, n.DonViTinh, NULL, NULL,
@@ -145,6 +145,8 @@ SELECT
     g.MaGiaoDichKho, g.SoLuongThayDoi, g.LoaiGiaoDich, NULL, NULL, NULL, NULL, NULL, NULL
 FROM GIAO_DICH_KHO g
 JOIN NGUYEN_LIEU n ON n.MaNguyenLieu = g.MaNguyenLieu
+LEFT JOIN CHI_TIET_ORDER ct ON ct.MaChiTietOrder = g.MaChiTietOrder
+LEFT JOIN `ORDER` o ON o.MaOrder = ct.MaOrder
 UNION ALL
 SELECT
     'PHIEU_NHAP', NULL, DATE(pn.NgayNhap - INTERVAL 6 HOUR), NULL, NULL, NULL, NULL,

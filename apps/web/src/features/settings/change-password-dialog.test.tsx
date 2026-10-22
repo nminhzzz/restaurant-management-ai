@@ -63,3 +63,21 @@ describe("ChangePasswordDialog", () => {
     );
   });
 });
+
+it("ends the revoked session after a successful password change", async () => {
+  const { saveSession, loadSession } = await import("@/lib/session");
+  saveSession({ token: "revoked", role: "CASHIER", username: "cashier" });
+  fetchMock.mockResolvedValue(null);
+  render(<ChangePasswordDialog open onOpenChange={() => {}} />);
+  fireEvent.change(screen.getByLabelText("Mật khẩu hiện tại"), {
+    target: { value: "oldpass" },
+  });
+  fireEvent.change(screen.getByLabelText("Mật khẩu mới"), {
+    target: { value: "newpass1" },
+  });
+  fireEvent.change(screen.getByLabelText("Xác nhận mật khẩu mới"), {
+    target: { value: "newpass1" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Đổi mật khẩu" }));
+  await vi.waitFor(() => expect(loadSession()).toBeNull());
+});
