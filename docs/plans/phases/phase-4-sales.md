@@ -316,15 +316,15 @@ async def test_reducing_the_quantity_returns_the_difference(client, cashier_toke
     assert await ingredient_total(dish) == before + expected_draw(dish, 1)
 
 
-async def test_cancelling_every_line_closes_the_order_without_an_invoice(
+async def test_cancelling_every_line_keeps_the_order_open(
     client, cashier_token, single_line_order, line, dish, table
 ):
-    """FR-SALE-12."""
+    """FR-SALE-11."""
     await cancel_line(client, cashier_token, line.id, reason="khách về")
 
-    assert await order_status(single_line_order.id) == "Tự động đóng"
+    assert await order_status(single_line_order.id) == "Đang mở"
     assert await invoice_count(single_line_order.id) == 0
-    assert await table_status(table.id) == "Trống"
+    assert await table_status(table.id) == "Đang phục vụ"
 
 
 async def test_moving_a_table_swaps_both_tables(client, cashier_token, open_order, table, free_table):

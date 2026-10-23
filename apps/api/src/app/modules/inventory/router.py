@@ -322,6 +322,19 @@ async def list_issues(
     }
 
 
+@router.get("/issues/prepared-preview")
+async def preview_prepared_issue(
+    order_line_id: int,
+    servings: int,
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    session: AsyncSession = Depends(get_session),
+):
+    """FR-INV-05: the UI reads the derived ingredients; it never types them."""
+    return await svc.preview_prepared_write_off(
+        session, order_line_id=order_line_id, servings=servings
+    )
+
+
 @router.get("/issues/{issue_id}")
 async def get_issue(
     issue_id: int,

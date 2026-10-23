@@ -75,6 +75,14 @@ async def order_total(session: AsyncSession, order: Order) -> Decimal:
     return sum((Decimal(str(line.unit_price)) * int(line.quantity) for line in lines), Decimal(0))
 
 
+async def _payable_total(session: AsyncSession, order: Order) -> Decimal:
+    """An order whose lines were all cancelled stays open but cannot be paid as zero."""
+    total = await order_total(session, order)
+    if total <= 0:
+        raise BusinessRuleError("Order không còn món để thanh toán.")
+    return total
+
+
 def _settle(order: Order, status: str, now: datetime) -> None:
     order.status = status
     order.updated_at = now
@@ -240,7 +248,7 @@ async def pay_cash(session: AsyncSession, order_id: int, *, actor_id: int | None
     if existing is not None:
         raise BusinessRuleError("Order đã có hóa đơn.")
 
-    total = await order_total(session, order)
+    total = await _payable_total(session, order)
     order.total = total
     bd = order.business_date
     payment = PaymentTransaction(
@@ -293,7 +301,7 @@ async def start_qr(
     now = business_date.now()
     payment = PaymentTransaction(
         order_id=order.id,
-        amount=await order_total(session, order),
+        amount=await _payable_total(session, order),
         method="QR",
         status=QR_PENDING,
         business_date=order.business_date,

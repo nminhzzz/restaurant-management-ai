@@ -77,6 +77,13 @@ class HoldUpdate(BaseModel):
     quantity: int = Field(ge=1)
 
 
+class HoldReleaseIn(BaseModel):
+    """Release every unsent hold of one selection (FR-SALE-08)."""
+
+    selection_code: str | None = Field(default=None, max_length=36)
+    order_id: int | None = None
+
+
 class HoldOut(BaseModel):
     MaGiuCho: int
     MaLuotChon: str

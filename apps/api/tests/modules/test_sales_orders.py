@@ -460,4 +460,4 @@ async def test_add_line_rejects_a_dish_without_an_active_recipe(session):
     )
 
     assert add.status_code == 422
-    assert add.json()["error"]["message"] == "Món chưa có công thức hiệu lực"
+    assert add.json()["error"]["message"] == "Món chưa có công thức hiệu lực."

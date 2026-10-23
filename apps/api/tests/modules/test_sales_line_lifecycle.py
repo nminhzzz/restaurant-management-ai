@@ -290,8 +290,8 @@ async def test_cancel_order_allowed_after_qr_cancelled(session):
 
 
 @pytest.mark.anyio
-async def test_cancelling_last_live_line_auto_closes_order(session):
-    """FR-SALE-12: cancelling the last live line closes the order and frees the table."""
+async def test_cancelling_last_live_line_keeps_order_open(session):
+    """Cancelling every sent line leaves the order open for another round (FR-SALE-10)."""
     d, ing = await _setup_dish_with_stock(session, qty=10)
     t = await _table(session)
     client = await _make_client(session)
@@ -304,9 +304,17 @@ async def test_cancelling_last_live_line_auto_closes_order(session):
     )
     assert r.status_code == 200
     assert await ingredient_total(session, d) == before + 1
-    assert await order_status(session, oid) == "Tự động đóng"
+    assert await order_status(session, oid) == "Đang mở"
     # Cancelling lines does not prove the guests left; release is explicit (FR-CAT-18).
     assert await table_status(session, t.id) == "Đang phục vụ"
+
+    more = await client.post(
+        f"/api/v1/sales/orders/{oid}/lines",
+        json={"dish_id": d.id, "quantity": 1},
+        headers=h,
+    )
+    assert more.status_code == 201, more.text
+    assert await order_status(session, oid) == "Đang mở"
 
 
 @pytest.mark.anyio

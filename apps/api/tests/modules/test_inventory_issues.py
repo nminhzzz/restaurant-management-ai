@@ -264,6 +264,7 @@ async def test_issue_can_draw_from_a_selected_lot(session):
 async def test_prepared_dish_issue_only_classifies_cost(session):
     """FR-INV-05: source "Món đã chế biến" must not subtract stock again."""
     from app.modules.catalog.models import Dish, DishGroup
+    from app.modules.inventory.models import StockMovement
     from app.modules.sales.models import Order, OrderLine
 
     ing = await _ingredient(session)
@@ -287,6 +288,18 @@ async def test_prepared_dish_issue_only_classifies_cost(session):
         status="Đã phục vụ",
     )
     session.add(line)
+    await session.flush()
+    # The original send drew 4 units for 2 servings; the write-off must derive from
+    # that ledger, not from a recipe the user could type.
+    session.add(
+        StockMovement(
+            ingredient_id=ing.id,
+            kind="Trừ tự động",
+            qty=-4,
+            business_date=business_date.business_date_of(business_date.now()),
+            order_line_id=line.id,
+        )
+    )
     await session.commit()
 
     r = await client.post(
@@ -296,8 +309,6 @@ async def test_prepared_dish_issue_only_classifies_cost(session):
             "source": "Món đã chế biến",
             "lines": [
                 {
-                    "ingredient_id": ing.id,
-                    "quantity": 2,
                     "order_line_id": line.id,
                     "servings": 2,
                 }
@@ -316,8 +327,6 @@ async def test_prepared_dish_issue_only_classifies_cost(session):
             "source": "Món đã chế biến",
             "lines": [
                 {
-                    "ingredient_id": ing.id,
-                    "quantity": 1,
                     "order_line_id": line.id,
                     "servings": 1,
                 }
@@ -413,3 +422,142 @@ async def test_manual_issue_does_not_subtract_held_quantity_from_the_lot(session
     assert float(ing.stock_qty) == 8
     # The hold had to be released because the write-off used its stock.
     assert hold.status == "Đã giải phóng"
+
+
+async def _served_line(session, *, servings: int, recipe: list[tuple[Ingredient, int]]):
+    from app.modules.catalog.models import Dish, DishGroup
+    from app.modules.inventory.models import StockMovement
+    from app.modules.sales.models import Order, OrderLine
+
+    group = DishGroup(name="Nhóm món hủy", display_order=1, is_deleted=False)
+    session.add(group)
+    await session.flush()
+    dish = Dish(name="Món hủy", group_id=group.id, is_deleted=False)
+    session.add(dish)
+    await session.flush()
+    order = Order(
+        business_date=business_date.business_date_of(business_date.now()),
+        table_id=None,
+        order_type="Mang về",
+    )
+    session.add(order)
+    await session.flush()
+    line = OrderLine(
+        order_id=order.id,
+        dish_id=dish.id,
+        quantity=servings,
+        unit_price=50000,
+        status="Đã phục vụ",
+    )
+    session.add(line)
+    await session.flush()
+    for ingredient, per_serving in recipe:
+        session.add(
+            StockMovement(
+                ingredient_id=ingredient.id,
+                kind="Trừ tự động",
+                qty=-per_serving * servings,
+                business_date=business_date.business_date_of(business_date.now()),
+                order_line_id=line.id,
+            )
+        )
+    await session.commit()
+    return line
+
+
+@pytest.mark.anyio
+async def test_prepared_issue_derives_lines_and_counts_servings_once(session):
+    """FR-INV-05/06: derive from the original draw, aggregate history per voucher."""
+    first = await _ingredient(session, "Thịt", stock_qty=100)
+    second = await _ingredient(session, "Rau", stock_qty=100)
+    line = await _served_line(session, servings=3, recipe=[(first, 2), (second, 1)])
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+
+    preview = await client.get(
+        f"/api/v1/inventory/issues/prepared-preview?order_line_id={line.id}&servings=2",
+        headers=h,
+    )
+    assert preview.status_code == 200, preview.text
+    body = preview.json()
+    assert body["eligible_servings"] == 3
+    assert {row["ingredient_id"]: float(row["quantity"]) for row in body["lines"]} == {
+        first.id: 4.0,
+        second.id: 2.0,
+    }
+
+    # Client-sent ingredient/quantity are ignored for this source.
+    created = await client.post(
+        "/api/v1/inventory/issues",
+        json={
+            "reason": "Món bỏ",
+            "source": "Món đã chế biến",
+            "lines": [
+                {
+                    "ingredient_id": first.id,
+                    "quantity": 99,
+                    "order_line_id": line.id,
+                    "servings": 2,
+                }
+            ],
+        },
+        headers=h,
+    )
+    assert created.status_code == 201, created.text
+    detail = await client.get(
+        f"/api/v1/inventory/issues/{created.json()['MaPhieuXuat']}", headers=h
+    )
+    quantities = {row["MaNguyenLieu"]: float(row["SoLuong"]) for row in detail.json()["lines"]}
+    assert quantities == {first.id: 4.0, second.id: 2.0}
+    assert {row["SoSuat"] for row in detail.json()["lines"]} == {2}
+    await session.refresh(first)
+    await session.refresh(second)
+    assert float(first.stock_qty) == 100
+    assert float(second.stock_qty) == 100
+
+    # History counts 2, not 2 per ingredient, so one more serving still fits.
+    remaining = await client.post(
+        "/api/v1/inventory/issues",
+        json={
+            "reason": "Món bỏ",
+            "source": "Món đã chế biến",
+            "lines": [{"order_line_id": line.id, "servings": 1}],
+        },
+        headers=h,
+    )
+    assert remaining.status_code == 201, remaining.text
+
+    over = await client.post(
+        "/api/v1/inventory/issues",
+        json={
+            "reason": "Món bỏ",
+            "source": "Món đã chế biến",
+            "lines": [{"order_line_id": line.id, "servings": 1}],
+        },
+        headers=h,
+    )
+    assert over.status_code == 422
+
+
+@pytest.mark.anyio
+async def test_prepared_issue_sums_duplicate_rows_in_the_same_request(session):
+    """FR-INV-06: two rows for one line in one request must not pass separately."""
+    ingredient = await _ingredient(session, "Cá", stock_qty=100)
+    line = await _served_line(session, servings=3, recipe=[(ingredient, 1)])
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+
+    response = await client.post(
+        "/api/v1/inventory/issues",
+        json={
+            "reason": "Món bỏ",
+            "source": "Món đã chế biến",
+            "lines": [
+                {"order_line_id": line.id, "servings": 2},
+                {"order_line_id": line.id, "servings": 2},
+            ],
+        },
+        headers=h,
+    )
+
+    assert response.status_code == 422

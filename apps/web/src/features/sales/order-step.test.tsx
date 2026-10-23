@@ -57,6 +57,7 @@ function route(extra: Record<string, unknown> = {}) {
       path: string,
       options?: { method?: string; body?: { quantity?: number } },
     ) => {
+      if (routes[path] !== undefined) return Promise.resolve(routes[path]);
       if (path.startsWith("/sales/holds")) {
         if (options?.method === "DELETE") return Promise.resolve({});
         return Promise.resolve({
@@ -73,7 +74,11 @@ function route(extra: Record<string, unknown> = {}) {
 }
 
 describe("OrderStep", () => {
-  beforeEach(() => vi.resetAllMocks());
+  beforeEach(() => {
+    vi.resetAllMocks();
+    window.sessionStorage.clear();
+    window.localStorage.clear();
+  });
 
   it("shows prices and keeps unpriced and unsellable dishes out of the cart", async () => {
     route();
@@ -312,5 +317,98 @@ describe("OrderStep", () => {
         }),
       ),
     );
+  });
+
+  it("restores the draft cart and its selection code when the screen reopens", async () => {
+    window.sessionStorage.setItem("sales-selection:table-4", "sel-existing");
+    fetchMock.mockImplementation((path: string) => {
+      if (path.startsWith("/sales/holds?")) {
+        return Promise.resolve([
+          {
+            MaGiuCho: 77,
+            MaLuotChon: "sel-existing",
+            MaMon: 5,
+            TenMon: "Phở bò",
+            SoLuong: 2,
+            GhiChu: "ít cay",
+            DonGia: 65000,
+            TrangThai: "Đang giữ",
+          },
+        ]);
+      }
+      if (path.startsWith("/catalog/tables")) {
+        return Promise.resolve([{ MaBan: 4, TenBan: "Bàn 04" }]);
+      }
+      if (path.startsWith("/catalog/dishes")) return Promise.resolve(dishes);
+      if (path.startsWith("/catalog/groups")) {
+        return Promise.resolve([{ MaNhomMon: 1, TenNhom: "Món chính" }]);
+      }
+      return Promise.resolve({});
+    });
+
+    render(
+      <OrderStep
+        tableId={4}
+        orderId={null}
+        onBack={vi.fn()}
+        onSent={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByLabelText("Số lượng Phở bò")).toHaveValue(2);
+    expect(screen.getByLabelText("Ghi chú Phở bò")).toHaveValue("ít cay");
+    expect(screen.getByTestId("cart-total")).toHaveTextContent("130.000 ₫");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/sales/holds?selection_code=sel-existing&include_expired=true",
+    );
+  });
+
+  it("cancels the whole draft selection without touching lines already sent", async () => {
+    route({
+      "/sales/holds/release": { released: 1 },
+      "/sales/orders/142": {
+        MaOrder: 142,
+        MaOrderHienThi: "ORD-142",
+        TrangThai: "Đang mở",
+        lines: [
+          {
+            MaChiTietOrder: 1,
+            MaMon: 5,
+            SoLuong: 2,
+            DonGia: 65000,
+            TrangThai: "Chờ",
+          },
+        ],
+      },
+    });
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    render(
+      <OrderStep tableId={4} orderId={142} onBack={vi.fn()} onSent={vi.fn()} />,
+    );
+    expect(await screen.findByText("Đã gửi bếp")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Phở bò/ }));
+    await vi.waitFor(() =>
+      expect(screen.getByLabelText("Số lượng Phở bò")).toBeInTheDocument(),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Hủy lượt chọn" }));
+
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/sales/holds/release",
+        expect.objectContaining({
+          method: "POST",
+          body: expect.objectContaining({ order_id: 142 }),
+        }),
+      ),
+    );
+    await vi.waitFor(() =>
+      expect(
+        screen.queryByLabelText("Số lượng Phở bò"),
+      ).not.toBeInTheDocument(),
+    );
+    // The two portions already sent to the kitchen remain on the order.
+    expect(screen.getByText("Đã gửi bếp")).toBeInTheDocument();
   });
 });
