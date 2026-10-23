@@ -1,14 +1,10 @@
-"""Role → database view mapping (NFR-06, NFR-12).
-
-The assistant never touches the core business tables. Each role gets one
-read-only view, granted to a dedicated read-only database account, and the
-generator is only ever told about that single view.
-"""
+"""Explicit topic-view sets per role; legacy union views are never authorized."""
 
 from types import MappingProxyType
 
 from app.shared.roles import Role
 
+# Stable family labels retained in history and response metadata.
 ROLE_VIEWS: MappingProxyType[Role, str] = MappingProxyType(
     {
         Role.MANAGER: "vw_ai_quanly",
@@ -16,8 +12,32 @@ ROLE_VIEWS: MappingProxyType[Role, str] = MappingProxyType(
         Role.WAREHOUSE: "vw_ai_kho",
     }
 )
+ROLE_TOPICS: MappingProxyType[Role, tuple[str, ...]] = MappingProxyType(
+    {
+        Role.MANAGER: (
+            "order",
+            "dongmon",
+            "hoadon",
+            "thanhtoan",
+            "ton",
+            "giavon",
+            "giaodich",
+            "nhap",
+            "xuat",
+            "kiemke",
+            "lo",
+            "suat",
+            "mon",
+            "ban",
+            "nguyenlieu",
+            "nhacungcap",
+            "congthuc",
+        ),
+        Role.CASHIER: ("order", "dongmon", "hoadon", "thanhtoan", "mon", "ban"),
+        Role.WAREHOUSE: ("ton", "giaodich", "lo", "nhap", "xuat", "kiemke", "suat", "nguyenlieu"),
+    }
+)
 
 
 def views_for(role: Role) -> frozenset[str]:
-    """The set of views the assistant may read for this role."""
-    return frozenset({ROLE_VIEWS[role]})
+    return frozenset(f"{ROLE_VIEWS[role]}_{topic}" for topic in ROLE_TOPICS[role])

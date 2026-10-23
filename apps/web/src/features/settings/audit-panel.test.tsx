@@ -58,7 +58,7 @@ describe("AuditPanel", () => {
     });
     render(<AuditPanel />);
 
-    await screen.findByRole("cell", { name: "LOCK_USER" });
+    await screen.findByRole("cell", { name: "Khóa tài khoản" });
 
     fireEvent.change(screen.getByLabelText("Loại thao tác"), {
       target: { value: "LOCK_USER" },

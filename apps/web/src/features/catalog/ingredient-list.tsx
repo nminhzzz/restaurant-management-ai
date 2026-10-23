@@ -227,9 +227,10 @@ export function IngredientList() {
     setEditPending(true);
     const body: Record<string, unknown> = {
       TenNguyenLieu: values.TenNguyenLieu.trim(),
+      // Blank means "use the system default", which the API stores as 0.
       MucTonToiThieu: values.MucTonToiThieu.trim()
         ? Number(values.MucTonToiThieu)
-        : null,
+        : 0,
       SoNgayBaoQuan: values.SoNgayBaoQuan.trim()
         ? Number(values.SoNgayBaoQuan)
         : null,
@@ -406,16 +407,18 @@ export function IngredientList() {
           initial={{
             TenNguyenLieu: editIngredient.TenNguyenLieu,
             DonViTinh: editIngredient.DonViTinh,
-            MucTonToiThieu:
-              editIngredient.MucTonToiThieu != null
-                ? String(editIngredient.MucTonToiThieu)
-                : "",
+            MucTonToiThieu: editIngredient.MucTonToiThieu
+              ? String(editIngredient.MucTonToiThieu)
+              : "",
             SoNgayBaoQuan:
               editIngredient.SoNgayBaoQuan != null
                 ? String(editIngredient.SoNgayBaoQuan)
                 : "",
           }}
-          unitLocked={unitLocked[editIngredient.MaNguyenLieu] ?? false}
+          unitLocked={
+            editIngredient.KhoaDonViTinh === true ||
+            (unitLocked[editIngredient.MaNguyenLieu] ?? false)
+          }
           unitError={unitError}
           pending={editPending}
           onSubmit={handleEdit}

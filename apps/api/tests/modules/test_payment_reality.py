@@ -484,9 +484,10 @@ async def test_quantity_edit_updates_the_line_total_and_the_ai_view(session, see
     detail = (await client.get(f"/api/v1/sales/orders/{order_id}", headers=headers)).json()
     line_id = detail["lines"][0]["MaChiTietOrder"]
 
+    # FR-SALE-31a: a quantity increase is a new line (gọi thêm), so pass the idempotency key.
     edited = await client.patch(
         f"/api/v1/sales/orders/{order_id}/lines/{line_id}",
-        json={"quantity": 3},
+        json={"quantity": 3, "request_line_id": "payment-reality-increase"},
         headers=headers,
     )
     assert edited.status_code == 200, edited.text
@@ -494,7 +495,7 @@ async def test_quantity_edit_updates_the_line_total_and_the_ai_view(session, see
     stored = (
         await session.execute(
             text(
-                "SELECT ThanhTienMon FROM vw_ai_thungan "
+                "SELECT SUM(ThanhTienMon) FROM vw_ai_thungan "
                 "WHERE LoaiBanGhi = 'DONG_MON' AND MaOrder = :id"
             ),
             {"id": order_id},

@@ -10,6 +10,7 @@ EXPECTED_TABLES = {
     "VAI_TRO",
     "NGUOI_DUNG",
     "CAU_HINH_HE_THONG",
+    "LICH_GIO_BUSINESS_DATE",
     "NHAT_KY_HE_THONG",
     "NHOM_MON",
     "MON_AN",

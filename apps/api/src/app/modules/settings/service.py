@@ -7,8 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import BusinessRuleError, NotFoundError, UnauthenticatedError
 from app.core.security import create_access_token, hash_password, verify_password
-from app.modules.settings.models import RoleTable, SystemConfig, User
+from app.modules.settings.models import BusinessDateCutoff, RoleTable, SystemConfig, User
 from app.modules.settings.schemas import ConfigUpdate
+from app.shared import business_date
 from app.shared.audit import SystemAuditLog
 from app.shared.base import Base
 from app.shared.enums import UserStatus
@@ -50,6 +51,18 @@ async def seed_reference_data(session: AsyncSession) -> None:
                 expiry_warning_days=3,
                 hold_minutes=5,
                 ai_daily_question_quota=50,
+            )
+        )
+        await session.flush()
+
+    # Preserve the original cutoff as the history baseline.
+    if await session.get(BusinessDateCutoff, date(1000, 1, 1)) is None:
+        cfg = (await session.scalars(select(SystemConfig))).one()
+        session.add(
+            BusinessDateCutoff(
+                effective_date=date(1000, 1, 1),
+                start_time=cfg.business_day_start,
+                starts_at=datetime.combine(date(1000, 1, 1), cfg.business_day_start),
             )
         )
         await session.flush()
@@ -276,11 +289,14 @@ async def get_config(session: AsyncSession) -> SystemConfig:
 
 
 async def update_config(
-    session: AsyncSession, actor_id: int, data: ConfigUpdate | dict
+    session: AsyncSession, actor_id: int | None, data: ConfigUpdate | dict
 ) -> SystemConfig:
-    d = data.model_dump(exclude_none=False) if isinstance(data, ConfigUpdate) else data
-    cfg = await get_config(session)
-    before = {
+    payload = data if isinstance(data, ConfigUpdate) else ConfigUpdate.model_validate(data)
+    d = payload.model_dump(exclude_unset=True)
+    # Serialize concurrent edits so they cannot choose inconsistent effective dates.
+    cfg = (await session.scalars(select(SystemConfig).with_for_update())).one()
+    before_schedule = await business_date.load_business_date_schedule(session)
+    before: dict[str, object] = {
         "TenNhaHang": cfg.restaurant_name,
         "DiaChi": cfg.address,
         "MauHoaDon": cfg.invoice_template,
@@ -289,7 +305,7 @@ async def update_config(
         "ThoiGianGiuChoPhut": cfg.hold_minutes,
         "SoCauHoiAIMoiNgay": cfg.ai_daily_question_quota,
     }
-    # Only allow specific fields, ignore business_day_start
+    # Only allow documented configuration fields.
     if "TenNhaHang" in d and d["TenNhaHang"] is not None:
         cfg.restaurant_name = d["TenNhaHang"]
     if "DiaChi" in d:
@@ -309,13 +325,45 @@ async def update_config(
     if "SoCauHoiAIMoiNgay" in d and d["SoCauHoiAIMoiNgay"] is not None:
         cfg.ai_daily_question_quota = int(d["SoCauHoiAIMoiNgay"])
     requested_start = d.get("GioBatDauBusinessDate")
-    if requested_start is not None and str(requested_start) not in {
-        "06:00",
-        "06:00:00",
-    }:
-        raise BusinessRuleError(
-            "MVP cố định mốc Business Date 06:00; đổi mốc cần lịch sử hiệu lực theo ngày."
+    if requested_start is not None:
+        with business_date.business_date_schedule(before_schedule):
+            current_day = business_date.business_date_of(business_date.now())
+            effective_day = current_day + timedelta(days=1)
+            active_cutoff = business_date.cutoff_for(current_day)
+            next_boundary = business_date.business_date_start(effective_day)
+        pending = await session.get(BusinessDateCutoff, effective_day)
+        previous = tuple(c for c in before_schedule if c.effective_date < effective_day)
+        with business_date.business_date_schedule(previous):
+            original_boundary = business_date.business_date_start(effective_day)
+        moment = business_date.now()
+        local_now = (
+            moment.astimezone(business_date.VN_TZ).replace(tzinfo=None) if moment.tzinfo else moment
         )
+        if requested_start == active_cutoff and original_boundary > local_now:
+            if pending is not None:
+                await session.delete(pending)
+        elif requested_start != active_cutoff or pending is not None:
+            # A later pending boundary may already be keeping the current day open.
+            # Retain it when editing so no interval is reclassified retroactively.
+            starts_at = max(next_boundary, datetime.combine(effective_day, requested_start))
+            if pending is None:
+                session.add(
+                    BusinessDateCutoff(
+                        effective_date=effective_day,
+                        start_time=requested_start,
+                        starts_at=starts_at,
+                    )
+                )
+            else:
+                pending.start_time, pending.starts_at = requested_start, starts_at
+    before["LichGioBusinessDate"] = [
+        {
+            "NgayHieuLuc": c.effective_date.isoformat(),
+            "GioBatDau": c.start_time.isoformat(),
+            "ThoiDiemBatDau": c.starts_at.isoformat() if c.starts_at else None,
+        }
+        for c in before_schedule
+    ]
     await session.flush()
     session.add(
         SystemAuditLog(
@@ -325,6 +373,9 @@ async def update_config(
             target_id=str(cfg.id),
             before=before,
             after={
+                "GioBatDauBusinessDateYeuCau": requested_start.isoformat()
+                if requested_start
+                else None,
                 "TenNhaHang": cfg.restaurant_name,
                 "DiaChi": cfg.address,
                 "MauHoaDon": cfg.invoice_template,
@@ -447,3 +498,22 @@ async def export_backup(
         ],
         "data": data,
     }
+
+
+async def config_output(session: AsyncSession, cfg: SystemConfig) -> dict:
+    """Expose the active cutoff and the pending transition without mutating history."""
+    from app.modules.settings.schemas import ConfigOut
+
+    changes = await business_date.load_business_date_schedule(session)
+    with business_date.business_date_schedule(changes):
+        current = business_date.business_date_of(business_date.now())
+        result = ConfigOut.model_validate(cfg).model_dump()
+        result["GioBatDauBusinessDate"] = business_date.cutoff_for(current)
+        pending = next((c for c in changes if c.effective_date > current), None)
+        if pending is not None:
+            result.update(
+                GioBatDauBusinessDateMoi=pending.start_time,
+                NgayHieuLucGioMoi=pending.effective_date,
+                ThoiDiemApDungGioMoi=pending.starts_at,
+            )
+        return result

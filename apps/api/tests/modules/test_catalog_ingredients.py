@@ -183,7 +183,12 @@ async def test_a_supplier_shows_its_receipt_history(session, supplier_with_recei
     async with await _make_client(session) as c:
         detail = await get_supplier(c, h, supplier_with_receipts.id)
     app.dependency_overrides.clear()
-    assert len(detail.json()["PhieuNhap"]) == 2
+    receipts = detail.json()["PhieuNhap"]
+    assert len(receipts) == 2
+    # FR-CAT-15: a receipt history needs when it happened, its state and its value — not just an id.
+    assert set(receipts[0]) == {"MaPhieuNhap", "NgayNhap", "TrangThai", "TongTien"}
+    assert receipts[0]["TrangThai"] == "Đã nhập"
+    assert receipts[0]["NgayNhap"]
 
 
 @pytest.mark.asyncio

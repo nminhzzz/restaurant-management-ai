@@ -61,6 +61,7 @@ class StocktakeCreate(BaseModel):
 class CountIn(BaseModel):
     ingredient_id: int
     actual_qty: float = Field(ge=0)
+    reason: str | None = Field(default=None, max_length=255)
 
 
 class MonthCostOut(BaseModel):

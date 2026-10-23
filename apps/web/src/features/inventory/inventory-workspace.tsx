@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/page-states";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { IssueList } from "./issue-list";
+import { InventoryHistory } from "./inventory-history";
 import { ReceiptList } from "./receipt-list";
 import { StockTable } from "./stock-table";
 import { StocktakePanel } from "./stocktake-panel";
@@ -38,6 +39,9 @@ export function InventoryWorkspace() {
           <TabsTrigger value="stocktake" className="h-9 px-4">
             Kiểm kê
           </TabsTrigger>
+          <TabsTrigger value="history" className="h-9 px-4">
+            Lô và biến động
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="stock">
           <StockTable onRestock={restock} />
@@ -53,6 +57,9 @@ export function InventoryWorkspace() {
         </TabsContent>
         <TabsContent value="stocktake">
           <StocktakePanel />
+        </TabsContent>
+        <TabsContent value="history">
+          <InventoryHistory />
         </TabsContent>
       </Tabs>
     </div>

@@ -387,3 +387,49 @@ async def test_edit_receipt_refused_once_consumed(session):
         headers=h,
     )
     assert r2.status_code == 422
+
+
+@pytest.mark.anyio
+async def test_receipt_movement_keeps_created_lot_lineage(session):
+    from sqlalchemy import select
+
+    from app.modules.inventory.models import IngredientLot, StockMovement
+
+    ingredient = await _ingredient(session)
+    client = await _make_client(session)
+    headers, _ = await _headers(session)
+    created = await client.post(
+        "/api/v1/inventory/receipts",
+        json={"lines": [{"ingredient_id": ingredient.id, "quantity": 4, "unit_price": 1000}]},
+        headers=headers,
+    )
+    assert created.status_code == 201, created.text
+    lot = (await session.execute(select(IngredientLot))).scalar_one()
+    movement = (await session.execute(select(StockMovement))).scalar_one()
+    assert movement.lot_id == lot.id
+    assert movement.receipt_line_id == lot.receipt_line_id
+    assert movement.qty == lot.quantity_remaining == 4
+
+
+@pytest.mark.anyio
+async def test_receipt_detail_returns_the_lines_the_edit_form_needs(session):
+    """FR-INV-02: editing requires the original line ids and quantities."""
+    ing = await _ingredient(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    created = await client.post(
+        "/api/v1/inventory/receipts",
+        json={"lines": [{"ingredient_id": ing.id, "quantity": 5, "unit_price": 1000}]},
+        headers=h,
+    )
+    rid = created.json()["MaPhieuNhap"]
+
+    detail = await client.get(f"/api/v1/inventory/receipts/{rid}", headers=h)
+
+    assert detail.status_code == 200, detail.text
+    body = detail.json()
+    assert body["TrangThai"] == "Nháp"
+    assert len(body["lines"]) == 1
+    assert body["lines"][0]["MaNguyenLieu"] == ing.id
+    assert body["lines"][0]["SoLuong"] == 5
+    assert body["lines"][0]["DonGia"] == 1000

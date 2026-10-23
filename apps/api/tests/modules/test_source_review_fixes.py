@@ -306,7 +306,7 @@ async def test_hold_created_before_a_price_change_is_refused(session):
     )
 
     assert r.status_code == 422
-    assert "Giá món đã thay đổi" in r.json()["error"]["message"]
+    assert "Giá hoặc công thức món đã thay đổi" in r.json()["error"]["message"]
     assert (await session.scalar(select(func.count(Reservation.id)))) == 1
 
 

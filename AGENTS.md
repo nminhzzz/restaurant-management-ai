@@ -55,17 +55,19 @@ Chạy riêng: `cd apps/api && uv run pytest`, `cd apps/web && pnpm test`.
   sửa ở đó, đừng chép tay vào từng trang.
 - Truy vấn SQL chỉ được dựng qua SQLAlchemy; không nối chuỗi SQL.
 - Mọi thao tác ghi đều phải kiểm tra quyền ở tầng API. Ẩn nút trên giao diện không phải là phân quyền.
-- Tuân thủ `Business Date` (06:00 → 06:00 hôm sau) qua `app.shared.business_date`; không tự tính lại.
+- Tuân thủ `Business Date` qua `app.shared.business_date`; mặc định 06:00, thay đổi giờ có lịch
+  hiệu lực theo FR-SET-04. Dùng session factory chung để nạp lịch; không tự tính lại ngày đã lưu.
 
 ## Trợ lý AI
 
 - Sinh SQL rồi **bắt buộc** đi qua `app.modules.ai.guard.validate_sql` trước khi thực thi.
   Không có đường tắt nào bỏ qua bước này.
-- Mỗi vai trò chỉ đọc đúng một view (`app.modules.ai.scope`). Prompt chỉ được chứa view đó.
+- Mỗi vai trò chỉ đọc tập view theo chủ đề được liệt kê trong `app.modules.ai.scope`.
+  Prompt chỉ được chứa lược đồ của tập view đó; không cấp quyền trên view tổng hợp cũ.
 - Truy vấn chạy bằng tài khoản CSDL chỉ-đọc **riêng cho từng vai trò** (`app.modules.ai.accounts`),
-  mỗi tài khoản chỉ được `GRANT SELECT` trên đúng view của vai trò đó — không dùng chung.
+  mỗi tài khoản chỉ được `GRANT SELECT` trên đúng tập view của vai trò đó — không dùng chung.
 - Trần số dòng `AI_MAX_ROWS` (500), timeout thực thi `AI_SQL_TIMEOUT_SECONDS` (3s) và tối đa
-  `AI_MAX_SQL_ATTEMPTS` (2) lần sinh SQL cho mỗi câu hỏi đều theo NFR-06.
+  `AI_MAX_SQL_ATTEMPTS` (2) lần sinh SQL cho mỗi câu hỏi đều theo NFR-05 của báo cáo 23/10/2026.
 
 ## Cạm bẫy đã biết
 

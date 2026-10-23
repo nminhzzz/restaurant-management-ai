@@ -1,8 +1,8 @@
 """Settings module tables: VAI_TRO, NGUOI_DUNG, CAU_HINH_HE_THONG."""
 
-from datetime import datetime, time
+from datetime import date, datetime, time
 
-from sqlalchemy import DECIMAL, DateTime, ForeignKey, Index, Integer, String, Time, func
+from sqlalchemy import DECIMAL, Date, DateTime, ForeignKey, Index, Integer, String, Time, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.shared.base import Base, BigInteger
@@ -68,3 +68,13 @@ class SystemConfig(Base):
     ai_daily_question_quota: Mapped[int] = mapped_column(
         "SoCauHoiAIMoiNgay", Integer, nullable=False, default=50
     )
+
+
+class BusinessDateCutoff(Base):
+    """Cutoff history; the first day may retain the previous boundary."""
+
+    __tablename__ = "LICH_GIO_BUSINESS_DATE"
+
+    effective_date: Mapped[date] = mapped_column("NgayHieuLuc", Date, primary_key=True)
+    start_time: Mapped[time] = mapped_column("GioBatDau", Time, nullable=False)
+    starts_at: Mapped[datetime] = mapped_column("ThoiDiemBatDau", DateTime, nullable=False)

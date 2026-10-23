@@ -23,9 +23,28 @@ type ComparisonResponse = {
   change_cost_percent: string | null;
 };
 
-function ChangeBadge({ changePercent }: { changePercent: string | null }) {
+function signedVnd(difference: number): string {
+  if (difference === 0) return formatVnd(0);
+  const sign = difference > 0 ? "+" : "−";
+  return `${sign}${formatVnd(Math.abs(difference))}`;
+}
+
+function ChangeBadge({
+  changePercent,
+  difference,
+}: {
+  changePercent: string | null;
+  difference: number;
+}) {
   if (changePercent === null)
-    return <Badge tone="neutral">Không có kỳ gốc để so sánh</Badge>;
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge tone="neutral">Không xác định tỷ lệ phần trăm</Badge>
+        <span className="font-semibold tabular-nums">
+          {signedVnd(difference)}
+        </span>
+      </div>
+    );
   const value = Number(changePercent);
   if (value > 0)
     return (
@@ -49,22 +68,48 @@ function ChangeBadge({ changePercent }: { changePercent: string | null }) {
   );
 }
 
+function periodLabel(from: string, to: string): string {
+  return from === to ? from : `${from} – ${to}`;
+}
+
 export function ComparisonReport() {
-  const [right, setRight] = useState(currentMonth);
-  const [left, setLeft] = useState(() => previousMonth(currentMonth()));
+  const thisMonth = currentMonth();
+  const lastMonth = previousMonth(thisMonth);
+  const [leftFrom, setLeftFrom] = useState(lastMonth);
+  const [leftTo, setLeftTo] = useState(lastMonth);
+  const [rightFrom, setRightFrom] = useState(thisMonth);
+  const [rightTo, setRightTo] = useState(thisMonth);
+  const left = periodLabel(leftFrom, leftTo);
+  const right = periodLabel(rightFrom, rightTo);
   const fetchComparison = useCallback(
     () =>
       apiFetch<ComparisonResponse>(
-        `/reports/comparison?left=${left}&right=${right}`,
+        "/reports/comparison" +
+          `?left_from=${leftFrom}&left_to=${leftTo}` +
+          `&right_from=${rightFrom}&right_to=${rightTo}`,
       ),
-    [left, right],
+    [leftFrom, leftTo, rightFrom, rightTo],
   );
   const comparison = useResource(fetchComparison);
 
   const toolbar = (
     <div className="flex flex-wrap items-end gap-4">
-      <MonthPicker value={left} onChange={setLeft} label="Kỳ gốc" />
-      <MonthPicker value={right} onChange={setRight} label="Kỳ so sánh" />
+      <div className="flex items-end gap-2">
+        <MonthPicker
+          value={leftFrom}
+          onChange={setLeftFrom}
+          label="Kỳ gốc từ"
+        />
+        <MonthPicker value={leftTo} onChange={setLeftTo} label="đến" />
+      </div>
+      <div className="flex items-end gap-2">
+        <MonthPicker
+          value={rightFrom}
+          onChange={setRightFrom}
+          label="Kỳ so sánh từ"
+        />
+        <MonthPicker value={rightTo} onChange={setRightTo} label="đến" />
+      </div>
     </div>
   );
 
@@ -103,7 +148,12 @@ export function ComparisonReport() {
         />
         <div className="grid gap-1.5 rounded-container border border-border bg-surface p-4">
           <span className="text-muted">Chênh lệch doanh thu</span>
-          <ChangeBadge changePercent={data.change_percent} />
+          <ChangeBadge
+            changePercent={data.change_percent}
+            difference={
+              Number(data.right.DoanhThu) - Number(data.left.DoanhThu)
+            }
+          />
         </div>
       </div>
       <div className="grid gap-3 sm:grid-cols-3">
@@ -117,7 +167,10 @@ export function ComparisonReport() {
         />
         <div className="grid gap-1.5 rounded-container border border-border bg-surface p-4">
           <span className="text-muted">Chênh lệch giá vốn</span>
-          <ChangeBadge changePercent={data.change_cost_percent} />
+          <ChangeBadge
+            changePercent={data.change_cost_percent}
+            difference={Number(data.right.GiaVon) - Number(data.left.GiaVon)}
+          />
         </div>
       </div>
       <section className="space-y-3 rounded-container border border-border bg-surface p-4">

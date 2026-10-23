@@ -14,12 +14,12 @@ from app.shared import business_date
 from tests.modules.test_sales_holds import _headers, _setup
 
 
-async def _order(session):
+async def _order(session, quantity=1):
     dish, ingredient, _ = await _setup(session)
     _, user = await _headers(session)
     result = await orders.submit_order(
         session,
-        {"order_type": "Mang về", "lines": [{"dish_id": dish.id, "quantity": 1}]},
+        {"order_type": "Mang về", "lines": [{"dish_id": dish.id, "quantity": quantity}]},
         actor_id=user.id,
     )
     return result, ingredient, user
@@ -95,10 +95,15 @@ async def test_partially_refunded_money_cannot_pay_the_original_full_bill(sessio
 @pytest.mark.anyio
 @pytest.mark.parametrize("operation", ["cancel_line", "reduce_line", "cancel_order"])
 async def test_returning_order_stock_is_blocked_during_stocktake(session, operation):
-    result, ingredient, user = await _order(session)
+    result, ingredient, user = await _order(session, quantity=2)
     line = result["lines"][0]
-    await orders.update_line(session, result["order"].id, line.id, 2, actor_id=user.id)
+    # A sheet may only open once the kitchen has processed every pending dish; a line that
+    # becomes pending afterwards still must not move stock while the sheet is open.
+    await orders.advance_line_status(session, line.id, orders.LINE_CONFIRMED)
+    await orders.advance_line_status(session, line.id, orders.LINE_SERVED)
     await inventory.create_stocktake(session, user.id)
+    line.status = orders.LINE_WAITING
+    await session.flush()
     before = Decimal(str(ingredient.stock_qty))
     with pytest.raises(BusinessRuleError):
         if operation == "cancel_line":

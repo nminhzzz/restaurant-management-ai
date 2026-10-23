@@ -257,6 +257,7 @@ class HourBucket:
 class WeekdayBucket:
     Thu: int
     SoDon: int
+    DoanhThu: Decimal = Decimal(0)
 
 
 @dataclass(frozen=True)
@@ -355,7 +356,12 @@ async def hourly_distribution(session: AsyncSession, period: BusinessPeriod) -> 
 
     weekday_expr = _weekday_iso(session)
     weekday_stmt = (
-        select(weekday_expr, func.count(func.distinct(Order.id)))
+        select(
+            weekday_expr,
+            func.count(func.distinct(Order.id)),
+            func.coalesce(func.sum(OrderLine.quantity * OrderLine.unit_price), 0),
+        )
+        .outerjoin(OrderLine, line_join)
         .where(*window)
         .group_by(weekday_expr)
         .order_by(weekday_expr)
@@ -367,7 +373,14 @@ async def hourly_distribution(session: AsyncSession, period: BusinessPeriod) -> 
             HourBucket(ThoiDiem=int(row[0]), SoDon=int(row[1]), DoanhThu=Decimal(str(row[2] or 0)))
             for row in hour_rows
         ],
-        by_weekday=[WeekdayBucket(Thu=int(row[0]), SoDon=int(row[1])) for row in weekday_rows],
+        by_weekday=[
+            WeekdayBucket(
+                Thu=int(row[0]),
+                SoDon=int(row[1]),
+                DoanhThu=Decimal(str(row[2] or 0)),
+            )
+            for row in weekday_rows
+        ],
     )
 
 
@@ -645,30 +658,46 @@ class ClosedUnpaidReport:
     items: list[ClosedUnpaidOrder]
 
 
+def _month_keys(start: date, end: date) -> list[int]:
+    """Every month touched by a month-aligned period, oldest first."""
+    year, month = start.year, start.month
+    keys: list[int] = []
+    while (year, month) <= (end.year, end.month):
+        keys.append(year * 100 + month)
+        month += 1
+        if month > 12:
+            year, month = year + 1, 1
+    return keys
+
+
+async def cost_total_for_period(session: AsyncSession, period: BusinessPeriod) -> Decimal:
+    """FR-REP-08: compare cost over the same months the revenue covers."""
+    total = Decimal(0)
+    for key in _month_keys(period.start, period.end):
+        total += (await cost_of_goods(session, key)).TongGiaVon
+    return total
+
+
 async def compare_periods(
     session: AsyncSession, left: BusinessPeriod, right: BusinessPeriod
 ) -> Comparison:
     """FR-REP-08: percentage change; `None` when the baseline is empty."""
     left_summary = await revenue_summary(session, left)
     right_summary = await revenue_summary(session, right)
-    left_cost = await cost_of_goods(session, left.month_key)
-    right_cost = await cost_of_goods(session, right.month_key)
+    left_cost = await cost_total_for_period(session, left)
+    right_cost = await cost_total_for_period(session, right)
     change: Decimal | None = None
     if left_summary.total != 0:
         change = ((right_summary.total - left_summary.total) / left_summary.total * 100).quantize(
             Decimal("0.01")
         )
     cost_change: Decimal | None = None
-    if left_cost.TongGiaVon != 0:
-        cost_change = (
-            (right_cost.TongGiaVon - left_cost.TongGiaVon) / left_cost.TongGiaVon * 100
-        ).quantize(Decimal("0.01"))
+    if left_cost != 0:
+        cost_change = ((right_cost - left_cost) / left_cost * 100).quantize(Decimal("0.01"))
     return Comparison(
-        left=PeriodRevenue(
-            DoanhThu=left_summary.total, GiaVon=left_cost.TongGiaVon, SoDon=left_summary.SoDon
-        ),
+        left=PeriodRevenue(DoanhThu=left_summary.total, GiaVon=left_cost, SoDon=left_summary.SoDon),
         right=PeriodRevenue(
-            DoanhThu=right_summary.total, GiaVon=right_cost.TongGiaVon, SoDon=right_summary.SoDon
+            DoanhThu=right_summary.total, GiaVon=right_cost, SoDon=right_summary.SoDon
         ),
         change_percent=change,
         change_cost_percent=cost_change,
@@ -781,6 +810,7 @@ class PendingPayment:
     TrangThai: str
     ThoiGianChoPhut: int
     KetQuaGanNhat: str | None
+    LichSu: list[dict[str, Any]] = field(default_factory=list)
 
 
 async def pending_payments(
@@ -805,6 +835,41 @@ async def pending_payments(
             .order_by(PaymentTransaction.created_at.asc(), PaymentTransaction.id.asc())
         )
     ).all()
+    history: dict[int, list[dict[str, Any]]] = {}
+    payment_ids = [payment.id for payment, _ in rows]
+    if payment_ids:
+        for target_id, occurred_at, action, reason, after in (
+            await session.execute(
+                select(
+                    SystemAuditLog.target_id,
+                    SystemAuditLog.occurred_at,
+                    SystemAuditLog.action,
+                    SystemAuditLog.reason,
+                    SystemAuditLog.after,
+                )
+                .where(
+                    SystemAuditLog.target_entity == "GIAO_DICH_THANH_TOAN",
+                    SystemAuditLog.target_id.in_([str(pid) for pid in payment_ids]),
+                    SystemAuditLog.action.in_(
+                        (
+                            "REQUEST_PAYMENT_VERIFICATION",
+                            "RESOLVE_RECONCILIATION",
+                            "REOPEN_PAYMENT",
+                            "CLOSE_UNPAID_ORDER",
+                        )
+                    ),
+                )
+                .order_by(SystemAuditLog.id.desc())
+            )
+        ).all():
+            entry = {
+                "ThoiDiem": occurred_at.isoformat() if occurred_at else None,
+                "HanhDong": action,
+                "GhiChu": reason,
+                "KetQua": (after or {}).get("ketQua") or (after or {}).get("KetQuaXuLy"),
+            }
+            history.setdefault(int(target_id), []).append(entry)
+
     now = business_date.now().replace(tzinfo=None)
     out: list[PendingPayment] = []
     seen_orders: set[int] = set()
@@ -822,6 +887,7 @@ async def pending_payments(
                 TrangThai=payment.status,
                 ThoiGianChoPhut=waited,
                 KetQuaGanNhat=payment.bank_ref or payment.evidence or payment.status,
+                LichSu=history.get(payment.id, [])[:5],
             )
         )
         seen_orders.add(order.id)

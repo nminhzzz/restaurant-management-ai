@@ -13,16 +13,46 @@ is wrong, so a different model would fail the same way.
 
 import asyncio
 import logging
+from collections.abc import Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
+from dataclasses import dataclass
 from typing import Protocol
 
 import httpx
 
 from app.core.config import get_settings
+from app.modules.ai.usage import attempt_context, finish_attempt, start_attempt
 
 logger = logging.getLogger(__name__)
 
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 OPENAI_BASE_URL = "https://api.openai.com/v1"
+
+
+@dataclass(frozen=True)
+class GenerationOptions:
+    thinking: str = "disabled"
+    reasoning_effort: str = ""
+    fallback: bool = True
+
+
+_options: ContextVar[GenerationOptions | None] = ContextVar("ai_generation_options", default=None)
+
+
+@contextmanager
+def generation_options(
+    *, thinking: str = "disabled", reasoning_effort: str = "", fallback: bool | None = None
+) -> Iterator[None]:
+    previous = _options.get()
+    effective_fallback = (
+        fallback if fallback is not None else (previous.fallback if previous else True)
+    )
+    token = _options.set(GenerationOptions(thinking, reasoning_effort, effective_fallback))
+    try:
+        yield
+    finally:
+        _options.reset(token)
 
 
 def _provider_timeout() -> float:
@@ -86,14 +116,19 @@ class CommercialClient:
         self._fallback_client = fallback_client
 
     def _post(self, model: str, prompt: str) -> str:
+        attempt = start_attempt(model)
         body: dict[str, object] = {
             "model": model,
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0,
         }
         # Opt-in: OpenAI-style models reject parameters they do not know.
-        if self._reasoning_effort:
-            body["reasoning_effort"] = self._reasoning_effort
+        options = _options.get()
+        if "deepseek" in self._base_url or options is not None:
+            body["thinking"] = {"type": options.thinking if options else "disabled"}
+        effort = options.reasoning_effort if options else self._reasoning_effort
+        if effort:
+            body["reasoning_effort"] = effort
         with httpx.Client(transport=self._transport, timeout=_provider_timeout()) as client:
             response = client.post(
                 f"{self._base_url}/chat/completions",
@@ -102,6 +137,7 @@ class CommercialClient:
             )
         response.raise_for_status()
         payload = response.json()
+        finish_attempt(attempt, payload)
         message = payload["choices"][0]["message"]
         return _strip_code_fence(str(message.get("content") or ""))
 
@@ -148,13 +184,16 @@ class OllamaClient:
         self._base_url = base_url.rstrip("/")
 
     def complete(self, prompt: str) -> str:
+        attempt = start_attempt(self.model)
         response = httpx.post(
             f"{self._base_url}/api/generate",
             json={"model": self.model, "prompt": prompt, "stream": False},
             timeout=_provider_timeout(),
         )
         response.raise_for_status()
-        return str(response.json().get("response", ""))
+        payload = response.json()
+        finish_attempt(attempt, payload, ollama=True)
+        return str(payload.get("response", ""))
 
 
 async def complete_async(client: LlmClient, prompt: str) -> str:
@@ -166,15 +205,22 @@ async def complete_async(client: LlmClient, prompt: str) -> str:
     timeout = _provider_timeout()
     if not isinstance(client, CommercialClient):
         async with asyncio.timeout(timeout):
-            return await asyncio.to_thread(client.complete, prompt)
+            with attempt_context(
+                str(getattr(client, "model", type(client).__name__)),
+                billable=not isinstance(client, OllamaClient),
+            ):
+                return await asyncio.to_thread(client.complete, prompt)
     models = [client.model]
-    if client._fallback_model and client._fallback_model != client.model:
+    options = _options.get()
+    allow_fallback = options is None or options.fallback
+    if allow_fallback and client._fallback_model and client._fallback_model != client.model:
         models.append(client._fallback_model)
     last_error: Exception | None = None
     for model in models:
         try:
             async with asyncio.timeout(timeout):
-                return await asyncio.to_thread(client._post, model, prompt)
+                with attempt_context(model):
+                    return await asyncio.to_thread(client._post, model, prompt)
         except TimeoutError as exc:
             last_error = exc
         except httpx.HTTPError as exc:
@@ -182,9 +228,14 @@ async def complete_async(client: LlmClient, prompt: str) -> str:
                 raise
             last_error = exc
         logger.warning("ai.llm.attempt_failed model=%s", model)
-    if client._fallback_client is not None:
+    if allow_fallback and client._fallback_client is not None:
         async with asyncio.timeout(timeout):
-            return await asyncio.to_thread(client._fallback_client.complete, prompt)
+            fallback = client._fallback_client
+            with attempt_context(
+                str(getattr(fallback, "model", type(fallback).__name__)),
+                billable=not isinstance(fallback, OllamaClient),
+            ):
+                return await asyncio.to_thread(fallback.complete, prompt)
     assert last_error is not None
     raise last_error
 

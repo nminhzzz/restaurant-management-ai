@@ -127,11 +127,12 @@ async def create_hold(
 @router.get("/holds", response_model=list[HoldOut])
 async def list_holds(
     selection_code: str | None = None,
+    order_id: int | None = None,
     session: AsyncSession = Depends(get_session),
     user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
 ):
     holds = await reservations.list_holds(
-        session, user_id=user.user_id, selection_code=selection_code
+        session, user_id=user.user_id, selection_code=selection_code, order_id=order_id
     )
     await session.commit()
     return [await _hold_payload(session, hold) for hold in holds]
@@ -314,10 +315,21 @@ async def patch_order_line(
     if int(quantity) < 1:
         raise HTTPException(status_code=422, detail="SoLuong phải lớn hơn 0.")
     line = await orders.update_line(
-        session, order_id, line_id, int(quantity), actor_id=user.user_id
+        session,
+        order_id,
+        line_id,
+        int(quantity),
+        actor_id=user.user_id,
+        request_line_id=payload.get("request_line_id"),
     )
     await session.commit()
-    return {"MaChiTietOrder": line.id, "SoLuong": line.quantity}
+    return {
+        "MaChiTietOrder": line.id,
+        "SoLuong": line.quantity,
+        "message": "Đã gọi thêm thành dòng món mới."
+        if line.id != line_id
+        else "Đã cập nhật số lượng.",
+    }
 
 
 @router.patch("/orders/{order_id}/lines/{line_id}/status")
@@ -404,6 +416,8 @@ async def list_tickets(
                 "TrangThai": ticket.status,
                 "TrangThaiIn": ticket.print_status,
                 "SoLanIn": ticket.print_count,
+                "LoiIn": ticket.print_error,
+                "ThoiDiemIn": ticket.printed_at,
             }
             for ticket in tickets
         ]
@@ -417,17 +431,14 @@ async def reprint_ticket(
     session: AsyncSession = Depends(get_session),
     user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
 ):
-    ticket = await session.get(KitchenTicket, ticket_id)
-    if ticket is None or ticket.order_id != order_id:
-        raise HTTPException(status_code=404, detail="Phiếu bếp không tồn tại.")
-    from app.modules.sales.tickets import record_print_result
+    from app.modules.sales.tickets import request_reprint
 
-    record_print_result(ticket, True)
+    ticket = await request_reprint(session, order_id, ticket_id)
     await session.commit()
-    # The client prints this content itself; without it "In lại" only incremented a counter.
     return {
         "MaPhieuBep": ticket.id,
         "SoLanIn": ticket.print_count,
+        "TrangThaiIn": ticket.print_status,
         "NoiDung": ticket.content,
     }
 
@@ -440,14 +451,12 @@ async def report_ticket_print_result(
     session: AsyncSession = Depends(get_session),
     user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
 ):
-    """FR-SALE-28: the UI reports a failed print so staff can be warned and retry."""
-    ticket = await session.get(KitchenTicket, ticket_id)
-    if ticket is None or ticket.order_id != order_id:
-        raise HTTPException(status_code=404, detail="Phiếu bếp không tồn tại.")
-    from app.modules.sales.tickets import record_print_result
+    """Accept staff problem reports; browser cannot establish printer success."""
+    if payload.get("ok") is not False:
+        raise HTTPException(status_code=422, detail="Kết quả gửi in chỉ do máy chủ ghi nhận.")
+    from app.modules.sales.tickets import report_print_problem
 
-    ok = bool(payload.get("ok", True))
-    record_print_result(ticket, ok)
+    ticket = await report_print_problem(session, order_id, ticket_id)
     await session.commit()
     return {"MaPhieuBep": ticket.id, "TrangThai": ticket.status, "SoLanIn": ticket.print_count}
 
@@ -483,7 +492,9 @@ async def list_payments(
             "SoTien": float(p.amount),
             "ThoiDiemTaoQR": p.created_at.isoformat() if p.created_at else None,
             "ThoiDiemHetHan": p.deadline.isoformat() if p.deadline else None,
+            "ThoiDiemTao": p.created_at.isoformat() if p.created_at else None,
             "MaThamChieuNganHang": p.bank_ref,
+            "AnhChungTu": p.evidence,
         }
         if p.status == payments.QR_PENDING:
             item.update(await payments.qr_fields(session, p))
@@ -588,10 +599,19 @@ async def cancel_payment_qr(
 @router.post("/payments/{payment_id}/request-verification")
 async def request_payment_verification(
     payment_id: int,
+    payload: dict | None = None,
     session: AsyncSession = Depends(get_session),
     user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
 ):
-    payment = await payments.request_verification(session, payment_id, actor_id=user.user_id)
+    body = payload or {}
+    payment = await payments.request_verification(
+        session,
+        payment_id,
+        actor_id=user.user_id,
+        bank_ref=body.get("reference") or body.get("bank_ref") or body.get("MaGiaoDichNganHang"),
+        evidence=body.get("evidence") or body.get("AnhChungTu"),
+        note=body.get("note") or body.get("GhiChu"),
+    )
     await session.commit()
     return {"MaGiaoDich": payment.id, "TrangThai": payment.status}
 
@@ -604,8 +624,13 @@ async def reopen_payment(
     user: Principal = Depends(require_roles(Role.MANAGER)),
 ):
     reason = payload.get("reason") or payload.get("LyDo") or ""
+    outcome = payload.get("outcome") or payload.get("KetQuaXuLy")
     order = await payments.reopen_payment(
-        session, payment_id, reason=str(reason), actor_id=user.user_id
+        session,
+        payment_id,
+        reason=str(reason),
+        outcome=str(outcome) if outcome else None,
+        actor_id=user.user_id,
     )
     await session.commit()
     return {"MaOrder": order.id, "TrangThai": order.status}
@@ -619,8 +644,13 @@ async def close_unpaid_order(
     user: Principal = Depends(require_roles(Role.MANAGER)),
 ):
     reason = payload.get("reason") or payload.get("LyDo") or ""
+    outcome = payload.get("outcome") or payload.get("KetQuaXuLy")
     order = await payments.close_unpaid_order(
-        session, order_id, reason=str(reason), actor_id=user.user_id
+        session,
+        order_id,
+        reason=str(reason),
+        outcome=str(outcome) if outcome else None,
+        actor_id=user.user_id,
     )
     await session.commit()
     return {"MaOrder": order.id, "TrangThai": order.status}
@@ -694,12 +724,14 @@ async def resolve_payment(
 ):
     outcome = payload.get("outcome") or payload.get("ketQua") or ""
     raw_amount = payload.get("received_amount") or payload.get("SoTienNhan")
+    note = payload.get("note") or payload.get("GhiChu")
     payment = await payments.resolve_reconciliation(
         session,
         int(payment_id),
         str(outcome),
         actor_id=user.user_id,
         received_amount=Decimal(str(raw_amount)) if raw_amount is not None else None,
+        note=str(note) if note else None,
     )
     await session.commit()
     return {"MaGiaoDich": payment.id, "TrangThai": payment.status}

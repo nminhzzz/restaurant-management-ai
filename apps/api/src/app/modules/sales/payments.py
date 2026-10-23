@@ -976,7 +976,13 @@ async def sync_recent_transfers(*, factory: async_sessionmaker[AsyncSession] | N
 
 
 async def request_verification(
-    session: AsyncSession, payment_id: int, *, actor_id: int | None = None
+    session: AsyncSession,
+    payment_id: int,
+    *,
+    actor_id: int | None = None,
+    bank_ref: str | None = None,
+    evidence: str | None = None,
+    note: str | None = None,
 ) -> PaymentTransaction:
     """FR-SALE-19: the guest says they paid while the system has not recorded it."""
     await expire_stale_qr(session)
@@ -1006,6 +1012,13 @@ async def request_verification(
         raise NotFoundError("Order không tồn tại.")
     if order.status not in ("Đang mở", QR_PENDING_ORDER):
         raise BusinessRuleError("Order đã đổi trạng thái trước khi yêu cầu xác minh.")
+    reference = (bank_ref or "").strip()
+    if reference and payment.bank_ref and payment.bank_ref != reference:
+        raise BusinessRuleError("Mã giao dịch ngân hàng đã ghi nhận, không thể ghi đè.")
+    if reference:
+        payment.bank_ref = reference
+    if evidence:
+        payment.evidence = evidence
     payment.status = QR_VERIFYING
     order.status = QR_VERIFYING
     order.updated_at = business_date.now()
@@ -1015,7 +1028,14 @@ async def request_verification(
             action="REQUEST_PAYMENT_VERIFICATION",
             target_entity="GIAO_DICH_THANH_TOAN",
             target_id=str(payment.id),
-            after={"MaOrder": order.id, "TrangThai": QR_VERIFYING},
+            reason=(note or "").strip() or None,
+            after={
+                "MaOrder": order.id,
+                "TrangThai": QR_VERIFYING,
+                "MaGiaoDichNganHang": payment.bank_ref,
+                "AnhChungTu": payment.evidence,
+                "GhiChu": (note or "").strip() or None,
+            },
         )
     )
     await session.flush()
@@ -1027,6 +1047,7 @@ async def reopen_payment(
     payment_id: int,
     *,
     reason: str,
+    outcome: str | None = None,
     actor_id: int | None = None,
 ) -> Order:
     """FR-SALE-23: return a verifying order to the open state for another payment."""
@@ -1084,6 +1105,7 @@ async def reopen_payment(
                 "MaGiaoDich": payment.status,
                 "MaOrder": order.status,
                 "MaGiaoDichNganHang": payment.bank_ref,
+                "KetQuaXuLy": (outcome or "").strip() or None,
             },
         )
     )
@@ -1096,6 +1118,7 @@ async def close_unpaid_order(
     order_id: int,
     *,
     reason: str,
+    outcome: str | None = None,
     actor_id: int | None = None,
 ) -> Order:
     """FR-SALE-35: stop chasing an unreceived payment without issuing an invoice."""
@@ -1163,6 +1186,7 @@ async def close_unpaid_order(
                 "TrangThai": order.status,
                 "SoTienChuaThu": float(order.total),
                 "LyDo": reason,
+                "KetQuaXuLy": (outcome or "").strip() or None,
             },
         )
     )
@@ -1353,6 +1377,7 @@ async def resolve_reconciliation(
     *,
     actor_id: int | None = None,
     received_amount: Decimal | None = None,
+    note: str | None = None,
 ) -> PaymentTransaction:
     payment = (
         await session.execute(
@@ -1439,6 +1464,7 @@ async def resolve_reconciliation(
                 "TrangThai": payment.status,
                 "MaGiaoDichNganHang": payment.bank_ref,
                 "AnhChungTu": payment.evidence,
+                "GhiChu": (note or "").strip() or None,
             },
         )
     )

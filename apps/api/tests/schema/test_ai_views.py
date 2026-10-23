@@ -169,9 +169,9 @@ async def test_view_columns_match_contract_on_mysql(mysql_engine_factory, mysql_
 @pytest.mark.parametrize(
     ("role", "own_view", "other_view"),
     [
-        ("MANAGER", "vw_ai_quanly", "vw_ai_kho"),
-        ("CASHIER", "vw_ai_thungan", "vw_ai_quanly"),
-        ("WAREHOUSE", "vw_ai_kho", "vw_ai_thungan"),
+        ("MANAGER", "vw_ai_quanly_order", "vw_ai_kho_ton"),
+        ("CASHIER", "vw_ai_thungan_order", "vw_ai_quanly_giavon"),
+        ("WAREHOUSE", "vw_ai_kho_ton", "vw_ai_thungan_hoadon"),
     ],
 )
 async def test_grants_per_role_on_mysql(mysql_engine_factory, role, own_view, other_view) -> None:
@@ -199,3 +199,62 @@ async def test_grants_per_role_on_mysql(mysql_engine_factory, role, own_view, ot
                 )
     finally:
         await eng.dispose()
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_all_topic_views_obey_role_column_restrictions_on_mysql(
+    mysql_engine_factory, mysql_seed_views
+):
+    from app.modules.ai.scope import views_for
+    from app.shared.roles import Role
+
+    engine = mysql_engine_factory()
+    try:
+        async with engine.connect() as conn:
+            for role in Role:
+                for view in views_for(role):
+                    columns = set(
+                        (
+                            await conn.execute(
+                                text(
+                                    "SELECT COLUMN_NAME FROM information_schema.COLUMNS "
+                                    "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=:view"
+                                ),
+                                {"view": view},
+                            )
+                        ).scalars()
+                    )
+                    assert columns, view
+                    assert columns.isdisjoint({"MatKhauHash", "SoDienThoai"})
+                    if role == Role.CASHIER:
+                        assert columns.isdisjoint(FORBIDDEN_CASHIER | {"GiaVonUocTinh", "LoiNhuan"})
+                    if role == Role.WAREHOUSE:
+                        assert columns.isdisjoint(
+                            FORBIDDEN_WAREHOUSE
+                            | {"GiaVonUocTinh", "GiaBinhQuanThang", "MaCongThuc", "DinhLuong"}
+                        )
+                    if view.endswith("_suat"):
+                        assert columns == {"MaMon", "TenMon", "SoSuatKhaDung", "ThoiDiemTinh"}
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_topic_servings_recompute_holds_lots_and_pauses_on_mysql(
+    mysql_engine_factory, mysql_seed_views
+):
+    from sqlalchemy.ext.asyncio import async_sessionmaker
+
+    from tests.modules.test_ai_parity import assert_servings_fresh
+
+    engine = mysql_engine_factory()
+    try:
+        async with async_sessionmaker(engine, expire_on_commit=False)() as session:
+            try:
+                await assert_servings_fresh(session)
+            finally:
+                await session.rollback()
+    finally:
+        await engine.dispose()

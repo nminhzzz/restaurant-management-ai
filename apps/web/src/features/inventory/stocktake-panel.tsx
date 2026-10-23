@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/table";
 import { apiFetch } from "@/lib/api-client";
 import { formatNumber } from "@/lib/format";
+import type { LotRow } from "./inventory-history";
 import { useAction } from "@/lib/use-action";
 import { useResource } from "@/lib/use-resource";
 import { cn } from "@/lib/utils";
@@ -99,17 +100,35 @@ function DraftStocktake({
   onCancel: () => void;
 }) {
   const [counts, setCounts] = useState<Record<number, string>>({});
+  const [reasons, setReasons] = useState<Record<number, string>>({});
   const { run, pending, error } = useAction();
+  const loadLots = useCallback(
+    () => apiFetch<{ items: LotRow[] }>("/inventory/lots?page_size=100"),
+    [],
+  );
+  const lots = useResource(loadLots);
+  const lotsByIngredient = new Map<number, LotRow[]>();
+  if (lots.status === "ready") {
+    for (const lot of lots.data.items ?? []) {
+      const list = lotsByIngredient.get(lot.MaNguyenLieu) ?? [];
+      list.push(lot);
+      lotsByIngredient.set(lot.MaNguyenLieu, list);
+    }
+  }
 
   const allFilled = ingredients.every((ing) => {
     const v = counts[ing.MaNguyenLieu];
-    return v !== undefined && v !== "" && Number(v) >= 0;
+    const filled = v !== undefined && v !== "" && Number(v) >= 0;
+    if (!filled) return false;
+    const diff = Number(v) - (ing.SoLuongTon ?? 0);
+    return diff === 0 || (reasons[ing.MaNguyenLieu] ?? "").trim() !== "";
   });
 
   async function confirm() {
     const payload = ingredients.map((ing) => ({
       ingredient_id: ing.MaNguyenLieu,
       actual_qty: Number(counts[ing.MaNguyenLieu]),
+      reason: reasons[ing.MaNguyenLieu]?.trim() || null,
     }));
     const recorded = await run(() =>
       apiFetch(`/inventory/stocktakes/${stocktakeId}/counts`, {
@@ -138,6 +157,7 @@ function DraftStocktake({
             <TableHead className="text-right">Tồn hệ thống</TableHead>
             <TableHead className="text-right">Tồn thực tế</TableHead>
             <TableHead className="text-right">Chênh lệch</TableHead>
+            <TableHead>Lý do chênh lệch</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -149,6 +169,17 @@ function DraftStocktake({
               <TableRow key={ing.MaNguyenLieu}>
                 <TableCell className="font-medium">
                   {ing.TenNguyenLieu}
+                  {lotsByIngredient.get(ing.MaNguyenLieu)?.length ? (
+                    <ul className="mt-1 space-y-0.5 text-xs text-muted">
+                      {lotsByIngredient.get(ing.MaNguyenLieu)?.map((lot) => (
+                        <li key={lot.MaLoNguyenLieu}>
+                          Lô #{lot.MaLoNguyenLieu}:{" "}
+                          {formatNumber(lot.SoLuongConLai)} · {lot.TrangThai}
+                          {lot.HanSuDung ? ` · HSD ${lot.HanSuDung}` : ""}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {formatNumber(ing.SoLuongTon)}
@@ -178,6 +209,21 @@ function DraftStocktake({
                   )}
                 >
                   {diff === null ? "—" : formatNumber(diff)}
+                </TableCell>
+                <TableCell>
+                  <Input
+                    aria-label={`Lý do chênh lệch ${ing.TenNguyenLieu}`}
+                    className="w-44"
+                    value={reasons[ing.MaNguyenLieu] ?? ""}
+                    placeholder={diff ? "Bắt buộc khi lệch" : "—"}
+                    disabled={!diff}
+                    onChange={(e) =>
+                      setReasons((prev) => ({
+                        ...prev,
+                        [ing.MaNguyenLieu]: e.target.value,
+                      }))
+                    }
+                  />
                 </TableCell>
               </TableRow>
             );

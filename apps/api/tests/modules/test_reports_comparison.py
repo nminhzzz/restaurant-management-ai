@@ -182,3 +182,25 @@ async def test_the_comparison_is_cached_for_repeated_reads(session, monkeypatch)
     await service.comparison(session, "2026-08", "2026-09")
 
     assert calls == 1
+
+
+@pytest.mark.anyio
+async def test_the_comparison_accepts_multi_month_ranges(api_client, manager_token, two_months):
+    """FR-REP-08: a period can span several whole months, not just one month."""
+    body = (
+        await api_client.get(
+            COMPARISON,
+            headers=_auth(manager_token),
+            params={
+                "left_from": two_months.left_month,
+                "left_to": two_months.left_month,
+                "right_from": two_months.left_month,
+                "right_to": two_months.right_month,
+            },
+        )
+    ).json()
+
+    assert Decimal(body["left"]["DoanhThu"]) == two_months.left_revenue
+    assert Decimal(body["right"]["DoanhThu"]) == (
+        two_months.left_revenue + two_months.right_revenue
+    )

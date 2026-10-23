@@ -13,6 +13,7 @@ worker thread so a stalled provider cannot hold the event loop and dodge the bud
 import asyncio
 import time
 from dataclasses import asdict
+from typing import Any
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -33,6 +34,7 @@ from app.modules.ai.schemas import (
     TurnOut,
 )
 from app.modules.ai.scope import ROLE_VIEWS
+from app.modules.ai.usage import collect_usage, current_usage
 from app.shared.roles import Role
 
 TITLE_LIMIT = 120
@@ -70,19 +72,36 @@ async def _record(
     summary: str,
     role: Role,
     elapsed_ms: int,
-) -> None:
-    session.add(
-        AssistantQuery(
-            session_id=chat_session.id,
-            scope=ROLE_VIEWS[role],
-            question=question,
-            sql_text=sql_text,
-            status=status,
-            summary=summary,
-            latency_ms=elapsed_ms,
-        )
+    payload: dict | None = None,
+) -> AssistantQuery:
+    usage = current_usage()
+    row = AssistantQuery(
+        session_id=chat_session.id,
+        scope=ROLE_VIEWS[role],
+        question=question,
+        sql_text=sql_text,
+        status=status,
+        summary=summary,
+        latency_ms=elapsed_ms,
+        model_version=", ".join(usage.models) if usage and usage.models else None,
+        input_tokens=usage.input_tokens if usage else 0,
+        output_tokens=usage.output_tokens if usage else 0,
+        cost_usd=usage.cost_usd if usage and usage.cost_complete else None,
+        call_count=usage.call_count if usage else 0,
+        usage_detail={
+            "input_usd_per_million": usage.input_price,
+            "output_usd_per_million": usage.output_price,
+            "attempts": [asdict(attempt) for attempt in usage.attempts],
+            "cost_complete": usage.cost_complete,
+            "known_cost_usd": usage.cost_usd,
+        }
+        if usage
+        else None,
+        payload=payload,
     )
+    session.add(row)
     await session.flush()
+    return row
 
 
 def _elapsed_ms(started: float) -> int:
@@ -90,6 +109,21 @@ def _elapsed_ms(started: float) -> int:
 
 
 async def answer(
+    session: AsyncSession,
+    question: str,
+    role: Role,
+    user_id: int,
+    session_id: int | None = None,
+) -> ChatResponse:
+    settings = get_settings()
+    with collect_usage(
+        input_price=settings.ai_input_usd_per_million,
+        output_price=settings.ai_output_usd_per_million,
+    ):
+        return await _answer(session, question, role, user_id, session_id)
+
+
+async def _answer(
     session: AsyncSession,
     question: str,
     role: Role,
@@ -114,11 +148,22 @@ async def answer(
 
     try:
         async with asyncio.timeout(settings.ai_response_budget_seconds):
+            rows: list[dict[str, Any]] = []
+
+            async def execute_candidate(sql: str) -> None:
+                nonlocal rows, sql_text
+                sql_text = sql
+                rows = await executor.execute(
+                    sql, role=role, timeout_seconds=settings.ai_sql_timeout_seconds
+                )
+
             sql_text = await generator.generate_sql(
-                session, normalized, role, user_id, history=history
-            )
-            rows = await executor.execute(
-                sql_text, role=role, timeout_seconds=settings.ai_sql_timeout_seconds
+                session,
+                normalized,
+                role,
+                user_id,
+                history=history,
+                validate_execution=execute_candidate,
             )
             columns = list(rows[0].keys()) if rows else []
             spec = charts.choose_chart(columns, rows)
@@ -130,7 +175,7 @@ async def answer(
                 interpretation = await interpreter.interpret(
                     session, normalized, sql_text, rows, role
                 )
-        except TimeoutError:
+        except Exception:
             interpretation = interpreter.fallback(rows, role)
     except ClarificationNeeded as exc:
         await _record(
@@ -213,18 +258,7 @@ async def answer(
         raise
 
     elapsed_ms = _elapsed_ms(started)
-    await _record(
-        session,
-        chat_session,
-        question=question,
-        sql_text=sql_text,
-        status="Thành công",
-        summary=interpretation.text,
-        role=role,
-        elapsed_ms=elapsed_ms,
-    )
-    await session.commit()
-    return ChatResponse(
+    response = ChatResponse(
         answer=interpretation.text,
         headline=interpretation.answer.headline,
         highlights=interpretation.answer.highlights,
@@ -242,6 +276,19 @@ async def answer(
         ),
         session_id=chat_session.id,
     )
+    await _record(
+        session,
+        chat_session,
+        question=question,
+        sql_text=sql_text,
+        status="Thành công",
+        summary=interpretation.text,
+        role=role,
+        elapsed_ms=elapsed_ms,
+        payload=response.model_dump(mode="json"),
+    )
+    await session.commit()
+    return response
 
 
 def _title(question: str) -> str:
@@ -328,6 +375,7 @@ async def session_detail(
                 highlights=highlights,
                 status=turn.status,
                 occurred_at=turn.occurred_at,
+                payload=turn.payload,
             )
         )
     return SessionDetail(id=chat.id, title=_title(turns[0].question) if turns else "", turns=out)

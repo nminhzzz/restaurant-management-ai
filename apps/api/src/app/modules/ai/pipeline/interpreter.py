@@ -146,7 +146,8 @@ async def interpret(
         return fallback(rows, role)
 
     prompt = PROMPT.format(question=question, sql=sql, count=len(rows), rows=rows[:20])
-    raw = await llm.complete_async(llm.get_client(), prompt) or ""
+    with llm.generation_options(thinking="disabled"):
+        raw = await llm.complete_async(llm.get_client(), prompt) or ""
     answer = parse_model_answer(raw)
     if not answer.headline:
         # The model returned prose we cannot parse; keep the numeric summary instead.

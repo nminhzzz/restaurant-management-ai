@@ -59,6 +59,7 @@ class TurnOut(BaseModel):
     highlights: list[str]
     status: str
     occurred_at: datetime
+    payload: dict | None = None
 
 
 class SessionDetail(BaseModel):

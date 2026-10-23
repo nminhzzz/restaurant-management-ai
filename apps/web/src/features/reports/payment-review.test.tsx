@@ -61,9 +61,9 @@ describe("PaymentReview", () => {
 
     render(<PaymentReview />);
 
-    expect(await screen.findByText("ORD-005")).toBeInTheDocument();
+    expect((await screen.findAllByText("ORD-005")).length).toBeGreaterThan(0);
     expect(screen.getByText(/25 phút/)).toBeInTheDocument();
-    expect(screen.getByText("sepay:99")).toBeInTheDocument();
+    expect(screen.getAllByText("sepay:99").length).toBeGreaterThan(0);
     expect(
       screen.getByText("Số tiền không khớp với order"),
     ).toBeInTheDocument();

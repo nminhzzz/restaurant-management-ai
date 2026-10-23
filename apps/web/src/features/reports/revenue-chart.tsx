@@ -11,7 +11,7 @@ import {
 } from "@/components/page-states";
 import { Badge } from "@/components/ui/badge";
 import { Bars } from "@/features/reports/chart";
-import { GranularityPicker } from "@/features/reports/period-picker";
+import { PeriodPicker, todayIso } from "@/features/reports/period-picker";
 import { ReportTable } from "@/features/reports/report-table";
 import { TopDishes } from "@/features/reports/top-dishes";
 import { apiFetch } from "@/lib/api-client";
@@ -36,6 +36,7 @@ type RevenueResponse = {
 const GROUP_BY_OPTIONS = [
   { value: "period", label: "Mốc thời gian" },
   { value: "table", label: "Bàn" },
+  { value: "order_type", label: "Loại đơn" },
   { value: "payment_method", label: "Phương thức thanh toán" },
 ];
 
@@ -50,18 +51,24 @@ function bucketLabel(key: string | number | null, groupBy: string): string {
 
 export function RevenueChart() {
   const [granularity, setGranularity] = useState("month");
+  const [anchor, setAnchor] = useState(todayIso);
   const [groupBy, setGroupBy] = useState("period");
   const fetchRevenue = useCallback(
     () =>
       apiFetch<RevenueResponse>(
-        `/reports/revenue?granularity=${granularity}&group_by=${groupBy}`,
+        `/reports/revenue?granularity=${granularity}&group_by=${groupBy}&anchor=${anchor}`,
       ),
-    [granularity, groupBy],
+    [granularity, groupBy, anchor],
   );
   const revenue = useResource(fetchRevenue);
 
   const picker = (
-    <GranularityPicker value={granularity} onChange={setGranularity} />
+    <PeriodPicker
+      granularity={granularity}
+      onGranularity={setGranularity}
+      anchor={anchor}
+      onAnchor={setAnchor}
+    />
   );
 
   const groupPicker = (

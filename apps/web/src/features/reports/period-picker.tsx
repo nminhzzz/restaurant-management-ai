@@ -76,3 +76,40 @@ export function MonthPicker({
     </label>
   );
 }
+
+/** Today as `YYYY-MM-DD` in the browser's timezone, the API's `anchor` format. */
+export function todayIso(): string {
+  return new Date().toLocaleDateString("en-CA");
+}
+
+/**
+ * FR-REP-01/03/07: pick both the period size and the exact day/week/month/year
+ * to look at. Without the anchor every report only ever showed the current period.
+ */
+export function PeriodPicker({
+  granularity,
+  onGranularity,
+  anchor,
+  onAnchor,
+}: {
+  granularity: string;
+  onGranularity: (value: string) => void;
+  anchor: string;
+  onAnchor: (value: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-end gap-3">
+      <GranularityPicker value={granularity} onChange={onGranularity} />
+      <label className="grid gap-1 text-xs text-subtle">
+        <span>Mốc kỳ</span>
+        <input
+          type="date"
+          aria-label="Mốc kỳ báo cáo"
+          value={anchor}
+          onChange={(event) => onAnchor(event.target.value)}
+          className="h-9 rounded-control border border-border-strong bg-surface px-3 text-sm text-ink hover:border-ink focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary focus-visible:outline-none"
+        />
+      </label>
+    </div>
+  );
+}

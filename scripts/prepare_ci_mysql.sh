@@ -26,7 +26,7 @@ for schema in restaurant_integration restaurant_test; do
   )
 done
 
-for view in db/views/vw_ai_quanly.sql db/views/vw_ai_thungan.sql db/views/vw_ai_kho.sql; do
+for view in db/views/vw_ai_*_ton.sql db/views/vw_ai_*_*.sql; do
   mysql_root restaurant_integration < "$view"
 done
 
@@ -41,7 +41,12 @@ ALTER USER 'ci_ai_warehouse'@'%' IDENTIFIED BY 'ci-warehouse-pass';
 REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'ci_ai_manager'@'%';
 REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'ci_ai_cashier'@'%';
 REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'ci_ai_warehouse'@'%';
-GRANT SELECT ON restaurant_integration.vw_ai_quanly TO 'ci_ai_manager'@'%';
-GRANT SELECT ON restaurant_integration.vw_ai_thungan TO 'ci_ai_cashier'@'%';
-GRANT SELECT ON restaurant_integration.vw_ai_kho TO 'ci_ai_warehouse'@'%';
 SQL
+
+for family in quanly thungan kho; do
+  case "$family" in quanly) account=ci_ai_manager ;; thungan) account=ci_ai_cashier ;; kho) account=ci_ai_warehouse ;; esac
+  for view in db/views/vw_ai_${family}_*.sql; do
+    name=$(basename "$view" .sql)
+    mysql_root restaurant_integration -e "GRANT SELECT ON restaurant_integration.$name TO '$account'@'%';"
+  done
+done

@@ -5,7 +5,8 @@ Quy ước mã: `TC-<MODULE>-nn` (2 chữ số, không nhảy số qua các lầ
 `apps/web/src/**/*.test.tsx` (vitest); nếu chưa có, ghi `Thủ công`. Cột **Kết quả** để trống cho người
 thực hiện tick khi chạy kiểm thử thủ công: ☐ Đạt ☐ Không đạt.
 
-Business Date (06:00 → 06:00 hôm sau) được viết tắt **BD**. Ví dụ mã order: `ORD-250926-042`
+Business Date (mốc bắt đầu cấu hình được, mặc định 06:00 → 06:00 hôm sau) được viết tắt **BD**.
+Ví dụ mã order: `ORD-250926-042`
 (order thứ 042 của BD 26/09/2025).
 
 ---
@@ -23,20 +24,20 @@ Business Date (06:00 → 06:00 hôm sau) được viết tắt **BD**. Ví dụ 
 | TC-CAT-07 | FR-CAT-03 | Quản lý | Nhóm còn ≥ 1 món chưa xóa mềm | Xóa nhóm món | Bị từ chối | Tự động: `test_catalog_dishes.py::test_a_group_with_live_dishes_cannot_be_deleted` | ☐ Đạt ☐ Không đạt |
 | TC-CAT-08 | FR-CAT-03 | Quản lý | Toàn bộ món trong nhóm đã xóa mềm | Xóa nhóm món | Xóa thành công | Tự động: `test_catalog_dishes.py::test_a_group_can_be_deleted_once_every_dish_is_soft_deleted` | ☐ Đạt ☐ Không đạt |
 | TC-CAT-09 | FR-CAT-04 | Quản lý | Món đã có trong order lịch sử | Xóa món | Món chuyển `DaXoa=1`, vẫn còn trong DB, không có API xóa vĩnh viễn | Tự động: `test_catalog_dishes.py::test_a_dish_is_never_hard_deleted` | ☐ Đạt ☐ Không đạt |
-| TC-CAT-10 | FR-CAT-04, FR-SET-08 | Quản lý | Món tồn tại | Xóa mềm món | Audit log ghi nhận thao tác xóa | Tự động: `test_catalog_dishes.py::test_dish_deletion_is_audited` | ☐ Đạt ☐ Không đạt |
+| TC-CAT-10 | FR-CAT-04, FR-SET-06 | Quản lý | Món tồn tại | Xóa mềm món | Audit log ghi nhận thao tác xóa | Tự động: `test_catalog_dishes.py::test_dish_deletion_is_audited` | ☐ Đạt ☐ Không đạt |
 | TC-CAT-11 | FR-CAT-05 | Quản lý | Món có thay đổi giá 'chờ áp dụng' | Xóa mềm món | Thay đổi giá đang chờ tự động bị hủy | Tự động: `test_catalog_dishes.py::test_soft_deleting_a_dish_cancels_its_pending_changes` | ☐ Đạt ☐ Không đạt |
 | TC-CAT-12 | FR-CAT-06 | Quản lý | — | Tạo món mới, chưa gán công thức | Món ở trạng thái 'Nháp', không xuất hiện màn hình gọi món | Tự động: `test_catalog_dishes.py::test_a_new_dish_starts_as_draft` | ☐ Đạt ☐ Không đạt |
 | TC-CAT-13 | FR-CAT-07 | Quản lý | Món ở trạng thái 'Nháp' | Gán công thức: danh sách nguyên liệu + định lượng | Công thức lưu đúng nguyên liệu/định lượng theo đơn vị nguyên liệu | Tự động: `test_catalog_recipes.py::test_a_recipe_line_carries_no_unit_of_its_own` | ☐ Đạt ☐ Không đạt |
 | TC-CAT-14 | FR-CAT-07 | Quản lý | Món đã có công thức | Nhập định lượng 0 hoặc âm cho một nguyên liệu | Bị từ chối | Tự động: `test_catalog_recipes.py::test_a_zero_or_negative_quantity_is_rejected` | ☐ Đạt ☐ Không đạt |
-| TC-CAT-15 | FR-CAT-08 | Quản lý | Món đã có công thức áp dụng | Lên lịch công thức mới cho BD kế tiếp | Công thức mới có hiệu lực đúng 06:00 BD đã chọn; order tạo trước đó vẫn dùng công thức cũ | Thủ công | ☐ Đạt ☐ Không đạt |
+| TC-CAT-15 | FR-CAT-08 | Quản lý | Món đã có công thức áp dụng | Lên lịch công thức mới cho BD kế tiếp | Công thức mới có hiệu lực đúng mốc giờ bắt đầu BD đã chọn; order tạo trước đó vẫn dùng công thức cũ | Thủ công | ☐ Đạt ☐ Không đạt |
 | TC-CAT-16 | FR-CAT-08 | Quản lý | — | Chọn BD đã bắt đầu/đã kết thúc để lên lịch công thức | Bị từ chối | Thủ công | ☐ Đạt ☐ Không đạt |
 | TC-CAT-17 | FR-CAT-09 | Quản lý | Món có công thức | Tạo 2 thay đổi công thức 'chờ áp dụng' liên tiếp | Chỉ giữ thay đổi mới nhất | Tự động: `test_catalog_recipes.py::test_only_one_pending_recipe_change_per_dish` | ☐ Đạt ☐ Không đạt |
-| TC-CAT-18 | FR-CAT-10, FR-SET-08 | Quản lý | Có thay đổi công thức 'chờ áp dụng' | Hủy thay đổi trước khi có hiệu lực | Hủy thành công, ghi audit log | Tự động: `test_catalog_recipes.py::test_cancelling_a_pending_recipe_change_is_audited` | ☐ Đạt ☐ Không đạt |
+| TC-CAT-18 | FR-CAT-10, FR-SET-06 | Quản lý | Có thay đổi công thức 'chờ áp dụng' | Hủy thay đổi trước khi có hiệu lực | Hủy thành công, ghi audit log | Tự động: `test_catalog_recipes.py::test_cancelling_a_pending_recipe_change_is_audited` | ☐ Đạt ☐ Không đạt |
 | TC-CAT-19 | FR-CAT-11 | Quản lý | Món 'Nháp', kho đủ nguyên liệu | Gán công thức lần đầu | Món chuyển 'Hoạt động' (hoặc 'Hết nguyên liệu' nếu kho không đủ) | Tự động: `test_catalog_recipes.py::test_the_first_recipe_activates_the_dish` | ☐ Đạt ☐ Không đạt |
 | TC-CAT-20 | FR-CAT-12 | Quản lý, Nhân viên kho | — | Thêm/sửa/xóa/tìm kiếm nguyên liệu | Thao tác thành công, tìm kiếm trả đúng kết quả | Tự động: `test_catalog_ingredients.py::test_ingredients_can_be_searched_by_name` | ☐ Đạt ☐ Không đạt |
 | TC-CAT-21 | FR-CAT-12 | Quản lý | Nguyên liệu không cấu hình mức tồn riêng | Đọc mức tồn tối thiểu áp dụng | Dùng đúng mức mặc định hệ thống | Tự động: `test_catalog_ingredients.py::test_an_ingredient_without_its_own_threshold_uses_the_default` | ☐ Đạt ☐ Không đạt |
 | TC-CAT-22 | FR-CAT-12 (phân quyền) | Nhân viên kho | — | Nhân viên kho thử quản lý nguyên liệu, sau đó thử quản lý món ăn | Quản lý nguyên liệu: thành công. Quản lý món ăn: 403 | Tự động: `test_catalog_ingredients.py::test_warehouse_staff_may_manage_ingredients_but_not_dishes` | ☐ Đạt ☐ Không đạt |
-| TC-CAT-23 | FR-CAT-13, FR-SET-08 | Nhân viên kho | Nguyên liệu đã dùng trong công thức | Xóa nguyên liệu | Chỉ xóa mềm, ghi audit log | Tự động: `test_catalog_ingredients.py::test_deleting_a_referenced_ingredient_is_soft_only`, `test_ingredient_deletion_is_audited` | ☐ Đạt ☐ Không đạt |
+| TC-CAT-23 | FR-CAT-13, FR-SET-06 | Nhân viên kho | Nguyên liệu đã dùng trong công thức | Xóa nguyên liệu | Chỉ xóa mềm, ghi audit log | Tự động: `test_catalog_ingredients.py::test_deleting_a_referenced_ingredient_is_soft_only`, `test_ingredient_deletion_is_audited` | ☐ Đạt ☐ Không đạt |
 | TC-CAT-24 | FR-CAT-14 | Nhân viên kho | Nguyên liệu chưa từng tham chiếu | Sửa đơn vị tính | Sửa thành công | Tự động: `test_catalog_ingredients.py::test_the_unit_can_still_be_changed_before_any_reference` | ☐ Đạt ☐ Không đạt |
 | TC-CAT-25 | FR-CAT-14 | Nhân viên kho | Nguyên liệu đã có phiếu nhập/dùng trong công thức | Sửa đơn vị tính | Bị khóa, không cho sửa | Tự động: `test_catalog_ingredients.py::test_the_unit_is_locked_once_the_ingredient_is_referenced` | ☐ Đạt ☐ Không đạt |
 | TC-CAT-26 | FR-CAT-15 | Quản lý, Nhân viên kho | Nhà cung cấp đã có lịch sử nhập | Xem chi tiết nhà cung cấp | Hiển thị đúng lịch sử nhập hàng | Tự động: `test_catalog_ingredients.py::test_a_supplier_shows_its_receipt_history` | ☐ Đạt ☐ Không đạt |
@@ -49,8 +50,8 @@ Business Date (06:00 → 06:00 hôm sau) được viết tắt **BD**. Ví dụ 
 | TC-CAT-33 | FR-CAT-20 | Quản lý | Món đang bán | Cập nhật giá, chọn BD kế tiếp làm mặc định | BD mặc định = BD kế tiếp; giá cũ vẫn áp dụng cho order trước hiệu lực | Tự động: `test_catalog_prices.py::test_the_default_target_is_the_next_business_date`, `test_the_active_version_is_the_one_in_force_on_that_business_date` | ☐ Đạt ☐ Không đạt |
 | TC-CAT-34 | FR-CAT-20 | Quản lý | — | Lên lịch giá cho BD đã bắt đầu/đã kết thúc | Bị từ chối | Tự động: `test_catalog_prices.py::test_a_scheduled_change_must_target_a_future_business_date` | ☐ Đạt ☐ Không đạt |
 | TC-CAT-35 | FR-CAT-21 | Quản lý | Món có 1 thay đổi giá 'chờ áp dụng' | Tạo thay đổi giá 'chờ áp dụng' thứ hai | Thay đổi mới ghi đè thay đổi cũ | Tự động: `test_catalog_prices.py::test_only_one_change_waits_per_dish_and_the_newest_wins` | ☐ Đạt ☐ Không đạt |
-| TC-CAT-36 | FR-CAT-22, FR-SET-08 | Quản lý | Có thay đổi giá 'chờ áp dụng' | Hủy thay đổi giá đang chờ | Hủy thành công, ghi audit log | Tự động: `test_catalog_prices.py::test_cancelling_a_pending_change_is_audited` | ☐ Đạt ☐ Không đạt |
-| TC-CAT-37 | FR-CAT-23, FR-CAT-25, FR-SET-08 | Quản lý | Món đang có giá áp dụng | Sửa trực tiếp giá bán | Áp dụng ngay, ghi thành phiên bản mới, ghi audit log | Tự động: `test_catalog_prices.py::test_a_direct_edit_applies_now_and_keeps_the_scheduled_change` | ☐ Đạt ☐ Không đạt |
+| TC-CAT-36 | FR-CAT-22, FR-SET-06 | Quản lý | Có thay đổi giá 'chờ áp dụng' | Hủy thay đổi giá đang chờ | Hủy thành công, ghi audit log | Tự động: `test_catalog_prices.py::test_cancelling_a_pending_change_is_audited` | ☐ Đạt ☐ Không đạt |
+| TC-CAT-37 | FR-CAT-23, FR-CAT-25, FR-SET-06 | Quản lý | Món đang có giá áp dụng | Sửa trực tiếp giá bán | Áp dụng ngay, ghi thành phiên bản mới, ghi audit log | Tự động: `test_catalog_prices.py::test_a_direct_edit_applies_now_and_keeps_the_scheduled_change` | ☐ Đạt ☐ Không đạt |
 | TC-CAT-38 | FR-CAT-24 | Quản lý | Món vừa có sửa trực tiếp vừa có lịch BD đang chờ | Kiểm tra thay đổi theo lịch sau khi sửa trực tiếp | Thay đổi theo lịch không bị hủy/ghi đè | Tự động: `test_catalog_prices.py::test_a_direct_edit_applies_now_and_keeps_the_scheduled_change` | ☐ Đạt ☐ Không đạt |
 | TC-CAT-39 | FR-CAT-26 | Quản lý | Món 'Hoạt động' | Ẩn thủ công một món | Món biến mất khỏi màn hình gọi món, độc lập với trạng thái tồn kho | Tự động: `test_catalog_tables.py::test_manual_hiding_is_independent_of_stock` | ☐ Đạt ☐ Không đạt |
 | TC-CAT-40 | FR-CAT-27 | Hệ thống | Món hết nguyên liệu VÀ bị ẩn thủ công cùng lúc | Bổ sung đủ nguyên liệu nhưng chưa bật hiện lại thủ công | Món vẫn ẩn (cần cả hai nguyên nhân đều tắt mới hiện) | Tự động: `test_catalog_tables.py::test_the_two_out_of_stock_causes_are_independent` | ☐ Đạt ☐ Không đạt |
@@ -74,7 +75,7 @@ Business Date (06:00 → 06:00 hôm sau) được viết tắt **BD**. Ví dụ 
 | TC-SALE-11 | FR-SALE-10 | Thu ngân/NV order | Dòng món 'Chờ làm' | Cập nhật lần lượt sang 'Đã xác nhận xong' rồi 'Đã phục vụ' | Trạng thái chỉ tiến, không lùi/nhảy cóc trái quy tắc | Tự động: `test_sales_line_lifecycle.py::test_status_only_moves_forward` | ☐ Đạt ☐ Không đạt |
 | TC-SALE-12 | FR-SALE-11 | Thu ngân/NV order | Dòng món 'Chờ làm' | Hủy dòng món | Hủy thành công, hoàn kho, ghi audit (người, thời điểm, số lượng, lý do) | Tự động: `test_sales_line_lifecycle.py::test_waiting_line_cancel_returns_stock` | ☐ Đạt ☐ Không đạt |
 | TC-SALE-13 | FR-SALE-12 | Thu ngân/NV order | Order chỉ có 1 dòng món, đang 'Chờ làm' | Hủy dòng món cuối cùng | Order tự đóng: không hóa đơn, bàn về Trống, hoàn kho đầy đủ | Tự động: `test_sales_line_lifecycle.py::test_cancelling_the_last_live_line_auto_closes_order` | ☐ Đạt ☐ Không đạt |
-| TC-SALE-14 | FR-SALE-13, FR-SET-08 | Thu ngân/NV order | Order đang mở, có bàn 'Trống' khác | Đổi bàn cho order | Bàn đích 'Đang phục vụ', bàn nguồn 'Trống', ghi audit log | Tự động: `test_sales_line_lifecycle.py::test_move_table` | ☐ Đạt ☐ Không đạt |
+| TC-SALE-14 | FR-SALE-13, FR-SET-06 | Thu ngân/NV order | Order đang mở, có bàn 'Trống' khác | Đổi bàn cho order | Bàn đích 'Đang phục vụ', bàn nguồn 'Trống', ghi audit log | Tự động: `test_sales_line_lifecycle.py::test_move_table` | ☐ Đạt ☐ Không đạt |
 | TC-SALE-15 | FR-SALE-13 | Thu ngân/NV order | Bàn đích đang 'Đang phục vụ' | Đổi bàn sang bàn đích đó | Bị từ chối | Tự động: `test_sales_line_lifecycle.py::test_move_to_occupied_refused` | ☐ Đạt ☐ Không đạt |
 | TC-SALE-16 | FR-SALE-14 | Thu ngân | Order chưa thanh toán | Chọn phương thức tiền mặt | Thanh toán ghi nhận thành công | Tự động: `test_sales_payments.py::test_cash_payment` | ☐ Đạt ☐ Không đạt |
 | TC-SALE-17 | FR-SALE-15 | Thu ngân | Order chưa thanh toán | Chọn thanh toán QR | Giao dịch QR tạo đúng số tiền phải thu, trạng thái 'Chờ xác nhận' | Tự động: `test_sales_payments.py::test_qr_starts` | ☐ Đạt ☐ Không đạt |
@@ -98,9 +99,9 @@ Business Date (06:00 → 06:00 hôm sau) được viết tắt **BD**. Ví dụ 
 | TC-SALE-35 | FR-SALE-25 | Quản lý | Order đang 'Chờ xác nhận thanh toán' (QR còn hiệu lực) | Hủy toàn bộ order | Bị từ chối cho tới khi QR bị hủy/hết hạn | Tự động: `test_sales_line_lifecycle.py::test_cancel_order_refused_while_qr_pending` | ☐ Đạt ☐ Không đạt |
 | TC-SALE-36 | FR-SALE-25 | Quản lý | QR vừa hết hạn/vừa bị hủy | Hủy toàn bộ order | Cho phép hủy | Tự động: `test_sales_line_lifecycle.py::test_cancel_order_allowed_after_qr_expired`, `test_cancel_order_allowed_after_qr_cancelled` | ☐ Đạt ☐ Không đạt |
 | TC-SALE-37 | FR-SALE-26 | Quản lý | Order có dòng 'Chờ làm' và dòng 'Đã xác nhận xong' | Hủy toàn bộ order | Không hóa đơn, bàn về Trống, chỉ hoàn kho dòng 'Chờ làm', ghi vào báo cáo order bị hủy | Tự động: `test_reports_comparison.py::test_the_cancelled_report_lists_totals_counts_and_reasons` | ☐ Đạt ☐ Không đạt |
-| TC-SALE-38 | FR-SALE-27 | Hệ thống | Order vừa submit hoặc thêm món | Kiểm tra lệnh in phiếu bếp | Phiếu bếp gồm bàn/mã đơn, món, số lượng, ghi chú | Tự động: `test_sales_tickets.py::test_ticket_carries_info` | ☐ Đạt ☐ Không đạt |
-| TC-SALE-39 | FR-SALE-28 | Thu ngân/NV order | Lệnh in phiếu bếp thất bại | Bấm in lại nhiều lần | Không giới hạn số lần in lại, cảnh báo lỗi hiển thị khi in thất bại | Tự động: `test_sales_tickets.py::test_reprint_unlimited` | ☐ Đạt ☐ Không đạt |
-| TC-SALE-40 | FR-SALE-29, FR-SET-08 | Thu ngân | Giao dịch QR 'Chờ xác nhận', chưa hết hạn | Chủ động hủy giao dịch QR | Chuyển 'Đã hủy', không tính doanh thu, cho tạo QR mới ngay sau đó, ghi audit log | Tự động: `test_sales_payments.py::test_cancel_qr` | ☐ Đạt ☐ Không đạt |
+| TC-SALE-38 | FR-SALE-31 | Hệ thống | Order vừa submit hoặc gọi thêm, đã cấu hình máy in | Kiểm tra hàng đợi in phiếu bếp | Chỉ gửi lệnh sau khi transaction commit; phiếu gồm bàn/mã đơn, món, số lượng, ghi chú | Tự động: `test_sales_tickets.py::test_ticket_carries_info`, `test_kitchen_print_queue.py::test_worker_prints_snapshot_once_and_only_after_commit` | ☐ Đạt ☐ Không đạt |
+| TC-SALE-39 | FR-SALE-28 | Thu ngân/NV order | Lệnh in phiếu bếp thất bại hoặc chưa rõ kết quả | Bấm in lại nhiều lần | Lỗi in không hủy nghiệp vụ; in lại theo quyền, không trừ kho lại; trạng thái "Chưa rõ kết quả" cần nhân viên quyết định | Tự động: `test_sales_tickets.py::test_reprint_unlimited`, `test_kitchen_print_queue.py::test_safe_connect_failure_bounded_and_manual_retry_unlimited`, `test_ambiguous_failure_never_retries_automatically` | ☐ Đạt ☐ Không đạt |
+| TC-SALE-40 | FR-SALE-29, FR-SET-06 | Thu ngân | Giao dịch QR 'Chờ xác nhận', chưa hết hạn | Chủ động hủy giao dịch QR | Chuyển 'Đã hủy', không tính doanh thu, cho tạo QR mới ngay sau đó, ghi audit log | Tự động: `test_sales_payments.py::test_cancel_qr` | ☐ Đạt ☐ Không đạt |
 
 ## 3. Module Kho (FR-INV-01 → FR-INV-12)
 
@@ -108,9 +109,9 @@ Business Date (06:00 → 06:00 hôm sau) được viết tắt **BD**. Ví dụ 
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | TC-INV-01 | FR-INV-01 | Nhân viên kho | Có nhà cung cấp | Ghi nhận phiếu nhập kho (nguyên liệu, số lượng, đơn giá, ngày nhập) | Tồn tăng đúng theo số lượng mua × hệ số quy đổi; sinh lô nguyên liệu | Tự động: `test_inventory_receipts.py::test_receipt_creates_lot_and_raises_stock_by_purchase_unit_times_factor` | ☐ Đạt ☐ Không đạt |
 | TC-INV-02 | FR-INV-01 | Nhân viên kho | Nhà cung cấp không rõ | Ghi nhận phiếu nhập với mã nhà cung cấp không tồn tại | Bị từ chối | Tự động: `test_inventory_receipts.py::test_receipt_rejects_unknown_supplier` | ☐ Đạt ☐ Không đạt |
-| TC-INV-03 | FR-INV-02, FR-SET-08 | Nhân viên kho | Phiếu nhập chưa phát sinh xuất kho liên quan | Sửa dòng phiếu nhập | Tồn được điều chỉnh lại tương ứng | Tự động: `test_inventory_receipts.py::test_edit_receipt_line_before_consumption_adjusts_stock` | ☐ Đạt ☐ Không đạt |
+| TC-INV-03 | FR-INV-02, FR-SET-06 | Nhân viên kho | Phiếu nhập chưa phát sinh xuất kho liên quan | Sửa dòng phiếu nhập | Tồn được điều chỉnh lại tương ứng | Tự động: `test_inventory_receipts.py::test_edit_receipt_line_before_consumption_adjusts_stock` | ☐ Đạt ☐ Không đạt |
 | TC-INV-04 | FR-INV-02 | Nhân viên kho | Lô nguyên liệu từ phiếu nhập đã bị tiêu thụ hết | Sửa dòng phiếu nhập đó | Bị từ chối | Tự động: `test_inventory_receipts.py::test_edit_receipt_refused_once_consumed` | ☐ Đạt ☐ Không đạt |
-| TC-INV-05 | FR-INV-02, FR-SET-08 | Nhân viên kho | Phiếu nhập chưa có xuất kho liên quan | Hủy phiếu nhập | Tồn được hoàn trả lại (đảo ngược), ghi audit log | Tự động: `test_inventory_receipts.py::test_cancel_receipt_reverses_stock` | ☐ Đạt ☐ Không đạt |
+| TC-INV-05 | FR-INV-02, FR-SET-06 | Nhân viên kho | Phiếu nhập chưa có xuất kho liên quan | Hủy phiếu nhập | Tồn được hoàn trả lại (đảo ngược), ghi audit log | Tự động: `test_inventory_receipts.py::test_cancel_receipt_reverses_stock` | ☐ Đạt ☐ Không đạt |
 | TC-INV-06 | FR-INV-02 | Nhân viên kho | Lô đã bị tiêu thụ hết | Hủy phiếu nhập | Bị từ chối | Tự động: `test_inventory_receipts.py::test_cancel_receipt_refused_once_lot_fully_consumed` | ☐ Đạt ☐ Không đạt |
 | TC-INV-07 | FR-INV-02 | Nhân viên kho | Phiếu nhập đã bị hủy | Hủy lại phiếu đó lần nữa | Bị từ chối | Tự động: `test_inventory_receipts.py::test_cancel_receipt_twice_refused` | ☐ Đạt ☐ Không đạt |
 | TC-INV-08 | FR-INV-02 (phân quyền) | Thu ngân | — | Thử tạo phiếu nhập kho | Bị từ chối (403) | Tự động: `test_inventory_receipts.py::test_cashier_cannot_create_receipt` | ☐ Đạt ☐ Không đạt |
@@ -123,14 +124,15 @@ Business Date (06:00 → 06:00 hôm sau) được viết tắt **BD**. Ví dụ 
 | TC-INV-15 | FR-INV-09 | Nhân viên kho | Tồn đã sai lệch do thao tác trước đó | Thử xuất kho thủ công tiếp mà chưa kiểm kê | Hệ thống dựa trên tồn hiện có; kiểm kê là kênh duy nhất để điều chỉnh sai lệch trước khi tiếp tục xuất | Thủ công | ☐ Đạt ☐ Không đạt |
 | TC-INV-16 | FR-INV-10 | Hệ thống | Tồn một nguyên liệu giảm dưới mức công thức yêu cầu | Kiểm tra danh sách món khả dụng | Món liên quan tự động ẩn ('Tự động ẩn do hết tồn kho'); hiện lại ngay khi kho đủ | Tự động: `test_catalog_tables.py::test_the_two_out_of_stock_causes_are_independent`, `test_sales_orders.py::test_rejected_when_out_of_stock` | ☐ Đạt ☐ Không đạt |
 | TC-INV-17 | FR-INV-11 | Hệ thống | Hai order cùng submit tranh chấp một nguyên liệu còn ít tồn | Gửi đồng thời 2 request submit | Submit trước được trước, submit sau bị từ chối nếu không còn đủ tồn; không âm tồn | Thủ công | ☐ Đạt ☐ Không đạt |
-| TC-INV-18 | FR-INV-12 | Nhân viên kho, Quản lý | Có nhiều nguyên liệu | Xem danh sách tồn kho, lọc theo tên/trạng thái cảnh báo | Hiển thị đúng tên, đơn vị, tồn khả dụng, mức tối thiểu, trạng thái | Thủ công | ☐ Đạt ☐ Không đạt |
+| TC-INV-18 | FR-INV-12 | Nhân viên kho, Quản lý | Có nhiều nguyên liệu, có lô đang bị giữ/hết hạn | Xem danh sách tồn kho, lọc theo tên/trạng thái cảnh báo; mở chi tiết lô và lịch sử biến động | Hiển thị đúng tên, đơn vị, tồn sổ sách/đủ điều kiện/đang giữ/khả dụng, thời điểm tính; cảnh báo dựa trên lượng khả dụng | Tự động: `test_inventory_parity_reads.py::test_stock_separates_book_eligible_held_and_available`, `test_lot_history_filters_and_retains_source_links`; web: `stock-table.test.tsx`, `lot-select.test.tsx` | ☐ Đạt ☐ Không đạt |
+| TC-INV-19 | FR-INV-08 | Nhân viên kho | Còn món "Chờ làm" hoặc còn lượt giữ hiệu lực | Bắt đầu phiên kiểm kê | Bị từ chối cho tới khi món được chế biến/hủy và lượt giữ được xử lý | Tự động: `test_inventory_stocktake.py::test_stocktake_refuses_waiting_kitchen_line_even_after_payment` | ☐ Đạt ☐ Không đạt |
 
 ## 4. Module Báo cáo (FR-REP-01 → FR-REP-10)
 
 | Mã TC | FR | Vai trò | Tiền điều kiện | Các bước | Kết quả mong đợi | Loại | Kết quả |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | TC-REP-01 | FR-REP-01 | Quản lý | Có hóa đơn đã tất toán trong tháng | Xem doanh thu theo BD/tuần/tháng | Tổng doanh thu đúng, chỉ tính hóa đơn đã tất toán | Tự động: `test_reports_revenue.py::test_revenue_counts_settled_invoices` | ☐ Đạt ☐ Không đạt |
-| TC-REP-02 | FR-REP-01 | Quản lý | Nhiều bàn, nhiều hình thức thanh toán | Xem doanh thu phân theo bàn và theo hình thức thanh toán | Tổng theo từng chiều cộng lại đúng bằng tổng chung | Tự động: `test_reports_revenue.py::test_revenue_can_be_split_by_table_and_by_payment_method`, `test_the_split_by_table_sums_back_to_the_total` | ☐ Đạt ☐ Không đạt |
+| TC-REP-02 | FR-REP-01 | Quản lý | Nhiều bàn, nhiều loại đơn, nhiều hình thức thanh toán | Xem doanh thu phân theo bàn, theo loại đơn (tại chỗ/mang về) và theo hình thức thanh toán | Tổng theo từng chiều cộng lại đúng bằng tổng chung | Tự động: `test_reports_revenue.py::test_revenue_can_be_split_by_table_and_by_payment_method`, `test_revenue_can_be_split_by_order_type`, `test_the_split_by_table_sums_back_to_the_total`; web: `revenue-chart.test.tsx::breaks revenue down by order type` | ☐ Đạt ☐ Không đạt |
 | TC-REP-03 | FR-REP-01 | Quản lý | Kỳ báo cáo không có dữ liệu | Xem báo cáo doanh thu kỳ rỗng | Trả về 0, không báo lỗi | Tự động: `test_reports_revenue.py::test_revenue_for_an_empty_period_is_zero_not_an_error` | ☐ Đạt ☐ Không đạt |
 | TC-REP-04 | FR-REP-01, FR-REP-02 (phân quyền) | Thu ngân, Nhân viên kho | — | Truy cập báo cáo doanh thu | Bị từ chối (403) | Tự động: `test_reports_revenue.py::test_only_a_manager_may_read_revenue` | ☐ Đạt ☐ Không đạt |
 | TC-REP-05 | FR-REP-02 | Quản lý | Có giao dịch QR 'Chờ đối soát' trong kỳ | Xem doanh thu kỳ đó | Giao dịch được tính tạm vào doanh thu | Tự động: `test_reports_revenue.py::test_a_transaction_awaiting_reconciliation_is_provisional_revenue` | ☐ Đạt ☐ Không đạt |
@@ -144,17 +146,17 @@ Business Date (06:00 → 06:00 hôm sau) được viết tắt **BD**. Ví dụ 
 | TC-REP-13 | FR-REP-05 | Quản lý | Tháng có dòng xuất kho chưa hoàn tất tính giá vốn (job backfill chưa chạy) | Xem báo cáo giá vốn/hao hụt | Báo cáo gắn nhãn 'dữ liệu tạm tính' rõ ràng | Tự động: `test_reports_margin.py::test_a_month_with_uncosted_waste_rows_is_flagged_as_provisional`, `test_the_label_clears_once_the_backfill_has_run` | ☐ Đạt ☐ Không đạt |
 | TC-REP-14 | FR-REP-06 | Quản lý | Có dữ liệu công thức + đơn giá | Xem chi phí nguyên liệu theo từng món | Không kèm hao hụt, không quy đổi thành biên lợi nhuận theo món, tổng cộng khớp giá vốn chung | Tự động: `test_reports_margin.py::test_the_per_dish_cost_excludes_waste`, `test_the_per_dish_cost_is_not_turned_into_a_margin`, `test_the_per_dish_costs_add_up_to_the_ingredient_cost` | ☐ Đạt ☐ Không đạt |
 | TC-REP-15 | FR-REP-07 | Quản lý | Order trải nhiều khung giờ/ngày trong tuần | Xem phân bố theo khung giờ và theo ngày trong tuần | Gom nhóm đúng theo giờ nghiệp vụ và theo thứ | Tự động: `test_reports_rankings.py::test_hours_are_grouped_by_business_hour_and_by_weekday` | ☐ Đạt ☐ Không đạt |
-| TC-REP-16 | FR-REP-07 | Quản lý | Order tạo sau nửa đêm nhưng trước 06:00 | Xem báo cáo khung giờ | Order được tính vào BD trước đó (BD 06:00→06:00), không tính vào ngày lịch mới | Tự động: `test_reports_rankings.py::test_a_late_night_order_belongs_to_the_previous_business_date` | ☐ Đạt ☐ Không đạt |
+| TC-REP-16 | FR-REP-07 | Quản lý | Order tạo sau nửa đêm nhưng trước 06:00 | Xem báo cáo khung giờ | Order được tính vào BD trước đó (theo mốc giờ đang áp dụng), không tính vào ngày lịch mới | Tự động: `test_reports_rankings.py::test_a_late_night_order_belongs_to_the_previous_business_date` | ☐ Đạt ☐ Không đạt |
 | TC-REP-17 | FR-REP-08 | Quản lý | Có dữ liệu 2 tháng khác nhau | So sánh doanh thu/chi phí giữa 2 khoảng thời gian | Hiển thị đúng % chênh lệch | Tự động: `test_reports_comparison.py::test_the_comparison_returns_the_percentage_change` | ☐ Đạt ☐ Không đạt |
-| TC-REP-18 | FR-REP-08 | Quản lý | Một trong hai kỳ so sánh không có dữ liệu | So sánh với kỳ rỗng | Không chia cho 0, trả về kết quả hợp lệ | Tự động: `test_reports_comparison.py::test_comparing_against_an_empty_period_does_not_divide_by_zero` | ☐ Đạt ☐ Không đạt |
+| TC-REP-18 | FR-REP-08 | Quản lý | Kỳ gốc không có dữ liệu | So sánh với kỳ rỗng | Không chia cho 0; chỉ hiển thị chênh lệch tuyệt đối kèm ghi chú "Không xác định tỷ lệ phần trăm" | Tự động: `test_reports_comparison.py::test_comparing_against_an_empty_period_does_not_divide_by_zero`; web: `comparison-report.test.tsx::handles a zero baseline period without dividing by zero` | ☐ Đạt ☐ Không đạt |
 | TC-REP-19 | FR-REP-09 | Quản lý | Có dữ liệu báo cáo | Mở bất kỳ màn hình báo cáo nào | Hiển thị cả bảng số liệu và biểu đồ trực quan | Tự động (web): `revenue-chart.test.tsx::renders both a table and a chart` | ☐ Đạt ☐ Không đạt |
 | TC-REP-20 | FR-REP-10 | Quản lý | Có order bị hủy toàn bộ trong kỳ | Xem báo cáo order bị hủy | Tổng giá trị, số lượng, lý do hiển thị đúng, tách biệt khỏi doanh thu | Tự động: `test_reports_comparison.py::test_the_cancelled_report_lists_totals_counts_and_reasons`, `test_the_cancelled_value_stays_out_of_revenue` | ☐ Đạt ☐ Không đạt |
 
-## 5. Module Cài đặt (FR-SET-01 → FR-SET-09)
+## 5. Module Cài đặt (FR-SET-01 → FR-SET-07)
 
 | Mã TC | FR | Vai trò | Tiền điều kiện | Các bước | Kết quả mong đợi | Loại | Kết quả |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| TC-SET-01 | FR-SET-01, FR-SET-08 | Quản lý | — | Tạo tài khoản mới, gán vai trò | Tạo thành công, ghi audit log | Tự động: `test_settings_accounts.py::test_account_creation_is_audited` | ☐ Đạt ☐ Không đạt |
+| TC-SET-01 | FR-SET-01, FR-SET-06 | Quản lý | — | Tạo tài khoản mới, gán vai trò | Tạo thành công, ghi audit log | Tự động: `test_settings_accounts.py::test_account_creation_is_audited` | ☐ Đạt ☐ Không đạt |
 | TC-SET-02 | FR-SET-01 (phân quyền) | Thu ngân, Nhân viên kho | — | Thử tạo tài khoản | Bị từ chối (403) | Tự động: `test_settings_accounts.py::test_only_a_manager_may_create_accounts` | ☐ Đạt ☐ Không đạt |
 | TC-SET-03 | FR-SET-01 | Quản lý | — | Tạo tài khoản gán 2 vai trò hoặc không vai trò | Bị từ chối — mỗi tài khoản đúng một trong ba vai trò | Tự động: `test_settings_accounts.py::test_a_user_is_given_exactly_one_of_the_three_roles` | ☐ Đạt ☐ Không đạt |
 | TC-SET-04 | FR-SET-01 | Quản lý | Tài khoản đang hoạt động | Khóa tài khoản | Tài khoản không đăng nhập được nữa | Thủ công | ☐ Đạt ☐ Không đạt |
@@ -162,17 +164,18 @@ Business Date (06:00 → 06:00 hôm sau) được viết tắt **BD**. Ví dụ 
 | TC-SET-06 | FR-SET-02 | Mọi vai trò | Tài khoản bị khóa | Đăng nhập | Bị từ chối | Tự động: `test_settings_auth.py::test_locked_account_cannot_log_in` | ☐ Đạt ☐ Không đạt |
 | TC-SET-07 | FR-SET-02, NFR-04 | Mọi vai trò | — | Đăng nhập sai mật khẩu | Bị từ chối, thông báo không tiết lộ trường nào sai (username hay mật khẩu) | Tự động: `test_settings_auth.py::test_wrong_password_is_rejected_without_revealing_which_field_failed` | ☐ Đạt ☐ Không đạt |
 | TC-SET-08 | FR-SET-02 | Mọi vai trò | Đã đăng nhập | Tự đổi mật khẩu | Đổi thành công, không ghi vào audit log rủi ro cao | Thủ công | ☐ Đạt ☐ Không đạt |
-| TC-SET-09 | FR-SET-02, FR-SET-08 | Quản lý | Nhân viên quên mật khẩu | Quản lý đặt lại mật khẩu hộ | Đặt lại thành công, ghi audit log | Thủ công | ☐ Đạt ☐ Không đạt |
+| TC-SET-09 | FR-SET-02, FR-SET-06 | Quản lý | Nhân viên quên mật khẩu | Quản lý đặt lại mật khẩu hộ | Đặt lại thành công, ghi audit log | Thủ công | ☐ Đạt ☐ Không đạt |
 | TC-SET-10 | FR-SET-03 | Cả ba vai trò | — | Đối chiếu với Bảng 33 (§3.4.2) | Từng vai trò chỉ thao tác được đúng phạm vi — xem mục "6. Kiểm thử phân quyền" | Tự động (nhiều file, xem mục 6) | ☐ Đạt ☐ Không đạt |
 | TC-SET-11 | FR-SET-04 | Quản lý | — | Cấu hình tên, địa chỉ, mẫu hóa đơn nhà hàng | Lưu thành công, áp dụng cho hóa đơn in sau đó | Thủ công | ☐ Đạt ☐ Không đạt |
 | TC-SET-12 | FR-SET-05 | Quản lý | — | Cấu hình mức tồn tối thiểu mặc định | Lưu thành công, áp dụng cho nguyên liệu chưa có mức riêng | Thủ công | ☐ Đạt ☐ Không đạt |
 | TC-SET-12b | NFR (cấu hình hệ thống chỉ đọc field bảo vệ) | Thu ngân, Nhân viên kho | — | Đọc cấu hình hệ thống | Bị từ chối (chỉ Quản lý) | Tự động: `test_settings_config.py::test_a_non_manager_cannot_read_the_config` | ☐ Đạt ☐ Không đạt |
-| TC-SET-12c | Ràng buộc Business Date cố định | Quản lý | — | Thử sửa mốc bắt đầu Business Date (06:00) qua API | Bị từ chối — không sửa được qua API | Tự động: `test_settings_config.py::test_the_business_day_start_cannot_be_edited_from_the_api` | ☐ Đạt ☐ Không đạt |
-| TC-SET-13 | FR-SET-06, FR-SET-08 | Quản lý | — | Xuất bản sao dữ liệu thủ công | Xuất thành công, ghi audit log | Thủ công | ☐ Đạt ☐ Không đạt |
-| TC-SET-14 | FR-SET-07, FR-SET-08 | Quản lý/Hệ thống | Có bản sao lưu | Phục hồi dữ liệu (thủ công hoặc theo lịch) | Phục hồi thành công, ghi audit log | Thủ công | ☐ Đạt ☐ Không đạt |
-| TC-SET-15 | FR-SET-08 | Quản lý | Thực hiện một thao tác rủi ro cao (vd. hủy toàn bộ order) | Xem audit log | Bản ghi xuất hiện đúng loại thao tác | Tự động: gián tiếp qua `latest_audit()` trong `tests/helpers.py`, dùng ở `test_catalog_dishes.py`, `test_catalog_prices.py`, `test_catalog_recipes.py`, `test_catalog_ingredients.py`, `test_settings_accounts.py` | ☐ Đạt ☐ Không đạt |
-| TC-SET-16 | FR-SET-09 | Quản lý | Audit log có bản ghi | Xem chi tiết một bản ghi | Có đủ người thực hiện, thời điểm, loại thao tác, dữ liệu trước/sau | Thủ công | ☐ Đạt ☐ Không đạt |
-| TC-SET-17 | FR-SET-09 (phân quyền) | Thu ngân, Nhân viên kho | — | Truy cập audit log | Bị từ chối (403) | Tự động: `test_settings_audit_log.py::test_only_a_manager_can_read_the_audit_log` | ☐ Đạt ☐ Không đạt |
+| TC-SET-12c | FR-SET-04 | Quản lý | Đang dùng mốc 06:00 | Đổi mốc bắt đầu Business Date sang giờ khác | Mốc mới có hiệu lực từ BD kế tiếp; ngày hiện tại và lịch sử giữ nguyên mốc cũ | Tự động: `test_settings_config.py::test_the_business_day_start_is_scheduled_for_the_next_business_date`, `test_business_date.py::test_cutoff_history_preserves_transition_and_minute_boundaries` | ☐ Đạt ☐ Không đạt |
+| TC-SET-12d | FR-SET-04 | Quản lý | Có mốc mới đang chờ áp dụng | Sửa/hủy mốc đang chờ trước giờ hiệu lực | Không phân loại lại ngày đang diễn ra; lịch chờ được cập nhật đúng | Tự động: `test_settings_config.py::test_editing_a_delayed_pending_cutoff_never_reclassifies_current_day`, `test_cutoff_change_before_old_boundary_cannot_start_in_the_past`; migration: `test_business_date_cutoff.py::test_upgrade_preserves_initial_cutoff_and_downgrade_removes_history` | ☐ Đạt ☐ Không đạt |
+| TC-SET-13 | FR-SET-06, FR-SET-06 | Quản lý | — | Xuất bản sao dữ liệu thủ công | Xuất thành công, ghi audit log | Thủ công | ☐ Đạt ☐ Không đạt |
+| TC-SET-14 | FR-SET-07, FR-SET-06 | Quản lý/Hệ thống | Có bản sao lưu | Phục hồi dữ liệu (thủ công hoặc theo lịch) | Phục hồi thành công, ghi audit log | Thủ công | ☐ Đạt ☐ Không đạt |
+| TC-SET-15 | FR-SET-06 | Quản lý | Thực hiện một thao tác rủi ro cao (vd. hủy toàn bộ order) | Xem audit log | Bản ghi xuất hiện đúng loại thao tác | Tự động: gián tiếp qua `latest_audit()` trong `tests/helpers.py`, dùng ở `test_catalog_dishes.py`, `test_catalog_prices.py`, `test_catalog_recipes.py`, `test_catalog_ingredients.py`, `test_settings_accounts.py` | ☐ Đạt ☐ Không đạt |
+| TC-SET-16 | FR-SET-07 | Quản lý | Audit log có bản ghi | Xem chi tiết một bản ghi | Có đủ người thực hiện, thời điểm, loại thao tác, dữ liệu trước/sau | Thủ công | ☐ Đạt ☐ Không đạt |
+| TC-SET-17 | FR-SET-07 (phân quyền) | Thu ngân, Nhân viên kho | — | Truy cập audit log | Bị từ chối (403) | Tự động: `test_settings_audit_log.py::test_only_a_manager_can_read_the_audit_log` | ☐ Đạt ☐ Không đạt |
 | TC-SET-18 | NFR-07 | Quản lý | Audit log có bản ghi | Thử sửa/xóa một bản ghi audit log qua API | Không có endpoint nào cho phép sửa/xóa | Tự động: `test_settings_audit_log.py::test_the_log_cannot_be_edited_or_deleted` | ☐ Đạt ☐ Không đạt |
 
 ## 6. Kiểm thử phân quyền / bảo mật dữ liệu theo vai trò (Bảng 32, 33 — §3.4)
@@ -229,13 +232,71 @@ Mỗi dòng đối chiếu trực tiếp một ô "Không" hoặc "Chỉ xem" tr
 | TC-AI-24 | FR-AI-01 | Từng vai trò | Mở phiên chat AI | Phiên gắn đúng view/tài khoản của vai trò đăng nhập; phiên đầu tiên tạo mới, các lượt sau dùng lại cùng phiên | Tự động: `test_ai_service.py::test_the_session_is_created_on_the_first_turn_and_reused_after`, `test_each_role_talks_to_its_own_view` | ☐ Đạt ☐ Không đạt |
 | TC-AI-25 | NFR-16 | Bất kỳ | Hỏi lại đúng một câu hỏi đã hỏi trước đó | Trả lời từ cache, không gọi lại LLM | Tự động: `test_ai_generator.py::test_a_repeated_question_is_served_from_cache`, `test_the_cache_does_not_leak_across_roles` | ☐ Đạt ☐ Không đạt |
 | TC-AI-26 | NFR-16 | Một vai trò | Vượt hạn mức câu hỏi/ngày | Từ chối gọi thêm LLM cho tới khi hạn mức reset | Tự động: `test_ai_generator.py::test_the_daily_quota_stops_further_calls` | ☐ Đạt ☐ Không đạt |
+| TC-AI-27 | FR-AI-01, FR-AI-03/04 | Từng vai trò | Hỏi nhiều chủ đề trong phạm vi vai trò | Prompt/guard chỉ nhận đúng tập view theo chủ đề; join cùng vai trò được, view vai trò khác bị từ chối | Tự động: `test_ai_parity.py::test_roles_expose_topic_sets_and_never_the_old_union_views`, `test_guard_accepts_same_role_topic_join_but_rejects_cross_role`, `test_grant_template_matches_allowlists_exactly` | ☐ Đạt ☐ Không đạt |
+| TC-AI-28 | FR-AI-10 | Quản lý | Một câu hỏi gọi provider thành công, có retry/fallback | Kiểm tra nhật ký truy vấn AI | Lưu model thực, token vào/ra, chi phí và số lần gọi; provider lỗi vẫn giữ bản ghi, không bịa chi phí chính xác | Tự động: `test_ai_parity.py::test_provider_usage_records_actual_versions_tokens_cost_and_failed_fallback_attempts`, `test_provider_failure_still_persists_attempt_without_claiming_exact_cost`, `test_query_log_restricts_parent_deletion_and_has_required_usage_columns` | ☐ Đạt ☐ Không đạt |
 
 ---
 
 ### Ghi chú độ phủ FR
 
-Toàn bộ FR-CAT (28), FR-SALE (29), FR-INV (12), FR-REP (10), FR-SET (9) và FR-AI (9) đều có ít nhất một
+Toàn bộ FR-CAT (28), FR-SALE (35), FR-INV (14), FR-REP (10), FR-SET (7) và FR-AI (10) đều có ít nhất một
 test case ở trên. Các trường hợp đánh dấu "Thủ công" là những thao tác gắn với phần cứng thật (máy in
 nhiệt, cổng thanh toán QR thật), thao tác đồng thời khó dựng tất định trong test tự động (tranh chấp tồn
 kho thực), hoặc UI thuần túy chưa có test tương ứng tại thời điểm viết tài liệu này — cần chạy tay theo
 đúng bước mô tả và tick kết quả.
+
+---
+
+## Ma trận NFR → bằng chứng (báo cáo 23/10/2026)
+
+Cột **Trạng thái** phân biệt rõ ba mức: *Tự động* (đã có test chạy trong `make gate`),
+*Công cụ sẵn sàng* (có script/harness nhưng chưa chạy trên dữ liệu và tải thật), và
+*Cần thu bên ngoài* (thiết bị, trình duyệt, ngân hàng hoặc người dùng thật). Không dùng kết quả
+lịch sử trong `docs/eval-results.json` cho bộ câu hỏi hay cấu hình hiện tại.
+
+| NFR | Phép kiểm chứng | Bằng chứng trong mã nguồn | Trạng thái |
+| --- | --- | --- | --- |
+| NFR-01 Hiệu năng nghiệp vụ | Phát tải 5/10/20 VU trên 20.000 order | `scripts/seed_perf.py`, `scripts/load_business.py`, `scripts/perf/load.py`, `tests/perf/test_tools.py` | Công cụ sẵn sàng — cần chạy trên MySQL thật và lưu CSV |
+| NFR-02 Phản hồi AI | p95 đầu-cuối < 10 giây, tính cả retry/diễn giải | `data/eval/harness.py`, `apps/api/tests/eval/test_harness.py` (đo đến hết bước diễn giải, p95 theo nhóm) | Công cụ sẵn sàng — cần chạy bộ chính thức với provider thật |
+| NFR-03 Hiệu năng báo cáo | 5 phiên Quản lý, p95 mỗi báo cáo < 10 giây | `scripts/load_reports.py`, `scripts/bench_reports.py`, `scripts/perf/load.py` | Công cụ sẵn sàng — cần chạy trên dữ liệu 12 tháng |
+| NFR-04 Bảo mật truy cập | Hash mật khẩu, 401/403 ở backend, che bí mật khỏi prompt/log | `test_settings_auth.py`, `test_dependencies.py`, `test_ai_prompt.py`, `test_settings_config.py` | Tự động (HTTPS và cấu hình triển khai cần thu bên ngoài) |
+| NFR-05 An toàn AI | Chỉ SELECT trên view của vai trò, 2 lần sinh, 3 giây, 500 dòng | `test_ai_guard.py`, `test_ai_accounts.py`, `test_ai_executor.py`, `test_ai_parity.py`, `test_ai_views.py` | Tự động |
+| NFR-06 Nhật ký và truy vết | Log audit/nhật ký AI không sửa/xóa được; đủ trường; không lộ bí mật | `test_settings_audit_log.py`, `test_ai_parity.py::test_query_log_restricts_parent_deletion_and_has_required_usage_columns` | Tự động |
+| NFR-07 Toàn vẹn tồn kho | Không âm tồn, không cấp trùng, gửi lặp idempotent, rollback, khóa kiểm kê | `test_sales_locking_and_search.py`, `test_sales_line_lifecycle.py`, `test_inventory_stocktake.py`, `scripts/verify_mysql_concurrency.py` | Tự động (SQLite) + cần chạy đồng thời trên MySQL thật |
+| NFR-08 Giao diện tiếng Việt | Toàn bộ thông báo tiếng Việt; Chrome/Edge hiện hành | `test_ai_service.py::test_every_message_shown_to_the_user_is_vietnamese`; `docs/testing/compatibility-checklist.md` | Tự động (chuỗi) + cần thu phiên trình duyệt/thiết bị thật |
+| NFR-09 Hạn mức và cache AI | Chặn vượt hạn mức; cache mất hiệu lực khi dữ liệu/quyền đổi; tồn khả dụng luôn tươi | `test_ai_generator.py`, `test_ai_parity.py::test_servings_are_fresh_aggregate_of_current_recipe_holds_and_eligible_lots` | Tự động |
+
+---
+
+## Bổ sung đợt rà soát web 23/10/2026
+
+Các ca dưới đây bổ sung phần giao diện còn thiếu so với báo cáo; tên test là bằng chứng tự động.
+
+| Mã TC | FR | Thao tác trên web | Kết quả mong đợi | Loại |
+| --- | --- | --- | --- | --- |
+| TC-WEB-01 | FR-SALE-09/22 | Order đã thanh toán, bấm chuyển trạng thái món | Vẫn cập nhật được "Đã xác nhận xong"/"Đã phục vụ"; nút thêm/sửa/hủy vẫn khóa | `order-detail.test.tsx::disables line actions once the order is locked` |
+| TC-WEB-02 | FR-SALE-19 | "Khách báo đã chuyển tiền": nhập mã GD + ghi chú + ảnh | Gửi kèm mã GD/bằng chứng/ghi chú; màn chờ xác minh hiển thị lại | `payment-panel.test.tsx::collects the bank reference and note when the guest says they paid`; `test_sales_payment_exceptions.py::test_a_verification_request_keeps_the_bank_reference_evidence_and_note` |
+| TC-WEB-03 | FR-SALE-20/34 | Quản lý lưu kết quả kiểm tra khi chưa đủ căn cứ | Ghi audit, order vẫn "Chờ xác minh"; thu ngân bổ sung được bằng chứng | `test_sales_payment_exceptions.py::test_reopening_stores_the_external_outcome` |
+| TC-WEB-04 | FR-SALE-23/35 | Mở lại thanh toán / đóng chưa thu | Bắt buộc lý do + kết quả xử lý; đóng lưu thêm số tiền chưa thu | `test_sales_payment_exceptions.py::test_closing_unpaid_stores_the_external_outcome` |
+| TC-WEB-05 | FR-SALE-25 | "Tìm nâng cao": lọc mã/bàn/khoảng Business Date/trạng thái | Trả danh sách order và mở được order đã chọn | `order-lookup.test.tsx::searches by table and Business Date range, then opens the chosen order` |
+| TC-WEB-06 | FR-SALE-26 | Bấm "In lại" ở màn thanh toán/đã thanh toán | Gọi API reprint và mở hộp thoại in | `payment-panel.test.tsx` (reprint), `done-step` dùng API reprint |
+| TC-WEB-07 | FR-SALE-08/13 | Mở order còn lượt giữ chưa gửi | Hiển thị lượt giữ và cho giải phóng trước khi chốt | `order-detail.tsx` mục "Lượt giữ chưa gửi" |
+| TC-WEB-08 | FR-INV-01/02 | Tạo phiếu nhập có ngày nhập; sửa phiếu Nháp | Ngày nhập được lưu; form sửa nạp đúng dòng và PATCH giá/số lượng | `receipt-form.test.tsx`, `receipt-edit-dialog.test.tsx`, `test_inventory_receipts.py::test_receipt_detail_returns_the_lines_the_edit_form_needs` |
+| TC-WEB-09 | FR-INV-05 | Tạo phiếu xuất nguồn Món đã chế biến/Kiểm kê; mở chi tiết phiếu | Chọn order → dòng món; chọn phiếu kiểm kê đã chốt; chi tiết có lô/nguồn/giá vốn | `issue-list.tsx`, `issue-detail-dialog.tsx` |
+| TC-WEB-10 | FR-INV-08 | Kiểm kê: xem lô từng nguyên liệu, nhập lý do chênh lệch | Lô (kể cả hết hạn) hiển thị; chênh lệch khác 0 bắt buộc lý do | `stocktake-panel.test.tsx`; `test_inventory_stocktake.py::test_a_count_line_keeps_the_reason_for_the_difference` |
+| TC-WEB-11 | FR-INV-14 | Lọc trạng thái lô | Có "Sắp hết hạn" tách khỏi "Còn hạn"/"Hết hạn" | `test_inventory_parity_reads.py::test_an_expiring_lot_has_its_own_state` |
+| TC-WEB-12 | FR-INV-03/13 | Lịch sử biến động lọc theo mã dòng món | Thấy các lô đã phân bổ/hoàn cho đúng dòng món | `inventory-history.tsx` (Mã dòng món) |
+| TC-WEB-13 | FR-REP-01/03/07/10 | Chọn mốc ngày/tuần/tháng/năm cụ thể | Báo cáo lấy đúng kỳ đã chọn qua `anchor` | `revenue-chart.test.tsx`, `dish-ranking`, `hourly-report`, `cancelled-report` |
+| TC-WEB-14 | FR-REP-07 | Xem phân bố theo thứ | Có cả số đơn và doanh thu (biểu đồ + bảng) | `hourly-report.test.tsx` |
+| TC-WEB-15 | FR-REP-09 | Mở báo cáo thanh toán/đóng chưa thu | Có bảng và biểu đồ | `payment-review.test.tsx`, `closed-unpaid-panel.test.tsx` |
+| TC-WEB-16 | FR-REP-02 | Xem order chờ xác minh | Có lịch sử xác minh (thời điểm, ghi chú, kết quả) | `payment-review.tsx` cột "Lịch sử xác minh" |
+| TC-WEB-17 | FR-CAT-04/28 | Bật "Hiện món đã xóa" | Món xóa mềm vẫn tra cứu được, badge "Đã xóa", ẩn thao tác | `test_catalog_dishes.py::test_a_soft_deleted_dish_is_still_visible_in_the_admin_lookup` |
+| TC-WEB-18 | FR-CAT-14 | Mở form sửa nguyên liệu đã tham chiếu | Ô đơn vị tính bị khóa ngay, không cần chờ API từ chối | `ingredient-list.tsx` dùng `KhoaDonViTinh` |
+| TC-WEB-19 | FR-CAT-27 | Xem trạng thái món ở màn quản trị | Hiện đồng thời badge, "Tạm dừng thủ công" và số suất khả dụng | `dish-list.tsx` cột Trạng thái |
+| TC-WEB-20 | FR-CAT-12 | Xóa trống mức tồn tối thiểu | Lưu 0 để quay về mức mặc định | `ingredient-list.tsx` gửi 0 |
+| TC-WEB-21 | FR-AI-07/08 | Mở lại lượt cũ trong lịch sử | Giữ bảng, biểu đồ và "Chi tiết kỹ thuật" đã lưu | `test_ai_service.py::test_the_session_is_created_on_the_first_turn_and_reused_after` |
+| TC-WEB-22 | FR-AI-06/09 | Câu trả lời cần làm rõ/lỗi | Có chip gợi ý diễn đạt lại | `assistant-message.tsx` (`RETRY_HINTS`) |
+| TC-WEB-23 | FR-SET-03 | Vai trò không hợp lệ mở thẳng `/reports` hoặc `/settings` | Bị chuyển về màn hình mặc định của vai trò | `app-shell.tsx` route guard |
+| TC-WEB-24 | FR-REP-08 | So sánh hai khoảng nhiều tháng | Chọn "từ–đến" cho từng kỳ; doanh thu/giá vốn cộng đúng các tháng trong khoảng | `comparison-report.test.tsx`; `test_reports_comparison.py::test_the_comparison_accepts_multi_month_ranges` |
+| TC-WEB-25 | FR-CAT-15 | Mở lịch sử nhập hàng của nhà cung cấp → "Xem" | Hiện chi tiết dòng hàng, số lượng, đơn giá, thành tiền | `supplier-list.tsx` + `receipt-detail-dialog.tsx` |
+| TC-WEB-26 | FR-SET-07 | Xem audit log | Loại thao tác hiển thị nhãn tiếng Việt, mã lạ giữ nguyên | `audit-panel.test.tsx` |

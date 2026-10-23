@@ -54,6 +54,9 @@ export function ReceiptForm({
   const formId = useId();
   const { run, pending } = useAction();
   const [supplierId, setSupplierId] = useState("");
+  const [receiptDate, setReceiptDate] = useState(() =>
+    new Date().toLocaleDateString("en-CA"),
+  );
   const [lines, setLines] = useState<DraftLine[]>([
     emptyLine(prefillIngredientId ? String(prefillIngredientId) : ""),
   ]);
@@ -94,6 +97,7 @@ export function ReceiptForm({
           method: "POST",
           body: {
             supplier_id: supplierId ? Number(supplierId) : null,
+            receipt_date: `${receiptDate}T00:00:00`,
             lines: lines.map((l) => ({
               ingredient_id: Number(l.ingredientId),
               quantity: Number(l.quantity),
@@ -112,6 +116,14 @@ export function ReceiptForm({
 
   return (
     <div className="space-y-4">
+      <FormField id={`${formId}-date`} label="Ngày nhập">
+        <Input
+          id={`${formId}-date`}
+          type="date"
+          value={receiptDate}
+          onChange={(e) => setReceiptDate(e.target.value)}
+        />
+      </FormField>
       <FormField id={`${formId}-supplier`} label="Nhà cung cấp">
         <Select value={supplierId} onValueChange={setSupplierId}>
           <SelectTrigger id={`${formId}-supplier`}>

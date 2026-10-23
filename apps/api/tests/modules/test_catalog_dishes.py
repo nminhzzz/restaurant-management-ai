@@ -301,3 +301,21 @@ async def test_a_protocol_relative_dish_image_is_rejected(session, group):
         )
     app.dependency_overrides.clear()
     assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_a_soft_deleted_dish_is_still_visible_in_the_admin_lookup(session, dish):
+    """FR-CAT-04/28: deleting is a state, not disappearance from the admin catalogue."""
+    token = await _manager_token(session)
+    headers = {"Authorization": f"Bearer {token}"}
+    async with await _make_client(session) as client:
+        await delete_dish(client, headers, dish.id)
+        default = await client.get("/api/v1/catalog/dishes?size=200", headers=headers)
+        included = await client.get(
+            "/api/v1/catalog/dishes?size=200&include_deleted=true", headers=headers
+        )
+    app.dependency_overrides.clear()
+
+    assert all(item["MaMon"] != dish.id for item in default.json()["items"])
+    deleted = next(item for item in included.json()["items"] if item["MaMon"] == dish.id)
+    assert deleted["DaXoa"] is True

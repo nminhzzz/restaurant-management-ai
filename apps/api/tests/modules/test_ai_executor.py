@@ -28,7 +28,7 @@ async def test_the_statement_timeout_is_applied(fake_engine_factory, readonly_ur
 async def test_rows_come_back_as_plain_dicts(fake_engine_factory, readonly_urls):
     fake_engine_factory.rows = [(1, "Phở bò")]
 
-    rows = await execute("SELECT * FROM vw_ai_kho", role=Role.WAREHOUSE, timeout_seconds=3.0)
+    rows = await execute("SELECT * FROM vw_ai_kho_ton", role=Role.WAREHOUSE, timeout_seconds=3.0)
 
     assert rows == [{"MaNguyenLieu": 1, "TenNguyenLieu": "Phở bò"}]
 

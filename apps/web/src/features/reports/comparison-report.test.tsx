@@ -26,6 +26,27 @@ describe("ComparisonReport", () => {
     expect(screen.getByText("Giá vốn")).toBeInTheDocument();
   });
 
+  // FR-REP-08: a zero baseline shows the absolute difference and says the rate is undefined.
+  it("sends explicit from/to months so a comparison can span several months", async () => {
+    stubFetch({
+      left: { DoanhThu: "1000000", GiaVon: "400000", SoDon: 10 },
+      right: { DoanhThu: "1200000", GiaVon: "500000", SoDon: 12 },
+      change_percent: "20.00",
+      change_cost_percent: "25.00",
+    });
+
+    render(<ComparisonReport />);
+
+    const { apiFetch } = await import("@/lib/api-client");
+    const mock = apiFetch as unknown as ReturnType<typeof vi.fn>;
+    await screen.findByRole("table");
+    expect(mock).toHaveBeenCalledWith(
+      expect.stringMatching(
+        /left_from=\d{4}-\d{2}&left_to=\d{4}-\d{2}&right_from=\d{4}-\d{2}&right_to=\d{4}-\d{2}/,
+      ),
+    );
+  });
+
   it("handles a zero baseline period without dividing by zero", async () => {
     stubFetch({
       left: { DoanhThu: "0", GiaVon: "0", SoDon: 0 },
@@ -37,7 +58,9 @@ describe("ComparisonReport", () => {
     render(<ComparisonReport />);
 
     expect(
-      (await screen.findAllByText(/Không có kỳ gốc để so sánh/)).length,
+      (await screen.findAllByText(/Không xác định tỷ lệ phần trăm/)).length,
     ).toBe(2);
+    expect(screen.getByText("+500.000 ₫")).toBeInTheDocument();
+    expect(screen.getByText("+200.000 ₫")).toBeInTheDocument();
   });
 });

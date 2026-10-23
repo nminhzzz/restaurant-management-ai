@@ -159,7 +159,8 @@ async def test_reprint_unlimited(session):
         rr = await client.post(f"/api/v1/sales/orders/{oid}/tickets/{tid}/reprint", headers=h)
         assert rr.status_code == 200
     row = await ticket_by_id(session, tid)
-    assert row["SoLanIn"] == 4
+    assert row["SoLanIn"] == 0
+    assert row["TrangThaiIn"] == "Chờ in"
 
 
 @pytest.mark.anyio

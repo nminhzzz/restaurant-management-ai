@@ -14,8 +14,8 @@ const hourly = {
     { ThoiDiem: 19, SoDon: 8, DoanhThu: "800000" },
   ],
   by_weekday: [
-    { Thu: 1, SoDon: 3 },
-    { Thu: 6, SoDon: 9 },
+    { Thu: 1, SoDon: 3, DoanhThu: "300000" },
+    { Thu: 6, SoDon: 9, DoanhThu: "900000" },
   ],
 };
 
@@ -25,15 +25,15 @@ describe("HourlyReport", () => {
 
     render(<HourlyReport />);
 
-    expect(await screen.findByRole("table")).toBeInTheDocument();
-    expect(screen.getAllByRole("img").length).toBe(2);
+    expect((await screen.findAllByRole("table")).length).toBe(2);
+    expect(screen.getAllByRole("img").length).toBe(3);
   });
 
   it("pages the 24-hour detail table at 10 rows per page", async () => {
     stubFetch(hourly);
 
     render(<HourlyReport />);
-    const table = await screen.findByRole("table");
+    const table = (await screen.findAllByRole("table"))[0];
 
     expect(within(table).getByText("500.000 ₫")).toBeInTheDocument();
     expect(within(table).queryByText("800.000 ₫")).not.toBeInTheDocument();

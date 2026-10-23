@@ -316,9 +316,13 @@ async def test_reducing_then_cancelling_returns_exactly_what_was_drawn(session):
     t = await _table(session)
     client = await _make_client(session)
     h, _ = await _headers(session)
-    oid, lid = await _submit(session, client, h, d, t)
-
-    await client.patch(f"/api/v1/sales/orders/{oid}/lines/{lid}", json={"SoLuong": 3}, headers=h)
+    created = await client.post(
+        "/api/v1/sales/orders",
+        json={"MaBan": t.id, "lines": [{"MaMon": d.id, "SoLuong": 3}]},
+        headers=h,
+    )
+    assert created.status_code == 201
+    oid, lid = created.json()["MaOrder"], created.json()["lines"][0]["MaChiTietOrder"]
     assert await ingredient_total(session, d) == 7
     await client.patch(f"/api/v1/sales/orders/{oid}/lines/{lid}", json={"SoLuong": 1}, headers=h)
     assert await ingredient_total(session, d) == 9
@@ -328,3 +332,84 @@ async def test_reducing_then_cancelling_returns_exactly_what_was_drawn(session):
     )
     assert r.status_code == 200
     assert await ingredient_total(session, d) == 10
+
+
+@pytest.mark.anyio
+async def test_increase_creates_current_snapshot_line_and_ticket_once(session):
+    from sqlalchemy import func, select
+
+    from app.modules.sales.models import KitchenTicket, OrderLine
+
+    dish, ing = await _setup_dish_with_stock(session, qty=20)
+    table = await _table(session)
+    client = await _make_client(session)
+    headers, _ = await _headers(session)
+    oid, lid = await _submit(session, client, headers, dish, table)
+    old = await session.get(OrderLine, lid)
+    old_price_id, old_recipe_id = old.price_version_id, old.recipe_id
+    old_price = await session.get(DishPriceVersion, old_price_id)
+    old_recipe = await session.get(Recipe, old_recipe_id)
+    old_price.status = "Hết hiệu lực"
+    old_recipe.status = "Hết hiệu lực"
+    bd = business_date.business_date_of(business_date.now())
+    price = DishPriceVersion(
+        dish_id=dish.id,
+        price=70000,
+        business_date=bd,
+        status="Đang áp dụng",
+        change_type="Cập nhật",
+    )
+    recipe = Recipe(
+        dish_id=dish.id, business_date=bd, status="Đang áp dụng", change_type="Cập nhật"
+    )
+    session.add_all([price, recipe])
+    await session.flush()
+    session.add(RecipeItem(recipe_id=recipe.id, ingredient_id=ing.id, quantity=2))
+    await session.commit()
+    payload = {"quantity": 3, "request_line_id": "increase-once"}
+    first = await client.patch(
+        f"/api/v1/sales/orders/{oid}/lines/{lid}", json=payload, headers=headers
+    )
+    assert first.status_code == 200, first.text
+    added_id = first.json()["MaChiTietOrder"]
+    assert added_id != lid
+    added = await session.get(OrderLine, added_id)
+    await session.refresh(old)
+    await session.refresh(ing)
+    assert (old.quantity, old.price_version_id, old.recipe_id) == (1, old_price_id, old_recipe_id)
+    assert (added.quantity, added.price_version_id, added.recipe_id, added.unit_price) == (
+        2,
+        price.id,
+        recipe.id,
+        70000,
+    )
+    assert ing.stock_qty == 15
+    second = await client.patch(
+        f"/api/v1/sales/orders/{oid}/lines/{lid}", json=payload, headers=headers
+    )
+    assert second.status_code == 200, second.text
+    assert second.json()["MaChiTietOrder"] == added_id
+    assert (
+        await session.execute(
+            select(func.count()).select_from(KitchenTicket).where(KitchenTicket.order_id == oid)
+        )
+    ).scalar_one() == 2
+    assert (
+        await session.execute(
+            select(func.count()).select_from(OrderLine).where(OrderLine.order_id == oid)
+        )
+    ).scalar_one() == 2
+
+
+@pytest.mark.anyio
+async def test_increase_without_idempotency_key_directs_to_add_flow(session):
+    dish, _ = await _setup_dish_with_stock(session)
+    table = await _table(session)
+    client = await _make_client(session)
+    headers, _ = await _headers(session)
+    oid, lid = await _submit(session, client, headers, dish, table)
+    result = await client.patch(
+        f"/api/v1/sales/orders/{oid}/lines/{lid}", json={"quantity": 2}, headers=headers
+    )
+    assert result.status_code == 422
+    assert "gọi thêm" in result.text.lower()

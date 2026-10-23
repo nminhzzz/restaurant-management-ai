@@ -4,6 +4,7 @@ Models stay in their module packages; this module only owns the connection.
 """
 
 from collections.abc import AsyncIterator
+from typing import Any, Self
 
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -14,9 +15,33 @@ from sqlalchemy.ext.asyncio import (
 
 from app.core.config import get_settings
 from app.shared.base import Base
+from app.shared.business_date import business_date_schedule, load_business_date_schedule
 
 _engine: AsyncEngine | None = None
 _session_factory: async_sessionmaker[AsyncSession] | None = None
+
+
+class BusinessDateSession(AsyncSession):
+    """Install a private cutoff snapshot for HTTP requests, workers and seed runs."""
+
+    async def __aenter__(self) -> Self:
+        await super().__aenter__()
+        try:
+            changes = await load_business_date_schedule(self)
+            # The snapshot read is separate from the caller's business transaction.
+            await self.rollback()
+        except BaseException:
+            await self.close()
+            raise
+        self._business_date_context = business_date_schedule(changes)
+        self._business_date_context.__enter__()
+        return self
+
+    async def __aexit__(self, *args: Any) -> None:
+        try:
+            await super().__aexit__(*args)
+        finally:
+            self._business_date_context.__exit__(*args)
 
 
 def get_engine() -> AsyncEngine:
@@ -29,7 +54,9 @@ def get_engine() -> AsyncEngine:
 def get_session_factory() -> async_sessionmaker[AsyncSession]:
     global _session_factory
     if _session_factory is None:
-        _session_factory = async_sessionmaker(get_engine(), expire_on_commit=False)
+        _session_factory = async_sessionmaker(
+            get_engine(), class_=BusinessDateSession, expire_on_commit=False
+        )
     return _session_factory
 
 

@@ -41,11 +41,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { apiFetch } from "@/lib/api-client";
+import { formatDateTime, formatNumber } from "@/lib/format";
 import { useAction } from "@/lib/use-action";
 import { useResource } from "@/lib/use-resource";
 
+import { IssueDetailDialog } from "./issue-detail-dialog";
 import { ISSUE_REASONS } from "./types";
-import type { IngredientOption, StockIssue } from "./types";
+import { LotSelect } from "./lot-select";
+import type { IngredientOption, StockIssue, Stocktake } from "./types";
 
 const PAGE_SIZE = 20;
 
@@ -100,13 +103,52 @@ function IssueForm({
   const [reason, setReason] = useState<string>(ISSUE_REASONS[0]);
   const [source, setSource] = useState<string>("Nguyên liệu");
   const [stocktakeId, setStocktakeId] = useState("");
+  const [orderCode, setOrderCode] = useState("");
+  const [orderLines, setOrderLines] = useState<
+    { MaChiTietOrder: number; TenMon?: string; SoLuong: number }[]
+  >([]);
+  const [orderLookupError, setOrderLookupError] = useState<string | null>(null);
   const [lines, setLines] = useState<DraftLine[]>([emptyLine()]);
+  const loadStocktakes = useCallback(
+    () =>
+      apiFetch<{ items: Stocktake[] }>(
+        "/inventory/stocktakes?status=%C4%90%C3%A3%20ch%E1%BB%91t&page_size=50",
+      ),
+    [],
+  );
+  const stocktakes = useResource(loadStocktakes);
   const [error, setError] = useState<string | null>(null);
 
   function updateLine(key: string, patch: Partial<DraftLine>) {
     setLines((prev) =>
       prev.map((l) => (l.key === key ? { ...l, ...patch } : l)),
     );
+  }
+
+  async function findOrderLines() {
+    setOrderLookupError(null);
+    setOrderLines([]);
+    if (!orderCode.trim()) return;
+    try {
+      const found = await apiFetch<{
+        items: { MaOrder: number }[];
+      }>(`/sales/orders?code=${encodeURIComponent(orderCode.trim())}&size=1`);
+      const order = found.items[0];
+      if (!order) {
+        setOrderLookupError("Không tìm thấy order.");
+        return;
+      }
+      const detail = await apiFetch<{
+        lines?: {
+          MaChiTietOrder: number;
+          TenMon?: string;
+          SoLuong: number;
+        }[];
+      }>(`/sales/orders/${order.MaOrder}`);
+      setOrderLines(detail.lines ?? []);
+    } catch {
+      setOrderLookupError("Không tra cứu được order.");
+    }
   }
 
   async function submit() {
@@ -121,7 +163,7 @@ function IssueForm({
     }
     if (source === "Món đã chế biến") {
       if (lines.some((l) => !l.orderLineId || !(Number(l.servings) > 0))) {
-        setError("Nguồn món đã chế biến cần mã dòng món và số suất hủy.");
+        setError("Chọn dòng món và nhập số suất hủy.");
         return;
       }
     }
@@ -146,7 +188,7 @@ function IssueForm({
             })),
           },
         }),
-      "Đã ghi nhận xuất kho.",
+      "Đã ghi nhận xuất kho. Nếu lô đang được giữ, hệ thống đã giải phóng lượt giữ — kiểm tra lại dòng món liên quan.",
     );
     if (result !== undefined) onCreated();
   }
@@ -182,14 +224,24 @@ function IssueForm({
         </FormField>
       </div>
       {source === "Kiểm kê" ? (
-        <FormField id={`${formId}-stocktake`} label="Mã phiếu kiểm kê đã chốt">
-          <Input
-            id={`${formId}-stocktake`}
-            type="number"
-            min={1}
-            value={stocktakeId}
-            onChange={(e) => setStocktakeId(e.target.value)}
-          />
+        <FormField id={`${formId}-stocktake`} label="Phiếu kiểm kê đã chốt">
+          <Select value={stocktakeId} onValueChange={setStocktakeId}>
+            <SelectTrigger id={`${formId}-stocktake`}>
+              <SelectValue placeholder="Chọn phiếu kiểm kê" />
+            </SelectTrigger>
+            <SelectContent>
+              {stocktakes.status === "ready"
+                ? stocktakes.data.items.map((item) => (
+                    <SelectItem
+                      key={item.MaPhieuKiemKe}
+                      value={String(item.MaPhieuKiemKe)}
+                    >
+                      #{item.MaPhieuKiemKe}
+                    </SelectItem>
+                  ))
+                : null}
+            </SelectContent>
+          </Select>
         </FormField>
       ) : null}
 
@@ -204,7 +256,7 @@ function IssueForm({
                 <Select
                   value={line.ingredientId}
                   onValueChange={(v) =>
-                    updateLine(line.key, { ingredientId: v })
+                    updateLine(line.key, { ingredientId: v, lotId: "" })
                   }
                 >
                   <SelectTrigger id={`${formId}-ing-${line.key}`}>
@@ -226,31 +278,62 @@ function IssueForm({
             {source === "Nguyên liệu" ? (
               <FormField
                 id={`${formId}-lot-${line.key}`}
-                label="Mã lô (tuỳ chọn)"
+                label="Lô nguyên liệu"
               >
-                <Input
+                <LotSelect
+                  key={line.ingredientId}
                   id={`${formId}-lot-${line.key}`}
-                  type="number"
-                  min={1}
+                  ingredientId={line.ingredientId}
                   value={line.lotId}
-                  onChange={(e) =>
-                    updateLine(line.key, { lotId: e.target.value })
-                  }
+                  onChange={(value) => updateLine(line.key, { lotId: value })}
                 />
               </FormField>
             ) : null}
             {source === "Món đã chế biến" ? (
               <>
+                <FormField id={`${formId}-order-${line.key}`} label="Mã order">
+                  <div className="flex gap-2">
+                    <Input
+                      id={`${formId}-order-${line.key}`}
+                      value={orderCode}
+                      onChange={(e) => setOrderCode(e.target.value)}
+                      placeholder="ORD-..."
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={findOrderLines}
+                    >
+                      Tìm
+                    </Button>
+                  </div>
+                  {orderLookupError && (
+                    <p className="text-xs text-danger-fg">{orderLookupError}</p>
+                  )}
+                </FormField>
                 <FormField id={`${formId}-line-${line.key}`} label="Dòng món">
-                  <Input
-                    id={`${formId}-line-${line.key}`}
-                    type="number"
-                    min={1}
+                  <Select
                     value={line.orderLineId}
-                    onChange={(e) =>
-                      updateLine(line.key, { orderLineId: e.target.value })
+                    onValueChange={(value) =>
+                      updateLine(line.key, { orderLineId: value })
                     }
-                  />
+                  >
+                    <SelectTrigger id={`${formId}-line-${line.key}`}>
+                      <SelectValue placeholder="Chọn dòng món" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {orderLines.map((orderLine) => (
+                        <SelectItem
+                          key={orderLine.MaChiTietOrder}
+                          value={String(orderLine.MaChiTietOrder)}
+                        >
+                          #{orderLine.MaChiTietOrder} ·{" "}
+                          {orderLine.TenMon ?? "Món"} × {orderLine.SoLuong}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </FormField>
                 <FormField id={`${formId}-sv-${line.key}`} label="Số suất">
                   <Input
@@ -340,6 +423,7 @@ export function IssueList() {
   const filtersActive =
     filters.reason !== "" || filters.dateFrom !== "" || filters.dateTo !== "";
   const items = issues.status === "ready" ? issues.data.items : [];
+  const [detailId, setDetailId] = useState<number | null>(null);
   const total = issues.status === "ready" ? issues.data.total : 0;
 
   return (
@@ -393,8 +477,12 @@ export function IssueList() {
             <TableHeader>
               <TableRow>
                 <TableHead>Mã phiếu</TableHead>
+                <TableHead>Thời điểm</TableHead>
                 <TableHead>Lý do</TableHead>
+                <TableHead className="text-right">Tổng SL</TableHead>
+                <TableHead className="text-right">Số dòng</TableHead>
                 <TableHead>Trạng thái</TableHead>
+                <TableHead className="text-right">Thao tác</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -403,16 +491,32 @@ export function IssueList() {
                   <TableCell className="font-medium tabular-nums">
                     #{it.MaPhieuXuat}
                   </TableCell>
+                  <TableCell>{formatDateTime(it.NgayTao)}</TableCell>
                   <TableCell>{it.LyDo}</TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatNumber(it.TongSoLuong)}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {it.SoDong ?? 0}
+                  </TableCell>
                   <TableCell>
                     <StatusBadge status={it.TrangThai} />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setDetailId(it.MaPhieuXuat)}
+                    >
+                      Xem
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
               {items.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={3}
+                    colSpan={7}
                     className="py-8 text-center text-muted"
                   >
                     Không có phiếu xuất nào khớp bộ lọc.
@@ -429,6 +533,13 @@ export function IssueList() {
             onPageChange={setPage}
           />
         </>
+      )}
+
+      {detailId !== null && (
+        <IssueDetailDialog
+          issueId={detailId}
+          onClose={() => setDetailId(null)}
+        />
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>

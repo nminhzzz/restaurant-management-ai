@@ -5,7 +5,7 @@ set -euo pipefail
 : "${AI_READONLY_PASSWORD_WAREHOUSE:?set this in your shell profile}"
 : "${MYSQL_ROOT_PASSWORD:=restaurant-root}"
 
-for view in db/views/vw_ai_quanly.sql db/views/vw_ai_thungan.sql db/views/vw_ai_kho.sql; do
+for view in db/views/vw_ai_*_ton.sql db/views/vw_ai_*_*.sql; do
   docker compose exec -T db mysql -uroot -p"$MYSQL_ROOT_PASSWORD" restaurant < "$view"
 done
 

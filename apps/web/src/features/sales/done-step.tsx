@@ -28,6 +28,16 @@ export function DoneStep({
   );
   const invoice = useResource(fetcher);
 
+  async function reprint() {
+    // Reprint uses the frozen invoice content; the server only counts the copy.
+    await apiFetch(`/sales/orders/${orderId}/invoice/reprint`, {
+      method: "POST",
+      body: {},
+    });
+    window.print();
+    invoice.reload();
+  }
+
   if (invoice.status === "loading") return <LoadingState rows={3} />;
   if (invoice.status === "error")
     return <ErrorState message={invoice.message} onRetry={invoice.reload} />;
@@ -68,7 +78,7 @@ export function DoneStep({
         )}
       </dl>
       <div className="w-full text-left">
-        <InvoicePreview invoice={data} onReprint={() => invoice.reload()} />
+        <InvoicePreview invoice={data} onReprint={reprint} />
       </div>
       <Button size="pos" onClick={onFinish}>
         Về sơ đồ bàn

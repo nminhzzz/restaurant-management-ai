@@ -1,0 +1,7 @@
+-- Topic view; only the explicit projected columns are exposed.
+CREATE OR REPLACE VIEW vw_ai_quanly_mon AS
+SELECT m.MaMon, m.TenMon, n.TenNhomMon AS TenNhom, m.TrangThai,
+(SELECT g.GiaBan FROM LICH_SU_GIA_MON g WHERE g.MaMon=m.MaMon
+ AND g.BusinessDateApDung <= (CASE WHEN CURRENT_TIMESTAMP < COALESCE((SELECT c.ThoiDiemBatDau FROM LICH_GIO_BUSINESS_DATE c WHERE c.NgayHieuLuc=DATE(CURRENT_TIMESTAMP)), TIMESTAMP(DATE(CURRENT_TIMESTAMP), COALESCE((SELECT c.GioBatDau FROM LICH_GIO_BUSINESS_DATE c WHERE c.NgayHieuLuc<=DATE(CURRENT_TIMESTAMP) ORDER BY c.NgayHieuLuc DESC LIMIT 1), '06:00:00'))) THEN DATE_SUB(DATE(CURRENT_TIMESTAMP), INTERVAL 1 DAY) ELSE DATE(CURRENT_TIMESTAMP) END) AND g.TrangThai IN ('Đang áp dụng','Chờ áp dụng')
+ ORDER BY g.BusinessDateApDung DESC,g.MaPhienBanGia DESC LIMIT 1) AS GiaBan
+FROM MON_AN m LEFT JOIN NHOM_MON n ON n.MaNhomMon=m.MaNhomMon WHERE m.DaXoa=0;

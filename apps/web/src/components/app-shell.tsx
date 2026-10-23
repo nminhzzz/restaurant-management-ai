@@ -59,8 +59,19 @@ export function AppShell({ children }: { children: ReactNode }) {
   // client; the API still rejects every call without a valid JWT.
   useEffect(() => {
     if (!mounted) return;
-    if (loadSession() === null) router.replace("/login");
-  }, [mounted, stored, router]);
+    if (loadSession() === null) {
+      router.replace("/login");
+      return;
+    }
+    // FR-SET-03: a role that may not open this module is sent home instead of
+    // seeing an empty screen whose API calls all return 403.
+    const active = MODULE_LIST.find((descriptor) =>
+      pathname.startsWith(descriptor.path),
+    );
+    if (active && session && !active.allowedRoles.includes(session.role)) {
+      router.replace(homePathFor(session.role));
+    }
+  }, [mounted, stored, router, pathname, session]);
 
   if (!mounted || session === null) return null;
 

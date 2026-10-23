@@ -6,7 +6,7 @@ if (-not $env:AI_READONLY_PASSWORD_CASHIER) { throw "Set AI_READONLY_PASSWORD_CA
 if (-not $env:AI_READONLY_PASSWORD_WAREHOUSE) { throw "Set AI_READONLY_PASSWORD_WAREHOUSE in your shell profile" }
 $rootPwd = if ($env:MYSQL_ROOT_PASSWORD) { $env:MYSQL_ROOT_PASSWORD } else { "restaurant-root" }
 
-foreach ($view in @("db/views/vw_ai_quanly.sql","db/views/vw_ai_thungan.sql","db/views/vw_ai_kho.sql")) {
+foreach ($view in (Get-ChildItem db/views/vw_ai_*_*.sql | Sort-Object @{Expression={$_.BaseName.EndsWith("_suat")}},Name)) {
   Get-Content $view -Encoding utf8 | docker compose exec -T db mysql -uroot -p"$rootPwd" restaurant
 }
 

@@ -13,6 +13,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -24,10 +30,16 @@ import { apiFetch } from "@/lib/api-client";
 import { formatNumber } from "@/lib/format";
 import { useResource } from "@/lib/use-resource";
 import { cn } from "@/lib/utils";
+import { InventoryHistory } from "./inventory-history";
 
 type StockRow = {
   MaNguyenLieu: number;
   TenNguyenLieu: string;
+  DonViTinh?: string;
+  SoLuongDuDieuKien?: number;
+  SoLuongGiu?: number;
+  SoLuongKhaDung?: number;
+  ThoiDiemTinh?: string;
   SoLuongTon?: number;
   MucTonToiThieuApDung?: number;
   CanhBaoTonThap: boolean;
@@ -53,7 +65,7 @@ function queryOf(search: string, filter: Filter, page: number): string {
 }
 
 function StockBadge({ row }: { row: StockRow }) {
-  if (row.CanhBaoTonThap && (row.SoLuongTon ?? 1) <= 0)
+  if (row.CanhBaoTonThap && (row.SoLuongKhaDung ?? row.SoLuongTon ?? 1) <= 0)
     return <Badge tone="danger">Hết hàng</Badge>;
   if (row.CanhBaoTonThap) return <Badge tone="warning">Sắp hết</Badge>;
   return <Badge tone="success">Đủ hàng</Badge>;
@@ -67,6 +79,7 @@ export function StockTable({
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<StockRow | null>(null);
 
   const fetchStock = useCallback(
     () => apiFetch<StockResponse>(queryOf(query, filter, page)),
@@ -99,6 +112,15 @@ export function StockTable({
             : "Số lượng tồn của từng nguyên liệu so với mức tối thiểu."
         }
       />
+
+      {items[0]?.ThoiDiemTinh && (
+        <p className="text-muted">
+          Dữ liệu lúc {items[0].ThoiDiemTinh}.{" "}
+          <Button variant="ghost" size="sm" onClick={stock.reload}>
+            Làm mới
+          </Button>
+        </p>
+      )}
 
       {stock.status === "loading" ? (
         <LoadingState />
@@ -153,10 +175,15 @@ export function StockTable({
             <TableHeader>
               <TableRow>
                 <TableHead>Nguyên liệu</TableHead>
-                <TableHead className="text-right">Tồn hiện tại</TableHead>
+                <TableHead>Đơn vị</TableHead>
+                <TableHead className="text-right">Tồn sổ sách</TableHead>
+                <TableHead className="text-right">Đủ điều kiện</TableHead>
+                <TableHead className="text-right">Đang giữ</TableHead>
+                <TableHead className="text-right">Khả dụng</TableHead>
                 <TableHead className="text-right">Mức tối thiểu</TableHead>
                 <TableHead>Hạn dùng gần nhất</TableHead>
                 <TableHead>Trạng thái</TableHead>
+                <TableHead>Chi tiết</TableHead>
                 {onRestock ? (
                   <TableHead className="text-right">Thao tác</TableHead>
                 ) : null}
@@ -171,6 +198,7 @@ export function StockTable({
                   <TableCell className="font-medium">
                     {it.TenNguyenLieu}
                   </TableCell>
+                  <TableCell>{it.DonViTinh ?? "—"}</TableCell>
                   <TableCell
                     className={cn(
                       "text-right tabular-nums",
@@ -178,6 +206,15 @@ export function StockTable({
                     )}
                   >
                     {formatNumber(it.SoLuongTon)}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatNumber(it.SoLuongDuDieuKien)}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatNumber(it.SoLuongGiu)}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatNumber(it.SoLuongKhaDung)}
                   </TableCell>
                   <TableCell className="text-right text-muted tabular-nums">
                     {formatNumber(it.MucTonToiThieuApDung)}
@@ -206,6 +243,16 @@ export function StockTable({
                   <TableCell>
                     <StockBadge row={it} />
                   </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      aria-label={`Xem lô và lịch sử ${it.TenNguyenLieu}`}
+                      onClick={() => setSelected(it)}
+                    >
+                      Lô và lịch sử
+                    </Button>
+                  </TableCell>
                   {onRestock ? (
                     <TableCell className="text-right">
                       {it.CanhBaoTonThap ? (
@@ -227,7 +274,7 @@ export function StockTable({
               {items.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={onRestock ? 6 : 5}
+                    colSpan={onRestock ? 11 : 10}
                     className="py-8 text-center text-muted"
                   >
                     Không có nguyên liệu nào khớp bộ lọc.
@@ -245,6 +292,24 @@ export function StockTable({
           />
         </>
       )}
+      <Dialog
+        open={selected !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelected(null);
+        }}
+      >
+        <DialogContent className="max-h-[90vh] overflow-auto sm:max-w-6xl">
+          <DialogHeader>
+            <DialogTitle>Lô và lịch sử — {selected?.TenNguyenLieu}</DialogTitle>
+          </DialogHeader>
+          {selected && (
+            <InventoryHistory
+              key={selected.MaNguyenLieu}
+              ingredientId={selected.MaNguyenLieu}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

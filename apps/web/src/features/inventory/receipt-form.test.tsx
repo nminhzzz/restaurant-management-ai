@@ -74,8 +74,9 @@ describe("ReceiptForm", () => {
       "/inventory/receipts",
       expect.objectContaining({
         method: "POST",
-        body: {
+        body: expect.objectContaining({
           supplier_id: null,
+          receipt_date: expect.stringMatching(/T00:00:00$/),
           lines: [
             {
               ingredient_id: 1,
@@ -85,7 +86,7 @@ describe("ReceiptForm", () => {
               conversion_factor: 5,
             },
           ],
-        },
+        }),
       }),
     );
     expect(onCreated).toHaveBeenCalled();

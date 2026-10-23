@@ -3,10 +3,13 @@
 from datetime import date
 
 from fastapi import APIRouter, Depends
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
 from app.core.dependencies import Principal, require_roles
+from app.core.errors import NotFoundError
+from app.modules.inventory import queries
 from app.modules.inventory import service as svc
 from app.modules.inventory.schemas import CountIn, IssueCreate, ReceiptCreate, ReceiptUpdate
 from app.shared.audit import SystemAuditLog
@@ -30,6 +33,47 @@ async def create_receipt(
     )
     await session.commit()
     return {"MaPhieuNhap": r.id}
+
+
+@router.get("/receipts/{receipt_id}")
+async def get_receipt(
+    receipt_id: int,
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    session: AsyncSession = Depends(get_session),
+):
+    """FR-INV-02: the edit form needs the original lines, not just the header."""
+    from app.modules.catalog.models import Ingredient
+    from app.modules.inventory.models import GoodsReceipt, GoodsReceiptLine
+
+    receipt = await session.get(GoodsReceipt, receipt_id)
+    if receipt is None:
+        raise NotFoundError("Không tìm thấy phiếu nhập.")
+    rows = (
+        await session.execute(
+            select(GoodsReceiptLine, Ingredient.name, Ingredient.unit)
+            .join(Ingredient, Ingredient.id == GoodsReceiptLine.ingredient_id)
+            .where(GoodsReceiptLine.receipt_id == receipt_id)
+            .order_by(GoodsReceiptLine.id)
+        )
+    ).all()
+    return {
+        "MaPhieuNhap": receipt.id,
+        "MaNhaCungCap": receipt.supplier_id,
+        "NgayNhap": receipt.receipt_date.isoformat() if receipt.receipt_date else None,
+        "TrangThai": receipt.status,
+        "TongTien": float(receipt.total),
+        "lines": [
+            {
+                "MaChiTietNhap": line.id,
+                "MaNguyenLieu": line.ingredient_id,
+                "TenNguyenLieu": name,
+                "DonViTinh": unit,
+                "SoLuong": float(line.quantity),
+                "DonGia": float(line.unit_price),
+            }
+            for line, name, unit in rows
+        ],
+    }
 
 
 @router.patch("/receipts/{receipt_id}")
@@ -133,7 +177,14 @@ async def record_counts(
     await svc.record_counts(
         session,
         sid,
-        [(c.ingredient_id, __import__("decimal").Decimal(str(c.actual_qty))) for c in counts],
+        [
+            (
+                c.ingredient_id,
+                __import__("decimal").Decimal(str(c.actual_qty)),
+                c.reason,
+            )
+            for c in counts
+        ],
     )
     await session.commit()
     return {"ok": True}
@@ -234,12 +285,161 @@ async def list_issues(
         date_from=date_from,
         date_to=date_to,
     )
+    from app.modules.inventory.models import StockIssueLine
+
+    totals: dict[int, tuple[float, int]] = {}
+    if items:
+        for issue_id, quantity, line_count in (
+            await session.execute(
+                select(
+                    StockIssueLine.issue_id,
+                    func.sum(StockIssueLine.quantity),
+                    func.count(StockIssueLine.id),
+                )
+                .where(StockIssueLine.issue_id.in_([r.id for r in items]))
+                .group_by(StockIssueLine.issue_id)
+            )
+        ).all():
+            totals[issue_id] = (float(quantity or 0), int(line_count or 0))
     return {
-        "items": [{"MaPhieuXuat": r.id, "LyDo": r.reason, "TrangThai": r.status} for r in items],
+        "items": [
+            {
+                "MaPhieuXuat": r.id,
+                "LyDo": r.reason,
+                "TrangThai": r.status,
+                "NgayTao": r.created_at.isoformat() if r.created_at else None,
+                "NguoiLap": r.created_by,
+                "MaPhieuKiemKe": r.stocktake_id,
+                "GhiChu": r.note,
+                "TongSoLuong": totals.get(r.id, (0.0, 0))[0],
+                "SoDong": totals.get(r.id, (0.0, 0))[1],
+            }
+            for r in items
+        ],
         "total": total,
         "page": page,
         "page_size": page_size,
     }
+
+
+@router.get("/issues/{issue_id}")
+async def get_issue(
+    issue_id: int,
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    session: AsyncSession = Depends(get_session),
+):
+    """FR-INV-05: a write-off voucher must show its lines, lots and source."""
+    from app.modules.catalog.models import Ingredient
+    from app.modules.inventory.models import StockIssue, StockIssueLine
+
+    issue = await session.get(StockIssue, issue_id)
+    if issue is None:
+        raise NotFoundError("Không tìm thấy phiếu xuất kho.")
+    from app.modules.inventory.models import StockMovement
+
+    rows = (
+        await session.execute(
+            select(StockIssueLine, Ingredient.name, Ingredient.unit)
+            .join(Ingredient, Ingredient.id == StockIssueLine.ingredient_id)
+            .where(StockIssueLine.issue_id == issue_id)
+            .order_by(StockIssueLine.id)
+        )
+    ).all()
+    movements = list(
+        (
+            await session.execute(
+                select(StockMovement).where(
+                    StockMovement.issue_line_id.in_([line.id for line, _, _ in rows])
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    source = (
+        "Kiểm kê"
+        if issue.stocktake_id is not None
+        else (
+            "Món đã chế biến"
+            if any(line.order_line_id is not None for line, _, _ in rows)
+            else "Nguyên liệu"
+        )
+    )
+    return {
+        "MaPhieuXuat": issue.id,
+        "LyDo": issue.reason,
+        "TrangThai": issue.status,
+        "NgayTao": issue.created_at.isoformat() if issue.created_at else None,
+        "NguoiLap": issue.created_by,
+        "MaPhieuKiemKe": issue.stocktake_id,
+        "Nguon": source,
+        "GhiChu": issue.note,
+        "lines": [
+            {
+                "MaChiTietXuat": line.id,
+                "MaNguyenLieu": line.ingredient_id,
+                "TenNguyenLieu": name,
+                "DonViTinh": unit,
+                "SoLuong": float(line.quantity),
+                "GiaVonUocTinh": float(line.estimated_cost),
+                "MaLoNguyenLieu": next(
+                    (
+                        movement.lot_id
+                        for movement in movements
+                        if movement.issue_line_id == line.id
+                    ),
+                    None,
+                ),
+                "MaChiTietOrder": line.order_line_id,
+                "SoSuat": line.servings,
+            }
+            for line, name, unit in rows
+        ],
+    }
+
+
+@router.get("/lots")
+async def list_lots(
+    ingredient_id: int | None = None,
+    status: str | None = None,
+    page: int = 1,
+    page_size: int = 20,
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    session: AsyncSession = Depends(get_session),
+):
+    page, page_size = max(1, page), min(max(1, page_size), 100)
+    items, total = await queries.list_lots(
+        session, ingredient_id=ingredient_id, status=status, page=page, page_size=page_size
+    )
+    return {"items": items, "total": total, "page": page, "page_size": page_size}
+
+
+@router.get("/movements")
+async def list_movements(
+    ingredient_id: int | None = None,
+    lot_id: int | None = None,
+    order_line_id: int | None = None,
+    kind: str | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    page: int = 1,
+    page_size: int = 20,
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    session: AsyncSession = Depends(get_session),
+):
+    page, page_size = max(1, page), min(max(1, page_size), 100)
+    items, total = await queries.list_movements(
+        session,
+        ingredient_id=ingredient_id,
+        lot_id=lot_id,
+        order_line_id=order_line_id,
+        kind=kind,
+        date_from=date_from,
+        date_to=date_to,
+        page=page,
+        page_size=page_size,
+    )
+    return {"items": items, "total": total, "page": page, "page_size": page_size}
 
 
 @router.get("/stocktakes")

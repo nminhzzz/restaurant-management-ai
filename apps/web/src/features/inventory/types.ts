@@ -20,6 +20,12 @@ export type StockIssue = {
   MaPhieuXuat: number;
   LyDo: string;
   TrangThai: string;
+  NgayTao?: string | null;
+  NguoiLap?: number | null;
+  MaPhieuKiemKe?: number | null;
+  GhiChu?: string | null;
+  TongSoLuong?: number;
+  SoDong?: number;
 };
 
 export type Stocktake = {

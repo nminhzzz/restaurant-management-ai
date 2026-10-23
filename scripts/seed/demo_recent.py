@@ -9,6 +9,9 @@ Usage:
     uv run --project apps/api python scripts/seed/demo_recent.py --days 14 --per-day 10
 """
 
+
+# ruff: noqa: E402 - application imports follow the CLI path bootstrap.
+
 from __future__ import annotations
 
 import argparse
@@ -24,9 +27,9 @@ for extra in (REPO_ROOT, REPO_ROOT / "apps" / "api" / "src"):
     if str(extra) not in sys.path:
         sys.path.insert(0, str(extra))
 
-from scripts.seed.catalog import CatalogIds  # noqa: E402
-from scripts.seed.operations import _place_order, _receive  # noqa: E402
-from sqlalchemy import distinct, func, select  # noqa: E402
+from scripts.seed.catalog import CatalogIds
+from scripts.seed.operations import _place_order, _receive
+from sqlalchemy import distinct, func, select
 
 from app.core.database import get_session_factory
 from app.modules.catalog.models import DiningTable, Dish, Recipe, RecipeItem, Supplier
@@ -81,14 +84,10 @@ async def load_ids(session) -> CatalogIds:
     if not table_ids:
         raise SystemExit("Không còn bàn trống để tạo order tại chỗ.")
 
-    supplier = (
-        await session.execute(select(Supplier.id).limit(1))
-    ).scalar_one_or_none()
+    supplier = (await session.execute(select(Supplier.id).limit(1))).scalar_one_or_none()
     manager = (
         await session.execute(
-            select(User.id)
-            .where(User.role_id == "MANAGER", User.status == "Hoạt động")
-            .limit(1)
+            select(User.id).where(User.role_id == "MANAGER", User.status == "Hoạt động").limit(1)
         )
     ).scalar_one_or_none()
 
@@ -116,11 +115,9 @@ async def main() -> int:
     factory = get_session_factory()
     async with factory() as session:
         ids = await load_ids(session)
-    weights = [
-        1.0 / ((rank + 1) ** WEIGHT_EXPONENT) for rank in range(len(ids.dish_ids))
-    ]
+        end = business_date.business_date_of(business_date.now())
+    weights = [1.0 / ((rank + 1) ** WEIGHT_EXPONENT) for rank in range(len(ids.dish_ids))]
 
-    end = business_date.business_date_of(business_date.now())
     days = [end - timedelta(days=offset) for offset in range(args.days - 1, -1, -1)]
     succeeded = rejected = 0
     for index, day in enumerate(days):

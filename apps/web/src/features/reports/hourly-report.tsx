@@ -5,14 +5,14 @@ import { useCallback, useState } from "react";
 
 import { EmptyState, ErrorState, LoadingState } from "@/components/page-states";
 import { Bars } from "@/features/reports/chart";
-import { GranularityPicker } from "@/features/reports/period-picker";
+import { PeriodPicker, todayIso } from "@/features/reports/period-picker";
 import { ReportTable } from "@/features/reports/report-table";
 import { apiFetch } from "@/lib/api-client";
 import { formatNumber, formatVnd } from "@/lib/format";
 import { useResource } from "@/lib/use-resource";
 
 type HourBucket = { ThoiDiem: number; SoDon: number; DoanhThu: string };
-type WeekdayBucket = { Thu: number; SoDon: number };
+type WeekdayBucket = { Thu: number; SoDon: number; DoanhThu: string };
 type HourlyResponse = { items: HourBucket[]; by_weekday: WeekdayBucket[] };
 
 const WEEKDAY_LABELS: Record<number, string> = {
@@ -39,14 +39,23 @@ function businessHourOrder(items: HourBucket[]): HourBucket[] {
 
 export function HourlyReport() {
   const [granularity, setGranularity] = useState("month");
+  const [anchor, setAnchor] = useState(todayIso);
   const fetchHourly = useCallback(
-    () => apiFetch<HourlyResponse>(`/reports/hours?granularity=${granularity}`),
-    [granularity],
+    () =>
+      apiFetch<HourlyResponse>(
+        `/reports/hours?granularity=${granularity}&anchor=${anchor}`,
+      ),
+    [granularity, anchor],
   );
   const hourly = useResource(fetchHourly);
 
   const toolbar = (
-    <GranularityPicker value={granularity} onChange={setGranularity} />
+    <PeriodPicker
+      granularity={granularity}
+      onGranularity={setGranularity}
+      anchor={anchor}
+      onAnchor={setAnchor}
+    />
   );
 
   if (hourly.status === "loading")
@@ -94,6 +103,11 @@ export function HourlyReport() {
     label: WEEKDAY_LABELS[item.Thu] ?? String(item.Thu),
     value: item.SoDon,
   }));
+  const weekdayRevenueItems = weekdays.map((item) => ({
+    key: item.Thu,
+    label: WEEKDAY_LABELS[item.Thu] ?? String(item.Thu),
+    value: Number(item.DoanhThu) || 0,
+  }));
 
   return (
     <div className="space-y-4">
@@ -121,6 +135,17 @@ export function HourlyReport() {
             }
           />
         </section>
+        <section className="space-y-3 rounded-container border border-border bg-surface p-4 xl:col-span-2">
+          <h2 className="text-[15px] font-bold">
+            Doanh thu theo ngày trong tuần
+          </h2>
+          <Bars
+            items={weekdayRevenueItems}
+            ariaLabel="Biểu đồ doanh thu theo ngày trong tuần"
+            tickFormat={(t) => `${formatNumber(t / 1_000_000)}tr`}
+            tooltipFormat={(item) => `${item.label}: ${formatVnd(item.value)}`}
+          />
+        </section>
       </div>
       <section className="space-y-3">
         <h2 className="text-[15px] font-bold">Chi tiết theo khung giờ</h2>
@@ -133,6 +158,20 @@ export function HourlyReport() {
           ])}
           pageSize={10}
         />
+        <section className="space-y-3">
+          <h2 className="text-[15px] font-bold">
+            Chi tiết theo ngày trong tuần
+          </h2>
+          <ReportTable
+            headers={["Ngày", "Số đơn", "Doanh thu"]}
+            rows={data.by_weekday.map((item) => [
+              WEEKDAY_LABELS[item.Thu] ?? `Thứ ${item.Thu}`,
+              formatNumber(item.SoDon),
+              formatVnd(item.DoanhThu ?? 0),
+            ])}
+            pageSize={7}
+          />
+        </section>
       </section>
     </div>
   );

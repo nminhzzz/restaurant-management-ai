@@ -13,7 +13,9 @@ from sqlalchemy import inspect
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import REPO_ROOT
-from app.modules.ai.scope import ROLE_VIEWS
+from app.core.errors import BusinessRuleError
+from app.modules.ai.guard import validate_sql
+from app.modules.ai.scope import views_for
 from app.shared import business_date
 from app.shared.roles import Role
 
@@ -47,7 +49,7 @@ COLUMN_NOTES: dict[str, str] = {
         "loại bản ghi của dòng này — luôn lọc bằng WHERE LoaiBanGhi = '...' trước, "
         "vì các cột khác chỉ có dữ liệu ở đúng nhánh của nó"
     ),
-    "BusinessDate": "ngày kinh doanh, mốc 06:00 → 06:00 hôm sau",
+    "BusinessDate": "ngày kinh doanh theo lịch mốc giờ hiệu lực của hệ thống",
     "MaOrder": "mã đơn hàng; có ở các nhánh ORDER, DONG_MON, HOA_DON và THANH_TOAN",
     "TrangThaiOrder": (
         "trạng thái order: Đang mở, Chờ xác nhận, Chờ xác minh thanh toán, Chờ đối soát, "
@@ -120,27 +122,26 @@ async def _columns_of(session: AsyncSession, view: str) -> list[tuple[str, str]]
 
 async def schema_block(session: AsyncSession, role: Role) -> str:
     """The one view this role may read, column by column."""
-    view = ROLE_VIEWS[role]
-    lines = [f"View được phép truy vấn: {view}"]
-    for name, type_name in await _columns_of(session, view):
-        note: str | None
-        if name == "LoaiBanGhi":
-            values = ", ".join(f"'{value}'" for value in VIEW_LOAIBANGHI_VALUES[view])
-            note = (
-                f"loại bản ghi của dòng này — giá trị hợp lệ duy nhất của view này: {values}; "
-                "luôn lọc bằng WHERE LoaiBanGhi = '...' trước, vì các cột khác chỉ có dữ liệu "
-                "ở đúng nhánh của nó"
-            )
-        else:
+    lines = [
+        "Chỉ các view theo chủ đề sau được phép truy vấn.",
+        "Mỗi view có một mức chi tiết riêng. Tổng hợp từng quan hệ một-nhiều theo khóa "
+        "trước khi JOIN để tránh nhân doanh thu/số lượng.",
+        "View *_suat chỉ có số suất khả dụng đã tính tại ThoiDiemTinh; dùng view này "
+        "để hỏi món còn phục vụ, không suy ngược công thức.",
+    ]
+    for view in sorted(views_for(role)):
+        lines.append(f"View được phép truy vấn: {view}")
+        for name, type_name in await _columns_of(session, view):
             note = COLUMN_NOTES.get(name)
-        lines.append(f"- {name} ({type_name})" + (f": {note}" if note else ""))
+            if name == "LoaiBanGhi":
+                note = "loại bản ghi cố định của chủ đề này"
+            lines.append(f"- {name} ({type_name})" + (f": {note}" if note else ""))
     return "\n".join(lines)
 
 
 def _load_examples(role: Role) -> list[dict[str, Any]]:
     if not _EXAMPLES_PATH.is_file():
         return []
-    view = ROLE_VIEWS[role]
     examples: list[dict[str, Any]] = []
     for line in _EXAMPLES_PATH.read_text(encoding="utf-8").splitlines():
         line = line.strip()
@@ -150,7 +151,11 @@ def _load_examples(role: Role) -> list[dict[str, Any]]:
             item = json.loads(line)
         except json.JSONDecodeError:
             continue
-        if item.get("view") == view or item.get("role") == role.value:
+        if item.get("view") in views_for(role) or item.get("role") == role.value:
+            try:
+                validate_sql(str(item.get("sql", "")), allowed_views=views_for(role), max_rows=500)
+            except BusinessRuleError:
+                continue
             examples.append(item)
     return examples
 
@@ -168,20 +173,18 @@ async def build_prompt(
     short follow-up such as "doanh thu thôi" is meaningless without them, which is
     why the assistant used to ask the same clarification over and over.
     """
-    view = ROLE_VIEWS[role]
     shots = list(examples) if examples is not None else _load_examples(role)
 
     parts = [
         "Bạn là trợ lý dữ liệu của một nhà hàng, trả lời bằng tiếng Việt.",
-        f"Bạn chỉ được truy vấn đúng một view: {view}.",
+        f"Bạn chỉ được truy vấn các view theo chủ đề: {', '.join(sorted(views_for(role)))}.",
         "Không được dùng bảng lõi, cũng không được dùng view của vai trò khác.",
         "Chỉ sinh đúng một câu lệnh SELECT, không kèm giải thích hay định dạng thừa.",
         # Without the dialect the model drifts to SQL Server (GETDATE, TOP), which MySQL
         # rejects; this is an instruction, so the schema-only baseline carries it too.
         "Hệ quản trị là MySQL 8.4: chỉ dùng cú pháp MySQL (CURDATE(), NOW(), DATE_SUB, "
         "DATE_FORMAT, LIMIT), không dùng GETDATE, TOP hay cú pháp của hệ quản trị khác.",
-        "Ngày kinh doanh nằm ở cột BusinessDate (một ngày kinh doanh chạy từ 06:00 tới "
-        "06:00 hôm sau).",
+        "Ngày kinh doanh nằm ở cột BusinessDate, theo lịch mốc giờ hiệu lực của hệ thống.",
         # CURDATE() is wrong before 06:00: the business day is still yesterday.
         "'Hôm nay' nghĩa là BusinessDate = "
         f"'{business_date.business_date_of(business_date.now()):%Y-%m-%d}'; "
@@ -206,6 +209,10 @@ async def build_prompt(
             else:
                 asked = getattr(example, "question", "")
                 sql = getattr(example, "sql", "")
+            try:
+                validate_sql(str(sql), allowed_views=views_for(role), max_rows=500)
+            except BusinessRuleError:
+                continue
             parts.append(f"- Hỏi: {asked}\n  SQL: {sql}")
 
     if history:
@@ -213,6 +220,10 @@ async def build_prompt(
         for previous_question, previous_sql, previous_answer in list(history)[-4:]:
             parts.append(f"- Người dùng: {previous_question}")
             if previous_sql:
+                try:
+                    validate_sql(previous_sql, allowed_views=views_for(role), max_rows=500)
+                except BusinessRuleError:
+                    continue
                 parts.append(f"  SQL đã dùng: {previous_sql}")
             elif previous_answer:
                 parts.append(f"  Trợ lý đã hỏi lại: {previous_answer[:200]}")

@@ -52,12 +52,38 @@ describe("ConfigPanel", () => {
     );
   });
 
-  it("shows the Business Date start hour as read-only", async () => {
-    fetchMock.mockResolvedValue(config);
+  it("schedules a minute-precision cutoff and shows the active and pending hours", async () => {
+    fetchMock.mockResolvedValue({
+      ...config,
+      GioBatDauBusinessDateMoi: "08:15:00",
+      NgayHieuLucGioMoi: "2026-10-24",
+      ThoiDiemApDungGioMoi: "2026-10-24T08:15:00",
+    });
     render(<ConfigPanel />);
 
     const field = await screen.findByLabelText("Giờ bắt đầu Business Date");
-    expect(field).toBeDisabled();
-    expect(field).toHaveValue("06:00:00");
+    expect(field).toBeEnabled();
+    expect(field).toHaveValue("08:15");
+    expect(screen.getByText(/Đang áp dụng: 06:00/)).toBeInTheDocument();
+    expect(screen.getByText(/2026-10-24/)).toBeInTheDocument();
+    fireEvent.change(field, { target: { value: "07:45" } });
+    fireEvent.click(screen.getByRole("button", { name: "Lưu cấu hình" }));
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/settings/config",
+        expect.objectContaining({
+          body: expect.objectContaining({ GioBatDauBusinessDate: "07:45" }),
+        }),
+      ),
+    );
   });
+});
+
+it("rejects a zero expiry warning interval", async () => {
+  fetchMock.mockResolvedValue(config);
+  render(<ConfigPanel />);
+  const field = await screen.findByLabelText("Số ngày cảnh báo hết hạn lô");
+  fireEvent.change(field, { target: { value: "0" } });
+  expect(screen.getByRole("button", { name: "Lưu cấu hình" })).toBeDisabled();
+  cleanup();
 });

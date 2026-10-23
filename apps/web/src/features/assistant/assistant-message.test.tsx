@@ -42,21 +42,20 @@ describe("AssistantMessage", () => {
     render(<AssistantMessage turn={turn()} onAsk={vi.fn()} />);
     expect(screen.getByText(base.headline)).toBeInTheDocument();
     expect(screen.getByText("Chủ nhật cao nhất.")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("tab", { name: /Bảng/ }));
     expect(
       screen.getByRole("columnheader", { name: "Doanh thu" }),
     ).toBeInTheDocument();
     expect(screen.getByText("22.100.000 ₫")).toBeInTheDocument();
     expect(screen.getByText("20/09/2026")).toBeInTheDocument();
-    expect(screen.getByText(/vw_ai_quanly/)).toBeInTheDocument();
+    expect(screen.getByText(/Phạm vi dữ liệu:/)).toBeInTheDocument();
   });
 
-  it("only shows tabs that have content", () => {
+  it("keeps technical details available but collapsed", () => {
     render(<AssistantMessage turn={turn()} onAsk={vi.fn()} />);
     expect(
       screen.queryByRole("tab", { name: /Biểu đồ/ }),
     ).not.toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /SQL/ })).toBeInTheDocument();
+    expect(screen.getByText("Chi tiết kỹ thuật")).toBeVisible();
   });
 
   it("asks a follow-up immediately", () => {
