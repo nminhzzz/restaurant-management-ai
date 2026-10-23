@@ -273,7 +273,10 @@ export function OrderStep({
 
     // FR-SALE-05: an expired hold is re-checked on submit; the cashier must confirm
     // using today's price/recipe instead of the backend renewing it silently.
-    async function send(confirmExpired: boolean): Promise<number> {
+    async function send(confirmExpired: boolean): Promise<{
+      id: number;
+      rejected: { MaMon: number; reason: string }[];
+    }> {
       if (orderId === null) {
         const created = await apiFetch<CreatedOrder>("/sales/orders", {
           method: "POST",
@@ -291,7 +294,7 @@ export function OrderStep({
             })),
           },
         });
-        return created.MaOrder;
+        return { id: created.MaOrder, rejected: created.rejected ?? [] };
       }
       // The backend validates every line before committing any of them.
       await apiFetch(`/sales/orders/${orderId}/lines/bulk`, {
@@ -307,13 +310,16 @@ export function OrderStep({
           })),
         },
       });
-      return orderId;
+      return { id: orderId, rejected: [] };
     }
 
     try {
       let id: number;
+      let rejected: { MaMon: number; reason: string }[] = [];
       try {
-        id = await send(false);
+        const result = await send(false);
+        id = result.id;
+        rejected = result.rejected;
       } catch (e: unknown) {
         const message = messageOf(e, "");
         if (
@@ -324,11 +330,35 @@ export function OrderStep({
         ) {
           throw e;
         }
-        id = await send(true);
+        const result = await send(true);
+        id = result.id;
+        rejected = result.rejected;
+      }
+      if (rejected.length > 0) {
+        toast.error(
+          `Không gửi được ${rejected.length} món: ${rejected
+            .map((line) => `#${line.MaMon} (${line.reason})`)
+            .join(", ")}`,
+        );
       }
       setCart([]);
       submitRequestId.current = null;
       toast.success(`Đã gửi món của ${tableName} xuống bếp.`);
+      // FR-SALE-32: a failed kitchen print must be visible now, not only after the
+      // cashier happens to open the order again.
+      const tickets = await apiFetch<{
+        items?: { LoiIn?: string | null; TrangThaiIn?: string }[];
+      }>(`/sales/orders/${id}/tickets`).catch(() => ({ items: [] }));
+      const printProblem = (tickets.items ?? []).some(
+        (ticket) => ticket.LoiIn || ticket.TrangThaiIn === "Chưa rõ kết quả",
+      );
+      if (printProblem) {
+        toast.warning(
+          "Phiếu bếp chưa in được. Mở order để kiểm tra và bấm in lại.",
+        );
+        onSent(id, "pay");
+        return;
+      }
       onSent(id, next);
     } catch (e: unknown) {
       setError(

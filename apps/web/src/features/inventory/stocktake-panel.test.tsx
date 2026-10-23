@@ -64,6 +64,13 @@ describe("StocktakePanel", () => {
     fireEvent.change(screen.getByLabelText("Tồn thực tế Muối"), {
       target: { value: "4" },
     });
+    expect(confirmButton).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("Lý do chênh lệch Gạo"), {
+      target: { value: "Rơi vỡ" },
+    });
+    fireEvent.change(screen.getByLabelText("Lý do chênh lệch Muối"), {
+      target: { value: "Hao hụt" },
+    });
     expect(confirmButton).toBeEnabled();
   });
 
@@ -78,6 +85,12 @@ describe("StocktakePanel", () => {
     fireEvent.change(screen.getByLabelText("Tồn thực tế Muối"), {
       target: { value: "4" },
     });
+    fireEvent.change(screen.getByLabelText("Lý do chênh lệch Gạo"), {
+      target: { value: "Rơi vỡ" },
+    });
+    fireEvent.change(screen.getByLabelText("Lý do chênh lệch Muối"), {
+      target: { value: "Hao hụt" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Xác nhận kiểm kê" }));
 
     await screen.findByRole("button", { name: "Tạo phiếu kiểm kê" });
@@ -86,8 +99,8 @@ describe("StocktakePanel", () => {
       expect.objectContaining({
         method: "POST",
         body: [
-          { ingredient_id: 1, actual_qty: 9 },
-          { ingredient_id: 2, actual_qty: 4 },
+          { ingredient_id: 1, actual_qty: 9, reason: "Rơi vỡ" },
+          { ingredient_id: 2, actual_qty: 4, reason: "Hao hụt" },
         ],
       }),
     );

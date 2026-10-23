@@ -37,6 +37,7 @@ import { formatDateTime } from "@/lib/format";
 import { useAction } from "@/lib/use-action";
 import { useResource } from "@/lib/use-resource";
 
+import { ReceiptEditDialog } from "./receipt-edit-dialog";
 import { ReceiptForm } from "./receipt-form";
 import type { IngredientOption, Receipt, SupplierOption } from "./types";
 
@@ -97,6 +98,7 @@ export function ReceiptList({
   const suppliers = useResource(loadSuppliers);
   const [open, setOpen] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<number | null>(null);
+  const [editTarget, setEditTarget] = useState<number | null>(null);
   const cancelAction = useAction();
 
   function openCreate() {
@@ -222,13 +224,22 @@ export function ReceiptList({
                   </TableCell>
                   <TableCell className="text-right">
                     {r.TrangThai === "Nháp" ? (
-                      <Button
-                        variant="outlineDanger"
-                        size="sm"
-                        onClick={() => setCancelTarget(r.MaPhieuNhap)}
-                      >
-                        Hủy phiếu
-                      </Button>
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setEditTarget(r.MaPhieuNhap)}
+                        >
+                          Sửa phiếu
+                        </Button>
+                        <Button
+                          variant="outlineDanger"
+                          size="sm"
+                          onClick={() => setCancelTarget(r.MaPhieuNhap)}
+                        >
+                          Hủy phiếu
+                        </Button>
+                      </div>
                     ) : null}
                   </TableCell>
                 </TableRow>
@@ -293,6 +304,14 @@ export function ReceiptList({
           )}
         </DialogContent>
       </Dialog>
+
+      {editTarget !== null && (
+        <ReceiptEditDialog
+          receiptId={editTarget}
+          onClose={() => setEditTarget(null)}
+          onSaved={receipts.reload}
+        />
+      )}
 
       <ConfirmDialog
         open={cancelTarget !== null}

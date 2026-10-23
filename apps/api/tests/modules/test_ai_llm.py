@@ -49,6 +49,7 @@ def test_sends_the_expected_request_body() -> None:
         "model": "deepseek-flash",
         "messages": [{"role": "user", "content": "hỏi gì đó"}],
         "temperature": 0,
+        "thinking": {"type": "disabled"},
     }
 
 
@@ -234,7 +235,7 @@ def test_provider_timeout_leaves_time_for_fallback_inside_the_response_budget() 
 
     class AvailableFallback:
         def complete(self, prompt):
-            return "SELECT 1 FROM vw_ai_kho"
+            return "SELECT 1 FROM vw_ai_kho_ton"
 
     def handler(request):
         observed.append(request.extensions["timeout"]["read"])
@@ -247,7 +248,7 @@ def test_provider_timeout_leaves_time_for_fallback_inside_the_response_budget() 
         transport=httpx.MockTransport(handler),
         fallback_client=AvailableFallback(),
     )
-    assert client.complete("question") == "SELECT 1 FROM vw_ai_kho"
+    assert client.complete("question") == "SELECT 1 FROM vw_ai_kho_ton"
     # Leave ~2.5s for the interpretation call; a real schema prompt takes ~3s.
     assert observed[0] <= get_settings().ai_response_budget_seconds - 2.0
 
@@ -268,7 +269,7 @@ async def test_async_provider_deadline_reaches_fallback_even_when_primary_thread
 
     class AvailableFallback:
         def complete(self, prompt):
-            return "SELECT 1 FROM vw_ai_kho"
+            return "SELECT 1 FROM vw_ai_kho_ton"
 
     client = CommercialClient(
         api_key="test",
@@ -284,6 +285,6 @@ async def test_async_provider_deadline_reaches_fallback_even_when_primary_thread
     monkeypatch.setattr(client, "_post", stalled_post)
     try:
         result = await asyncio.wait_for(llm.complete_async(client, "question"), timeout=0.5)
-        assert result == "SELECT 1 FROM vw_ai_kho"
+        assert result == "SELECT 1 FROM vw_ai_kho_ton"
     finally:
         release.set()

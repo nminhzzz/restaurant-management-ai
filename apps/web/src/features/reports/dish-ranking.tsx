@@ -5,7 +5,7 @@ import { useCallback, useState } from "react";
 
 import { EmptyState, ErrorState, LoadingState } from "@/components/page-states";
 import { Bars } from "@/features/reports/chart";
-import { GranularityPicker } from "@/features/reports/period-picker";
+import { PeriodPicker, todayIso } from "@/features/reports/period-picker";
 import { ReportTable } from "@/features/reports/report-table";
 import { apiFetch } from "@/lib/api-client";
 import { formatNumber, formatVnd } from "@/lib/format";
@@ -32,13 +32,14 @@ function metric(dish: DishRank, orderBy: string): number {
 
 export function DishRanking() {
   const [granularity, setGranularity] = useState("month");
+  const [anchor, setAnchor] = useState(todayIso);
   const [orderBy, setOrderBy] = useState("quantity");
   const fetchRanking = useCallback(
     () =>
       apiFetch<DishRankResponse>(
-        `/reports/dishes?granularity=${granularity}&order_by=${orderBy}`,
+        `/reports/dishes?granularity=${granularity}&order_by=${orderBy}&anchor=${anchor}`,
       ),
-    [granularity, orderBy],
+    [granularity, orderBy, anchor],
   );
   const ranking = useResource(fetchRanking);
 
@@ -69,7 +70,12 @@ export function DishRanking() {
 
   const toolbar = (
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <GranularityPicker value={granularity} onChange={setGranularity} />
+      <PeriodPicker
+        granularity={granularity}
+        onGranularity={setGranularity}
+        anchor={anchor}
+        onAnchor={setAnchor}
+      />
       {orderPicker}
     </div>
   );

@@ -348,3 +348,135 @@ async def test_open_stocktake_blocks_stock_changes(session):
         headers=h,
     )
     assert allowed.status_code == 201
+
+
+@pytest.mark.anyio
+async def test_stocktake_surplus_uses_latest_valid_lot_without_receipt(session):
+    from datetime import timedelta
+
+    from sqlalchemy import func, select
+
+    ing = await _ingredient(session, "NL surplus", 10)
+    original = (await session.execute(select(IngredientLot))).scalar_one()
+    latest = IngredientLot(
+        ingredient_id=ing.id,
+        receipt_line_id=None,
+        is_adjustment=True,
+        quantity_remaining=0,
+        status="Còn hạn",
+        received_at=business_date.now() + timedelta(hours=1),
+    )
+    session.add(latest)
+    await session.commit()
+    receipts_before = (
+        await session.execute(select(func.count()).select_from(GoodsReceipt))
+    ).scalar_one()
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    sid = (await client.post("/api/v1/inventory/stocktakes", headers=h)).json()["MaPhieuKiemKe"]
+    await client.post(
+        f"/api/v1/inventory/stocktakes/{sid}/counts",
+        json=[{"ingredient_id": ing.id, "actual_qty": 15}],
+        headers=h,
+    )
+    result = await client.post(f"/api/v1/inventory/stocktakes/{sid}/confirm", headers=h)
+    assert result.status_code == 200, result.text
+    await session.refresh(latest)
+    await session.refresh(original)
+    assert latest.quantity_remaining == 5
+    assert original.quantity_remaining == 10
+    assert (
+        await session.execute(select(func.count()).select_from(GoodsReceipt))
+    ).scalar_one() == receipts_before
+
+
+@pytest.mark.anyio
+async def test_stocktake_surplus_without_valid_lot_has_no_fake_receipt(session):
+    from datetime import timedelta
+
+    from sqlalchemy import func, select
+
+    ing = await _ingredient(session, "NL expired", 10)
+    original = (await session.execute(select(IngredientLot))).scalar_one()
+    original.expiry_date = business_date.now().date() - timedelta(days=2)
+    original.status = "Hết hạn"
+    await session.commit()
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    sid = (await client.post("/api/v1/inventory/stocktakes", headers=h)).json()["MaPhieuKiemKe"]
+    await client.post(
+        f"/api/v1/inventory/stocktakes/{sid}/counts",
+        json=[{"ingredient_id": ing.id, "actual_qty": 15}],
+        headers=h,
+    )
+    result = await client.post(f"/api/v1/inventory/stocktakes/{sid}/confirm", headers=h)
+    assert result.status_code == 200, result.text
+    adjustment = (
+        await session.execute(select(IngredientLot).where(IngredientLot.is_adjustment.is_(True)))
+    ).scalar_one()
+    assert adjustment.receipt_line_id is None
+    assert adjustment.expiry_date is None
+    assert adjustment.quantity_remaining == 5
+    assert (await session.execute(select(func.count()).select_from(GoodsReceipt))).scalar_one() == 1
+
+
+@pytest.mark.anyio
+async def test_stocktake_refuses_waiting_kitchen_line_even_after_payment(session):
+    from app.modules.sales.models import Order, OrderLine
+    from tests.modules.test_sales_line_lifecycle import _setup_dish_with_stock
+
+    dish, _ = await _setup_dish_with_stock(session)
+    order = Order(
+        order_type="Mang về",
+        display_code="ORD-TEST-001",
+        status="Đã thanh toán",
+        business_date=business_date.business_date_of(business_date.now()),
+    )
+    session.add(order)
+    await session.flush()
+    session.add(
+        OrderLine(
+            order_id=order.id,
+            dish_id=dish.id,
+            quantity=1,
+            unit_price=50000,
+            total=50000,
+            status="Chờ",
+        )
+    )
+    await session.commit()
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    result = await client.post("/api/v1/inventory/stocktakes", headers=h)
+    assert result.status_code == 422, result.text
+    assert "Chờ" in result.text or "chờ" in result.text
+
+
+@pytest.mark.anyio
+async def test_a_count_line_keeps_the_reason_for_the_difference(session):
+    """FR-INV-08: the sheet records why the physical count differs."""
+    from sqlalchemy import select
+
+    from app.modules.inventory.models import StocktakeLine
+
+    ing = await _ingredient(session, "NL reason", 10)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    sid = (await client.post("/api/v1/inventory/stocktakes", headers=h)).json()["MaPhieuKiemKe"]
+    recorded = await client.post(
+        f"/api/v1/inventory/stocktakes/{sid}/counts",
+        json=[
+            {
+                "ingredient_id": ing.id,
+                "actual_qty": 7,
+                "reason": "Rơi vỡ khi bê",
+            }
+        ],
+        headers=h,
+    )
+    assert recorded.status_code == 200, recorded.text
+
+    line = (
+        await session.execute(select(StocktakeLine).where(StocktakeLine.stocktake_id == sid))
+    ).scalar_one()
+    assert line.reason == "Rơi vỡ khi bê"

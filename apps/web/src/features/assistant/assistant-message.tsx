@@ -19,6 +19,12 @@ import { cn } from "@/lib/utils";
 import { ResultTabs } from "./result-tabs";
 import type { Turn } from "./use-conversation";
 
+const RETRY_HINTS = [
+  "Cho tôi xem doanh thu 7 ngày gần nhất",
+  "Tồn kho nguyên liệu nào dưới mức tối thiểu?",
+  "Món nào bán chạy nhất tháng này?",
+];
+
 function Elapsed() {
   const [seconds, setSeconds] = useState(0);
   useEffect(() => {
@@ -149,7 +155,26 @@ export function AssistantMessage({
       </div>
     );
   } else if (turn.restored) {
-    body = (
+    body = result ? (
+      <>
+        <Points
+          headline={turn.restored.headline}
+          highlights={turn.restored.highlights}
+        />
+        <ResultTabs result={result} />
+        <div className="flex flex-wrap gap-0.5">
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={busy}
+            onClick={() => onAsk(turn.question)}
+          >
+            <RefreshCw />
+            Chạy lại
+          </Button>
+        </div>
+      </>
+    ) : (
       <>
         <Points
           headline={turn.restored.headline}
@@ -199,6 +224,20 @@ export function AssistantMessage({
         <p className="text-[15px] leading-[23px]">
           {result.headline || result.answer}
         </p>
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          {RETRY_HINTS.map((hint) => (
+            <button
+              key={hint}
+              type="button"
+              disabled={busy}
+              onClick={() => onAsk(hint)}
+              className="inline-flex items-center gap-2 rounded-control border border-border bg-surface px-2.5 py-1.5 text-left font-medium hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <ArrowRight className="size-3.5 text-subtle" aria-hidden />
+              {hint}
+            </button>
+          ))}
+        </div>
       </div>
     );
   } else if (result) {

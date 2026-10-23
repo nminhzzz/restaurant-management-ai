@@ -21,6 +21,7 @@ from app.modules.inventory.stock import (
     apply_stock_movement,
     ensure_no_open_stocktake,
     lock_ingredient,
+    lock_stock_operations,
 )
 from app.shared import business_date
 from app.shared.audit import SystemAuditLog
@@ -39,6 +40,7 @@ async def create_receipt(
     receipt_date: datetime | None,
     lines: list[dict],
 ) -> GoodsReceipt:
+    await ensure_no_open_stocktake(session)
     if supplier_id is not None:
         from app.modules.catalog.models import Supplier
 
@@ -110,7 +112,7 @@ async def create_receipt(
         session.add(lot)
         await session.flush()
         # ledger
-        await apply_stock_movement(
+        movements = await apply_stock_movement(
             session,
             StockChange(
                 ingredient_id=ingredient_id,
@@ -121,7 +123,8 @@ async def create_receipt(
             ),
             actor_id=actor_id,
         )
-        # ensure expiry not needed for test - HanSuDung derived via SoNgayBaoQuan in view; we store not
+        for movement in movements:
+            movement.lot_id = lot.id
         # Mark unit locked once any receipt exists (BR-CAT)
         if not ing.unit_locked:
             ing.unit_locked = True
@@ -173,6 +176,7 @@ async def _ensure_receipt_untouched(session: AsyncSession, receipt_id: int) -> N
 
 
 async def cancel_receipt(session: AsyncSession, actor_id: int, receipt_id: int) -> None:
+    await ensure_no_open_stocktake(session)
     from app.shared.enums import StockMovementType
 
     await ensure_no_open_stocktake(session)
@@ -374,6 +378,7 @@ async def create_issue(
     other two sources classify cost that a stock movement already recorded, so they
     must not draw inventory a second time.
     """
+    await ensure_no_open_stocktake(session)
     from app.modules.sales.models import OrderLine
 
     if source not in ISSUE_SOURCES:
@@ -492,23 +497,36 @@ async def list_issues(
 
 # Stocktakes
 async def create_stocktake(session: AsyncSession, actor_id: int) -> Stocktake:
+    await lock_stock_operations(session)
     # NFR-20: one open counting session at a time; the session blocks stock changes.
     existing = (
-        await session.execute(select(Stocktake.id).where(Stocktake.status == "Nháp").limit(1))
+        await session.execute(
+            select(Stocktake.id).where(Stocktake.status == "Nháp").limit(1).with_for_update()
+        )
     ).scalar_one_or_none()
     if existing is not None:
         raise BusinessRuleError("Đang có phiên kiểm kê chưa chốt.")
-    from app.modules.sales.models import Reservation
+    from app.modules.sales.models import OrderLine, Reservation
     from app.modules.sales.reservations import expire_due_holds
 
     await expire_due_holds(session)
     active_holds = (
         await session.execute(
-            select(func.count()).select_from(Reservation).where(Reservation.status == "Đang giữ")
+            select(Reservation.id)
+            .where(Reservation.status == "Đang giữ")
+            .limit(1)
+            .with_for_update()
         )
-    ).scalar_one()
+    ).scalar_one_or_none()
     if active_holds:
         raise BusinessRuleError("Còn lượt giữ chỗ chưa gửi, hãy xử lý trước khi kiểm kê.")
+    pending = (
+        await session.execute(
+            select(OrderLine.id).where(OrderLine.status == "Chờ").limit(1).with_for_update()
+        )
+    ).scalar_one_or_none()
+    if pending is not None:
+        raise BusinessRuleError("Còn món Chờ làm, hãy xử lý trước khi kiểm kê.")
     st = Stocktake(status="Nháp", stocktake_date=business_date.now(), performed_by=actor_id)
     session.add(st)
     await session.flush()
@@ -548,7 +566,15 @@ async def cancel_stocktake(session: AsyncSession, actor_id: int, stocktake_id: i
     Without this, a draft left behind after a reload keeps `ensure_no_open_stocktake`
     blocking every stock change and there is no way out from the UI.
     """
-    st = await session.get(Stocktake, stocktake_id)
+    await lock_stock_operations(session)
+    st = (
+        await session.execute(
+            select(Stocktake)
+            .where(Stocktake.id == stocktake_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+    ).scalar_one_or_none()
     if st is None:
         raise NotFoundError("Không tìm thấy phiếu kiểm kê.")
     if st.status != "Nháp":
@@ -568,9 +594,19 @@ async def cancel_stocktake(session: AsyncSession, actor_id: int, stocktake_id: i
 
 
 async def record_counts(
-    session: AsyncSession, stocktake_id: int, counts: list[tuple[int, Decimal]]
+    session: AsyncSession,
+    stocktake_id: int,
+    counts: list[tuple[int, Decimal, str | None]],
 ) -> None:
-    st = await session.get(Stocktake, stocktake_id)
+    await lock_stock_operations(session)
+    st = (
+        await session.execute(
+            select(Stocktake)
+            .where(Stocktake.id == stocktake_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+    ).scalar_one_or_none()
     if st is None:
         raise NotFoundError("Không tìm thấy phiếu kiểm kê.")
     if st.status != "Nháp":
@@ -586,7 +622,7 @@ async def record_counts(
         .all()
     }
     seen_ids: set[int] = set()
-    for iid, actual in counts:
+    for iid, actual, reason in counts:
         if iid in seen_ids:
             raise BusinessRuleError("Nguyên liệu trùng lặp trong cùng phiếu kiểm kê.")
         seen_ids.add(iid)
@@ -605,17 +641,27 @@ async def record_counts(
                     ingredient_id=iid,
                     system_qty=sys_qty,
                     actual_qty=actual,
+                    reason=reason,
                 )
             )
         else:
             # Re-counting an ingredient updates its line instead of duplicating it.
             line.system_qty = sys_qty
             line.actual_qty = actual
+            line.reason = reason
     await session.flush()
 
 
 async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: int) -> None:
-    st = await session.get(Stocktake, stocktake_id)
+    await lock_stock_operations(session)
+    st = (
+        await session.execute(
+            select(Stocktake)
+            .where(Stocktake.id == stocktake_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+    ).scalar_one_or_none()
     if st is None:
         raise NotFoundError("Không tìm thấy phiếu kiểm kê.")
     if st.status != "Nháp":
@@ -691,27 +737,36 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
                 # ing total should become actual_qty; we already deducted take_total via lots, so set directly
                 ing2.stock_qty = line.actual_qty
         else:
-            # surplus: create adjustment receipt lineage with unit_price=0 (excluded from avg by receipt status filter in reports) is kept, but tagged is_adjustment
-            gr = GoodsReceipt(supplier_id=None, receipt_date=business_date.now(), status="Nháp")
-            session.add(gr)
-            await session.flush()
-            gl = GoodsReceiptLine(
-                receipt_id=gr.id,
-                ingredient_id=line.ingredient_id,
-                quantity=diff,
-                unit_price=0,
-            )
-            session.add(gl)
-            await session.flush()
-            lot = IngredientLot(
-                ingredient_id=line.ingredient_id,
-                receipt_line_id=gl.id,
-                quantity_remaining=diff,
-                status="Còn hạn",
-                received_at=business_date.now(),
-                is_adjustment=True,
-            )
-            session.add(lot)
+            # BR-LOT-02 includes empty but still valid lots; never invent a receipt.
+            today = business_date.now().date()
+            lot = (
+                await session.execute(
+                    select(IngredientLot)
+                    .where(
+                        IngredientLot.ingredient_id == line.ingredient_id,
+                        IngredientLot.status != "Hết hạn",
+                        (IngredientLot.expiry_date.is_(None))
+                        | (IngredientLot.expiry_date >= today),
+                    )
+                    .order_by(IngredientLot.received_at.desc(), IngredientLot.id.desc())
+                    .limit(1)
+                    .with_for_update()
+                )
+            ).scalar_one_or_none()
+            if lot is None:
+                lot = IngredientLot(
+                    ingredient_id=line.ingredient_id,
+                    receipt_line_id=None,
+                    quantity_remaining=diff,
+                    status="Còn hạn",
+                    received_at=st.stocktake_date,
+                    expiry_date=None,
+                    is_adjustment=True,
+                )
+                session.add(lot)
+            else:
+                lot.quantity_remaining = Decimal(str(lot.quantity_remaining)) + diff
+                lot.status = "Còn hạn"
             await session.flush()
             from app.modules.inventory.models import StockMovement as SM3
 
@@ -777,91 +832,11 @@ async def list_stock(
     page: int = 1,
     page_size: int = 50,
 ):
-    from sqlalchemy import case
-    from sqlalchemy import select as sel
+    from app.modules.inventory.queries import list_stock as query_stock
 
-    from app.modules.catalog.models import Ingredient
-    from app.modules.inventory.models import IngredientLot
-    from app.modules.settings.models import SystemConfig
-
-    cfg = (await session.execute(sel(SystemConfig))).scalar_one_or_none()
-    default = float(cfg.default_stock_threshold) if cfg else 5
-    warning_days = int(cfg.expiry_warning_days) if cfg else 3
-    today = business_date.business_date_of(business_date.now())
-    base = sel(Ingredient).where(Ingredient.is_deleted == False)
-    if search:
-        safe = search.replace("%", "\\%").replace("_", "\\_")
-        base = base.where(Ingredient.name.ilike(f"%{safe}%", escape="\\"))
-    threshold = case((Ingredient.min_stock > 0, Ingredient.min_stock), else_=default)
-    if alerting is not None:
-        base = base.where(
-            Ingredient.stock_qty < threshold if alerting else Ingredient.stock_qty >= threshold
-        )
-    total = (await session.execute(sel(func.count()).select_from(base.subquery()))).scalar_one()
-    rows = (
-        (
-            await session.execute(
-                base.order_by(Ingredient.id).offset((page - 1) * page_size).limit(page_size)
-            )
-        )
-        .scalars()
-        .all()
+    return await query_stock(
+        session, search=search, alerting=alerting, page=page, page_size=page_size
     )
-    # FR-INV-14: expiry state is computed from today and the configured threshold,
-    # not from a stored label that would go stale as days pass.
-    lot_stats: dict[int, tuple] = {}
-    if rows:
-        deadline = today + timedelta(days=warning_days)
-        stats = (
-            await session.execute(
-                sel(
-                    IngredientLot.ingredient_id,
-                    func.min(IngredientLot.expiry_date),
-                    func.coalesce(
-                        func.sum(case((IngredientLot.expiry_date < today, 1), else_=0)), 0
-                    ),
-                    func.coalesce(
-                        func.sum(
-                            case(
-                                (
-                                    (IngredientLot.expiry_date >= today)
-                                    & (IngredientLot.expiry_date <= deadline),
-                                    1,
-                                ),
-                                else_=0,
-                            )
-                        ),
-                        0,
-                    ),
-                )
-                .where(
-                    IngredientLot.ingredient_id.in_([row.id for row in rows]),
-                    IngredientLot.quantity_remaining > 0,
-                    IngredientLot.expiry_date.is_not(None),
-                )
-                .group_by(IngredientLot.ingredient_id)
-            )
-        ).all()
-        lot_stats = {int(row[0]): row for row in stats}
-
-    out = []
-    for ing in rows:
-        applied = float(ing.min_stock) if ing.min_stock and float(ing.min_stock) > 0 else default
-        stats = lot_stats.get(ing.id)
-        out.append(
-            {
-                "MaNguyenLieu": ing.id,
-                "TenNguyenLieu": ing.name,
-                "SoLuongTon": float(ing.stock_qty),
-                "MucTonToiThieuApDung": applied,
-                "CanhBaoTonThap": float(ing.stock_qty) < applied,
-                "HanSuDungGanNhat": stats[1].isoformat() if stats and stats[1] else None,
-                "SoLoHetHan": int(stats[2]) if stats else 0,
-                "SoLoSapHetHan": int(stats[3]) if stats else 0,
-                "CanhBaoHanSuDung": bool(stats and (int(stats[2]) > 0 or int(stats[3]) > 0)),
-            }
-        )
-    return out, total
 
 
 async def recompute_automatic_out_of_stock(session, ingredient_ids: list[int]) -> list[int]:

@@ -111,12 +111,13 @@ async def delete_group(
 @router.get("/dishes", response_model=Page[DishOut])
 async def list_dishes(
     search: str | None = Query(None),
+    include_deleted: bool = Query(False),
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=200),
     user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
     session: AsyncSession = Depends(get_session),
 ) -> Page[DishOut]:
-    items, total = await svc.list_dishes(session, search)
+    items, total = await svc.list_dishes(session, search, include_deleted=include_deleted)
     # paginate in memory (small dataset for Task 1)
     start = (page - 1) * size
     sliced = items[start : start + size]
@@ -451,8 +452,20 @@ async def get_supplier(
 
     from app.modules.inventory.models import GoodsReceipt
 
-    r = await session.execute(_sel(GoodsReceipt).where(GoodsReceipt.supplier_id == supplier_id))
-    receipts = [{"MaPhieuNhap": gr.id} for gr in r.scalars().all()]
+    r = await session.execute(
+        _sel(GoodsReceipt)
+        .where(GoodsReceipt.supplier_id == supplier_id)
+        .order_by(GoodsReceipt.receipt_date.desc(), GoodsReceipt.id.desc())
+    )
+    receipts = [
+        {
+            "MaPhieuNhap": gr.id,
+            "NgayNhap": gr.receipt_date.isoformat(),
+            "TrangThai": gr.status,
+            "TongTien": float(gr.total),
+        }
+        for gr in r.scalars().all()
+    ]
     out = SupplierOut.model_validate(s)
     out.PhieuNhap = receipts
     return out

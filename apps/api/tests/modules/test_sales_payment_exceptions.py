@@ -352,3 +352,89 @@ async def test_a_reopened_order_stays_in_the_pending_list(
     assert rows, "order vừa mở lại đã biến mất khỏi danh sách khoản chưa thu"
     assert rows[0]["TrangThai"] == "Đã mở lại \u2013 chờ thu"
     assert float(rows[0]["SoTien"]) == 50000
+
+
+@pytest.mark.anyio
+async def test_a_verification_request_keeps_the_bank_reference_evidence_and_note(
+    api_client, session, manager_token, cashier_token
+):
+    """FR-SALE-19: the cashier records what the guest supplied, not an empty request."""
+    dish, table = await _setup(session)
+    _order_id, payment_id = await _open_order(api_client, cashier_token, dish, table)
+
+    response = await api_client.post(
+        f"/api/v1/sales/payments/{payment_id}/request-verification",
+        json={
+            "reference": "FT-VERIFY-001",
+            "evidence": "data:image/png;base64,AAAA",
+            "note": "Khách gửi lúc 19:05",
+        },
+        headers=_auth(cashier_token),
+    )
+
+    assert response.status_code == 200, response.text
+    payment = await session.get(PaymentTransaction, payment_id)
+    await session.refresh(payment)
+    assert payment.bank_ref == "FT-VERIFY-001"
+    assert payment.evidence == "data:image/png;base64,AAAA"
+
+
+@pytest.mark.anyio
+async def test_reopening_stores_the_external_outcome(
+    api_client, session, manager_token, cashier_token
+):
+    """FR-SALE-23: reason alone is not the whole decision record."""
+    from app.shared.audit import SystemAuditLog
+
+    dish, table = await _setup(session)
+    _order_id, payment_id = await _open_order(api_client, cashier_token, dish, table)
+    await api_client.post(
+        f"/api/v1/sales/payments/{payment_id}/request-verification",
+        headers=_auth(cashier_token),
+    )
+
+    reopened = await api_client.post(
+        f"/api/v1/sales/payments/{payment_id}/reopen",
+        json={"reason": "Khách xác nhận chưa chuyển", "outcome": "Thu lại tiền mặt"},
+        headers=_auth(manager_token),
+    )
+    assert reopened.status_code == 200, reopened.text
+
+    row = (
+        await session.execute(
+            select(SystemAuditLog).where(SystemAuditLog.action == "REOPEN_PAYMENT")
+        )
+    ).scalar_one()
+    assert row.after is not None
+    assert row.after.get("KetQuaXuLy") == "Thu lại tiền mặt"
+
+
+@pytest.mark.anyio
+async def test_closing_unpaid_stores_the_external_outcome(
+    api_client, session, manager_token, cashier_token
+):
+    """FR-SALE-35: the closing decision keeps its reason, amount and outcome."""
+    from app.shared.audit import SystemAuditLog
+
+    dish, table = await _setup(session)
+    order_id, payment_id = await _open_order(api_client, cashier_token, dish, table)
+    await api_client.post(
+        f"/api/v1/sales/payments/{payment_id}/request-verification",
+        headers=_auth(cashier_token),
+    )
+
+    closed = await api_client.post(
+        f"/api/v1/sales/orders/{order_id}/close-unpaid",
+        json={"reason": "Không liên lạc được", "outcome": "Chấp nhận mất khoản thu"},
+        headers=_auth(manager_token),
+    )
+    assert closed.status_code == 200, closed.text
+
+    row = (
+        await session.execute(
+            select(SystemAuditLog).where(SystemAuditLog.action == "CLOSE_UNPAID_ORDER")
+        )
+    ).scalar_one()
+    assert row.after is not None
+    assert row.after.get("KetQuaXuLy") == "Chấp nhận mất khoản thu"
+    assert row.after.get("SoTienChuaThu") is not None

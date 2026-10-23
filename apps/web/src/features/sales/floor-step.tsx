@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Search, ShoppingBag } from "lucide-react";
+import { ListFilter, Plus, Search, ShoppingBag } from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -15,6 +15,7 @@ import { formatVnd } from "@/lib/format";
 import { useResource } from "@/lib/use-resource";
 import { cn } from "@/lib/utils";
 
+import { OrderLookupDialog } from "./order-lookup";
 import type { FloorBoard, FloorOrder, FloorTable } from "./types";
 
 const FILTERS = [
@@ -54,6 +55,7 @@ export function FloorStep({
   const [selected, setSelected] = useState<number | null>(null);
   const [code, setCode] = useState("");
   const [lookupError, setLookupError] = useState<string | null>(null);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [releaseError, setReleaseError] = useState<string | null>(null);
   const [releasing, setReleasing] = useState(false);
 
@@ -138,6 +140,14 @@ export function FloorStep({
               onChange={(e) => setCode(e.target.value)}
             />
           </form>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setAdvancedOpen(true)}
+          >
+            <ListFilter />
+            Tìm nâng cao
+          </Button>
           <div
             role="group"
             aria-label="Lọc bàn"
@@ -333,6 +343,12 @@ export function FloorStep({
           </div>
         </section>
       </aside>
+      <OrderLookupDialog
+        open={advancedOpen}
+        onOpenChange={setAdvancedOpen}
+        tables={tables}
+        onOpenOrder={(orderId, tableId) => onPay(orderId, tableId)}
+      />
     </div>
   );
 }

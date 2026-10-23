@@ -3,6 +3,8 @@ export type Dish = {
   TenMon: string;
   TrangThai: string;
   TamDungThuCong?: boolean;
+  DaXoa?: boolean;
+  SoSuatKhaDung?: number | null;
   MaNhomMon?: number | null;
   GiaHienTai?: number | null;
   HinhAnh?: string | null;
@@ -16,6 +18,7 @@ export type Ingredient = {
   DonViTinh: string;
   MucTonToiThieu?: number | null;
   SoNgayBaoQuan?: number | null;
+  KhoaDonViTinh?: boolean;
 };
 
 export type Supplier = {
@@ -25,7 +28,12 @@ export type Supplier = {
   Email?: string | null;
   NguoiLienHe?: string | null;
   DiaChi?: string | null;
-  PhieuNhap?: { MaPhieuNhap: number }[];
+  PhieuNhap?: {
+    MaPhieuNhap: number;
+    NgayNhap: string;
+    TrangThai: string;
+    TongTien: number;
+  }[];
 };
 
 export type DiningTable = {

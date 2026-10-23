@@ -28,11 +28,10 @@ def test_readonly_url_reads_the_role_field(role: Role, field: str, monkeypatch) 
     assert readonly_url_for(role) == url
 
 
-def test_local_blank_url_falls_back_to_the_main_database() -> None:
-    """`.env.example` promises this for local development only."""
-    settings = get_settings()
-
-    assert readonly_url_for(Role.MANAGER) == settings.database_url
+def test_local_blank_url_is_rejected() -> None:
+    """Local development must preserve the same privilege boundary."""
+    with pytest.raises(RuntimeError, match="AI_READONLY_URL_MANAGER"):
+        readonly_url_for(Role.MANAGER)
 
 
 def test_non_local_blank_url_is_rejected(monkeypatch) -> None:
@@ -53,3 +52,11 @@ def test_roles_do_not_share_a_connection_string(monkeypatch) -> None:
     configured = {readonly_url_for(role) for role in Role}
 
     assert len(configured) == len(Role)
+
+
+def test_accounts_cannot_share_the_main_write_user_or_each_other(monkeypatch):
+    for role in Role:
+        monkeypatch.setenv(ACCOUNT_FIELDS[role].upper(), "mysql+asyncmy://same:secret@db/r")
+    get_settings.cache_clear()
+    with pytest.raises(RuntimeError, match="distinct"):
+        readonly_url_for(Role.CASHIER)

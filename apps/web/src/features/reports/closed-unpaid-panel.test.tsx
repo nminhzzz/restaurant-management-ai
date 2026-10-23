@@ -29,7 +29,7 @@ describe("ClosedUnpaidPanel", () => {
   it("shows the amount, cost, reason and who closed the order", async () => {
     stubFetch(closed);
 
-    render(<ClosedUnpaidPanel month="2026-10" />);
+    render(<ClosedUnpaidPanel granularity="month" anchor="2026-10-20" />);
 
     expect(await screen.findByText("ORD-007")).toBeInTheDocument();
     expect(screen.getByText("khách hết tiền")).toBeInTheDocument();
@@ -40,7 +40,7 @@ describe("ClosedUnpaidPanel", () => {
   it("shows the empty state when nothing is closed unpaid", async () => {
     stubFetch({ SoLuong: 0, TongGiaTri: "0", TongGiaVon: "0", items: [] });
 
-    render(<ClosedUnpaidPanel month="2026-10" />);
+    render(<ClosedUnpaidPanel granularity="month" anchor="2026-10-20" />);
 
     expect(
       await screen.findByText(/Không có order đóng chưa thu tiền/),

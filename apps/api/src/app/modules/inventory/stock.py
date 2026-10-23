@@ -150,12 +150,26 @@ async def _release_holds_for_lot(
         await session.flush()
 
 
+async def lock_stock_operations(session: AsyncSession) -> None:
+    """Serialize stocktake opening with stock mutations on the singleton config row.
+
+    Hold this lock until the caller commits or rolls back. Always acquire it before
+    ingredient, lot, reservation and order locks to keep lock order consistent.
+    """
+    from app.modules.settings.models import SystemConfig
+
+    await session.execute(select(SystemConfig.id).order_by(SystemConfig.id).with_for_update())
+
+
 async def ensure_no_open_stocktake(session: AsyncSession) -> None:
     """NFR-20: a counting session freezes stock-changing transactions."""
     from app.modules.inventory.models import Stocktake
 
+    await lock_stock_operations(session)
     open_id = (
-        await session.execute(select(Stocktake.id).where(Stocktake.status == "Nháp").limit(1))
+        await session.execute(
+            select(Stocktake.id).where(Stocktake.status == "Nháp").limit(1).with_for_update()
+        )
     ).scalar_one_or_none()
     if open_id is not None:
         raise BusinessRuleError("Đang kiểm kê, không thể thay đổi tồn kho.")

@@ -2,7 +2,7 @@
 
     A — schema only (the baseline)
     B — schema + Vietnamese normalisation + few-shot examples
-    C — configuration B on a second model
+    C — configuration B on the same model with thinking enabled/high
 
 Accuracy is measured by **executing** what the model produced and what the reference
 SQL produces, then comparing the rows — never by comparing SQL text, because two
@@ -21,8 +21,9 @@ import math
 import sys
 import time
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
-from dataclasses import asdict, dataclass, field
+from contextlib import asynccontextmanager, nullcontext
+from dataclasses import asdict, dataclass, field, replace
+from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from enum import StrEnum
 from itertools import product
@@ -30,16 +31,20 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+import sqlglot
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlglot import exp
 
 from app.core.config import get_settings
 from app.core.database import get_session_factory
 from app.core.errors import BusinessRuleError
 from app.modules.ai import guard, llm
 from app.modules.ai.errors import ClarificationNeeded, QuotaExceeded
-from app.modules.ai.pipeline import executor, normalize
+from app.modules.ai.pipeline import executor, interpreter, normalize
 from app.modules.ai.pipeline.prompt import build_prompt
 from app.modules.ai.scope import views_for
+from app.modules.ai.usage import collect_usage
+from app.shared import business_date
 from app.shared.roles import Role
 
 QUESTIONS_PATH = Path(__file__).with_name("questions.jsonl")
@@ -62,10 +67,8 @@ def normalises(config: Config) -> bool:
 
 
 async def model_for(config: Config) -> str:
-    settings = get_settings()
-    if config is Config.C:
-        return settings.ai_config_c_model or f"{settings.llm_model}-alt"
-    return settings.llm_model
+    # The independent variable is thinking/prompt policy, never model identity.
+    return get_settings().llm_model
 
 
 @dataclass(frozen=True)
@@ -85,6 +88,17 @@ class Outcome:
     latency_ms: float
     sql: str = ""
     relaxed: bool = False
+    answer: str = ""
+    answer_correct: bool | None = None
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cost_usd: float = 0.0
+    call_count: int = 0
+    models: list[str] = field(default_factory=list)
+    usage_complete: bool = False
+    produced_rows: list[dict[str, Any]] | None = None
+    reference_rows: list[dict[str, Any]] | None = None
+    run_index: int = 1
 
 
 @dataclass(frozen=True)
@@ -195,177 +209,272 @@ def relaxed_match(produced: list[dict[str, Any]], gold: list[dict[str, Any]]) ->
     return False
 
 
-async def _generate(session: AsyncSession, config: Config, question: str, role: Role) -> str:
+def bind_reference_sql(sql: str, question: dict[str, Any]) -> str:
+    """Freeze MySQL clock expressions using parsed nodes, never string substitution."""
+    if not question.get("reference_time"):
+        return sql
+    moment = datetime.fromisoformat(question["reference_time"])
+    day = (
+        question.get("reference_business_date")
+        or business_date.business_date_of(moment).isoformat()
+    )
+    tree = sqlglot.parse_one(sql, read="mysql")
+    # Old gold SQL used DATE(CURDATE() - INTERVAL 6 HOUR); use its intended
+    # business-date anchor explicitly, including when a different cutoff is active.
+    for date_node in list(tree.find_all(exp.Date)):
+        if date_node.find(exp.CurrentDate) is not None and date_node.find(exp.Interval) is not None:
+            date_node.replace(exp.Cast(this=exp.Literal.string(day), to=exp.DataType.build("DATE")))
+    for node in list(tree.walk()):
+        if isinstance(node, exp.CurrentDate):
+            node.replace(
+                exp.Cast(
+                    this=exp.Literal.string(moment.date().isoformat()),
+                    to=exp.DataType.build("DATE"),
+                )
+            )
+        elif isinstance(node, exp.CurrentTimestamp):
+            node.replace(
+                exp.Cast(
+                    this=exp.Literal.string(moment.replace(tzinfo=None).isoformat(sep=" ")),
+                    to=exp.DataType.build("DATETIME"),
+                )
+            )
+    return tree.sql(dialect="mysql")
+
+
+async def _generate(
+    session: AsyncSession, config: Config, question: str, role: Role, error: str = ""
+) -> str:
     settings = get_settings()
     examples: list[object] | None = None if uses_examples(config) else []
     prompt = await build_prompt(session, question, role, examples)
+    if error:
+        prompt += (
+            f"\nSQL trước chưa hợp lệ hoặc thực thi lỗi: {error}. Hãy sửa trong phạm vi quyền."
+        )
     client = llm.get_client()
     _bind_model(client, await model_for(config))
-    raw = await asyncio.to_thread(client.complete, prompt) or ""
+    with llm.generation_options(
+        thinking="enabled" if config is Config.C else "disabled",
+        reasoning_effort="high" if config is Config.C else "",
+        fallback=False,
+    ):
+        raw = await llm.complete_async(client, prompt) or ""
     text = raw.strip()
     if text.upper().startswith("CLARIFY:"):
         raise ClarificationNeeded(text[len("CLARIFY:") :].strip())
     return guard.validate_sql(text, allowed_views=views_for(role), max_rows=settings.ai_max_rows)
 
 
-async def run_configuration(
-    config: Config,
-    questions: list[Any],
-    session: AsyncSession | None = None,
-    runs: int = 1,
+def _summarize(
+    config: Config, outcomes: list[Outcome], failures: list[Failure], runs: int = 1
 ) -> ConfigResult:
-    """Run one configuration and report SQL execution accuracy plus latency."""
-    runs = max(1, runs)
-    if session is not None:
-        return await _repeat(config, questions, session, runs)
-    async with open_session() as opened:
-        return await _repeat(config, questions, opened, runs)
-
-
-async def _repeat(
-    config: Config, questions: list[Any], session: AsyncSession, runs: int
-) -> ConfigResult:
-    results = [await _run(config, questions, session) for _ in range(runs)]
-    if runs == 1:
-        return results[0]
-    latencies = [outcome.latency_ms for result in results for outcome in result.outcomes]
+    total = len(outcomes) or 1
+    latencies = [outcome.latency_ms for outcome in outcomes]
     return ConfigResult(
         config=config.value,
-        execution_accuracy=sum(r.execution_accuracy for r in results) / runs,
-        error_rate=sum(r.error_rate for r in results) / runs,
-        refusal_rate=sum(r.refusal_rate for r in results) / runs,
+        execution_accuracy=sum(o.status == "đúng" for o in outcomes) / total,
+        error_rate=sum(o.status == "lỗi" for o in outcomes) / total,
+        refusal_rate=sum(
+            o.status == "từ chối" or (o.status == "đúng" and not o.sql) for o in outcomes
+        )
+        / total,
         mean_latency_ms=sum(latencies) / len(latencies) if latencies else 0.0,
-        relaxed_accuracy=sum(r.relaxed_accuracy for r in results) / runs,
+        relaxed_accuracy=sum(o.relaxed for o in outcomes) / total,
         p95_latency_ms=percentile(latencies, 0.95),
         runs=runs,
-        failures=[failure for r in results for failure in r.failures],
-        outcomes=[outcome for r in results for outcome in r.outcomes],
+        failures=failures,
+        outcomes=outcomes,
     )
+
+
+async def run_configuration(
+    config: Config, questions: list[Any], session: AsyncSession | None = None, runs: int = 1
+) -> ConfigResult:
+    if session is None:
+        async with open_session() as opened:
+            return await run_configuration(config, questions, opened, runs)
+    outcomes: list[Outcome] = []
+    failures: list[Failure] = []
+    for run_index in range(1, max(1, runs) + 1):
+        result = await _run(config, questions, session)
+        outcomes.extend(replace(o, run_index=run_index) for o in result.outcomes)
+        failures.extend(result.failures)
+    return _summarize(config, outcomes, failures, max(1, runs))
 
 
 async def _run(config: Config, questions: list[Any], session: AsyncSession) -> ConfigResult:
     settings = get_settings()
-    correct = errors = refusals = 0
-    latencies: list[float] = []
-    failures: list[Failure] = []
     outcomes: list[Outcome] = []
-
-    def record(
-        question: dict[str, Any],
-        status: str,
-        started: float,
-        sql: str = "",
-        relaxed: bool | None = None,
-        overhead_ms: float = 0.0,
-    ) -> None:
-        # Latency measures the assistant (SQL generation + running its SQL). The
-        # reference query is benchmark bookkeeping and must not inflate it.
-        elapsed = (time.perf_counter() - started) * 1000 - overhead_ms
-        latencies.append(elapsed)
-        print(
-            f"[{config.value}] {len(outcomes) + 1}/{len(questions)} {question['id']} "
-            f"{status} {elapsed:.0f} ms",
-            file=sys.stderr,
-            flush=True,
-        )
-        outcomes.append(
-            Outcome(
-                question["id"],
-                question.get("difficulty", ""),
-                question["role"],
-                status,
-                round(elapsed, 1),
-                sql,
-                status == "đúng" if relaxed is None else relaxed,
-            )
-        )
-
+    failures: list[Failure] = []
     for question in questions:
-        question_id = question["id"]
         role = Role(question["role"])
-        expected_refusal = question.get("expect") == "refusal" or bool(
-            question.get("notes") and "vượt quyền" in question["notes"]
-        )
+        expected_refusal = question.get("expect") == "refusal"
         text = (
             normalize.normalize_question(question["question"])
             if normalises(config)
             else question["question"]
         )
-
-        started = time.perf_counter()
-        try:
-            sql = await _generate(session, config, text, role)
-        except (BusinessRuleError, ClarificationNeeded, QuotaExceeded) as exc:
-            refusals += 1
-            if expected_refusal:
-                correct += 1
-                record(question, "đúng", started)
-            else:
-                failures.append(Failure(question_id, f"từ chối ngoài dự kiến: {exc}"))
-                record(question, "từ chối", started)
-            continue
-        except httpx.HTTPError as exc:
-            # An API outage is a measured error for this question, not a reason to
-            # throw away the rest of the run.
-            errors += 1
-            failures.append(Failure(question_id, f"lỗi gọi LLM: {exc}"))
-            record(question, "lỗi", started)
-            continue
-
-        if expected_refusal and not question.get("sql"):
-            # A safety case without a reference query: producing any SQL is wrong,
-            # but there is nothing safe to execute for comparison.
-            failures.append(Failure(question_id, "câu không được phép nhưng vẫn trả dữ liệu"))
-            record(question, "sai", started, sql)
-            continue
-
-        reference_ms = 0.0
-        try:
-            produced = await executor.execute(
-                sql, role=role, timeout_seconds=settings.ai_sql_timeout_seconds
+        clock = (
+            business_date.at_time(datetime.fromisoformat(question["reference_time"]))
+            if question.get("reference_time")
+            else nullcontext()
+        )
+        sql, answer, status, reason = "", "", "lỗi", ""
+        produced = reference = None
+        relaxed = False
+        elapsed = 0.0
+        with (
+            clock,
+            collect_usage(
+                input_price=settings.ai_input_usd_per_million,
+                output_price=settings.ai_output_usd_per_million,
+            ) as usage,
+        ):
+            started = time.perf_counter()
+            last_error = ""
+            for attempt in range(settings.ai_max_sql_attempts):
+                try:
+                    sql = await _generate(session, config, text, role, last_error)
+                    if expected_refusal:
+                        status, reason = "sai", "Yêu cầu không được phép nhưng vẫn sinh SQL."
+                        break  # Never run a safety-case candidate against business data.
+                    sql = guard.validate_sql(
+                        bind_reference_sql(sql, question),
+                        allowed_views=views_for(role),
+                        max_rows=settings.ai_max_rows,
+                    )
+                    produced = await executor.execute(
+                        sql, role=role, timeout_seconds=settings.ai_sql_timeout_seconds
+                    )
+                    with llm.generation_options(
+                        thinking="disabled", reasoning_effort="", fallback=False
+                    ):
+                        try:
+                            interpreted = await interpreter.interpret(
+                                session, text, sql, produced, role
+                            )
+                        except (httpx.HTTPError, TimeoutError):
+                            interpreted = interpreter.fallback(produced, role)
+                    answer = interpreted.text
+                    status = "sai"  # Execution correctness is determined below.
+                    break
+                except (ClarificationNeeded, QuotaExceeded) as exc:
+                    status, reason = ("đúng" if expected_refusal else "từ chối"), str(exc)
+                    break
+                except BusinessRuleError as exc:
+                    last_error = str(exc)
+                    status, reason = ("đúng" if expected_refusal else "từ chối"), last_error
+                    if attempt + 1 == settings.ai_max_sql_attempts:
+                        break
+                except (httpx.HTTPError, TimeoutError) as exc:
+                    status, reason = "lỗi", f"Lỗi gọi LLM hoặc timeout: {type(exc).__name__}"
+                    break
+                except Exception as exc:
+                    last_error = f"Lỗi thực thi: {type(exc).__name__}"
+                    status, reason = "lỗi", last_error
+                    if attempt + 1 == settings.ai_max_sql_attempts:
+                        break
+            # Stop the end-to-end clock BEFORE executing gold SQL or human grading.
+            elapsed = (time.perf_counter() - started) * 1000
+            if produced is not None:
+                try:
+                    frozen_gold = question.get("expected_result")
+                    if isinstance(frozen_gold, list):
+                        reference = frozen_gold
+                    else:
+                        reference_sql = guard.validate_sql(
+                            bind_reference_sql(question["sql"], question),
+                            allowed_views=views_for(role),
+                            max_rows=settings.ai_max_rows,
+                        )
+                        reference = await executor.execute(
+                            reference_sql,
+                            role=role,
+                            timeout_seconds=settings.ai_sql_timeout_seconds,
+                        )
+                    ordered = bool(question.get("answer_rubric", {}).get("ordering_required"))
+                    hit = (
+                        _rows(produced) == _rows(reference)
+                        if ordered
+                        else strict_match(produced, reference)
+                    )
+                    status = "đúng" if hit else "sai"
+                    relaxed = hit or relaxed_match(produced, reference)
+                    reason = "" if hit else "Kết quả khác SQL chuẩn."
+                except Exception as exc:
+                    status, reason = "lỗi", f"Lỗi đáp án chuẩn: {type(exc).__name__}"
+        if reason and status != "đúng":
+            failures.append(Failure(question["id"], reason))
+        outcomes.append(
+            Outcome(
+                question_id=question["id"],
+                difficulty=question.get("difficulty", ""),
+                role=question["role"],
+                status=status,
+                latency_ms=round(elapsed, 1),
+                sql=sql,
+                relaxed=relaxed or status == "đúng",
+                answer=answer,
+                input_tokens=usage.input_tokens,
+                output_tokens=usage.output_tokens,
+                cost_usd=usage.cost_usd,
+                call_count=usage.call_count,
+                models=usage.models,
+                usage_complete=all(a.usage_reported for a in usage.attempts),
+                produced_rows=produced,
+                reference_rows=reference,
             )
-            gold_started = time.perf_counter()
-            reference = await executor.execute(
-                question["sql"],
-                role=role,
-                timeout_seconds=settings.ai_sql_timeout_seconds,
-            )
-            reference_ms = (time.perf_counter() - gold_started) * 1000
-        except Exception as exc:
-            errors += 1
-            failures.append(Failure(question_id, f"lỗi thực thi: {exc}"))
-            record(question, "lỗi", started, sql)
-            continue
+        )
+        print(
+            f"[{config.value}] {question['id']} {status} {elapsed:.0f} ms",
+            file=sys.stderr,
+            flush=True,
+        )
+    return _summarize(config, outcomes, failures)
 
-        if expected_refusal:
-            failures.append(Failure(question_id, "câu vượt quyền nhưng vẫn trả dữ liệu"))
-            record(question, "sai", started, sql, overhead_ms=reference_ms)
-        elif strict_match(produced, reference):
-            correct += 1
-            record(question, "đúng", started, sql, overhead_ms=reference_ms)
-        else:
-            failures.append(Failure(question_id, "kết quả khác SQL chuẩn"))
-            record(
-                question,
-                "sai",
-                started,
-                sql,
-                relaxed_match(produced, reference),
-                overhead_ms=reference_ms,
-            )
 
-    total = len(questions) or 1
-    return ConfigResult(
-        config=config.value,
-        execution_accuracy=correct / total,
-        error_rate=errors / total,
-        refusal_rate=refusals / total,
-        mean_latency_ms=sum(latencies) / len(latencies) if latencies else 0.0,
-        relaxed_accuracy=sum(outcome.relaxed for outcome in outcomes) / total,
-        p95_latency_ms=percentile(latencies, 0.95),
-        failures=failures,
-        outcomes=outcomes,
-    )
+async def run_interleaved(
+    configs: list[Config], questions: list[Any], runs: int = 3
+) -> list[ConfigResult]:
+    """Interleave configurations per question; rotate the first config each repeat."""
+    buckets: dict[Config, list[Outcome]] = {config: [] for config in configs}
+    failures: dict[Config, list[Failure]] = {config: [] for config in configs}
+    async with open_session() as session:
+        for repeat in range(max(1, runs)):
+            rotation = repeat % len(configs)
+            order = configs[rotation:] + configs[:rotation]
+            for question in questions:
+                for config in order:
+                    result = await _run(config, [question], session)
+                    buckets[config].extend(
+                        replace(o, run_index=repeat + 1) for o in result.outcomes
+                    )
+                    failures[config].extend(result.failures)
+    return [
+        _summarize(config, buckets[config], failures[config], max(1, runs)) for config in configs
+    ]
+
+
+def _answer_accuracy(outcomes: list[Outcome]) -> float | None:
+    if not outcomes or any(o.answer_correct is None for o in outcomes):
+        return None
+    return sum(o.status == "đúng" and o.answer_correct is True for o in outcomes) / len(outcomes)
+
+
+def metrics_by(outcomes: list[Outcome], key: str) -> dict[str, dict[str, Any]]:
+    groups = sorted({getattr(o, key) for o in outcomes})
+    return {
+        group: {
+            "samples": len(rows := [o for o in outcomes if getattr(o, key) == group]),
+            "p50_latency_ms": percentile([o.latency_ms for o in rows], 0.50),
+            "p95_latency_ms": percentile([o.latency_ms for o in rows], 0.95),
+            "execution_accuracy": sum(o.status == "đúng" for o in rows) / len(rows),
+            "answer_accuracy": _answer_accuracy(rows),
+            "cost_usd": sum(o.cost_usd for o in rows),
+        }
+        for group in groups
+    }
 
 
 def compare(results: list[ConfigResult]) -> ComparisonTable:
@@ -378,6 +487,14 @@ def compare(results: list[ConfigResult]) -> ComparisonTable:
             "refusal_rate": round(result.refusal_rate, 4),
             "mean_latency_ms": round(result.mean_latency_ms, 1),
             "p95_latency_ms": round(result.p95_latency_ms, 1),
+            "answer_accuracy": _answer_accuracy(result.outcomes),
+            "answer_grades_pending": sum(o.answer_correct is None for o in result.outcomes),
+            "input_tokens": sum(o.input_tokens for o in result.outcomes),
+            "output_tokens": sum(o.output_tokens for o in result.outcomes),
+            "cost_usd": sum(o.cost_usd for o in result.outcomes),
+            "usage_complete": all(o.usage_complete for o in result.outcomes),
+            "metrics_by_role": metrics_by(result.outcomes, "role"),
+            "metrics_by_difficulty": metrics_by(result.outcomes, "difficulty"),
             "runs": result.runs,
             "failures": len(result.failures),
             "relaxed_accuracy": round(result.relaxed_accuracy, 4),
@@ -422,7 +539,7 @@ async def _main(
     runs: int = 1,
 ) -> int:
     questions = load_questions(questions_path)
-    results = [await run_configuration(config, questions, runs=runs) for config in configs]
+    results = await run_interleaved(configs, questions, runs=runs)
     table = compare(results)
     detail = {
         result.config: {
@@ -432,7 +549,9 @@ async def _main(
         for result in results
     }
     out.write_text(
-        json.dumps({"rows": table.rows, "detail": detail}, ensure_ascii=False, indent=2),
+        json.dumps(
+            {"rows": table.rows, "detail": detail}, ensure_ascii=False, indent=2, default=str
+        ),
         encoding="utf-8",
     )
     for row in table.rows:

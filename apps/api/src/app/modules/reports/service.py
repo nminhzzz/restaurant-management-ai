@@ -6,6 +6,7 @@ from datetime import date
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.errors import BusinessRuleError
 from app.modules.reports import queries
 from app.modules.reports.periods import BusinessPeriod, month_period, resolve_period
 from app.modules.reports.schemas import (
@@ -135,6 +136,22 @@ def clear_comparison_cache() -> None:
     _comparison_locks.clear()
 
 
+def month_span(start: str, end: str) -> BusinessPeriod:
+    """A contiguous run of whole months, used by FR-REP-08 date-range comparison."""
+    first = month_period(start)
+    last = month_period(end)
+    if last.start < first.start:
+        raise BusinessRuleError("Kỳ kết thúc phải sau kỳ bắt đầu.")
+    return BusinessPeriod(first.start, last.end, "range")
+
+
+async def comparison_periods(
+    session: AsyncSession, left: BusinessPeriod, right: BusinessPeriod
+) -> ComparisonOut:
+    result = await queries.compare_periods(session, left, right)
+    return _comparison_out(result)
+
+
 async def comparison(session: AsyncSession, left: str, right: str) -> ComparisonOut:
     key = (left, right)
     cached = _comparison_cache.get(key)
@@ -168,8 +185,8 @@ def _comparison_out(result) -> ComparisonOut:
     )
 
 
-async def cancelled(session: AsyncSession, month: str) -> CancelledReportOut:
-    result = await queries.cancelled_orders(session, month_period(month))
+async def cancelled(session: AsyncSession, period: BusinessPeriod) -> CancelledReportOut:
+    result = await queries.cancelled_orders(session, period)
     return CancelledReportOut(
         SoLuong=result.SoLuong,
         TongGiaTri=result.TongGiaTri,
@@ -187,8 +204,8 @@ async def cancelled(session: AsyncSession, month: str) -> CancelledReportOut:
     )
 
 
-async def closed_unpaid(session: AsyncSession, month: str) -> ClosedUnpaidReportOut:
-    result = await queries.closed_unpaid_orders(session, month_period(month))
+async def closed_unpaid(session: AsyncSession, period: BusinessPeriod) -> ClosedUnpaidReportOut:
+    result = await queries.closed_unpaid_orders(session, period)
     return ClosedUnpaidReportOut(
         SoLuong=result.SoLuong,
         TongGiaTri=result.TongGiaTri,
@@ -223,6 +240,7 @@ async def pending_payments(
                 TrangThai=row.TrangThai,
                 ThoiGianChoPhut=row.ThoiGianChoPhut,
                 KetQuaGanNhat=row.KetQuaGanNhat,
+                LichSu=row.LichSu,
             )
             for row in rows
         ]

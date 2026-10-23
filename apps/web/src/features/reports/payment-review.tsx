@@ -6,6 +6,7 @@ import { useCallback, useState } from "react";
 import { EmptyState, ErrorState, LoadingState } from "@/components/page-states";
 import { Button } from "@/components/ui/button";
 import { MonthPicker, currentMonth } from "@/features/reports/period-picker";
+import { Bars } from "@/features/reports/chart";
 import { ReportTable } from "@/features/reports/report-table";
 import { apiFetch } from "@/lib/api-client";
 import { formatDateTime, formatNumber, formatVnd } from "@/lib/format";
@@ -21,6 +22,12 @@ type PendingPayment = {
   TrangThai: string;
   ThoiGianChoPhut: number;
   KetQuaGanNhat: string | null;
+  LichSu?: {
+    ThoiDiem: string | null;
+    HanhDong: string;
+    GhiChu: string | null;
+    KetQua: string | null;
+  }[];
 };
 
 type PaymentException = {
@@ -160,23 +167,46 @@ export function PaymentReview() {
             description="Giao dịch QR chờ xác nhận hoặc chờ đối soát sẽ hiện ở đây."
           />
         ) : (
-          <ReportTable
-            headers={[
-              "Order",
-              "Số tiền",
-              "Trạng thái",
-              "Đã chờ",
-              "Kết quả gần nhất",
-            ]}
-            rows={pending.map((row) => [
-              orderLabel(row.MaOrderHienThi, row.MaOrder),
-              formatVnd(row.SoTien),
-              row.TrangThai,
-              `${formatNumber(row.ThoiGianChoPhut)} phút`,
-              row.KetQuaGanNhat ?? "—",
-            ])}
-            pageSize={10}
-          />
+          <>
+            <Bars
+              items={pending.map((row) => ({
+                key: row.MaOrder,
+                label: orderLabel(row.MaOrderHienThi, row.MaOrder),
+                value: Number(row.SoTien) || 0,
+              }))}
+              ariaLabel="Biểu đồ số tiền đang chờ xác minh theo order"
+              tickFormat={(t) => `${formatNumber(t / 1_000_000)}tr`}
+              tooltipFormat={(item) =>
+                `${item.label}: ${formatVnd(item.value)}`
+              }
+            />
+            <ReportTable
+              headers={[
+                "Order",
+                "Số tiền",
+                "Trạng thái",
+                "Đã chờ",
+                "Kết quả gần nhất",
+                "Lịch sử xác minh",
+              ]}
+              rows={pending.map((row) => [
+                orderLabel(row.MaOrderHienThi, row.MaOrder),
+                formatVnd(row.SoTien),
+                row.TrangThai,
+                `${formatNumber(row.ThoiGianChoPhut)} phút`,
+                row.KetQuaGanNhat ?? "—",
+                (row.LichSu?.length ?? 0) === 0
+                  ? "—"
+                  : row.LichSu?.map(
+                      (entry) =>
+                        `${formatDateTime(entry.ThoiDiem)}${
+                          entry.GhiChu ? ` · ${entry.GhiChu}` : ""
+                        }${entry.KetQua ? ` · ${entry.KetQua}` : ""}`,
+                    ).join(" / "),
+              ])}
+              pageSize={10}
+            />
+          </>
         )}
       </section>
 
@@ -194,54 +224,70 @@ export function PaymentReview() {
             description="Webhook không khớp order sẽ được lưu ở đây để đối chiếu."
           />
         ) : (
-          <ReportTable
-            headers={[
-              "Mã chuyển khoản",
-              "Order",
-              "Số tiền",
-              "Lý do",
-              "Trạng thái",
-              "Thời điểm",
-              "Xử lý",
-            ]}
-            rows={exceptions.map((row) => [
-              row.MaGiaoDichCong,
-              orderLabel(row.MaOrderHienThi, row.MaOrder),
-              formatVnd(row.SoTien),
-              row.LyDo ?? "—",
-              row.TrangThai,
-              formatDateTime(row.ThoiDiemXuLy ?? row.ThoiDiemTao),
-              row.TrangThai === "Chờ xử lý" ? (
-                <span key={row.MaNgoaiLe} className="flex flex-wrap gap-1.5">
-                  <Button
-                    size="sm"
-                    disabled={busy}
-                    onClick={() => resolve(row, "applied")}
-                  >
-                    Áp dụng
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    disabled={busy}
-                    onClick={() => resolve(row, "refunded")}
-                  >
-                    Đã hoàn tiền
-                  </Button>
-                </span>
-              ) : (
-                <span key={row.MaNgoaiLe}>
-                  {row.GhiChu ?? "—"}
-                  {row.MaThamChieuHoan
-                    ? ` · ${row.MaThamChieuHoan}${
-                        row.SoTienHoan ? ` (${formatVnd(row.SoTienHoan)})` : ""
-                      }`
-                    : ""}
-                </span>
-              ),
-            ])}
-            pageSize={10}
-          />
+          <>
+            <Bars
+              items={exceptions.map((row) => ({
+                key: row.MaNgoaiLe,
+                label: row.MaGiaoDichCong,
+                value: Number(row.SoTien) || 0,
+              }))}
+              ariaLabel="Biểu đồ số tiền các khoản ngoại lệ"
+              tickFormat={(t) => `${formatNumber(t / 1_000_000)}tr`}
+              tooltipFormat={(item) =>
+                `${item.label}: ${formatVnd(item.value)}`
+              }
+            />
+            <ReportTable
+              headers={[
+                "Mã chuyển khoản",
+                "Order",
+                "Số tiền",
+                "Lý do",
+                "Trạng thái",
+                "Thời điểm",
+                "Xử lý",
+              ]}
+              rows={exceptions.map((row) => [
+                row.MaGiaoDichCong,
+                orderLabel(row.MaOrderHienThi, row.MaOrder),
+                formatVnd(row.SoTien),
+                row.LyDo ?? "—",
+                row.TrangThai,
+                formatDateTime(row.ThoiDiemXuLy ?? row.ThoiDiemTao),
+                row.TrangThai === "Chờ xử lý" ? (
+                  <span key={row.MaNgoaiLe} className="flex flex-wrap gap-1.5">
+                    <Button
+                      size="sm"
+                      disabled={busy}
+                      onClick={() => resolve(row, "applied")}
+                    >
+                      Áp dụng
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      disabled={busy}
+                      onClick={() => resolve(row, "refunded")}
+                    >
+                      Đã hoàn tiền
+                    </Button>
+                  </span>
+                ) : (
+                  <span key={row.MaNgoaiLe}>
+                    {row.GhiChu ?? "—"}
+                    {row.MaThamChieuHoan
+                      ? ` · ${row.MaThamChieuHoan}${
+                          row.SoTienHoan
+                            ? ` (${formatVnd(row.SoTienHoan)})`
+                            : ""
+                        }`
+                      : ""}
+                  </span>
+                ),
+              ])}
+              pageSize={10}
+            />
+          </>
         )}
       </section>
     </div>

@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from typing import Annotated
 
 import pytest
@@ -30,9 +31,12 @@ def _build_app() -> FastAPI:
     return app
 
 
-@pytest.fixture
-def guarded_client() -> TestClient:
-    return TestClient(_build_app())
+@pytest.fixture(scope="module")
+def guarded_client() -> Iterator[TestClient]:
+    # A context-managed client keeps one event loop for the whole module. Without it each
+    # request gets a fresh loop, and the shared engine pool cannot reuse its connections.
+    with TestClient(_build_app()) as client:
+        yield client
 
 
 def test_request_without_token_is_rejected(guarded_client: TestClient) -> None:

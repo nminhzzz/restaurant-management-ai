@@ -20,11 +20,18 @@ import {
   StatusBadge,
 } from "@/components/page-states";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import { escapeHtml, printDocument } from "@/lib/print";
-import { formatVnd } from "@/lib/format";
+import { formatDateTime, formatVnd } from "@/lib/format";
 import { loadSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { useResource } from "@/lib/use-resource";
@@ -50,7 +57,10 @@ type Payment = {
   TrangThai: string;
   ThoiDiemTaoQR?: string | null;
   ThoiDiemHetHan?: string | null;
+  ThoiDiemTao?: string | null;
+  SoTien?: number;
   MaThamChieuNganHang?: string | null;
+  AnhChungTu?: string | null;
   qr_image_url?: string;
   payment_code?: string;
   bank_code?: string;
@@ -136,8 +146,23 @@ export function PaymentPanel({
   const [remaining, setRemaining] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const [reason, setReason] = useState("");
   const [bankRef, setBankRef] = useState("");
+  const [verifyOpen, setVerifyOpen] = useState(false);
+  const [verifyMode, setVerifyMode] = useState<"request" | "reference">(
+    "request",
+  );
+  const [verifyRef, setVerifyRef] = useState("");
+  const [verifyNote, setVerifyNote] = useState("");
+  const [verifyEvidence, setVerifyEvidence] = useState("");
+  const [verifyError, setVerifyError] = useState<string | null>(null);
+  const [managerAction, setManagerAction] = useState<
+    "reopen" | "close" | "check" | null
+  >(null);
+  const [actionReason, setActionReason] = useState("");
+  const [actionOutcome, setActionOutcome] = useState("");
+  const [actionNote, setActionNote] = useState("");
   const [invoice, setInvoice] = useState<InvoiceDetail | null>(null);
   const [printingProvisional, setPrintingProvisional] = useState(false);
   const [method, setMethod] = useState<"cash" | "qr">("cash");
@@ -272,10 +297,13 @@ export function PaymentPanel({
   async function run(action: () => Promise<void>, fallback: string) {
     setError(null);
     setMessage(null);
+    setBusy(true);
     try {
       await action();
     } catch (e: unknown) {
       setError(messageOf(e, fallback));
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -361,34 +389,79 @@ export function PaymentPanel({
   };
 
   const requestVerification = () => {
+    setVerifyMode("request");
+    setVerifyRef("");
+    setVerifyNote("");
+    setVerifyEvidence("");
+    setVerifyError(null);
+    setVerifyOpen(true);
+  };
+
+  const addEvidence = () => {
+    setVerifyMode("reference");
+    setVerifyRef(qr?.MaThamChieuNganHang ?? "");
+    setVerifyNote("");
+    setVerifyEvidence(qr?.AnhChungTu ?? "");
+    setVerifyError(null);
+    setVerifyOpen(true);
+  };
+
+  const submitVerification = () => {
     if (!qr) return;
+    if (!verifyRef.trim()) {
+      setVerifyError("Nhập mã giao dịch ngân hàng/ví do khách cung cấp.");
+      return;
+    }
     return run(async () => {
+      if (verifyMode === "reference") {
+        await apiFetch(`/sales/payments/${qr.MaGiaoDich}/reference`, {
+          method: "POST",
+          body: {
+            reference: verifyRef.trim(),
+            evidence: verifyEvidence || null,
+          },
+        });
+        setMessage("Đã bổ sung mã giao dịch/bằng chứng.");
+        setVerifyOpen(false);
+        await detail.reload();
+        return;
+      }
       const result = await apiFetch<{ TrangThai: string }>(
         `/sales/payments/${qr.MaGiaoDich}/request-verification`,
-        { method: "POST", body: {} },
+        {
+          method: "POST",
+          body: {
+            reference: verifyRef.trim(),
+            note: verifyNote.trim() || null,
+            evidence: verifyEvidence || null,
+          },
+        },
       );
       setQr({ ...qr, TrangThai: result.TrangThai });
       setMessage("Đã ghi nhận khách báo chuyển tiền; chờ quản lý xác minh.");
+      setVerifyOpen(false);
       setQr(null);
       setRemaining(null);
       await detail.reload();
     }, "Không gửi được yêu cầu xác minh.");
   };
 
+  const readEvidence = (file: File | undefined) => {
+    if (!file) return;
+    if (file.size > 1_500_000) {
+      setVerifyError("Ảnh xác nhận tối đa 1,5 MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setVerifyEvidence(String(reader.result ?? ""));
+    reader.onerror = () => setVerifyError("Không đọc được ảnh xác nhận.");
+    reader.readAsDataURL(file);
+  };
+
   const reopenPayment = () => {
-    if (!qr) return;
-    const reasonText = window.prompt("Lý do mở lại thanh toán:");
-    if (!reasonText?.trim()) return;
-    return run(async () => {
-      await apiFetch(`/sales/payments/${qr.MaGiaoDich}/reopen`, {
-        method: "POST",
-        body: { reason: reasonText },
-      });
-      setMessage("Đã mở lại order để thu tiền lần khác.");
-      setQr(null);
-      setRemaining(null);
-      await detail.reload();
-    }, "Không mở lại được thanh toán.");
+    setActionReason("");
+    setActionOutcome("");
+    setManagerAction("reopen");
   };
 
   const applyLatePayment = () => {
@@ -408,18 +481,9 @@ export function PaymentPanel({
   };
 
   const closeUnpaid = () => {
-    const reasonText = window.prompt("Lý do đóng order chưa thu được tiền:");
-    if (!reasonText?.trim()) return;
-    return run(async () => {
-      await apiFetch(`/sales/orders/${orderId}/close-unpaid`, {
-        method: "POST",
-        body: { reason: reasonText },
-      });
-      setMessage("Đã đóng order ở trạng thái chưa thu được tiền.");
-      setQr(null);
-      setRemaining(null);
-      await detail.reload();
-    }, "Không đóng được order.");
+    setActionReason("");
+    setActionOutcome("");
+    setManagerAction("close");
   };
 
   const saveBankRef = () => {
@@ -433,7 +497,7 @@ export function PaymentPanel({
     }, "Không lưu được mã tham chiếu.");
   };
 
-  const resolve = (outcome: "received" | "not_received") => {
+  const resolve = (outcome: "received" | "not_received", note?: string) => {
     if (!qr) return;
     let receivedAmount: number | undefined;
     if (outcome === "received") {
@@ -454,6 +518,7 @@ export function PaymentPanel({
         method: "POST",
         body: {
           outcome,
+          ...(note ? { note } : {}),
           ...(receivedAmount !== undefined
             ? { received_amount: receivedAmount }
             : {}),
@@ -472,6 +537,50 @@ export function PaymentPanel({
         onPaid?.({ change: null });
       }
     }, "Không xử lý được đối soát.");
+  };
+
+  const submitManagerAction = () => {
+    if (!qr || !managerAction) return;
+    if (managerAction === "check") {
+      if (!actionNote.trim()) return;
+      return run(async () => {
+        await apiFetch(`/sales/payments/${qr.MaGiaoDich}/resolve`, {
+          method: "POST",
+          body: { outcome: "not_received", note: actionNote.trim() },
+        });
+        setMessage("Đã lưu kết quả kiểm tra; order vẫn chờ xác minh.");
+        setManagerAction(null);
+        await detail.reload();
+      }, "Không lưu được kết quả kiểm tra.");
+    }
+    if (!actionReason.trim() || !actionOutcome.trim()) return;
+    const isClose = managerAction === "close";
+    return run(
+      async () => {
+        await apiFetch(
+          isClose
+            ? `/sales/orders/${orderId}/close-unpaid`
+            : `/sales/payments/${qr.MaGiaoDich}/reopen`,
+          {
+            method: "POST",
+            body: {
+              reason: actionReason.trim(),
+              outcome: actionOutcome.trim(),
+            },
+          },
+        );
+        setMessage(
+          isClose
+            ? "Đã đóng order ở trạng thái chưa thu được tiền."
+            : "Đã mở lại order để thu tiền lần khác.",
+        );
+        setManagerAction(null);
+        setQr(null);
+        setRemaining(null);
+        await detail.reload();
+      },
+      isClose ? "Không đóng được order." : "Không mở lại được thanh toán.",
+    );
   };
 
   const cancelOrder = () =>
@@ -496,6 +605,8 @@ export function PaymentPanel({
           },
         ),
       );
+      // The reprint command must actually reach the printer, not only refresh the preview.
+      window.print();
     }, "In lại hóa đơn thất bại.");
 
   return (
@@ -792,10 +903,51 @@ export function PaymentPanel({
                     Order đang chờ xác minh thanh toán. Không thể thêm món hoặc
                     thu tiền mặt cho tới khi quản lý xử lý.
                   </p>
+                  <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+                    {qr?.SoTien !== undefined && (
+                      <>
+                        <dt className="text-muted">Số tiền</dt>
+                        <dd className="text-right tabular-nums">
+                          {formatVnd(qr.SoTien)}
+                        </dd>
+                      </>
+                    )}
+                    <dt className="text-muted">Mã giao dịch</dt>
+                    <dd className="text-right">
+                      {qr?.MaThamChieuNganHang ?? "Chưa nhập"}
+                    </dd>
+                    <dt className="text-muted">Tạo lúc</dt>
+                    <dd className="text-right">
+                      {formatDateTime(qr?.ThoiDiemTao ?? null)}
+                    </dd>
+                  </dl>
+                  {qr?.AnhChungTu && (
+                    <a
+                      href={qr.AnhChungTu}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm font-semibold text-primary underline"
+                    >
+                      Xem ảnh xác nhận
+                    </a>
+                  )}
+                  <Button size="sm" variant="secondary" onClick={addEvidence}>
+                    Bổ sung bằng chứng
+                  </Button>
                   {isManager && (
                     <div className="flex flex-wrap gap-2">
                       <Button size="sm" onClick={() => resolve("received")}>
                         Xác nhận đã nhận tiền
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => {
+                          setActionNote("");
+                          setManagerAction("check");
+                        }}
+                      >
+                        Lưu kết quả chưa đủ căn cứ
                       </Button>
                       <Button
                         size="sm"
@@ -854,6 +1006,9 @@ export function PaymentPanel({
                       </Button>
                     </div>
                   </div>
+                  <Button size="sm" variant="secondary" onClick={addEvidence}>
+                    Bổ sung bằng chứng
+                  </Button>
                   {isManager && (
                     <div className="flex flex-wrap gap-2">
                       <Button size="sm" onClick={() => resolve("received")}>
@@ -922,6 +1077,143 @@ export function PaymentPanel({
       {invoice && (
         <InvoicePreview invoice={invoice} onReprint={reprintInvoice} />
       )}
+
+      <Dialog open={verifyOpen} onOpenChange={setVerifyOpen}>
+        <DialogContent className="w-[min(28rem,calc(100vw-2rem))]">
+          <DialogHeader>
+            <DialogTitle>
+              {verifyMode === "reference"
+                ? "Bổ sung bằng chứng"
+                : "Khách báo đã chuyển tiền"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid gap-1.5">
+              <Label htmlFor={`verify-ref-${orderId}`}>
+                Mã giao dịch ngân hàng/ví
+              </Label>
+              <Input
+                id={`verify-ref-${orderId}`}
+                value={verifyRef}
+                onChange={(e) => setVerifyRef(e.target.value)}
+                placeholder="Ví dụ: FT2609xxxxx"
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor={`verify-note-${orderId}`}>
+                Thông tin bổ sung
+              </Label>
+              <Input
+                id={`verify-note-${orderId}`}
+                value={verifyNote}
+                onChange={(e) => setVerifyNote(e.target.value)}
+                placeholder="Ví dụ: khách gửi lúc 19:05"
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor={`verify-image-${orderId}`}>
+                Ảnh xác nhận (tuỳ chọn)
+              </Label>
+              <input
+                id={`verify-image-${orderId}`}
+                type="file"
+                accept="image/*"
+                className="text-sm"
+                onChange={(e) => readEvidence(e.target.files?.[0])}
+              />
+              {verifyEvidence && (
+                <p className="text-xs text-success-fg">Đã đính kèm ảnh.</p>
+              )}
+            </div>
+            {verifyError && (
+              <p role="alert" className="text-sm text-danger-fg">
+                {verifyError}
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setVerifyOpen(false)}>
+              Đóng
+            </Button>
+            <Button onClick={submitVerification} disabled={busy}>
+              {verifyMode === "reference"
+                ? "Lưu bằng chứng"
+                : "Gửi yêu cầu xác minh"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={managerAction !== null}
+        onOpenChange={(open) => !open && setManagerAction(null)}
+      >
+        <DialogContent className="w-[min(28rem,calc(100vw-2rem))]">
+          <DialogHeader>
+            <DialogTitle>
+              {managerAction === "check"
+                ? "Lưu kết quả kiểm tra"
+                : managerAction === "close"
+                  ? "Đóng order chưa thu được tiền"
+                  : "Mở lại thanh toán"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {managerAction === "check" ? (
+              <div className="grid gap-1.5">
+                <Label htmlFor={`check-note-${orderId}`}>
+                  Kết quả kiểm tra
+                </Label>
+                <Input
+                  id={`check-note-${orderId}`}
+                  value={actionNote}
+                  onChange={(e) => setActionNote(e.target.value)}
+                  placeholder="Ví dụ: chưa thấy giao dịch trên sao kê"
+                />
+              </div>
+            ) : (
+              <>
+                <div className="grid gap-1.5">
+                  <Label htmlFor={`action-reason-${orderId}`}>Lý do</Label>
+                  <Input
+                    id={`action-reason-${orderId}`}
+                    value={actionReason}
+                    onChange={(e) => setActionReason(e.target.value)}
+                    placeholder="Ví dụ: khách xác nhận chưa chuyển"
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor={`action-outcome-${orderId}`}>
+                    Kết quả xử lý bên ngoài
+                  </Label>
+                  <Input
+                    id={`action-outcome-${orderId}`}
+                    value={actionOutcome}
+                    onChange={(e) => setActionOutcome(e.target.value)}
+                    placeholder="Ví dụ: đã thống nhất thu lại bằng tiền mặt"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setManagerAction(null)}>
+              Đóng
+            </Button>
+            <Button
+              onClick={submitManagerAction}
+              disabled={
+                busy ||
+                (managerAction === "check"
+                  ? actionNote.trim() === ""
+                  : actionReason.trim() === "" || actionOutcome.trim() === "")
+              }
+            >
+              Lưu
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
@@ -945,6 +1237,11 @@ export function InvoicePreview({
             <p className="text-xs text-muted">{invoice.DiaChi}</p>
           )}
           <p className="mt-1 text-xs text-subtle">Hóa đơn {invoice.SoHoaDon}</p>
+          {invoice.ThoiDiemXuat && (
+            <p className="text-xs text-subtle">
+              Xuất lúc {formatDateTime(invoice.ThoiDiemXuat)}
+            </p>
+          )}
         </div>
         {invoice.lines && (
           <ul className="divide-y divide-border">

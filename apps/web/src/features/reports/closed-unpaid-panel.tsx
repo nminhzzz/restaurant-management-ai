@@ -9,6 +9,7 @@ import {
   LoadingState,
   StatCard,
 } from "@/components/page-states";
+import { Bars } from "@/features/reports/chart";
 import { ReportTable } from "@/features/reports/report-table";
 import { apiFetch } from "@/lib/api-client";
 import { formatDateTime, formatNumber, formatVnd } from "@/lib/format";
@@ -32,11 +33,19 @@ type ClosedUnpaidResponse = {
 };
 
 /** FR-REP-10: orders closed without money, kept apart from cancelled orders. */
-export function ClosedUnpaidPanel({ month }: { month: string }) {
+export function ClosedUnpaidPanel({
+  granularity,
+  anchor,
+}: {
+  granularity: string;
+  anchor: string;
+}) {
   const fetcher = useCallback(
     () =>
-      apiFetch<ClosedUnpaidResponse>(`/reports/closed-unpaid?month=${month}`),
-    [month],
+      apiFetch<ClosedUnpaidResponse>(
+        `/reports/closed-unpaid?granularity=${granularity}&anchor=${anchor}`,
+      ),
+    [granularity, anchor],
   );
   const resource = useResource(fetcher);
 
@@ -49,7 +58,7 @@ export function ClosedUnpaidPanel({ month }: { month: string }) {
     return (
       <EmptyState
         icon={Wallet}
-        title="Không có order đóng chưa thu tiền trong tháng"
+        title="Không có order đóng chưa thu tiền trong kỳ"
         description="Order chỉ vào đây khi quản lý đóng sau khi không thu được tiền."
       />
     );

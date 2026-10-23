@@ -39,6 +39,69 @@ type Page<T> = { items: T[]; total: number };
 
 const PAGE_SIZE = 20;
 
+// Vietnamese labels for audit actions; unknown codes stay visible instead of vanishing.
+const ACTION_LABELS: Record<string, string> = {
+  APPLY_LATE_PAYMENT: "Áp dụng khoản tiền đến muộn",
+  APPLY_PRICE_DIRECTLY: "Sửa giá trực tiếp",
+  APPLY_RECIPE_DIRECTLY: "Sửa công thức trực tiếp",
+  ASSIGN_RECIPE: "Gán công thức",
+  CANCEL_ORDER: "Hủy toàn bộ order",
+  CANCEL_ORDER_LINE: "Hủy món",
+  CANCEL_PRICE_CHANGE: "Hủy lịch đổi giá",
+  CANCEL_QR_TRANSACTION: "Hủy giao dịch QR",
+  CANCEL_RECEIPT: "Hủy phiếu nhập",
+  CANCEL_RECIPE_CHANGE: "Hủy lịch đổi công thức",
+  CANCEL_STOCKTAKE: "Hủy phiên kiểm kê",
+  CLOSE_COSTING_MONTH: "Chốt giá vốn tháng",
+  CLOSE_UNPAID_ORDER: "Đóng order chưa thu tiền",
+  CONFIRM_STOCKTAKE: "Xác nhận kiểm kê",
+  CREATE_DISH: "Tạo món",
+  CREATE_GROUP: "Tạo nhóm món",
+  CREATE_INGREDIENT: "Tạo nguyên liệu",
+  CREATE_RECEIPT: "Tạo phiếu nhập",
+  CREATE_SUPPLIER: "Tạo nhà cung cấp",
+  CREATE_TABLE: "Tạo bàn",
+  CREATE_USER: "Tạo tài khoản",
+  DELETE_DISH: "Xóa món",
+  DELETE_GROUP: "Xóa nhóm món",
+  DELETE_INGREDIENT: "Xóa nguyên liệu",
+  DELETE_SUPPLIER: "Xóa nhà cung cấp",
+  DELETE_TABLE: "Xóa bàn",
+  EXPORT_BACKUP: "Xuất bản sao dữ liệu",
+  FLAG_RECONCILIATION: "Chuyển chờ đối soát",
+  LATE_PAYMENT_VOIDS_QR: "Hủy QR do tiền đến muộn",
+  LOCK_USER: "Khóa tài khoản",
+  UNLOCK_USER: "Mở khóa tài khoản",
+  MANUAL_STOCK_ISSUE: "Lập phiếu xuất hủy",
+  MOVE_ORDER_TABLE: "Đổi bàn order",
+  RECORD_BANK_REFERENCE: "Ghi mã giao dịch ngân hàng",
+  RELEASE_TABLE: "Giải phóng bàn",
+  REOPEN_PAYMENT: "Mở lại thanh toán",
+  REORDER_GROUPS: "Sắp xếp nhóm món",
+  REQUEST_PAYMENT_VERIFICATION: "Yêu cầu xác minh thanh toán",
+  RESET_PASSWORD: "Đặt lại mật khẩu",
+  RESOLVE_PAYMENT_EXCEPTION: "Xử lý khoản ngoại lệ",
+  RESOLVE_RECONCILIATION: "Xác nhận đối soát",
+  SCHEDULE_PRICE_CHANGE: "Lên lịch đổi giá",
+  SCHEDULE_RECIPE_CHANGE: "Lên lịch đổi công thức",
+  SET_MANUAL_PAUSE: "Tạm dừng/mở lại món",
+  UPDATE_CONFIG: "Cập nhật cấu hình",
+  UPDATE_DISH: "Cập nhật món",
+  UPDATE_GROUP: "Cập nhật nhóm món",
+  UPDATE_INGREDIENT: "Cập nhật nguyên liệu",
+  UPDATE_RECEIPT: "Sửa phiếu nhập",
+  UPDATE_SUPPLIER: "Cập nhật nhà cung cấp",
+  UPDATE_TABLE: "Cập nhật bàn",
+  UPDATE_USER: "Cập nhật tài khoản",
+  WEBHOOK_NEEDS_RECONCILIATION: "Webhook cần đối soát",
+  WEBHOOK_REJECTED: "Webhook bị từ chối",
+  WEBHOOK_UNMATCHED: "Webhook không khớp order",
+};
+
+export function actionLabel(code: string): string {
+  return ACTION_LABELS[code] ?? code;
+}
+
 // Vietnamese labels for the known target entities (physical table names, tokens.md §8).
 const TARGET_LABELS: Record<string, string> = {
   BAN: "Bàn",
@@ -240,7 +303,7 @@ export function AuditPanel() {
                         {formatDateTime(entry.ThoiDiem)}
                       </TableCell>
                       <TableCell className="font-medium">
-                        {entry.LoaiThaoTac}
+                        {actionLabel(entry.LoaiThaoTac)}
                       </TableCell>
                       <TableCell>
                         {entry.DoiTuong}{" "}

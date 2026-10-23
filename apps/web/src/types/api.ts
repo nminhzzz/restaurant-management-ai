@@ -55,6 +55,7 @@ export interface TurnOut {
   highlights: string[];
   status: string;
   occurred_at: string;
+  payload?: ChatResponse | null;
 }
 
 export interface SessionDetail {

@@ -171,9 +171,17 @@ async def get_dish(session: AsyncSession, dish_id: int) -> Dish | None:
     return await session.get(Dish, dish_id)
 
 
-async def list_dishes(session: AsyncSession, search: str | None = None) -> tuple[list[Dish], int]:
-    q = select(Dish).where(Dish.is_deleted == False)
-    cq = select(func.count()).select_from(Dish).where(Dish.is_deleted == False)
+async def list_dishes(
+    session: AsyncSession,
+    search: str | None = None,
+    *,
+    include_deleted: bool = False,
+) -> tuple[list[Dish], int]:
+    q = select(Dish)
+    cq = select(func.count()).select_from(Dish)
+    if not include_deleted:
+        q = q.where(Dish.is_deleted == False)
+        cq = cq.where(Dish.is_deleted == False)
     if search:
         like = f"%{search}%"
         q = q.where(Dish.name.ilike(like))

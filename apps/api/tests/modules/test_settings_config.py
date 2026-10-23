@@ -51,19 +51,22 @@ async def test_config_is_a_singleton(session):
 
 
 @pytest.mark.asyncio
-async def test_the_business_day_start_cannot_be_edited_from_the_api(session):
+async def test_the_business_day_start_is_scheduled_for_the_next_business_date(session):
     client, token = await _mgr(session)
     async with client:
-        await client.put(
+        updated = await client.put(
             "/api/v1/settings/config",
-            json={"GioBatDauBusinessDate": "08:00"},
+            json={"GioBatDauBusinessDate": "08:15"},
             headers={"Authorization": f"Bearer {token}"},
         )
         cfg = await client.get(
             "/api/v1/settings/config", headers={"Authorization": f"Bearer {token}"}
         )
     app.dependency_overrides.clear()
-    assert cfg.json()["GioBatDauBusinessDate"] in ("06:00:00", "06:00")
+    assert updated.status_code == 200
+    assert cfg.json()["GioBatDauBusinessDate"] == "06:00:00"
+    assert cfg.json()["GioBatDauBusinessDateMoi"] == "08:15:00"
+    assert cfg.json()["NgayHieuLucGioMoi"] is not None
 
 
 @pytest.mark.asyncio
@@ -136,3 +139,60 @@ async def test_operational_fields_reject_out_of_range_values(session):
     app.dependency_overrides.clear()
     assert zero_hold.status_code == 422
     assert negative_quota.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_expiry_warning_days_must_be_positive(session):
+    client, token = await _mgr(session)
+    async with client:
+        response = await client.put(
+            "/api/v1/settings/config",
+            json={"SoNgayCanhBaoHetHan": 0},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+    app.dependency_overrides.clear()
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_cutoff_change_before_old_boundary_cannot_start_in_the_past(session, monkeypatch):
+    from datetime import date, datetime, time
+
+    from app.modules.settings import service
+    from app.shared import business_date
+
+    await seed_reference_data(session)
+    monkeypatch.setattr(business_date, "now", lambda: datetime(2026, 10, 1, 5))
+    await service.update_config(session, None, {"GioBatDauBusinessDate": "04:30"})
+    changes = await business_date.load_business_date_schedule(session)
+    with business_date.business_date_schedule(changes):
+        assert business_date.business_date_of(datetime(2026, 10, 1, 5)) == date(2026, 9, 30)
+        assert business_date.business_date_start(date(2026, 10, 1)) == datetime(2026, 10, 1, 6)
+        assert business_date.cutoff_for(date(2026, 10, 2)) == time(4, 30)
+    await service.update_config(session, None, {"GioBatDauBusinessDate": "03:15"})
+    changes = await business_date.load_business_date_schedule(session)
+    with business_date.business_date_schedule(changes):
+        assert business_date.business_date_start(date(2026, 10, 1)) == datetime(2026, 10, 1, 6)
+
+
+@pytest.mark.asyncio
+async def test_editing_a_delayed_pending_cutoff_never_reclassifies_current_day(
+    session, monkeypatch
+):
+    from datetime import date, datetime
+
+    from app.modules.settings import service
+    from app.shared import business_date
+
+    await seed_reference_data(session)
+    monkeypatch.setattr(business_date, "now", lambda: datetime(2026, 9, 30, 22))
+    await service.update_config(session, None, {"GioBatDauBusinessDate": "08:15"})
+    monkeypatch.setattr(business_date, "now", lambda: datetime(2026, 10, 1, 7))
+    for cutoff in ("04:30", "06:00"):
+        await service.update_config(session, None, {"GioBatDauBusinessDate": cutoff})
+        changes = await business_date.load_business_date_schedule(session)
+        with business_date.business_date_schedule(changes):
+            assert business_date.business_date_of(datetime(2026, 10, 1, 7)) == date(2026, 9, 30)
+            assert business_date.business_date_start(date(2026, 10, 1)) == datetime(
+                2026, 10, 1, 8, 15
+            )

@@ -34,6 +34,8 @@ class Settings(BaseSettings):
 
     # AI Assistant (NFR-02 response budget, NFR-16 cost control).
     # DeepSeek's OpenAI-compatible API is the default commercial provider.
+    ai_input_usd_per_million: float = Field(default=0.30, ge=0)
+    ai_output_usd_per_million: float = Field(default=1.20, ge=0)
     ai_provider: str = "deepseek"
     ai_api_key: str = ""
     llm_model: str = "deepseek-flash"
@@ -62,6 +64,14 @@ class Settings(BaseSettings):
     # database, and the model gets at most `ai_max_sql_attempts` tries per question.
     ai_sql_timeout_seconds: float = 3.0
     ai_max_sql_attempts: int = 2
+
+    # Empty host keeps tickets pending; 0 poll interval disables automatic dispatch.
+    kitchen_printer_host: str = ""
+    kitchen_printer_port: int = Field(default=9100, ge=1, le=65535)
+    kitchen_printer_timeout_seconds: float = Field(default=3, gt=0, le=30)
+    kitchen_printer_poll_seconds: float = Field(default=2, ge=0, le=60)
+    kitchen_printer_max_attempts: int = Field(default=3, ge=1, le=10)
+    kitchen_printer_retry_seconds: float = Field(default=5, ge=0, le=300)
 
     payment_webhook_secret: str = ""
 

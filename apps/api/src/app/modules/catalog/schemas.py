@@ -163,6 +163,7 @@ class IngredientOut(BaseModel):
     MucTonToiThieu: float = Field(validation_alias="min_stock")
     SoNgayBaoQuan: int | None = Field(default=None, validation_alias="shelf_days")
     DaXoa: bool = Field(validation_alias="is_deleted")
+    KhoaDonViTinh: bool = Field(default=False, validation_alias="unit_locked")
 
     model_config = {"from_attributes": True, "populate_by_name": True}
 

@@ -32,10 +32,40 @@ async def test_configuration_b_sends_examples_and_normalises(fake_llm, one_quest
 
 
 @pytest.mark.anyio
-async def test_configuration_c_uses_a_different_model(fake_llm, one_question):
+async def test_configuration_c_uses_the_same_model_with_thinking(fake_llm, one_question):
     await run_configuration(Config.C, [one_question])
 
-    assert fake_llm.last_model != await model_for(Config.B)
+    assert fake_llm.last_model == await model_for(Config.B)
+
+
+@pytest.mark.anyio
+async def test_harness_keeps_interpretation_and_usage_for_manual_grading(fake_llm, one_question):
+    fake_llm.reply(f"SELECT COUNT(MaOrder) AS so_don FROM {one_question['view']}")
+    result = await run_configuration(Config.B, [one_question])
+    outcome = result.outcomes[0]
+    assert outcome.answer
+    assert outcome.call_count >= 2
+    assert outcome.answer_correct is None
+    assert outcome.reference_rows is not None
+    assert outcome.produced_rows is not None
+    assert compare([result]).rows[0]["answer_accuracy"] is None
+
+
+def test_reference_clock_replaces_relative_mysql_dates_without_changing_literals():
+    from data.eval.harness import bind_reference_sql
+
+    question = {
+        "reference_time": "2026-10-23T12:00:00+07:00",
+        "reference_business_date": "2026-10-23",
+    }
+    sql = (
+        "SELECT DATE(CURDATE() - INTERVAL 6 HOUR) AS BusinessDate, "
+        "CURDATE() AS Ngay, 'CURDATE()' AS Literal"
+    )
+    result = bind_reference_sql(sql, question)
+    assert "CURDATE()" in result  # The quoted data remains literal.
+    assert "2026-10-23" in result
+    assert "INTERVAL 6" not in result
 
 
 @pytest.mark.anyio

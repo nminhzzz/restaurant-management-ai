@@ -26,8 +26,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Supplier } from "@/features/catalog/types";
+import { ReceiptDetailDialog } from "@/features/inventory/receipt-detail-dialog";
 import { useCanWrite } from "@/features/catalog/use-role";
 import { apiFetch } from "@/lib/api-client";
+import { formatDate, formatVnd } from "@/lib/format";
 import { useAction } from "@/lib/use-action";
 import { useClientPagination } from "@/lib/use-client-pagination";
 import { useResource } from "@/lib/use-resource";
@@ -152,35 +154,56 @@ function SupplierDetailDialog({
     [supplierId],
   );
   const detail = useResource(fetchDetail);
+  const [receiptId, setReceiptId] = useState<number | null>(null);
 
   return (
-    <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Lịch sử nhập hàng</DialogTitle>
-        </DialogHeader>
-        {detail.status === "loading" ? (
-          <LoadingState rows={3} />
-        ) : detail.status === "error" ? (
-          <ErrorState message={detail.message} onRetry={detail.reload} />
-        ) : (detail.data.PhieuNhap ?? []).length === 0 ? (
-          <p className="text-muted">
-            Chưa có phiếu nhập nào từ nhà cung cấp này.
-          </p>
-        ) : (
-          <ul className="space-y-1.5">
-            {(detail.data.PhieuNhap ?? []).map((r) => (
-              <li
-                key={r.MaPhieuNhap}
-                className="rounded-control border border-border px-3 py-2"
-              >
-                Phiếu nhập #{r.MaPhieuNhap}
-              </li>
-            ))}
-          </ul>
-        )}
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open onOpenChange={onOpenChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Lịch sử nhập hàng</DialogTitle>
+          </DialogHeader>
+          {detail.status === "loading" ? (
+            <LoadingState rows={3} />
+          ) : detail.status === "error" ? (
+            <ErrorState message={detail.message} onRetry={detail.reload} />
+          ) : (detail.data.PhieuNhap ?? []).length === 0 ? (
+            <p className="text-muted">
+              Chưa có phiếu nhập nào từ nhà cung cấp này.
+            </p>
+          ) : (
+            <ul className="space-y-1.5">
+              {(detail.data.PhieuNhap ?? []).map((r) => (
+                <li
+                  key={r.MaPhieuNhap}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-control border border-border px-3 py-2"
+                >
+                  <span>
+                    Phiếu nhập #{r.MaPhieuNhap} · {formatDate(r.NgayNhap)}
+                  </span>
+                  <span className="flex items-center gap-2 text-muted">
+                    {r.TrangThai} · {formatVnd(r.TongTien)}
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setReceiptId(r.MaPhieuNhap)}
+                    >
+                      Xem
+                    </Button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </DialogContent>
+      </Dialog>
+      {receiptId !== null && (
+        <ReceiptDetailDialog
+          receiptId={receiptId}
+          onClose={() => setReceiptId(null)}
+        />
+      )}
+    </>
   );
 }
 

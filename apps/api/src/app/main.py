@@ -16,6 +16,7 @@ from app.modules.catalog.router import router as catalog_router
 from app.modules.inventory.router import router as inventory_router
 from app.modules.reports.router import router as reports_router
 from app.modules.sales import payments
+from app.modules.sales.printing import print_queue_loop
 from app.modules.sales.router import router as sales_router
 from app.modules.settings.router import router as settings_router
 
@@ -61,6 +62,7 @@ async def _sepay_sync_loop() -> None:
 async def lifespan(app: FastAPI):
     tasks = [
         asyncio.create_task(_expire_qr_loop()),
+        asyncio.create_task(print_queue_loop()),
         asyncio.create_task(_sepay_sync_loop()),
     ]
     try:

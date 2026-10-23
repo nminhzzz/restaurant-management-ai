@@ -51,6 +51,7 @@ class HourBucketOut(BaseModel):
 class WeekdayBucketOut(BaseModel):
     Thu: int
     SoDon: int
+    DoanhThu: float = 0
 
 
 class HourlyOut(BaseModel):
@@ -114,6 +115,7 @@ class PendingPaymentOut(BaseModel):
     TrangThai: str
     ThoiGianChoPhut: int
     KetQuaGanNhat: str | None
+    LichSu: list[dict] = []
 
 
 class PendingPaymentListOut(BaseModel):

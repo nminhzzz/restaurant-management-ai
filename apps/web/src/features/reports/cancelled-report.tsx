@@ -11,7 +11,7 @@ import {
 } from "@/components/page-states";
 import { Bars } from "@/features/reports/chart";
 import { ClosedUnpaidPanel } from "@/features/reports/closed-unpaid-panel";
-import { currentMonth, MonthPicker } from "@/features/reports/period-picker";
+import { PeriodPicker, todayIso } from "@/features/reports/period-picker";
 import { ReportTable } from "@/features/reports/report-table";
 import { apiFetch } from "@/lib/api-client";
 import { formatNumber, formatVnd } from "@/lib/format";
@@ -49,15 +49,25 @@ function byReason(
 }
 
 export function CancelledReport() {
-  const [month, setMonth] = useState(currentMonth);
+  const [granularity, setGranularity] = useState("month");
+  const [anchor, setAnchor] = useState(todayIso);
   const fetchCancelled = useCallback(
     () =>
-      apiFetch<CancelledResponse>(`/reports/cancelled-orders?month=${month}`),
-    [month],
+      apiFetch<CancelledResponse>(
+        `/reports/cancelled-orders?granularity=${granularity}&anchor=${anchor}`,
+      ),
+    [granularity, anchor],
   );
   const cancelled = useResource(fetchCancelled);
 
-  const toolbar = <MonthPicker value={month} onChange={setMonth} />;
+  const toolbar = (
+    <PeriodPicker
+      granularity={granularity}
+      onGranularity={setGranularity}
+      anchor={anchor}
+      onAnchor={setAnchor}
+    />
+  );
 
   if (cancelled.status === "loading")
     return (
@@ -143,7 +153,7 @@ export function CancelledReport() {
           </section>
         </>
       )}
-      <ClosedUnpaidPanel month={month} />
+      <ClosedUnpaidPanel granularity={granularity} anchor={anchor} />
     </div>
   );
 }

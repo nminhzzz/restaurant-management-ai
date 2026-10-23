@@ -1,101 +1,53 @@
-# Views và tài khoản chỉ-đọc (NFR-06, NFR-12)
+# Tập view và tài khoản chỉ đọc của AI
 
-Ba view `vw_ai_*` là ranh giới dữ liệu của trợ lý AI — mỗi vai trò chỉ thấy view của mình.
-Tài khoản CSDL chỉ-đọc tương ứng chỉ được `GRANT SELECT` trên đúng view đó.
+Mỗi vai trò có một tài khoản MySQL 8.4 riêng, chỉ được SELECT trên tập view theo chủ đề của vai trò. Các view union cũ `vw_ai_quanly`, `vw_ai_thungan`, `vw_ai_kho` được giữ làm tài liệu tương thích migration, không được cấp quyền hay đưa vào prompt/allowlist.
 
-Trên MySQL 8.4, file DDL bắt đầu bằng `SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci` và các cột
-`CHAR` có `COLLATE` tường minh. Nếu thiếu, MySQL báo lỗi 1271 “Illegal mix of collations” khi tạo
-hoặc truy vấn view vì literal mặc định `utf8mb4_0900_ai_ci` khác collation bảng.
+Chạy migration trước, sau đó đặt các biến `AI_READONLY_PASSWORD_MANAGER`, `AI_READONLY_PASSWORD_CASHIER`, `AI_READONLY_PASSWORD_WAREHOUSE` rồi chạy `scripts/apply_grants.sh` (Windows: `scripts/apply_grants.ps1`). Các script thu hồi toàn bộ quyền cũ trước khi cấp lại tập SELECT. `AI_READONLY_URL_*` bắt buộc ở mọi môi trường, không dùng chung người dùng CSDL với nhau hoặc với tài khoản ghi nghiệp vụ.
 
-## Áp dụng
+## Hợp đồng cột
 
-### macOS / Linux
-```bash
-export AI_READONLY_PASSWORD_MANAGER=...
-export AI_READONLY_PASSWORD_CASHIER=...
-export AI_READONLY_PASSWORD_WAREHOUSE=...
-./scripts/apply_grants.sh
-```
+Các view theo chủ đề có mức chi tiết riêng: order, dòng món, hóa đơn, thanh toán, nguyên liệu, lô và giao dịch. Trước khi kết hợp nhiều chủ đề bằng JOIN, phải tổng hợp riêng các quan hệ một-nhiều theo khóa phù hợp để không nhân doanh thu hay số lượng. `LoaiBanGhi` nếu có là hằng cố định của view, không còn là nhánh UNION. Không JOIN trực tiếp hóa đơn với cả dòng món lẫn giao dịch thanh toán.
 
-### Windows (PowerShell)
-```powershell
-$env:AI_READONLY_PASSWORD_MANAGER="..."
-$env:AI_READONLY_PASSWORD_CASHIER="..."
-$env:AI_READONLY_PASSWORD_WAREHOUSE="..."
-powershell -ExecutionPolicy Bypass -File scripts/apply_grants.ps1
-```
+`*_ton` tổng hợp lượng giữ trước khi tính lượng khả dụng trên từng lô còn hạn. Mỗi nguyên liệu xuất hiện một lần, gồm tồn sổ sách, đủ điều kiện, đang giữ, khả dụng và thời điểm tính. `*_suat` chỉ trả `MaMon`, `TenMon`, `SoSuatKhaDung`, `ThoiDiemTinh`, tính bằng công thức hiện hành và lượng khả dụng mới nhất; không trả công thức, định lượng hoặc giá vốn cho Bếp. Món bị xóa, Nháp hoặc tạm dừng thủ công không có số suất có thể bán; thiếu nguyên liệu trả 0. Thời hạn giữ, hạn lô và phiên bản công thức được xét lại trong mỗi SELECT. Bộ nhớ đệm chỉ lưu SQL, không lưu kết quả tồn hay số suất.
 
-Mật khẩu không được commit — `grants.sql.template` chỉ chứa placeholder.
+Ngày kinh doanh của phiếu nhập/xuất/kiểm kê và công thức/giá hiện hành dựa vào `LICH_GIO_BUSINESS_DATE`, gồm giờ hiệu lực theo phút và thời điểm chuyển lịch; không suy ra ngày bằng mốc cố định. Cột BusinessDate đã lưu trên order, hóa đơn, thanh toán và giao dịch kho được giữ nguyên.
 
-Điền cùng giá trị vào `AI_READONLY_URL_*` trong `.env` để API đăng nhập bằng các tài khoản này.
+| View | Cột công khai |
+| --- | --- |
+| `vw_ai_kho_giaodich` | `LoaiBanGhi`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `MaGiaoDichKho`, `BusinessDate`, `SoLuong`, `LoaiGiaoDich` |
+| `vw_ai_kho_kiemke` | `MaPhieuKiemKe`, `BusinessDate`, `TrangThai`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `TonHeThong`, `TonThucTe`, `ChenhLech` |
+| `vw_ai_kho_lo` | `LoaiBanGhi`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `MaLo`, `SoLuongConLai`, `TrangThaiLo`, `NgayNhapLo`, `HanSuDungLo` |
+| `vw_ai_kho_nguyenlieu` | `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `SoNgayBaoQuan`, `MucTonToiThieu` |
+| `vw_ai_kho_nhap` | `MaPhieuNhap`, `BusinessDate`, `TrangThai`, `TenNhaCungCap`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `SoLuongNhap` |
+| `vw_ai_kho_suat` | `MaMon`, `TenMon`, `SoSuatKhaDung`, `ThoiDiemTinh` |
+| `vw_ai_kho_ton` | `LoaiBanGhi`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `SoLuongTon`, `ThoiDiemTinh`, `SoLuongDuDieuKien`, `SoLuongGiu`, `SoLuongKhaDung`, `MucTonToiThieu`, `CanhBaoTonThap` |
+| `vw_ai_kho_xuat` | `MaPhieuXuat`, `BusinessDate`, `TrangThai`, `LyDo`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `SoLuong` |
+| `vw_ai_quanly_ban` | `MaBan`, `TenBan`, `TrangThai`, `SoChoNgoi` |
+| `vw_ai_quanly_congthuc` | `MaCongThuc`, `MaMon`, `TenMon`, `BusinessDateApDung`, `TrangThai`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `DinhLuong` |
+| `vw_ai_quanly_dongmon` | `LoaiBanGhi`, `MaOrder`, `BusinessDate`, `TrangThaiOrder`, `TenMon`, `TenNhom`, `SoLuongMon`, `DonGiaMon`, `ThanhTienMon` |
+| `vw_ai_quanly_giaodich` | `LoaiBanGhi`, `MaOrder`, `BusinessDate`, `TrangThaiOrder`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `MaGiaoDichKho`, `SoLuong`, `LoaiGiaoDich` |
+| `vw_ai_quanly_giavon` | `LoaiBanGhi`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `Thang`, `GiaBinhQuanThang`, `TongSoLuongNhapThang` |
+| `vw_ai_quanly_hoadon` | `LoaiBanGhi`, `MaOrder`, `BusinessDate`, `MaHoaDon`, `ThoiDiemXuat`, `TongTien` |
+| `vw_ai_quanly_kiemke` | `MaPhieuKiemKe`, `BusinessDate`, `TrangThai`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `TonHeThong`, `TonThucTe`, `ChenhLech` |
+| `vw_ai_quanly_lo` | `LoaiBanGhi`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `MaLo`, `SoLuongConLai`, `TrangThaiLo`, `NgayNhapLo`, `HanSuDungLo` |
+| `vw_ai_quanly_mon` | `MaMon`, `TenMon`, `TenNhom`, `TrangThai`, `GiaBan` |
+| `vw_ai_quanly_nguyenlieu` | `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `SoNgayBaoQuan`, `MucTonToiThieu` |
+| `vw_ai_quanly_nhacungcap` | `MaNCC`, `TenNCC` |
+| `vw_ai_quanly_nhap` | `LoaiBanGhi`, `BusinessDate`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `MaPhieuNhap`, `TenNhaCungCap`, `DonGiaNhap`, `SoLuongNhap` |
+| `vw_ai_quanly_order` | `LoaiBanGhi`, `MaOrder`, `BusinessDate`, `LoaiDon`, `TrangThaiOrder`, `MaBan`, `LyDoHuyOrder` |
+| `vw_ai_quanly_suat` | `MaMon`, `TenMon`, `SoSuatKhaDung`, `ThoiDiemTinh` |
+| `vw_ai_quanly_thanhtoan` | `LoaiBanGhi`, `MaOrder`, `BusinessDate`, `MaGiaoDich`, `PhuongThuc`, `SoTien` |
+| `vw_ai_quanly_ton` | `LoaiBanGhi`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `SoLuongTon`, `ThoiDiemTinh`, `SoLuongDuDieuKien`, `MucTonToiThieu`, `SoLuongGiu`, `SoLuongKhaDung` |
+| `vw_ai_quanly_xuat` | `MaPhieuXuat`, `BusinessDate`, `TrangThai`, `LyDo`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `SoLuong` |
+| `vw_ai_thungan_ban` | `MaBan`, `TenBan`, `TrangThai`, `SoChoNgoi` |
+| `vw_ai_thungan_dongmon` | `LoaiBanGhi`, `MaOrder`, `BusinessDate`, `TrangThaiOrder`, `TenMon`, `TenNhom`, `SoLuongMon`, `DonGiaMon`, `ThanhTienMon` |
+| `vw_ai_thungan_hoadon` | `LoaiBanGhi`, `MaOrder`, `BusinessDate`, `MaHoaDon`, `ThoiDiemXuat`, `TongTien` |
+| `vw_ai_thungan_mon` | `MaMon`, `TenMon`, `TenNhom`, `TrangThai`, `GiaBan` |
+| `vw_ai_thungan_order` | `LoaiBanGhi`, `MaOrder`, `BusinessDate`, `LoaiDon`, `TrangThaiOrder`, `MaBan` |
+| `vw_ai_thungan_thanhtoan` | `LoaiBanGhi`, `MaOrder`, `BusinessDate`, `MaGiaoDich`, `PhuongThuc`, `SoTien` |
 
-## Hợp đồng cột (column set)
+## Nhật ký nhà cung cấp
 
-Mỗi view là một `UNION ALL` NULL-padded trên một danh sách cột dùng chung; cột `LoaiBanGhi`
-phân biệt các nhánh để LLM lọc bằng `WHERE LoaiBanGhi = '...'` thay vì đoán cột nào có dữ liệu.
-Bám sát phạm vi FR-AI-02/03/04 (đặc tả §2.4.6) và nguyên tắc kế thừa FR-SET-03 (Quản lý kế thừa
-toàn bộ phạm vi Thu ngân + Nhân viên kho).
+`TRUY_VAN_AI` ghi model/phiên bản thực tế trả về, tổng token đầu vào/đầu ra (completion_tokens đã gồm token suy luận), số lần gọi gồm SQL/thử lại/diễn giải/fallback. `ChiTietSuDung` lưu từng lần gọi và đơn giá USD/triệu token tại lượt hỏi. Ollama không tính phí API thương mại. Khi lỗi/timeout không có usage từ nhà cung cấp, `ChiPhiUSD` để NULL; JSON đánh dấu `cost_complete=false` cùng `known_cost_usd` là phần chi phí đã biết, không giả định tổng chi phí bằng 0. Các trường token khi thiếu chỉ phản ánh usage đã nhận, kèm cờ `usage_reported` cho từng lần gọi. Chỉ được kết luận chi phí chính xác khi `cost_complete=true`.
 
-### `vw_ai_quanly` — FR-AI-02 (Quản lý; đầy đủ phạm vi của cả ba vai trò)
-
-8 nhánh `LoaiBanGhi`: `ORDER`, `DONG_MON`, `HOA_DON`, `THANH_TOAN`, `TON_KHO`, `GIA_VON_THANG`,
-`GIAO_DICH_KHO`, `PHIEU_NHAP`.
-
-Cột: `LoaiBanGhi`, `MaOrder`, `BusinessDate`, `LoaiDon`, `TrangThaiOrder`, `MaBan`,
-`LyDoHuyOrder` (lý do hủy order — FR-REP-10), `MaHoaDon`, `ThoiDiemXuat`, `TongTien`,
-`MaGiaoDich`, `PhuongThuc`, `SoTien`, `TenMon`, `TenNhom`, `SoLuongMon`, `DonGiaMon`,
-`ThanhTienMon` (dòng bán món — FR-REP-03/06), `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`,
-`SoLuongTon`, `MucTonToiThieu` (ngưỡng hiệu lực — cột nếu > 0, ngược lại `NguongTonMacDinh`),
-`Thang`, `GiaBinhQuanThang`, `TongSoLuongNhapThang` (giá vốn bình quân tháng — FR-REP-04/05),
-`MaGiaoDichKho`, `SoLuong`, `LoaiGiaoDich` (giao dịch kho), `MaPhieuNhap`, `TenNhaCungCap`,
-`DonGiaNhap`, `SoLuongNhap` (giá nhập nguyên liệu — FR-AI-02), `SoLuongGiu`, `SoLuongKhaDung`
-(lượng giữ/khả dụng, chỉ có ở nhánh `TON_KHO`).
-
-Nhánh `DONG_MON` chỉ chứa dòng món chưa hủy (`CHI_TIET_ORDER.TrangThai <> 'Đã hủy'`), nhánh
-`THANH_TOAN` chỉ chứa giao dịch thành công (`GIAO_DICH_THANH_TOAN.TrangThai = 'Thành công'`), và
-nhánh `PHIEU_NHAP` loại phiếu đã hủy, đồng thời quy `NgayNhap` về Business Date bằng mốc 06:00.
-
-Biên lợi nhuận gộp/tháng (FR-REP-04) và chi phí tiêu hao (FR-REP-05) không phải là một cột có sẵn
-(view không tự JOIN xuyên nhánh) — trợ lý tính bằng cách tự JOIN hai nhánh của cùng view: doanh
-thu từ `HOA_DON`/`THANH_TOAN`, giá vốn tiêu hao từ `GIAO_DICH_KHO` (`LoaiGiaoDich = 'Trừ tự động'`)
-nhân `GiaBinhQuanThang` của `GIA_VON_THANG` cùng nguyên liệu/tháng.
-
-### `vw_ai_thungan` — FR-AI-03 (Thu ngân/Nhân viên order; không giá nhập/lợi nhuận theo món)
-
-4 nhánh: `ORDER`, `DONG_MON`, `HOA_DON`, `THANH_TOAN`.
-
-Cột: `LoaiBanGhi`, `MaOrder`, `BusinessDate`, `LoaiDon`, `TrangThaiOrder`, `MaBan`, `MaHoaDon`,
-`ThoiDiemXuat`, `TongTien`, `MaGiaoDich`, `PhuongThuc`, `SoTien`, `TenMon`, `TenNhom`,
-`SoLuongMon`, `DonGiaMon` (giá bán), `ThanhTienMon`. **Không có** `MaNguyenLieu`,
-`GiaBinhQuanThang`, `DonGiaNhap`, hay bất kỳ cột giá vốn/giá nhập nào. Nhánh `DONG_MON` loại dòng
-món đã hủy; nhánh `THANH_TOAN` chỉ chứa giao dịch thành công.
-
-### `vw_ai_kho` — FR-AI-04 (Nhân viên kho; không doanh thu/hóa đơn/lợi nhuận)
-
-3 nhánh: `TON_KHO`, `GIAO_DICH_KHO`, `LO_NGUYEN_LIEU`.
-
-Cột: `LoaiBanGhi`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `SoLuongTon`, `SoLuongGiu`
-(lượng đang giữ trên các lô đủ điều kiện), `SoLuongKhaDung` (tồn còn dùng được sau khi trừ giữ),
-`MucTonToiThieu` (ngưỡng hiệu lực), `CanhBaoTonThap` (cờ cảnh báo tồn thấp — FR-AI-04),
-`MaGiaoDichKho`, `BusinessDate`, `SoLuong`, `LoaiGiaoDich`, `MaLo`, `SoLuongConLai`, `TrangThaiLo`,
-`NgayNhapLo`, `HanSuDungLo` (hạn sử dụng đã lưu trên lô, tính từ `NgayNhap + SoNgayBaoQuan` khi nhập).
-**Không có** `TongTien`, `SoTien`, `DonGia`/`DonGiaNhap`, hay bất kỳ cột doanh thu/hóa đơn/giá nào.
-
-Ở nhánh `TON_KHO`, `SoLuongGiu` chỉ cộng giữ chỗ `Đang giữ` còn hạn trên lô có tồn dương, trạng thái
-khác `Hết hạn` và còn trong ngày sử dụng. `SoLuongKhaDung` là tổng `GREATEST(0, SoLuongConLai - lượng
-giữ)` trên chính các lô đủ điều kiện. Hai cột được NULL-pad ở nhánh giao dịch và nhánh lô.
-
-### Cột cấm (không bao giờ lộ ở bất kỳ view nào)
-
-`NGUOI_DUNG.MatKhauHash`, `NGUOI_DUNG.SoDienThoai`, mọi token JWT/session, và cột
-`CHI_TIET_PHIEU_XUAT.GiaVonUocTinh` (giá vốn xuất kho ước tính nội bộ).
-
-Test: `apps/api/tests/schema/test_ai_views.py` assert `set(view_columns) == expected` trên MySQL
-(integration) và assert `vw_ai_thungan`/`vw_ai_kho` không lẫn cột bị cấm (NFR-06/12, FR-AI-03/04).
-
-
-### Ghi chú cập nhật 21/10/2026
-
-Nhánh `GIAO_DICH_KHO` giờ điền `MaOrder` và `TrangThaiOrder` cho các giao dịch
-`Trừ tự động`/`Hoàn kho` (NULL với nhập kho, xuất thủ công và điều chỉnh kiểm kê). Nhờ đó câu hỏi
-lợi nhuận gộp tách được giá vốn của order đã thanh toán/hủy/đóng chưa thu theo FR-REP-04–05.
+FK từ truy vấn tới phiên chat dùng RESTRICT; trigger MySQL cấm UPDATE/DELETE nhật ký tiếp tục được giữ nguyên. Không xóa phiên để xóa gián tiếp nhật ký.

@@ -16,7 +16,7 @@ from app.modules.catalog.models import DiningTable, Ingredient, Recipe, RecipeIt
 from app.modules.catalog.service import ensure_dish_sellable
 from app.modules.catalog.versions import active_price_version, active_recipe, recipe_items
 from app.modules.inventory.models import IngredientLot, StockMovement
-from app.modules.inventory.stock import ensure_no_open_stocktake
+from app.modules.inventory.stock import ensure_no_open_stocktake, lock_stock_operations
 from app.modules.sales.models import Order, Reservation, ReservationDetail
 from app.modules.settings.service import get_config
 from app.shared import business_date
@@ -239,6 +239,7 @@ async def create_hold(
 async def _lock_owned_hold(
     session: AsyncSession, hold_id: int, user_id: int
 ) -> tuple[Reservation, set[int]]:
+    await lock_stock_operations(session)
     # Lock ingredient rows before an existing reservation, matching create_hold
     # and manual write-offs. Metadata here is advisory; validate after the lock.
     dish_id = await session.scalar(
@@ -299,17 +300,22 @@ async def get_hold_for_submit(
         raise BusinessRuleError("Lượt giữ chỗ không còn hiệu lực.")
     now = _now()
     expired = reservation.status == HOLD_EXPIRED or reservation.expires_at <= now
-    if not expired:
-        return reservation
-    if not confirm_expired:
-        raise BusinessRuleError(
-            "Lượt giữ chỗ đã hết hạn. Xác nhận dùng giá và định lượng hiện tại để gửi món."
-        )
-    await ensure_no_open_stocktake(session)
-    await ensure_dish_sellable(session, reservation.dish_id)
     today = _business_date()
     price = await active_price_version(session, reservation.dish_id, today)
     recipe = await active_recipe(session, reservation.dish_id, today)
+    changed = (
+        price is None
+        or recipe is None
+        or price.id != reservation.price_version_id
+        or recipe.id != reservation.recipe_id
+    )
+    if not expired and not changed:
+        return reservation
+    if not confirm_expired:
+        reason = "Giá hoặc công thức món đã thay đổi." if changed else "Lượt giữ chỗ đã hết hạn."
+        raise BusinessRuleError(f"{reason} Xác nhận dùng giá và định lượng hiện tại để gửi món.")
+    await ensure_no_open_stocktake(session)
+    await ensure_dish_sellable(session, reservation.dish_id)
     if price is None or recipe is None:
         raise BusinessRuleError("Món chưa có giá hoặc công thức hiệu lực.")
     items = await recipe_items(session, recipe.id)
@@ -438,7 +444,11 @@ async def expire_due_holds(session: AsyncSession) -> int:
 
 
 async def list_holds(
-    session: AsyncSession, *, user_id: int, selection_code: str | None = None
+    session: AsyncSession,
+    *,
+    user_id: int,
+    selection_code: str | None = None,
+    order_id: int | None = None,
 ) -> list[Reservation]:
     await expire_due_holds(session)
     query = select(Reservation).where(
@@ -448,6 +458,8 @@ async def list_holds(
     )
     if selection_code:
         query = query.where(Reservation.selection_code == selection_code)
+    if order_id is not None:
+        query = query.where(Reservation.order_id == order_id)
     return list((await session.execute(query.order_by(Reservation.id.asc()))).scalars().all())
 
 

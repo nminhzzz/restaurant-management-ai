@@ -376,3 +376,42 @@ async def test_bulk_add_honours_the_expired_hold_confirmation(session):
     )
 
     assert added.status_code == 201, added.text
+
+
+@pytest.mark.anyio
+async def test_active_hold_requires_confirmation_when_price_changes(session):
+    from sqlalchemy import select
+
+    from app.modules.catalog.models import DishPriceVersion
+
+    dish, ingredient, table = await _setup(session, stock=10)
+    client = await _make_client(session)
+    headers, _ = await _headers(session)
+    hold = (await _hold(client, headers, dish, table, quantity=2)).json()
+    old = (await session.execute(select(DishPriceVersion))).scalar_one()
+    old.status = "Hết hiệu lực"
+    price = DishPriceVersion(
+        dish_id=dish.id,
+        price=70000,
+        business_date=business_date.business_date_of(business_date.now()),
+        status="Đang áp dụng",
+        change_type="Cập nhật",
+    )
+    session.add(price)
+    await session.commit()
+    payload = {
+        "MaBan": table.id,
+        "lines": [{"MaMon": dish.id, "SoLuong": 2, "hold_id": hold["MaGiuCho"]}],
+    }
+    rejected = await client.post("/api/v1/sales/orders", json=payload, headers=headers)
+    assert rejected.status_code == 422, rejected.text
+    assert "thay đổi" in rejected.text.lower()
+    payload["confirm_expired"] = True
+    accepted = await client.post("/api/v1/sales/orders", json=payload, headers=headers)
+    assert accepted.status_code == 201, accepted.text
+    from app.modules.sales.models import OrderLine
+
+    line = await session.get(OrderLine, accepted.json()["lines"][0]["MaChiTietOrder"])
+    assert line.unit_price == 70000
+    await session.refresh(ingredient)
+    assert ingredient.stock_qty == 8

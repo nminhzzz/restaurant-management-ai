@@ -17,6 +17,9 @@ type Config = {
   MauHoaDon: string | null;
   NguongTonMacDinh: number;
   GioBatDauBusinessDate: string;
+  GioBatDauBusinessDateMoi?: string | null;
+  NgayHieuLucGioMoi?: string | null;
+  ThoiDiemApDungGioMoi?: string | null;
   SoNgayCanhBaoHetHan: number;
   ThoiGianGiuChoPhut: number;
   SoCauHoiAIMoiNgay: number;
@@ -53,6 +56,12 @@ function ConfigForm({
   const [holdMinutes, setHoldMinutes] = useState(
     String(config.ThoiGianGiuChoPhut),
   );
+  const [cutoff, setCutoff] = useState(
+    (config.GioBatDauBusinessDateMoi ?? config.GioBatDauBusinessDate).slice(
+      0,
+      5,
+    ),
+  );
   const [aiQuota, setAiQuota] = useState(String(config.SoCauHoiAIMoiNgay));
 
   const numberError = (value: string, label: string, positive = false) => {
@@ -62,11 +71,12 @@ function ConfigForm({
     return null;
   };
   const thresholdError = numberError(threshold, "Ngưỡng tồn");
-  const expiryError = numberError(expiryDays, "Số ngày cảnh báo");
+  const expiryError = numberError(expiryDays, "Số ngày cảnh báo", true);
   const holdError = numberError(holdMinutes, "Thời gian giữ chỗ", true);
   const aiQuotaError = numberError(aiQuota, "Hạn mức câu hỏi AI", true);
   const nameError = name.trim() === "" ? "Nhập tên nhà hàng." : null;
   const canSave =
+    /^([01]\d|2[0-3]):[0-5]\d$/.test(cutoff) &&
     thresholdError === null &&
     expiryError === null &&
     holdError === null &&
@@ -80,6 +90,7 @@ function ConfigForm({
         apiFetch("/settings/config", {
           method: "PUT",
           body: {
+            GioBatDauBusinessDate: cutoff,
             TenNhaHang: name.trim(),
             DiaChi: address.trim() || null,
             MauHoaDon: invoiceTemplate.trim() || null,
@@ -169,15 +180,34 @@ function ConfigForm({
       <FormField
         id="cfg-business-date"
         label="Giờ bắt đầu Business Date"
-        help="Cần lịch sử hiệu lực theo Business Date; hiện cố định 06:00."
+        help="Thay đổi áp dụng từ ngày kinh doanh kế tiếp; ngày đang diễn ra và dữ liệu lịch sử được giữ nguyên."
       >
         <Input
           id="cfg-business-date"
-          value={config.GioBatDauBusinessDate}
-          disabled
-          readOnly
+          type="time"
+          step={60}
+          value={cutoff}
+          onChange={(e) => setCutoff(e.target.value)}
         />
       </FormField>
+      <p className="text-sm text-muted">
+        Đang áp dụng: {config.GioBatDauBusinessDate.slice(0, 5)}.
+        {config.GioBatDauBusinessDateMoi && (
+          <>
+            {" "}
+            Lịch chờ: {config.GioBatDauBusinessDateMoi.slice(0, 5)} từ ngày kinh
+            doanh {config.NgayHieuLucGioMoi}
+            {config.ThoiDiemApDungGioMoi && (
+              <>
+                {" "}
+                (bắt đầu{" "}
+                {config.ThoiDiemApDungGioMoi.replace("T", " ").slice(0, 16)})
+              </>
+            )}
+            .
+          </>
+        )}
+      </p>
       <Button disabled={pending || !canSave} onClick={save}>
         Lưu cấu hình
       </Button>

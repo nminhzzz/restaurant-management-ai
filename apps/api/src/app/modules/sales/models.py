@@ -14,9 +14,11 @@ from sqlalchemy import (
     Index,
     Integer,
     String,
+    Text,
     UniqueConstraint,
     func,
 )
+from sqlalchemy.dialects import mysql
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.shared.base import (  # PaymentTransaction defaults match enums.PaymentStatus values
@@ -189,7 +191,9 @@ class PaymentTransaction(Base):
         "NoiDungWebhook", String(2000), nullable=True
     )
     bank_ref: Mapped[str | None] = mapped_column("MaGiaoDichNganHang", String(100), nullable=True)
-    evidence: Mapped[str | None] = mapped_column("AnhChungTu", String(500), nullable=True)
+    evidence: Mapped[str | None] = mapped_column(
+        "AnhChungTu", Text().with_variant(mysql.LONGTEXT(), "mysql"), nullable=True
+    )
     __table_args__ = (
         Index("ix_GIAO_DICH_THANH_TOAN_MaOrder_TrangThai", "MaOrder", "TrangThai"),
         Index("ix_GIAO_DICH_THANH_TOAN_BusinessDate_TrangThai", "BusinessDate", "TrangThai"),
@@ -307,10 +311,19 @@ class KitchenTicket(Base):
     status: Mapped[str] = mapped_column(
         "TrangThai", String(20), nullable=False, default="Ch\u1edd in"
     )
-    print_count: Mapped[int] = mapped_column("SoLanIn", Integer, nullable=False, default=1)
+    print_count: Mapped[int] = mapped_column("SoLanIn", Integer, nullable=False, default=0)
+    print_cycle_attempts: Mapped[int] = mapped_column(
+        "SoLanThuTrongDot", Integer, nullable=False, default=0
+    )
+    print_next_attempt_at: Mapped[datetime | None] = mapped_column("LanThuTiepTheo", DateTime)
+    print_lease_token: Mapped[str | None] = mapped_column("MaKhoaIn", String(36))
+    print_lease_until: Mapped[datetime | None] = mapped_column("HanKhoaIn", DateTime)
+    print_error: Mapped[str | None] = mapped_column("LoiIn", String(500))
+    printed_at: Mapped[datetime | None] = mapped_column("ThoiDiemIn", DateTime)
     created_at: Mapped[datetime] = mapped_column(
         "NgayTao", DateTime, server_default=func.now(), nullable=False
     )
+    __table_args__ = (Index("ix_PHIEU_BEP_HangDoi", "TrangThaiIn", "LanThuTiepTheo"),)
 
 
 class Reservation(Base):

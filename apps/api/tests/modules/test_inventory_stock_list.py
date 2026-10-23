@@ -7,6 +7,7 @@ from app.core.database import get_session
 from app.core.security import create_access_token, hash_password
 from app.main import app
 from app.modules.catalog.models import Ingredient
+from app.modules.inventory.models import IngredientLot
 from app.modules.settings.models import User
 from app.modules.settings.service import seed_reference_data
 
@@ -75,6 +76,8 @@ async def test_stock_above_threshold_not_flagged(session):
     ing = Ingredient(name="Gạo tẻ", unit="kg", min_stock=2, stock_qty=50, is_deleted=False)
     session.add(ing)
     await session.flush()
+    session.add(IngredientLot(ingredient_id=ing.id, quantity_remaining=50, received_quantity=50))
+    await session.flush()
     await session.commit()
     client = await _make_client(session)
     h, _ = await _headers(session)
@@ -104,10 +107,14 @@ async def test_stock_search_by_name(session):
 
 @pytest.mark.anyio
 async def test_stock_filter_alerting_true_returns_only_low_rows(session):
+    low = Ingredient(name="A1", unit="kg", min_stock=10, stock_qty=1, is_deleted=False)
+    high = Ingredient(name="A2", unit="kg", min_stock=1, stock_qty=100, is_deleted=False)
+    session.add_all([low, high])
+    await session.flush()
     session.add_all(
         [
-            Ingredient(name="A1", unit="kg", min_stock=10, stock_qty=1, is_deleted=False),
-            Ingredient(name="A2", unit="kg", min_stock=1, stock_qty=100, is_deleted=False),
+            IngredientLot(ingredient_id=low.id, quantity_remaining=1, received_quantity=1),
+            IngredientLot(ingredient_id=high.id, quantity_remaining=100, received_quantity=100),
         ]
     )
     await session.flush()

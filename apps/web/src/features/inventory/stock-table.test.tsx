@@ -28,6 +28,42 @@ describe("stock table", () => {
     fetchMock.mockResolvedValue({ items: baseItems, total: 2 });
   });
 
+  it("shows all stock quantities and their unit and calculation time", async () => {
+    fetchMock.mockResolvedValue({
+      items: [
+        {
+          ...baseItems[0],
+          DonViTinh: "kg",
+          SoLuongTon: 100,
+          SoLuongDuDieuKien: 80,
+          SoLuongGiu: 25,
+          SoLuongKhaDung: 55,
+          ThoiDiemTinh: "2026-10-23T09:30:00+07:00",
+        },
+      ],
+      total: 1,
+    });
+    render(<StockTable />);
+    await screen.findByText("Bột mì");
+    for (const label of [
+      "Tồn sổ sách",
+      "Đủ điều kiện",
+      "Đang giữ",
+      "Khả dụng",
+      "Đơn vị",
+    ]) {
+      expect(
+        screen.getByRole("columnheader", { name: label }),
+      ).toBeInTheDocument();
+    }
+    expect(screen.getByText("55")).toBeInTheDocument();
+    expect(screen.getByText("kg")).toBeInTheDocument();
+    expect(screen.getByText(/Dữ liệu lúc/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Xem lô và lịch sử Bột mì" }),
+    ).toBeInTheDocument();
+  });
+
   it("shows loading then table", async () => {
     render(<StockTable />);
     expect(screen.getByText("Đang tải…")).toBeInTheDocument();

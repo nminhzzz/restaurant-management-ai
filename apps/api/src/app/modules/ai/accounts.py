@@ -8,6 +8,8 @@ exactly what the view split exists to prevent.
 
 from types import MappingProxyType
 
+from sqlalchemy.engine import make_url
+
 from app.core.config import get_settings
 from app.shared.roles import Role
 
@@ -21,17 +23,20 @@ ACCOUNT_FIELDS: MappingProxyType[Role, str] = MappingProxyType(
 
 
 def readonly_url_for(role: Role) -> str:
-    """Connection string of the read-only account belonging to this role.
-
-    Local development may leave the per-role URL blank and reuse the main account;
-    any other environment must configure a dedicated account, otherwise the AI would
-    silently run with write credentials and defeat NFR-06.
-    """
+    """Require a dedicated principal in every environment, including local."""
     settings = get_settings()
     field = ACCOUNT_FIELDS[role]
     url = str(getattr(settings, field))
-    if url:
-        return url
-    if settings.environment == "local":
-        return settings.database_url
-    raise RuntimeError(f"{field.upper()} must be configured when ENVIRONMENT != local")
+    if not url:
+        raise RuntimeError(f"{field.upper()} must be configured with a dedicated readonly account")
+    parsed = make_url(url)
+    identity = (parsed.host, parsed.port, parsed.username)
+    others = [settings.database_url] + [
+        str(getattr(settings, name)) for other, name in ACCOUNT_FIELDS.items() if other != role
+    ]
+    for other_url in others:
+        if other_url:
+            other = make_url(other_url)
+            if identity == (other.host, other.port, other.username):
+                raise RuntimeError("AI readonly accounts must use distinct database principals")
+    return url

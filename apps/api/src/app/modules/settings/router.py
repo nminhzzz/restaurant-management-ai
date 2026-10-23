@@ -160,7 +160,7 @@ async def get_config(
     session: AsyncSession = Depends(get_session),
 ) -> ConfigOut:
     cfg = await svc.get_config(session)
-    return ConfigOut.model_validate(cfg)
+    return ConfigOut.model_validate(await svc.config_output(session, cfg))
 
 
 @router.put("/config", response_model=ConfigOut)
@@ -171,7 +171,7 @@ async def update_config(
 ) -> ConfigOut:
     cfg = await svc.update_config(session, user.user_id, payload)
     await session.commit()
-    return ConfigOut.model_validate(cfg)
+    return ConfigOut.model_validate(await svc.config_output(session, cfg))
 
 
 @router.get("/audit-log", response_model=Page[AuditEntryOut])

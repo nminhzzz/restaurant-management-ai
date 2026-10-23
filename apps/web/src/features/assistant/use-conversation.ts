@@ -91,7 +91,7 @@ export function useConversation(
         id: `h${t.id}`,
         question: t.question,
         status: "done",
-        result: null,
+        result: t.payload ?? null,
         error: null,
         restored: t,
       })),

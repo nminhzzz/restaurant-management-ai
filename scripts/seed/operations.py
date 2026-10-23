@@ -19,13 +19,13 @@ from decimal import Decimal
 from scripts.seed.catalog import CatalogIds, build_catalogue
 from scripts.seed.config import (
     CANCELLED_ORDER_RATIO,
-    TAKEAWAY_RATIO,
     CASH_PAYMENT_RATIO,
     DISH_POWER_LAW_EXPONENT,
     DISPUTE_RATIO,
     HOUR_WEIGHTS,
     MONTH_SEASONALITY,
     RECONCILE_RATIO,
+    TAKEAWAY_RATIO,
     WEEKEND_MULTIPLIER,
     SeedConfig,
     frozen_clock,
@@ -101,6 +101,9 @@ def _moment(day: date, hour: int, minute: int = 0) -> datetime:
     moment = datetime.combine(day, time(hour, minute))
     if business_date.business_date_of(moment) < day:
         moment += timedelta(days=1)
+    # A shortened transition day may omit this wall-clock hour entirely.
+    if business_date.business_date_of(moment) != day:
+        moment = business_date.business_date_start(day)
     return moment
 
 

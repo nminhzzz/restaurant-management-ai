@@ -39,6 +39,21 @@ const BY_ROLE: Record<string, Suggestion[]> = {
       module: "settings",
       text: "Tháng này có bao nhiêu hoá đơn đã thanh toán?",
     },
+    {
+      topic: "So sánh",
+      module: "reports",
+      text: "So sánh doanh thu tháng này với tháng trước",
+    },
+    {
+      topic: "Lợi nhuận",
+      module: "reports",
+      text: "Lợi nhuận gộp tháng này là bao nhiêu?",
+    },
+    {
+      topic: "Khung giờ",
+      module: "reports",
+      text: "Khung giờ nào có nhiều order nhất tuần này?",
+    },
   ],
   CASHIER: [
     {
@@ -77,6 +92,16 @@ const BY_ROLE: Record<string, Suggestion[]> = {
       topic: "Lô hàng",
       module: "inventory",
       text: "Những lô nào sắp hết hạn trong tuần này?",
+    },
+    {
+      topic: "Tồn kho",
+      module: "inventory",
+      text: "Nguyên liệu nào đang được giữ cho món và còn bao nhiêu khả dụng?",
+    },
+    {
+      topic: "Suất phục vụ",
+      module: "inventory",
+      text: "Món nào còn bao nhiêu suất có thể phục vụ?",
     },
   ],
 };

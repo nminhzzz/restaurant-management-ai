@@ -6,7 +6,7 @@ staff receive 403.
 
 from datetime import date
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
@@ -96,30 +96,44 @@ async def costs(
 
 @router.get("/comparison", response_model=ComparisonOut)
 async def comparison(
-    left: str = Query(...),
-    right: str = Query(...),
+    left: str | None = Query(None),
+    right: str | None = Query(None),
+    left_from: str | None = Query(None),
+    left_to: str | None = Query(None),
+    right_from: str | None = Query(None),
+    right_to: str | None = Query(None),
     user: Principal = Depends(require_roles(Role.MANAGER)),
     session: AsyncSession = Depends(get_session),
 ) -> ComparisonOut:
+    if left_from or left_to or right_from or right_to:
+        if not (left_from and left_to and right_from and right_to):
+            raise HTTPException(status_code=422, detail="Thiếu mốc đầu/cuối của kỳ so sánh.")
+        return await service.comparison_periods(
+            session,
+            service.month_span(left_from, left_to),
+            service.month_span(right_from, right_to),
+        )
+    if not (left and right):
+        raise HTTPException(status_code=422, detail="Thiếu kỳ so sánh.")
     return await service.comparison(session, left, right)
 
 
 @router.get("/cancelled-orders", response_model=CancelledReportOut)
 async def cancelled_orders(
-    month: str = Query(...),
+    period: BusinessPeriod = Depends(report_period),
     user: Principal = Depends(require_roles(Role.MANAGER)),
     session: AsyncSession = Depends(get_session),
 ) -> CancelledReportOut:
-    return await service.cancelled(session, month)
+    return await service.cancelled(session, period)
 
 
 @router.get("/closed-unpaid", response_model=ClosedUnpaidReportOut)
 async def closed_unpaid(
-    month: str = Query(...),
+    period: BusinessPeriod = Depends(report_period),
     user: Principal = Depends(require_roles(Role.MANAGER)),
     session: AsyncSession = Depends(get_session),
 ) -> ClosedUnpaidReportOut:
-    return await service.closed_unpaid(session, month)
+    return await service.closed_unpaid(session, period)
 
 
 @router.get("/pending-payments", response_model=PendingPaymentListOut)

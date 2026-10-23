@@ -159,21 +159,20 @@ async def test_the_backup_can_include_credentials_with_restore_notes(session):
 
 
 @pytest.mark.asyncio
-async def test_changing_the_business_day_start_is_refused_with_a_reason(session):
-    """R29: the MVP fixes 06:00; a request must fail loudly, not silently."""
+async def test_business_day_start_rejects_subminute_precision(session):
+    """FR-SET-04: a cutoff is a local time with minute precision."""
     manager, _ = await _staff(session)
     await session.commit()
 
     async with _client(session) as client:
         response = await client.put(
             "/api/v1/settings/config",
-            json={"GioBatDauBusinessDate": "04:00"},
+            json={"GioBatDauBusinessDate": "04:00:30"},
             headers=_bearer(manager),
         )
     app.dependency_overrides.clear()
 
     assert response.status_code == 422
-    assert "06:00" in response.json()["error"]["message"]
 
 
 @pytest.mark.asyncio

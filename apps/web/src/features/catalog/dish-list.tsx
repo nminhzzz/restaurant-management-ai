@@ -9,7 +9,7 @@ import {
   Trash2,
   UtensilsCrossed,
 } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { DataPagination } from "@/components/data-pagination";
@@ -80,9 +80,13 @@ function DishThumbnail({
   );
 }
 
-async function loadCatalog(): Promise<{ dishes: Dish[]; groups: Group[] }> {
+async function loadCatalog(
+  includeDeleted = false,
+): Promise<{ dishes: Dish[]; groups: Group[] }> {
   const [page, groups] = await Promise.all([
-    apiFetch<{ items: Dish[] }>("/catalog/dishes?size=200"),
+    apiFetch<{ items: Dish[] }>(
+      `/catalog/dishes?size=200${includeDeleted ? "&include_deleted=true" : ""}`,
+    ),
     apiFetch<Group[]>("/catalog/groups").catch(() => []),
   ]);
   return { dishes: page.items, groups: Array.isArray(groups) ? groups : [] };
@@ -218,7 +222,9 @@ const EMPTY_FORM: DishFormValues = {
 };
 
 export function DishList() {
-  const catalog = useResource(loadCatalog);
+  const [showDeleted, setShowDeleted] = useState(false);
+  const load = useCallback(() => loadCatalog(showDeleted), [showDeleted]);
+  const catalog = useResource(load);
   const canWrite = useCanWrite(WRITE_ROLES);
   const [query, setQuery] = useState("");
   const [groupFilter, setGroupFilter] = useState("");
@@ -243,7 +249,7 @@ export function DishList() {
     label: g.TenNhom,
   }));
   const trimmedQuery = query.trim().toLowerCase();
-  const visible = (dishes ?? []).filter(
+  const visible: Dish[] = (dishes ?? []).filter(
     (d) =>
       d.TenMon.toLowerCase().includes(trimmedQuery) &&
       (groupFilter === "" || String(d.MaNhomMon ?? "") === groupFilter) &&
@@ -256,7 +262,7 @@ export function DishList() {
     setGroupFilter("");
     setStatusFilter("");
   }
-  const pagination = useClientPagination(
+  const pagination = useClientPagination<Dish>(
     visible,
     JSON.stringify({ trimmedQuery, groupFilter, statusFilter }),
     20,
@@ -341,6 +347,13 @@ export function DishList() {
           <div className="flex flex-wrap items-end justify-between gap-3">
             <FilterBar active={filtersActive} onReset={resetFilters}>
               <SearchFilter label="Tìm món" value={query} onChange={setQuery} />
+              <Button
+                variant={showDeleted ? "primary" : "secondary"}
+                size="sm"
+                onClick={() => setShowDeleted((value) => !value)}
+              >
+                {showDeleted ? "Ẩn món đã xóa" : "Hiện món đã xóa"}
+              </Button>
               <SelectFilter
                 label="Lọc theo nhóm"
                 value={groupFilter}
@@ -389,10 +402,22 @@ export function DishList() {
                     {formatVnd(d.GiaHienTai)}
                   </TableCell>
                   <TableCell>
-                    <StatusBadge status={d.TrangThai} />
+                    <div className="flex flex-wrap items-center gap-1">
+                      <StatusBadge status={d.DaXoa ? "Đã xóa" : d.TrangThai} />
+                      {d.TamDungThuCong && !d.DaXoa && (
+                        <span className="text-xs text-warning-fg">
+                          Tạm dừng thủ công
+                        </span>
+                      )}
+                      {!d.DaXoa && typeof d.SoSuatKhaDung === "number" && (
+                        <span className="text-xs text-muted">
+                          {d.SoSuatKhaDung} suất khả dụng
+                        </span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
-                    {canWrite && (
+                    {canWrite && !d.DaXoa && (
                       <div className="flex items-center justify-end gap-1">
                         <Button
                           variant="ghost"

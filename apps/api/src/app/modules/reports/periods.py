@@ -1,8 +1,8 @@
 """Business-period arithmetic for the reporting module (FR-REP-01).
 
-Grouping always follows `BusinessDate` (06:00 → 06:00), never the calendar date of
-`ThoiDiem`; a request that anchors on a calendar day is resolved onto the business
-dates that contain it.
+Grouping always follows `BusinessDate` (effective-dated configured boundaries), never the
+calendar date of `ThoiDiem`; a request that anchors on a calendar day is resolved onto the
+business dates that contain it.
 """
 
 from dataclasses import dataclass

@@ -1,9 +1,9 @@
 """Schemas for Module 5 Settings."""
 
-from datetime import datetime, time
+from datetime import date, datetime, time
 from typing import Annotated, Any
 
-from pydantic import BaseModel, Field, StringConstraints
+from pydantic import BaseModel, Field, StringConstraints, field_validator
 
 from app.shared.roles import Role
 
@@ -65,6 +65,9 @@ class ConfigOut(BaseModel):
     MauHoaDon: str | None = Field(default=None, validation_alias="invoice_template")
     NguongTonMacDinh: int = Field(validation_alias="default_stock_threshold")
     GioBatDauBusinessDate: time = Field(validation_alias="business_day_start")
+    GioBatDauBusinessDateMoi: time | None = None
+    NgayHieuLucGioMoi: date | None = None
+    ThoiDiemApDungGioMoi: datetime | None = None
     SoNgayCanhBaoHetHan: int = Field(validation_alias="expiry_warning_days")
     ThoiGianGiuChoPhut: int = Field(validation_alias="hold_minutes")
     SoCauHoiAIMoiNgay: int = Field(validation_alias="ai_daily_question_quota")
@@ -77,12 +80,17 @@ class ConfigUpdate(BaseModel):
     DiaChi: Annotated[str | None, StringConstraints(max_length=255)] = None
     MauHoaDon: Annotated[str | None, StringConstraints(max_length=50)] = None
     NguongTonMacDinh: int | None = Field(default=None, ge=0)
-    SoNgayCanhBaoHetHan: int | None = Field(default=None, ge=0)
+    SoNgayCanhBaoHetHan: int | None = Field(default=None, gt=0)
     ThoiGianGiuChoPhut: int | None = Field(default=None, gt=0)
     SoCauHoiAIMoiNgay: int | None = Field(default=None, gt=0)
-    # Kept in the contract so a client that tries to change it gets a clear refusal
-    # instead of a silent no-op; changing it needs an effective-date history.
-    GioBatDauBusinessDate: str | None = None
+    GioBatDauBusinessDate: time | None = None
+
+    @field_validator("GioBatDauBusinessDate")
+    @classmethod
+    def minute_precision(cls, value: time | None) -> time | None:
+        if value is not None and (value.second or value.microsecond or value.tzinfo):
+            raise ValueError("Mốc giờ phải có độ chính xác phút, không kèm múi giờ.")
+        return value
 
 
 class BackupDump(BaseModel):

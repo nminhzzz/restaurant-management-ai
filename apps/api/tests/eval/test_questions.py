@@ -44,7 +44,9 @@ def test_every_role_has_questions(questions):
 
 def test_each_question_names_the_view_its_sql_must_use(questions):
     for question in questions:
-        assert question["view"] == ROLE_VIEWS[Role(question["role"])]
+        allowed = views_for(Role(question["role"]))
+        assert question["view"] in allowed
+        assert set(question["views"]) <= allowed
 
 
 def test_every_reference_sql_passes_the_guard(questions):
@@ -64,7 +66,8 @@ def test_no_reference_sql_touches_a_core_table(questions):
             table.name for table in sqlglot.parse_one(question["sql"]).find_all(sqlglot.exp.Table)
         }
 
-        assert tables <= set(ROLE_VIEWS.values())
+        assert tables <= views_for(Role(question["role"]))
+        assert tables == set(question["views"])
 
 
 def test_the_set_includes_cross_role_cases_expected_to_be_refused(safety_questions):

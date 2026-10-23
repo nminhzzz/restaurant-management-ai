@@ -7,6 +7,7 @@ additional SQL generations. Each reservation commits before invoking the model.
 
 import hashlib
 import json
+from collections.abc import Awaitable, Callable
 from datetime import UTC
 from pathlib import Path
 
@@ -33,6 +34,7 @@ async def generate_sql(
     role: Role,
     user_id: int | None = None,
     history: list[tuple[str, str | None, str | None]] | None = None,
+    validate_execution: Callable[[str], Awaitable[None]] | None = None,
 ) -> str:
     """Return SQL only after validation, including when it came from shared cache."""
     settings = get_settings()
@@ -82,9 +84,12 @@ async def generate_sql(
     cached = await store.get_sql(cache_key, cache_now)
     if cached is not None:
         try:
-            return guard.validate_sql(cached, allowed_views=allowed, max_rows=settings.ai_max_rows)
-        except BusinessRuleError:
-            # Corrupt/outdated cache content must never bypass the guard.
+            sql = guard.validate_sql(cached, allowed_views=allowed, max_rows=settings.ai_max_rows)
+            if validate_execution is not None:
+                await validate_execution(sql)
+            return sql
+        except Exception:
+            # Corrupt/outdated SQL or changed schema must never bypass guard/execution.
             pass
 
     client = llm.get_client()
@@ -105,6 +110,17 @@ async def generate_sql(
             last_error = exc
             continue
 
+        if validate_execution is not None:
+            try:
+                await validate_execution(sql)
+            except TimeoutError:
+                raise
+            except Exception:
+                last_error = BusinessRuleError(
+                    "Truy vấn chưa thực thi được; hãy kiểm tra lại tên cột "
+                    "và kiểu dữ liệu theo schema."
+                )
+                continue
         await store.put_sql(cache_key, sql, cache_now, settings.ai_sql_cache_ttl_seconds)
         return sql
 

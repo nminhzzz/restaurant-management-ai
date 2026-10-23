@@ -8,9 +8,10 @@ import {
   PrinterIcon,
   TriangleAlert,
 } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { FormField } from "@/components/form-field";
 import {
   ErrorState,
   LoadingState,
@@ -37,7 +38,6 @@ import {
   type PickableDish,
 } from "@/features/sales/dish-picker";
 import { apiFetch } from "@/lib/api-client";
-import { escapeHtml, printDocument } from "@/lib/print";
 import { formatVnd } from "@/lib/format";
 import { useAction } from "@/lib/use-action";
 import { useResource } from "@/lib/use-resource";
@@ -65,9 +65,19 @@ type Ticket = {
   TrangThai: string;
   TrangThaiIn: string;
   SoLanIn: number;
+  LoiIn?: string | null;
 };
 
 type DiningTable = { MaBan: number; TenBan: string; TrangThai?: string };
+
+type Hold = {
+  MaGiuCho: number;
+  MaMon: number;
+  TenMon?: string | null;
+  SoLuong: number;
+  GhiChu?: string | null;
+  ThoiDiemHetHan: string;
+};
 
 const NEXT_STATUS: Record<string, string> = {
   Chờ: "Đã xác nhận xong",
@@ -85,12 +95,16 @@ async function loadDetail(orderId: number) {
     ),
     apiFetch<DiningTable[]>("/catalog/tables").catch(() => []),
   ]);
+  const holds = await apiFetch<Hold[]>(
+    `/sales/holds?order_id=${orderId}`,
+  ).catch(() => []);
   return {
     order,
     dishes: dishPage.items ?? [],
     names: new Map((dishPage.items ?? []).map((d) => [d.MaMon, d.TenMon])),
     tickets: tickets.items,
     tables: Array.isArray(tables) ? tables : [],
+    holds,
   };
 }
 
@@ -100,43 +114,76 @@ export function OrderDetail({ orderId }: { orderId: number }) {
   const action = useAction();
 
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickedDish, setPickedDish] = useState<PickableDish | null>(null);
+  const [addQty, setAddQty] = useState("1");
+  const [addNote, setAddNote] = useState("");
   const [moveOpen, setMoveOpen] = useState(false);
   const [moveTarget, setMoveTarget] = useState("");
   const [cancelLine, setCancelLine] = useState<OrderLine | null>(null);
   const [editingLine, setEditingLine] = useState<number | null>(null);
   const [qtyDraft, setQtyDraft] = useState("");
+  const [quantityRequestId, setQuantityRequestId] = useState("");
+
+  const awaitingPrinter =
+    detail.status === "ready" &&
+    detail.data.tickets.some((ticket) =>
+      ["Chờ in", "Đang in"].includes(ticket.TrangThaiIn),
+    );
+  useEffect(() => {
+    if (!awaitingPrinter) return;
+    const timer = window.setInterval(detail.reload, 5000);
+    return () => window.clearInterval(timer);
+  }, [awaitingPrinter, detail.reload]);
 
   if (detail.status === "loading") return <LoadingState rows={5} />;
   if (detail.status === "error")
     return <ErrorState message={detail.message} onRetry={detail.reload} />;
 
-  const { order, names, dishes, tickets, tables } = detail.data;
+  const { order, names, dishes, tickets, tables, holds } = detail.data;
   const lines = order.lines ?? [];
   const locked = order.TrangThai !== "Đang mở";
   const freeTables = tables.filter(
     (t) => t.MaBan !== order.MaBan && (t.TrangThai ?? "Trống") === "Trống",
   );
 
-  async function addDish(dish: PickableDish) {
+  async function addDish(dish: PickableDish, quantity: number, note: string) {
     await action.run(async () => {
       await apiFetch(`/sales/orders/${orderId}/lines`, {
         method: "POST",
-        body: { dish_id: dish.MaMon, quantity: 1 },
+        body: {
+          dish_id: dish.MaMon,
+          quantity,
+          note: note.trim() || null,
+        },
       });
+      setPickedDish(null);
       detail.reload();
     }, `Đã thêm ${dish.TenMon}.`);
   }
 
   async function saveQuantity(line: OrderLine) {
     const quantity = Math.max(1, Number(qtyDraft) || 1);
-    await action.run(async () => {
-      await apiFetch(`/sales/orders/${orderId}/lines/${line.MaChiTietOrder}`, {
-        method: "PATCH",
-        body: { quantity },
-      });
-      setEditingLine(null);
-      detail.reload();
-    }, "Đã cập nhật số lượng.");
+    await action.run(
+      async () => {
+        await apiFetch(
+          `/sales/orders/${orderId}/lines/${line.MaChiTietOrder}`,
+          {
+            method: "PATCH",
+            body: {
+              quantity,
+              ...(quantity > line.SoLuong
+                ? { request_line_id: quantityRequestId }
+                : {}),
+            },
+          },
+        );
+        setEditingLine(null);
+        detail.reload();
+      },
+      quantity > line.SoLuong
+        ? "Đã gọi thêm thành dòng món mới theo giá và công thức hiện tại."
+        : "Đã cập nhật số lượng.",
+    );
   }
 
   async function advanceStatus(line: OrderLine) {
@@ -184,24 +231,10 @@ export function OrderDetail({ orderId }: { orderId: number }) {
 
   async function reprintTicket(ticket: Ticket) {
     await action.run(async () => {
-      const printed = await apiFetch<{ NoiDung?: string | null }>(
+      await apiFetch(
         `/sales/orders/${orderId}/tickets/${ticket.MaPhieuBep}/reprint`,
-        {
-          method: "POST",
-          body: {},
-        },
+        { method: "POST", body: {} },
       );
-      // FR-SALE-31/32: actually hand the ticket to the printer; if the browser
-      // blocks it, tell the backend so staff sees a failed print they can retry.
-      const opened =
-        !!printed.NoiDung &&
-        printDocument("Phiếu bếp", `<pre>${escapeHtml(printed.NoiDung)}</pre>`);
-      if (!opened) {
-        await apiFetch(
-          `/sales/orders/${orderId}/tickets/${ticket.MaPhieuBep}/print-result`,
-          { method: "POST", body: { ok: false } },
-        );
-      }
       detail.reload();
     }, "Đã gửi in lại phiếu bếp.");
   }
@@ -262,6 +295,44 @@ export function OrderDetail({ orderId }: { orderId: number }) {
         </p>
       )}
 
+      {holds.length > 0 && (
+        <section className="rounded-container border border-border bg-surface p-4">
+          <h2 className="text-sm font-bold">Lượt giữ chưa gửi</h2>
+          <p className="text-xs text-muted">
+            Các lượt giữ này chưa thành dòng món. Giải phóng trước khi chốt
+            thanh toán nếu khách không lấy.
+          </p>
+          <ul className="mt-2 divide-y divide-border">
+            {holds.map((hold) => (
+              <li
+                key={hold.MaGiuCho}
+                className="flex flex-wrap items-center justify-between gap-2 py-2"
+              >
+                <span>
+                  {hold.TenMon ?? names.get(hold.MaMon) ?? `Món #${hold.MaMon}`}{" "}
+                  × {hold.SoLuong}
+                  {hold.GhiChu ? ` · ${hold.GhiChu}` : ""}
+                </span>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() =>
+                    action.run(async () => {
+                      await apiFetch(`/sales/holds/${hold.MaGiuCho}`, {
+                        method: "DELETE",
+                      });
+                      detail.reload();
+                    }, "Đã giải phóng lượt giữ.")
+                  }
+                >
+                  Giải phóng
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <ul className="divide-y divide-border rounded-container border border-border bg-surface">
         {lines.map((line) => {
           const canEdit = !locked && line.TrangThai === "Chờ";
@@ -308,6 +379,7 @@ export function OrderDetail({ orderId }: { orderId: number }) {
                   disabled={!canEdit}
                   onClick={() => {
                     setEditingLine(line.MaChiTietOrder);
+                    setQuantityRequestId(crypto.randomUUID());
                     setQtyDraft(String(line.SoLuong));
                   }}
                 >
@@ -322,7 +394,7 @@ export function OrderDetail({ orderId }: { orderId: number }) {
               <StatusBadge status={line.TrangThai} />
 
               <div className="flex gap-1.5">
-                {nextStatus && !locked && (
+                {nextStatus && (
                   <Button
                     size="sm"
                     variant="secondary"
@@ -351,6 +423,10 @@ export function OrderDetail({ orderId }: { orderId: number }) {
 
       <div className="space-y-2">
         <h3 className="font-medium">Phiếu bếp</h3>
+        <p className="text-xs text-subtle">
+          Trạng thái gửi lệnh không xác nhận giấy đã in. Nếu chưa rõ kết quả,
+          kiểm tra máy in trước khi in lại.
+        </p>
         {tickets.length === 0 ? (
           <p className="text-muted">Chưa có phiếu bếp nào.</p>
         ) : (
@@ -364,13 +440,22 @@ export function OrderDetail({ orderId }: { orderId: number }) {
                   <span className="font-mono">#{ticket.MaPhieuBep}</span>
                   <StatusBadge status={ticket.TrangThaiIn} />
                   <span className="text-xs text-subtle">
-                    Đã in {ticket.SoLanIn} lần
+                    Đã thử gửi {ticket.SoLanIn} lần
                   </span>
                 </div>
+                {ticket.LoiIn && (
+                  <p role="alert" className="w-full text-sm text-danger">
+                    {ticket.LoiIn}
+                  </p>
+                )}
                 <div className="flex gap-2">
                   <Button
                     size="sm"
                     variant="secondary"
+                    disabled={
+                      action.pending ||
+                      ["Chờ in", "Đang in"].includes(ticket.TrangThaiIn)
+                    }
                     onClick={() => reprintTicket(ticket)}
                   >
                     <PrinterIcon />
@@ -379,6 +464,9 @@ export function OrderDetail({ orderId }: { orderId: number }) {
                   <Button
                     size="sm"
                     variant="outlineDanger"
+                    disabled={
+                      action.pending || ticket.TrangThaiIn === "Đang in"
+                    }
                     onClick={() => reportPrintFailed(ticket)}
                   >
                     <TriangleAlert />
@@ -395,8 +483,57 @@ export function OrderDetail({ orderId }: { orderId: number }) {
         open={pickerOpen}
         onOpenChange={setPickerOpen}
         dishes={dishes}
-        onPick={addDish}
+        onPick={(dish) => {
+          setPickedDish(dish);
+          setAddQty("1");
+          setAddNote("");
+          setPickerOpen(false);
+        }}
       />
+
+      <Dialog
+        open={pickedDish !== null}
+        onOpenChange={(open) => !open && setPickedDish(null)}
+      >
+        <DialogContent className="w-[min(24rem,calc(100vw-2rem))]">
+          <DialogHeader>
+            <DialogTitle>Thêm {pickedDish?.TenMon}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <FormField id="add-dish-qty" label="Số lượng">
+              <Input
+                id="add-dish-qty"
+                type="number"
+                min={1}
+                value={addQty}
+                onChange={(e) => setAddQty(e.target.value)}
+              />
+            </FormField>
+            <FormField id="add-dish-note" label="Ghi chú cho món">
+              <Input
+                id="add-dish-note"
+                value={addNote}
+                onChange={(e) => setAddNote(e.target.value)}
+                placeholder="Ví dụ: ít cay, không hành"
+              />
+            </FormField>
+          </div>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setPickedDish(null)}>
+              Đóng
+            </Button>
+            <Button
+              onClick={() =>
+                pickedDish &&
+                addDish(pickedDish, Math.max(1, Number(addQty) || 1), addNote)
+              }
+              disabled={action.pending}
+            >
+              Thêm món
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={moveOpen} onOpenChange={setMoveOpen}>
         <DialogContent className="w-[min(24rem,calc(100vw-2rem))]">

@@ -234,6 +234,16 @@ async def ai_runtime_store(tmp_path, monkeypatch):
     await runtime_engine.dispose()
 
 
+@pytest.fixture(autouse=True)
+def _isolate_unit_assistant_runtime(request):
+    if request.node.get_closest_marker("integration") is None and (
+        request.node.name.startswith("test_ai")
+        or request.path.name.startswith("test_ai")
+        or "eval" in request.path.parts
+    ):
+        request.getfixturevalue("ai_runtime_store")
+
+
 @pytest.fixture
 def fake_llm(ai_runtime_store) -> Iterator[FakeLlm]:
     from app.modules.ai import llm
@@ -305,6 +315,14 @@ def fake_engine_factory(monkeypatch) -> FakeEngineFactory:
     """Replace the assistant's engine factory, shared by the module and eval suites."""
     from app.modules.ai.pipeline import executor
 
+    for role in Role:
+        field = f"AI_READONLY_URL_{role.value}"
+        if not os.environ.get(field):
+            monkeypatch.setenv(
+                field,
+                f"mysql+asyncmy://test_ai_{role.value.lower()}:fixture@localhost/restaurant_test",
+            )
+    get_settings.cache_clear()
     factory = FakeEngineFactory()
     executor.reset_engine_cache()
     monkeypatch.setattr(executor, "_create_engine", factory)
@@ -411,6 +429,7 @@ async def seed_views(engine: AsyncEngine) -> None:
                     line for line in sql.splitlines() if not line.lstrip().startswith("--")
                 )
                 await conn.execute(text(sql.strip().rstrip(";")))
+            await _seed_topic_views(conn)
         return
 
     quanly_order = _branch(
@@ -652,6 +671,46 @@ async def seed_views(engine: AsyncEngine) -> None:
             )
         )
 
+        await _seed_topic_views(conn, sqlite=True)
+
+
+async def _seed_topic_views(conn, *, sqlite=False):
+    import sqlglot
+    from sqlglot import exp
+
+    from app.modules.ai.scope import views_for
+
+    names = {view for role in Role for view in views_for(role)}
+    for name in sorted(names, key=lambda name: (name.endswith("_suat"), name)):
+        sql = (REPO_ROOT / "db" / "views" / f"{name}.sql").read_text()
+        if sqlite:
+            parsed = sqlglot.parse_one(sql, read="mysql")
+            for collate in list(parsed.find_all(exp.Collate)):
+                collate.replace(collate.this.copy())
+            for node in list(parsed.walk()):
+                if isinstance(node, (exp.DateSub, exp.DateAdd)):
+                    sign = "-" if isinstance(node, exp.DateSub) else "+"
+                    node.replace(
+                        exp.Anonymous(
+                            this="DATETIME",
+                            expressions=[
+                                node.this.copy(),
+                                exp.Literal.string(f"{sign}{node.expression.this} day"),
+                            ],
+                        )
+                    )
+                elif isinstance(node, exp.Timestamp) and node.args.get("zone") is not None:
+                    node.replace(
+                        sqlglot.parse_one(
+                            f"DATETIME({node.this.sql(dialect='sqlite')} || ' ' || {node.args['zone'].sql(dialect='sqlite')})",
+                            read="sqlite",
+                        )
+                    )
+            parsed.set("replace", False)
+            sql = parsed.sql(dialect="sqlite")
+            await conn.execute(text(f"DROP VIEW IF EXISTS {name}"))
+        await conn.execute(text(sql.strip().rstrip(";")))
+
 
 @pytest_asyncio.fixture
 async def mysql_seed_views(mysql_engine_factory) -> None:
@@ -666,6 +725,7 @@ async def mysql_seed_views(mysql_engine_factory) -> None:
                     line for line in sql.splitlines() if not line.lstrip().startswith("--")
                 )
                 await conn.execute(text(sql.strip().rstrip(";")))
+            await _seed_topic_views(conn)
     finally:
         await engine.dispose()
 

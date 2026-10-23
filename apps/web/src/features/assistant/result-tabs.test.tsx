@@ -1,6 +1,5 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-
 import { ResultTabs } from "./result-tabs";
 import type { ChatResponse } from "@/types/api";
 
@@ -18,33 +17,37 @@ const base: ChatResponse = {
 };
 
 describe("ResultTabs", () => {
-  it("keeps a valid tab selected after the result changes shape", () => {
-    const withSql: ChatResponse = {
-      ...base,
-      detail: {
-        sql: "SELECT 1",
-        row_count: 1,
-        view: "vw_ai_quanly",
-        elapsed_ms: 10,
-      },
-    };
-    const { rerender } = render(<ResultTabs result={withSql} />);
-    expect(screen.getByRole("tab", { name: /SQL/ })).toHaveAttribute(
-      "aria-selected",
-      "true",
+  it("always displays a result table alongside the chart", () => {
+    render(
+      <ResultTabs
+        result={{
+          ...base,
+          data: [{ SoDon: 3 }],
+          chart: { type: "bar", x: "SoDon", y: ["SoDon"] },
+        }}
+      />,
     );
+    expect(screen.getByRole("table")).toBeVisible();
+    expect(screen.getByRole("columnheader", { name: "SoDon" })).toBeVisible();
+  });
 
-    const withTableOnly: ChatResponse = {
-      ...base,
-      data: [{ a: 1 }],
-      detail: null,
-    };
-    rerender(<ResultTabs result={withTableOnly} />);
-
-    expect(screen.getByRole("tab", { name: /Bảng/ })).toHaveAttribute(
-      "aria-selected",
-      "true",
+  it("keeps technical SQL details collapsed by default", () => {
+    render(
+      <ResultTabs
+        result={{
+          ...base,
+          detail: {
+            sql: "SELECT 1",
+            view: "vw_ai_quanly_order",
+            elapsed_ms: 10,
+            row_count: 0,
+          },
+        }}
+      />,
     );
-    expect(screen.getByRole("table")).toBeInTheDocument();
+    expect(screen.getByText("SELECT 1")).not.toBeVisible();
+    expect(screen.getByText("Chi tiết kỹ thuật")).toBeVisible();
+    expect(screen.getByRole("table")).toBeVisible();
+    expect(screen.getByText("Không có dữ liệu phù hợp.")).toBeVisible();
   });
 });

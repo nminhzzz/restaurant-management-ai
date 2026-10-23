@@ -104,6 +104,46 @@ describe("PaymentPanel", () => {
     }
   });
 
+  it("collects the bank reference and note when the guest says they paid", async () => {
+    saveSession({ token: "t", role: "CASHIER", username: "thungan01" });
+    stubByPath({
+      "/sales/payments/1/request-verification": {
+        MaGiaoDich: 1,
+        TrangThai: "Chờ xác minh thanh toán",
+      },
+      "/sales/orders/1/payments": { items: [qr()] },
+      "/sales/orders/1": openOrder,
+    });
+    render(<PaymentPanel orderId={1} />);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Khách báo đã chuyển tiền" }),
+    );
+    fireEvent.change(screen.getByLabelText("Mã giao dịch ngân hàng/ví"), {
+      target: { value: "FT-123" },
+    });
+    fireEvent.change(screen.getByLabelText("Thông tin bổ sung"), {
+      target: { value: "Khách gửi lúc 19:05" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Gửi yêu cầu xác minh" }),
+    );
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/sales/payments/1/request-verification",
+        expect.objectContaining({
+          method: "POST",
+          body: {
+            reference: "FT-123",
+            note: "Khách gửi lúc 19:05",
+            evidence: null,
+          },
+        }),
+      ),
+    );
+  });
+
   it("only offers the full-order cancellation to a manager", async () => {
     saveSession({ token: "t", role: "CASHIER", username: "thungan01" });
     stubByPath({ "/sales/orders/1": openOrder });

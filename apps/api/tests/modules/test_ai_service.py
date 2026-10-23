@@ -25,7 +25,7 @@ async def test_one_turn_records_the_question_sql_timing_and_status(
     api_client, cashier_token, seed_views, fake_llm, ai_engine, session
 ):
     """SD-05 and the TRUY_VAN_AI contract."""
-    fake_llm.reply("SELECT COUNT(*) AS SoDon FROM vw_ai_thungan")
+    fake_llm.reply("SELECT COUNT(*) AS SoDon FROM vw_ai_thungan_order")
 
     response = await _chat(api_client, cashier_token, "hôm nay có bao nhiêu đơn?")
 
@@ -52,7 +52,7 @@ async def test_the_response_carries_the_answer_rows_chart_and_detail(
     api_client, warehouse_token, seed_views, fake_llm, ai_engine
 ):
     """FR-AI-07 and FR-AI-08."""
-    fake_llm.reply("SELECT TenNguyenLieu, SoLuongTon FROM vw_ai_kho")
+    fake_llm.reply("SELECT TenNguyenLieu, SoLuongTon FROM vw_ai_kho_ton")
     ai_engine.columns = ["TenNguyenLieu", "SoLuongTon"]
     ai_engine.rows = [("Phở bò", 3.0), ("Bún chả", 1.0)]
 
@@ -97,7 +97,9 @@ async def test_a_cross_role_question_gets_no_data(
     api_client, cashier_token, seed_views, fake_llm, ai_engine
 ):
     """FR-AI-05: asking outside your scope must not return another role's data."""
-    fake_llm.reply_sequence(["SELECT * FROM vw_ai_quanly", "SELECT * FROM vw_ai_quanly"])
+    fake_llm.reply_sequence(
+        ["SELECT * FROM vw_ai_quanly_order", "SELECT * FROM vw_ai_quanly_order"]
+    )
 
     body = (await _chat(api_client, cashier_token, "tổng lợi nhuận tháng này")).json()
 
@@ -108,6 +110,7 @@ async def test_a_cross_role_question_gets_no_data(
 async def test_the_session_is_created_on_the_first_turn_and_reused_after(
     api_client, cashier_token, seed_views, fake_llm, ai_engine, session
 ):
+    fake_llm.reply("SELECT COUNT(*) AS SoDon FROM vw_ai_thungan_order")
     first = (await _chat(api_client, cashier_token, "câu 1")).json()
     second = (
         await _chat(api_client, cashier_token, "câu 2", session_id=first["session_id"])
@@ -115,6 +118,21 @@ async def test_the_session_is_created_on_the_first_turn_and_reused_after(
 
     assert second["session_id"] == first["session_id"]
     assert await session_count(session) == 1
+
+    # FR-AI-07/08: reopening a past turn keeps its table, chart and technical detail.
+    detail = await api_client.get(
+        f"/api/v1/assistant/sessions/{first['session_id']}",
+        headers=_auth(cashier_token),
+    )
+    assert detail.status_code == 200, detail.text
+    from sqlalchemy import select
+
+    from app.modules.ai.models import AssistantQuery
+
+    stored = (await session.execute(select(AssistantQuery.payload))).scalars().all()
+    assert any(value and value.get("detail") for value in stored)
+    payloads = [turn["payload"] for turn in detail.json()["turns"]]
+    assert any(payload and payload.get("detail") for payload in payloads)
 
 
 @pytest.mark.anyio
@@ -148,7 +166,7 @@ async def test_a_slow_interpretation_still_returns_the_rows(
 
     monkeypatch.setenv("AI_RESPONSE_BUDGET_SECONDS", "0.4")
     get_settings.cache_clear()
-    fake_llm.reply("SELECT COUNT(*) AS SoDon FROM vw_ai_thungan")
+    fake_llm.reply("SELECT COUNT(*) AS SoDon FROM vw_ai_thungan_order")
 
     async def slow(*args, **kwargs):
         await asyncio.sleep(0.5)
@@ -183,7 +201,7 @@ async def test_the_manager_can_ask_about_all_three_domains(
     api_client, manager_token, seed_views, fake_llm, ai_engine
 ):
     """FR-AI-02: the manager inherits every scope (FR-SET-03)."""
-    fake_llm.reply("SELECT COUNT(*) AS n FROM vw_ai_quanly")
+    fake_llm.reply("SELECT COUNT(*) AS n FROM vw_ai_quanly_order")
 
     for question in ("doanh thu tháng này?", "tồn kho còn bao nhiêu?", "món nào bán chạy nhất?"):
         assert (await _chat(api_client, manager_token, question)).status_code == 200
@@ -194,12 +212,14 @@ async def test_the_cashier_can_ask_about_sales_but_not_cost(
     api_client, cashier_token, seed_views, fake_llm, ai_engine
 ):
     """FR-AI-03: revenue and invoices yes, purchase prices and margin no."""
-    fake_llm.reply("SELECT COUNT(*) AS n FROM vw_ai_thungan")
+    fake_llm.reply("SELECT COUNT(*) AS n FROM vw_ai_thungan_order")
 
     allowed = await _chat(api_client, cashier_token, "hôm nay bán được bao nhiêu đơn?")
     assert allowed.status_code == 200
 
-    fake_llm.reply_sequence(["SELECT * FROM vw_ai_quanly", "SELECT * FROM vw_ai_quanly"])
+    fake_llm.reply_sequence(
+        ["SELECT * FROM vw_ai_quanly_order", "SELECT * FROM vw_ai_quanly_order"]
+    )
     refused = await _chat(api_client, cashier_token, "giá nhập hàng tháng này là bao nhiêu?")
     assert refused.json()["data"] == []
 
@@ -209,12 +229,14 @@ async def test_the_warehouse_can_ask_about_stock_but_not_revenue(
     api_client, warehouse_token, seed_views, fake_llm, ai_engine
 ):
     """FR-AI-04."""
-    fake_llm.reply("SELECT TenNguyenLieu FROM vw_ai_kho")
+    fake_llm.reply("SELECT TenNguyenLieu FROM vw_ai_kho_ton")
 
     allowed = await _chat(api_client, warehouse_token, "nguyên liệu nào sắp hết?")
     assert allowed.status_code == 200
 
-    fake_llm.reply_sequence(["SELECT * FROM vw_ai_quanly", "SELECT * FROM vw_ai_quanly"])
+    fake_llm.reply_sequence(
+        ["SELECT * FROM vw_ai_quanly_order", "SELECT * FROM vw_ai_quanly_order"]
+    )
     refused = await _chat(api_client, warehouse_token, "doanh thu hôm qua là bao nhiêu?")
     assert refused.json()["data"] == []
 
@@ -224,7 +246,7 @@ async def test_each_role_talks_to_its_own_view(
     api_client, cashier_token, seed_views, fake_llm, ai_engine, session
 ):
     """FR-AI-01: one assistant per role, scoped to that role's view."""
-    fake_llm.reply("SELECT 1 AS n FROM vw_ai_thungan")
+    fake_llm.reply("SELECT 1 AS n FROM vw_ai_thungan_order")
     await _chat(api_client, cashier_token, "hỏi")
 
     assert (await latest_query(session))["PhamViDuLieu"] == "vw_ai_thungan"
@@ -236,7 +258,7 @@ async def test_a_successful_turn_returns_the_structured_fields(
 ):
     fake_llm.reply_sequence(
         [
-            "SELECT COUNT(*) AS SoDon FROM vw_ai_thungan",
+            "SELECT COUNT(*) AS SoDon FROM vw_ai_thungan_order",
             '{"headline": "Có 2 đơn.", "highlights": ["Cả hai đã thanh toán."], '
             '"follow_ups": ["Doanh thu hôm nay?"]}',
         ]
@@ -257,7 +279,7 @@ async def test_a_successful_turn_returns_the_structured_fields(
 async def test_a_refused_turn_says_so_in_kind(
     api_client, cashier_token, seed_views, fake_llm, ai_engine, session
 ):
-    fake_llm.reply("DELETE FROM vw_ai_thungan")
+    fake_llm.reply("DELETE FROM vw_ai_thungan_order")
     body = (await _chat(api_client, cashier_token, "xoá hết đơn")).json()
     assert body["kind"] == "refused"
     assert body["headline"] == body["answer"]
@@ -271,7 +293,7 @@ async def test_history_is_scoped_to_the_role_that_asked(
     """FR-AI-01/05: switching roles must not expose the previous role's answers."""
     cashier = token_for(Role.CASHIER, user_id=1)
     manager = token_for(Role.MANAGER, user_id=1)
-    fake_llm.reply("SELECT COUNT(*) AS SoDon FROM vw_ai_thungan")
+    fake_llm.reply("SELECT COUNT(*) AS SoDon FROM vw_ai_thungan_order")
 
     session_id = (await _chat(api_client, cashier, "hôm nay bao nhiêu đơn?")).json()["session_id"]
 

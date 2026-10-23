@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import REPO_ROOT
 from app.modules.ai import guard
-from app.modules.ai.scope import ROLE_VIEWS, views_for
+from app.modules.ai.scope import views_for
 from app.shared.roles import Role
 
 EXAMPLES_PATH = REPO_ROOT / "data" / "eval" / "questions.example.jsonl"
@@ -36,7 +36,7 @@ def test_examples_cover_every_role(examples: list[dict]) -> None:
 
 def test_every_example_names_its_role_view(examples: list[dict]) -> None:
     for example in examples:
-        assert example["view"] == ROLE_VIEWS[Role(example["role"])]
+        assert example["view"] in views_for(Role(example["role"]))
 
 
 def test_every_example_passes_the_guard(examples: list[dict]) -> None:

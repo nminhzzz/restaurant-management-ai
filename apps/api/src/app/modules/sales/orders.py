@@ -131,7 +131,7 @@ async def write_kitchen_ticket(
         order_id=order.id,
         status="Chờ in",
         print_status="Chờ in",
-        print_count=1,
+        print_count=0,
         content=render_ticket(order, lines, dish_names=dish_names, table_name=table_name),
     )
     session.add(ticket)
@@ -326,6 +326,7 @@ async def submit_order(
     actor_id: int | None = None,
     confirm_expired: bool = False,
 ) -> dict:
+    await ensure_no_open_stocktake(session)
     now = business_date.now()
     bd = _bd_of(now)
     order_type = payload.get("order_type") or "Tại chỗ"
@@ -492,6 +493,7 @@ async def add_lines(
     confirm_expired: bool = False,
 ) -> list[OrderLine]:
     """Validate and append all confirmed lines atomically (FR-SALE-03)."""
+    await ensure_no_open_stocktake(session)
     created: list[OrderLine] = []
     async with session.begin_nested():
         for line in lines:
@@ -527,6 +529,7 @@ async def add_line(
     request_line_id: str | None = None,
     confirm_expired: bool = False,
 ) -> OrderLine:
+    await ensure_no_open_stocktake(session)
     if request_line_id:
         existing = (
             await session.execute(
@@ -619,27 +622,58 @@ async def update_line(
     quantity: int,
     *,
     actor_id: int | None = None,
+    request_line_id: str | None = None,
 ) -> OrderLine:
+    await ensure_no_open_stocktake(session)
     order = await _lock_order(session, order_id)
-    ensure_order_is_open(order)
     line = await session.get(OrderLine, line_id)
     if line is None or line.order_id != order_id:
         raise NotFoundError("Dòng món không tồn tại.")
-    if line.status != LINE_WAITING:
-        raise BusinessRuleError("Chỉ sửa món ở trạng thái Chờ.")
+    if request_line_id:
+        existing = (
+            await session.execute(
+                select(OrderLine).where(OrderLine.request_line_id == request_line_id)
+            )
+        ).scalar_one_or_none()
+        if existing is not None:
+            if existing.order_id != order_id or existing.dish_id != line.dish_id:
+                raise BusinessRuleError("Mã yêu cầu đã được sử dụng cho dòng món khác.")
+            return existing
+    ensure_order_is_open(order)
     if quantity < 1:
         raise BusinessRuleError("Số lượng món phải lớn hơn 0.")
-
     delta = quantity - int(line.quantity)
     if delta > 0:
-        _, ok, reason = await _resolve_line_inputs(
-            session, line.dish_id, delta, _bd_of(business_date.now())
+        if not request_line_id or actor_id is None:
+            raise BusinessRuleError(
+                "Tăng số lượng phải dùng luồng gọi thêm hoặc cung cấp request_line_id "
+                "để tạo dòng món mới."
+            )
+        if line.status == LINE_CANCELLED:
+            raise BusinessRuleError("Không thể gọi thêm từ dòng món đã hủy.")
+        hold = await reservations.create_hold(
+            session,
+            user_id=actor_id,
+            selection_code=None,
+            table_id=order.table_id,
+            order_id=order.id,
+            dish_id=line.dish_id,
+            quantity=delta,
+            note=line.note,
         )
-        if not ok:
-            raise BusinessRuleError(_rejection_message(reason))
-        await _draw_line_stock(session, line, delta, _bd_of(business_date.now()), actor_id=actor_id)
-        line.quantity = int(line.quantity) + delta
-    elif delta < 0:
+        return await add_line(
+            session,
+            order_id,
+            line.dish_id,
+            delta,
+            line.note,
+            actor_id=actor_id,
+            hold_id=hold.id,
+            request_line_id=request_line_id,
+        )
+    if line.status != LINE_WAITING:
+        raise BusinessRuleError("Chỉ sửa món ở trạng thái Chờ.")
+    if delta < 0:
         await _return_line_stock(session, line, Decimal(-delta), actor_id=actor_id)
         line.quantity = quantity
     line.total = Decimal(str(line.unit_price)) * int(line.quantity)
@@ -661,6 +695,7 @@ async def advance_line_status(session: AsyncSession, line_id: int, to_status: st
 async def cancel_line(
     session: AsyncSession, line_id: int, reason: str, *, actor_id: int | None = None
 ) -> OrderLine:
+    await ensure_no_open_stocktake(session)
     line = await session.get(OrderLine, line_id)
     if line is None:
         raise NotFoundError("Dòng món không tồn tại.")
@@ -755,6 +790,7 @@ async def move_table(
 async def cancel_order(
     session: AsyncSession, order_id: int, reason: str, *, actor_id: int | None = None
 ) -> Order:
+    await ensure_no_open_stocktake(session)
     from app.modules.sales.payments import QR_PENDING, PaymentTransaction, expire_stale_qr
 
     await expire_stale_qr(session)

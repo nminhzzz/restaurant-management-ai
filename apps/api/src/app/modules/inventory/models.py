@@ -207,6 +207,7 @@ class StocktakeLine(Base):
         Computed("TonThucTe - TonHeThong", persisted=True),
         nullable=True,
     )
+    reason: Mapped[str | None] = mapped_column("LyDoChenhLech", String(255), nullable=True)
 
 
 class StockMovement(Base):
