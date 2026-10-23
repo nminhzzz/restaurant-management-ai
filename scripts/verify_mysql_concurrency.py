@@ -178,6 +178,7 @@ async def seed() -> dict[str, int]:
 async def make_order(dish_id: int, quantity: int = 1) -> int:
     from app.modules.catalog.models import DiningTable
     from app.modules.sales import orders
+    from app.modules.settings.models import User
 
     async with Session() as session:
         table = (
@@ -187,6 +188,9 @@ async def make_order(dish_id: int, quantity: int = 1) -> int:
         ).scalar_one()
         table.status = "Trống"
         table.current_order_id = None
+        actor_id = await session.scalar(select(User.id).where(User.status == "Hoạt động").limit(1))
+        if actor_id is None:
+            raise SystemExit("verify_mysql_concurrency requires a seeded active user")
         await session.flush()
         result = await orders.submit_order(
             session,
@@ -194,6 +198,7 @@ async def make_order(dish_id: int, quantity: int = 1) -> int:
                 "table_id": table.id,
                 "lines": [{"dish_id": dish_id, "quantity": quantity}],
             },
+            actor_id=int(actor_id),
         )
         await session.commit()
         return int(result["order"].id)
@@ -364,7 +369,11 @@ async def scenario_receipt_snapshot() -> None:
 
     async with Session() as session:
         ingredient = Ingredient(
-            name="NL nhập đồng thời", unit="kg", min_stock=0, stock_qty=0, is_deleted=False
+            name="NL nhập đồng thời",
+            unit="kg",
+            min_stock=0,
+            stock_qty=0,
+            is_deleted=False,
         )
         session.add(ingredient)
         await session.commit()
@@ -374,11 +383,19 @@ async def scenario_receipt_snapshot() -> None:
         assert cached is not None and cached.stock_qty == 0
         async with Session() as fresh:
             await inventory.create_receipt(
-                fresh, None, None, None, [{"ingredient_id": iid, "quantity": 5, "unit_price": 1000}]
+                fresh,
+                None,
+                None,
+                None,
+                [{"ingredient_id": iid, "quantity": 5, "unit_price": 1000}],
             )
             await fresh.commit()
         await inventory.create_receipt(
-            stale, None, None, None, [{"ingredient_id": iid, "quantity": 7, "unit_price": 1000}]
+            stale,
+            None,
+            None,
+            None,
+            [{"ingredient_id": iid, "quantity": 7, "unit_price": 1000}],
         )
         await stale.commit()
     async with Session() as session:
@@ -463,7 +480,12 @@ async def scenario_hold_snapshot(dish_id: int, iid: int) -> None:
         await session.commit()
         uid = user.id
         old = await reservations.create_hold(
-            session, user_id=uid, selection_code=None, table_id=None, dish_id=dish_id, quantity=1
+            session,
+            user_id=uid,
+            selection_code=None,
+            table_id=None,
+            dish_id=dish_id,
+            quantity=1,
         )
         old.expires_at = business_date.now().replace(tzinfo=None) - timedelta(minutes=1)
         await session.commit()
@@ -472,7 +494,12 @@ async def scenario_hold_snapshot(dish_id: int, iid: int) -> None:
         await stale.execute(select(Ingredient.id))
         async with Session() as fresh:
             active = await reservations.create_hold(
-                fresh, user_id=uid, selection_code=None, table_id=None, dish_id=dish_id, quantity=1
+                fresh,
+                user_id=uid,
+                selection_code=None,
+                table_id=None,
+                dish_id=dish_id,
+                quantity=1,
             )
             await fresh.commit()
             active_id = active.id
@@ -517,7 +544,11 @@ async def scenario_return_and_consume_snapshot() -> None:
         assert line is not None
         async with Session() as fresh:
             await inventory.create_receipt(
-                fresh, None, None, None, [{"ingredient_id": iid, "quantity": 5, "unit_price": 1000}]
+                fresh,
+                None,
+                None,
+                None,
+                [{"ingredient_id": iid, "quantity": 5, "unit_price": 1000}],
             )
             await fresh.commit()
         await orders.cancel_line(stale, line.id, "Kiểm thử snapshot")
@@ -546,7 +577,12 @@ async def scenario_return_and_consume_snapshot() -> None:
         await session.commit()
         uid = user.id
         hold = await reservations.create_hold(
-            session, user_id=uid, selection_code=None, table_id=None, dish_id=dish_id, quantity=1
+            session,
+            user_id=uid,
+            selection_code=None,
+            table_id=None,
+            dish_id=dish_id,
+            quantity=1,
         )
         await session.commit()
         hid = hold.id
@@ -554,7 +590,11 @@ async def scenario_return_and_consume_snapshot() -> None:
         await stale.execute(select(Invoice.id))
         async with Session() as fresh:
             await inventory.create_receipt(
-                fresh, None, None, None, [{"ingredient_id": iid, "quantity": 5, "unit_price": 1000}]
+                fresh,
+                None,
+                None,
+                None,
+                [{"ingredient_id": iid, "quantity": 5, "unit_price": 1000}],
             )
             await fresh.commit()
         await orders.submit_order(

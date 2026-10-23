@@ -455,3 +455,31 @@ async def test_cancel_qr_refuses_a_payment_confirmed_behind_its_back(session):
     await session.commit()
 
     assert await payment_status(session, oid) == "Thành công"
+
+
+@pytest.mark.anyio
+async def test_an_order_with_every_line_cancelled_cannot_be_paid_as_zero(session):
+    """Keeping the order open must not turn into a zero-value invoice (FR-SALE-10/11)."""
+    d, t = await _setup(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    created = await client.post(
+        "/api/v1/sales/orders",
+        json={"MaBan": t.id, "lines": [{"MaMon": d.id, "SoLuong": 1}]},
+        headers=h,
+    )
+    assert created.status_code == 201, created.text
+    oid = created.json()["MaOrder"]
+    lid = created.json()["lines"][0]["MaChiTietOrder"]
+
+    cancelled = await client.post(
+        f"/api/v1/sales/orders/{oid}/lines/{lid}/cancel",
+        json={"reason": "khách đổi ý"},
+        headers=h,
+    )
+    assert cancelled.status_code == 200
+
+    paid = await client.post(f"/api/v1/sales/orders/{oid}/pay/cash", headers=h)
+    assert paid.status_code == 422
+    assert "không còn món để thanh toán" in paid.json()["error"]["message"]
+    assert await order_status(session, oid) == "Đang mở"

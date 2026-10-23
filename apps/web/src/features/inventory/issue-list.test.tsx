@@ -124,4 +124,94 @@ describe("IssueList", () => {
       ),
     );
   });
+
+  it("derives prepared-dish ingredients and sends only the line and servings", async () => {
+    fetchMock.mockImplementation(
+      (path: string, options: { method?: string; body?: unknown } = {}) => {
+        if (path.startsWith("/catalog/ingredients")) {
+          return Promise.resolve({ items: ingredients });
+        }
+        if (path.startsWith("/inventory/issues/prepared-preview")) {
+          return Promise.resolve({
+            order_line_id: 11,
+            servings: 1,
+            written_servings: 0,
+            eligible_servings: 2,
+            lines: [
+              {
+                ingredient_id: 1,
+                ingredient_name: "Gạo",
+                unit: "kg",
+                quantity: 0.5,
+              },
+            ],
+          });
+        }
+        if (path === "/inventory/issues" && options.method === "POST") {
+          return Promise.resolve({ MaPhieuXuat: 9 });
+        }
+        if (path.startsWith("/inventory/issues")) {
+          return Promise.resolve({ items: [], total: 0 });
+        }
+        if (path.startsWith("/sales/orders?")) {
+          return Promise.resolve({ items: [{ MaOrder: 7 }] });
+        }
+        if (path === "/sales/orders/7") {
+          return Promise.resolve({
+            lines: [
+              {
+                MaChiTietOrder: 11,
+                TenMon: "Phở",
+                SoLuong: 2,
+                TrangThai: "Đã phục vụ",
+              },
+            ],
+          });
+        }
+        return Promise.resolve([]);
+      },
+    );
+
+    render(<IssueList />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Tạo phiếu xuất" }),
+    );
+
+    fireEvent.click(screen.getByRole("combobox", { name: "Nguồn" }));
+    fireEvent.click(await screen.findByText("Món đã chế biến"));
+    expect(
+      screen.queryByRole("combobox", { name: "Nguyên liệu" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Mã order"), {
+      target: { value: "ORD-7" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Tìm" }));
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith("/sales/orders/7"),
+    );
+
+    fireEvent.click(screen.getByRole("combobox", { name: "Dòng món" }));
+    fireEvent.click(await screen.findByText(/#11 · Phở × 2/));
+    fireEvent.change(screen.getByLabelText("Số suất"), {
+      target: { value: "1" },
+    });
+
+    expect(await screen.findByText("Gạo (kg)")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Ghi nhận xuất kho" }));
+
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/inventory/issues",
+        expect.objectContaining({
+          method: "POST",
+          body: expect.objectContaining({
+            source: "Món đã chế biến",
+            lines: [{ order_line_id: 11, servings: 1 }],
+          }),
+        }),
+      ),
+    );
+  });
 });

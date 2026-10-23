@@ -1714,7 +1714,7 @@ Ngoại trừ đăng nhập, người dùng phải có phiên hợp lệ và quy
 
   - Bước 1. Nhân viên chọn dòng món cần giảm hoặc hủy và xác nhận với Bếp rằng món chưa chế biến. Nếu không còn đủ điều kiện, hệ thống từ chối; phần đã chế biến được xử lý theo nghiệp vụ hao hụt khi cần.
 
-  - Bước 2. Hệ thống giảm hoặc hủy món, hoàn nguyên liệu theo lô gốc và ghi nhật ký. Nếu hủy hết món, hệ thống xử lý kết thúc order theo FR-SALE-11; bàn được giải phóng khi khách rời đi.
+  - Bước 2. Hệ thống giảm hoặc hủy món, hoàn nguyên liệu theo lô gốc và ghi nhật ký. Nếu hủy hết món, order vẫn mở để gọi thêm theo FR-SALE-11; bàn được giải phóng khi khách rời đi.
 
 - **c) Cập nhật trạng thái phục vụ**
 
@@ -1740,7 +1740,7 @@ Ngoại trừ đăng nhập, người dùng phải có phiên hợp lệ và quy
 
   - **FR-SALE-10 – Hủy một món trong order:** Chỉ hủy được món đang “Chờ làm”; mỗi lượt hủy ghi lại người thực hiện, thời điểm, số lượng, lý do (audit log).
 
-  - **FR-SALE-11 – Tự động đóng order khi toàn bộ món bị hủy:** Nếu toàn bộ món trong order đã bị hủy, hệ thống tự đóng order: không phát sinh hóa đơn, hoàn kho đầy đủ; bàn chỉ về Trống khi khách đã rời đi theo FR-CAT-18. Các lượt chọn chưa gửi gắn order được giải phóng khi order đóng.
+  - **FR-SALE-11 – Giữ order mở khi toàn bộ món bị hủy:** Nếu toàn bộ món trong order đã bị hủy, order vẫn ở trạng thái “Đang mở” để khách có thể gọi thêm; hệ thống không phát sinh hóa đơn rỗng và không tự giải phóng bàn. Hủy toàn bộ order vẫn là thao tác riêng của Quản lý; các lượt chọn chưa gửi gắn order được giải phóng khi order bị hủy. Bàn chỉ về Trống khi khách đã rời đi theo FR-CAT-18. Dữ liệu lịch sử có thể còn trạng thái “Tự động đóng” do phiên bản trước tạo ra.
 
   - **FR-SALE-12 – Đổi bàn cho order đang mở:** Chuyển order từ bàn hiện tại sang bàn Trống khác, khi order ở trạng thái “Đang mở”, bàn nguồn còn Đang phục vụ và BAN.MaOrderDangPhucVu trỏ tới đúng order này; sau khi giải phóng bàn thì không được đổi bàn cho order cũ; bàn đích chuyển Đang phục vụ, bàn nguồn về Trống. Thao tác đổi bàn được ghi vào audit log (FR-SET-06).
 
@@ -1860,7 +1860,7 @@ Ngoại trừ đăng nhập, người dùng phải có phiên hợp lệ và quy
 
   - **FR-SALE-27 – Hủy toàn bộ order chưa thanh toán:** Quản lý được hủy toàn bộ order ở trạng thái “Đang mở”, chưa có thanh toán thành công và không có yêu cầu xác minh đang chờ xử lý; bắt buộc nhập lý do. Thao tác áp dụng cả khi order có món “Đã xác nhận xong” hoặc “Đã phục vụ”.
 
-  - **FR-SALE-28 – Xử lý nguyên liệu khi hủy toàn bộ order:** Nguyên liệu của các món ở trạng thái “Đã xác nhận xong” hoặc “Đã phục vụ” không được hoàn kho; phần nguyên liệu đã tiêu hao này được ghi vào chi phí hao hụt do hủy order (FR-REP-05c) và hiển thị trong báo cáo FR-REP-10. Các món “Chờ làm” được hoàn kho theo FR-INV-04; trường hợp hủy hết món thực hiện theo FR-SALE-11.
+  - **FR-SALE-28 – Xử lý nguyên liệu khi hủy toàn bộ order:** Nguyên liệu của các món ở trạng thái “Đã xác nhận xong” hoặc “Đã phục vụ” không được hoàn kho; phần nguyên liệu đã tiêu hao này được ghi vào chi phí hao hụt do hủy order (FR-REP-05c) và hiển thị trong báo cáo FR-REP-10. Các món “Chờ làm” được hoàn kho theo FR-INV-04; trường hợp hủy hết món giữ order mở theo FR-SALE-11.
 
   - **FR-SALE-29 – Ngoại lệ khi đang chờ xác nhận thanh toán QR:** Không cho hủy toàn order khi đang “Chờ xác nhận thanh toán” (đã tạo mã QR), phải chủ động hủy mã QR (FR-SALE-33) hoặc chờ hết hạn trước; nếu khách đã báo chuyển tiền thì chuyển sang “Chờ xác minh thanh toán” theo FR-SALE-19.
 
@@ -3636,7 +3636,7 @@ Bảng 49 ánh xạ yêu cầu thuộc phạm vi kiểm thử với các mã ca 
 | FR-SALE-08  | Điều chỉnh và giải phóng giữ món                        | TC-SALE-21, TC-SALE-22, TC-SALE-23, TC-SALE-24, TC-SALE-25, TC-SALE-26, TC-SALE-27, TC-SALE-28, TC-SALE-29                                                                      |
 | FR-SALE-09  | Trạng thái xử lý của món                                | TC-SALE-37, TC-SALE-38, TC-SALE-39, TC-SALE-40                                                                                                                                  |
 | FR-SALE-10  | Hủy một món trong order                                 | TC-SALE-31, TC-SALE-32, TC-SALE-33, TC-SALE-34, TC-SALE-35, TC-SALE-36                                                                                                          |
-| FR-SALE-11  | Tự động đóng order khi toàn bộ món bị hủy               | TC-SALE-41, TC-SALE-42                                                                                                                                                          |
+| FR-SALE-11  | Giữ order mở khi toàn bộ món bị hủy                    | TC-SALE-13, TC-SALE-41, TC-SALE-42                                                                                                                                              |
 | FR-SALE-12  | Đổi bàn cho order đang mở                               | TC-SALE-43, TC-SALE-44, TC-SALE-45                                                                                                                                              |
 | FR-SALE-14  | Thanh toán QR: chỉ một QR còn hiệu lực                  | TC-SALE-52                                                                                                                                                                      |
 | FR-SALE-33  | Chủ động hủy QR khi khách chưa chuyển tiền              | TC-SALE-52                                                                                                                                                                      |

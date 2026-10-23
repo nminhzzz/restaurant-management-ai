@@ -39,8 +39,10 @@ class ReceiptOut(BaseModel):
 
 
 class IssueLineIn(BaseModel):
-    ingredient_id: int
-    quantity: float = Field(gt=0)
+    # Prepared-dish write-offs send only the source line and servings; the backend
+    # derives the ingredients. Other sources must send ingredient_id and quantity.
+    ingredient_id: int | None = None
+    quantity: float | None = Field(default=None, gt=0)
     lot_id: int | None = None
     order_line_id: int | None = None
     servings: int | None = Field(default=None, gt=0)

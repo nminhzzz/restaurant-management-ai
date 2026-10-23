@@ -12,7 +12,7 @@ import {
   Trash2,
   UtensilsCrossed,
 } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -47,7 +47,22 @@ type CartLine = {
   GhiChu: string;
   holdId: number;
   RequestLineId: string;
+  expired?: boolean;
 };
+
+type Hold = {
+  MaGiuCho: number;
+  MaLuotChon: string;
+  MaMon: number;
+  TenMon?: string | null;
+  SoLuong: number;
+  GhiChu?: string | null;
+  DonGia?: number | null;
+  ThoiDiemHetHan: string;
+  TrangThai: string;
+};
+
+const SELECTION_PREFIX = "sales-selection:";
 
 function requestId(): string {
   return (
@@ -114,6 +129,32 @@ async function loadMenu(orderId: number | null) {
   };
 }
 
+function selectionStorageKey(
+  tableId: number | null,
+  orderId: number | null,
+): string {
+  if (orderId !== null) return `${SELECTION_PREFIX}order-${orderId}`;
+  if (tableId !== null) return `${SELECTION_PREFIX}table-${tableId}`;
+  return `${SELECTION_PREFIX}takeaway`;
+}
+
+function storedSelection(key: string): string | null {
+  if (typeof window === "undefined") return null;
+  return window.sessionStorage.getItem(key);
+}
+
+function rememberSelection(key: string, code: string): void {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.setItem(key, code);
+}
+
+function newSelectionCode(): string {
+  return (
+    globalThis.crypto?.randomUUID?.() ??
+    `sel-${Date.now()}-${Math.random().toString(36).slice(2)}`
+  );
+}
+
 export function OrderStep({
   tableId,
   orderId,
@@ -125,21 +166,74 @@ export function OrderStep({
   onBack: () => void;
   onSent: (orderId: number, next: "floor" | "pay") => void;
 }) {
+  const selectionKey = selectionStorageKey(tableId, orderId);
   const fetcher = useCallback(() => loadMenu(orderId), [orderId]);
   const menu = useResource(fetcher);
   const [groupId, setGroupId] = useState<number | null>(null);
   const [query, setQuery] = useState("");
   const [cart, setCart] = useState<CartLine[]>([]);
-  const [selectionCode] = useState(
-    () =>
-      globalThis.crypto?.randomUUID?.() ??
-      `sel-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-  );
+  const [selectionCode, setSelectionCode] = useState(() => {
+    const existing = storedSelection(selectionKey);
+    if (existing) return existing;
+    const code = newSelectionCode();
+    rememberSelection(selectionKey, code);
+    return code;
+  });
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   // Reused across retries so a lost response cannot create a second order.
   const submitRequestId = useRef<string | null>(null);
+  const hydratedFor = useRef<string | null>(null);
+
+  const loadHolds = useCallback(async () => {
+    const params = new URLSearchParams({
+      selection_code: selectionCode,
+      include_expired: "true",
+    });
+    if (orderId !== null) params.set("order_id", String(orderId));
+    const payload = await apiFetch<Hold[] | Hold>(
+      `/sales/holds?${params.toString()}`,
+    );
+    return { selectionCode, holds: Array.isArray(payload) ? payload : [] };
+  }, [selectionCode, orderId]);
+  const restored = useResource(loadHolds);
+
+  // The selection belongs to a table/order key. Move to another key => fresh draft.
+  useEffect(() => {
+    const existing = storedSelection(selectionKey);
+    const code = existing ?? newSelectionCode();
+    if (!existing) rememberSelection(selectionKey, code);
+    setSelectionCode(code);
+    setCart([]);
+    submitRequestId.current = null;
+    hydratedFor.current = null;
+  }, [selectionKey]);
+
+  // Reload/back must bring the server-side cart back, not start a second selection.
+  useEffect(() => {
+    if (restored.status !== "ready") return;
+    if (restored.data.selectionCode !== selectionCode) return;
+    if (hydratedFor.current === selectionCode) return;
+    hydratedFor.current = selectionCode;
+    if (restored.data.holds.length === 0) return;
+    setCart((previous) =>
+      previous.length > 0
+        ? previous
+        : restored.data.holds.map((hold) => ({
+            MaMon: hold.MaMon,
+            TenMon: hold.TenMon ?? `Món #${hold.MaMon}`,
+            DonGia: hold.DonGia ?? 0,
+            SoLuong: hold.SoLuong,
+            GhiChu: hold.GhiChu ?? "",
+            holdId: hold.MaGiuCho,
+            RequestLineId: requestId(),
+            expired: hold.TrangThai === "Hết hạn",
+          })),
+    );
+  }, [restored, selectionCode]);
+
   if (menu.status === "loading") return <LoadingState rows={6} />;
   if (menu.status === "error")
     return <ErrorState message={menu.message} onRetry={menu.reload} />;
@@ -179,11 +273,7 @@ export function OrderStep({
     try {
       const existing = cart.find((l) => l.MaMon === dish.MaMon);
       if (existing) {
-        const updated = await apiFetch<{ MaGiuCho: number; SoLuong: number }>(
-          `/sales/holds/${existing.holdId}`,
-          { method: "PATCH", body: { quantity: existing.SoLuong + 1 } },
-        );
-        updateLine(dish.MaMon, { SoLuong: updated.SoLuong });
+        await resize(existing, existing.SoLuong + 1);
         return;
       }
       const hold = await apiFetch<{
@@ -230,6 +320,42 @@ export function OrderStep({
     );
   }
 
+  async function resize(line: CartLine, quantity: number) {
+    if (line.expired) {
+      // An expired hold cannot be patched: reserve the new quantity with today's
+      // price/recipe and drop the stale one, so the cashier can keep adjusting.
+      const hold = await apiFetch<{
+        MaGiuCho: number;
+        SoLuong?: number;
+        DonGia?: number | null;
+      }>("/sales/holds", {
+        method: "POST",
+        body: {
+          selection_code: selectionCode,
+          table_id: tableId,
+          order_id: orderId,
+          dish_id: line.MaMon,
+          quantity,
+        },
+      });
+      await apiFetch(`/sales/holds/${line.holdId}`, { method: "DELETE" }).catch(
+        () => undefined,
+      );
+      updateLine(line.MaMon, {
+        holdId: hold.MaGiuCho,
+        SoLuong: hold.SoLuong ?? quantity,
+        DonGia: hold.DonGia ?? line.DonGia,
+        expired: false,
+      });
+      return;
+    }
+    const updated = await apiFetch<{ MaGiuCho: number; SoLuong: number }>(
+      `/sales/holds/${line.holdId}`,
+      { method: "PATCH", body: { quantity } },
+    );
+    updateLine(line.MaMon, { SoLuong: updated.SoLuong });
+  }
+
   async function step(line: CartLine, delta: number) {
     const next = line.SoLuong + delta;
     setError(null);
@@ -238,11 +364,7 @@ export function OrderStep({
         await apiFetch(`/sales/holds/${line.holdId}`, { method: "DELETE" });
         setCart((prev) => prev.filter((l) => l.MaMon !== line.MaMon));
       } else {
-        const updated = await apiFetch<{ MaGiuCho: number; SoLuong: number }>(
-          `/sales/holds/${line.holdId}`,
-          { method: "PATCH", body: { quantity: next } },
-        );
-        updateLine(line.MaMon, { SoLuong: updated.SoLuong });
+        await resize(line, next);
       }
     } catch (e: unknown) {
       setError(messageOf(e, "Không cập nhật được số lượng giữ chỗ."));
@@ -251,13 +373,34 @@ export function OrderStep({
 
   async function syncQuantity(line: CartLine) {
     try {
-      const updated = await apiFetch<{ MaGiuCho: number; SoLuong: number }>(
-        `/sales/holds/${line.holdId}`,
-        { method: "PATCH", body: { quantity: line.SoLuong } },
-      );
-      updateLine(line.MaMon, { SoLuong: updated.SoLuong });
+      await resize(line, line.SoLuong);
     } catch (e: unknown) {
       setError(messageOf(e, "Không cập nhật được số lượng giữ chỗ."));
+    }
+  }
+
+  async function cancelSelection() {
+    if (
+      !window.confirm(
+        "Hủy toàn bộ món chưa gửi của lượt chọn này? Các món đã gửi bếp không bị ảnh hưởng.",
+      )
+    ) {
+      return;
+    }
+    setError(null);
+    setCancelling(true);
+    try {
+      await apiFetch("/sales/holds/release", {
+        method: "POST",
+        body: { selection_code: selectionCode, order_id: orderId },
+      });
+      setCart([]);
+      submitRequestId.current = null;
+      toast.success("Đã hủy lượt chọn và giải phóng nguyên liệu đang giữ.");
+    } catch (e: unknown) {
+      setError(messageOf(e, "Không hủy được lượt chọn. Thử lại."));
+    } finally {
+      setCancelling(false);
     }
   }
 
@@ -322,8 +465,13 @@ export function OrderStep({
         rejected = result.rejected;
       } catch (e: unknown) {
         const message = messageOf(e, "");
+        // A changed price/recipe needs the same confirmation as an expired hold.
+        const needsConfirmation =
+          message.includes("hết hạn") ||
+          message.includes("thay đổi") ||
+          message.includes("Xác nhận dùng giá");
         if (
-          !message.includes("hết hạn") ||
+          !needsConfirmation ||
           !window.confirm(
             `${message}\n\nDùng giá và định lượng hiện tại để gửi?`,
           )
@@ -343,6 +491,9 @@ export function OrderStep({
       }
       setCart([]);
       submitRequestId.current = null;
+      if (typeof window !== "undefined") {
+        window.sessionStorage.removeItem(selectionKey);
+      }
       toast.success(`Đã gửi món của ${tableName} xuống bếp.`);
       // FR-SALE-32: a failed kitchen print must be visible now, not only after the
       // cashier happens to open the order again.
@@ -493,6 +644,17 @@ export function OrderStep({
           <h2 className="text-base font-bold">
             {order ? `Order ${tableName}` : tableName}
           </h2>
+          {cart.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={cancelSelection}
+              disabled={cancelling || submitting}
+            >
+              <Trash2 aria-hidden />
+              Hủy lượt chọn
+            </Button>
+          )}
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
@@ -520,6 +682,11 @@ export function OrderStep({
                         <p className="text-xs text-muted tabular-nums">
                           {formatVnd(l.DonGia)}
                         </p>
+                        {l.expired && (
+                          <p className="text-xs font-medium text-warning-fg">
+                            Hết thời gian giữ — gửi lại để dùng giá hiện tại
+                          </p>
+                        )}
                       </div>
                       <p className="font-medium tabular-nums">
                         {formatVnd(l.DonGia * l.SoLuong)}

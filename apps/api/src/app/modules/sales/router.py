@@ -25,6 +25,7 @@ from app.modules.sales.schemas import (
     AddLinesIn,
     HoldCreate,
     HoldOut,
+    HoldReleaseIn,
     HoldUpdate,
     ReleaseTableIn,
     SubmitOrderIn,
@@ -128,14 +129,36 @@ async def create_hold(
 async def list_holds(
     selection_code: str | None = None,
     order_id: int | None = None,
+    include_expired: bool = False,
     session: AsyncSession = Depends(get_session),
     user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
 ):
     holds = await reservations.list_holds(
-        session, user_id=user.user_id, selection_code=selection_code, order_id=order_id
+        session,
+        user_id=user.user_id,
+        selection_code=selection_code,
+        order_id=order_id,
+        include_expired=include_expired,
     )
     await session.commit()
     return [await _hold_payload(session, hold) for hold in holds]
+
+
+@router.post("/holds/release")
+async def release_selection(
+    payload: HoldReleaseIn,
+    session: AsyncSession = Depends(get_session),
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
+):
+    """FR-SALE-08: drop the whole unsent selection and release its stock at once."""
+    released = await reservations.release_selection(
+        session,
+        user_id=user.user_id,
+        selection_code=payload.selection_code,
+        order_id=payload.order_id,
+    )
+    await session.commit()
+    return {"released": released}
 
 
 @router.patch("/holds/{hold_id}", response_model=HoldOut)

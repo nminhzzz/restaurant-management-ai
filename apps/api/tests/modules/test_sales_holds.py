@@ -415,3 +415,165 @@ async def test_active_hold_requires_confirmation_when_price_changes(session):
     assert line.unit_price == 70000
     await session.refresh(ingredient)
     assert ingredient.stock_qty == 8
+
+
+@pytest.mark.anyio
+async def test_submit_without_a_client_hold_still_reserves_and_consumes(session):
+    """FR-SALE-03: the API cannot deduct stock without passing through a hold."""
+    dish, ingredient, table = await _setup(session, stock=5)
+    client = await _make_client(session)
+    headers, _ = await _headers(session)
+
+    r = await client.post(
+        "/api/v1/sales/orders",
+        json={"MaBan": table.id, "lines": [{"MaMon": dish.id, "SoLuong": 2}]},
+        headers=headers,
+    )
+
+    assert r.status_code == 201, r.text
+    await session.refresh(ingredient)
+    assert float(ingredient.stock_qty) == 3
+    consumed = await session.scalar(
+        select(func.count()).select_from(Reservation).where(Reservation.status == "Đã gửi")
+    )
+    assert consumed == 1
+
+
+@pytest.mark.anyio
+async def test_a_takeaway_hold_cannot_be_replayed_on_another_order(session):
+    """FR-INV-11: two takeaway orders of the same cashier are still separate scopes."""
+    dish, ingredient, table = await _setup(session, stock=10)
+    client = await _make_client(session)
+    headers, _ = await _headers(session)
+
+    first = await client.post(
+        "/api/v1/sales/orders",
+        json={"LoaiDon": "Mang về", "lines": [{"MaMon": dish.id, "SoLuong": 1}]},
+        headers=headers,
+    )
+    assert first.status_code == 201, first.text
+    order_a = first.json()["MaOrder"]
+
+    bound = await client.post(
+        "/api/v1/sales/holds",
+        json={"order_id": order_a, "dish_id": dish.id, "quantity": 1},
+        headers=headers,
+    )
+    assert bound.status_code == 201, bound.text
+    hold_id = bound.json()["MaGiuCho"]
+
+    second = await client.post(
+        "/api/v1/sales/orders",
+        json={"LoaiDon": "Mang về", "lines": [{"MaMon": dish.id, "SoLuong": 1}]},
+        headers=headers,
+    )
+    assert second.status_code == 201, second.text
+    order_b = second.json()["MaOrder"]
+
+    cross = await client.post(
+        f"/api/v1/sales/orders/{order_b}/lines",
+        json={"dish_id": dish.id, "quantity": 1, "hold_id": hold_id},
+        headers=headers,
+    )
+    assert cross.status_code == 422
+    assert "không thuộc order này" in cross.json()["error"]["message"]
+
+    replay = await client.post(
+        "/api/v1/sales/orders",
+        json={
+            "LoaiDon": "Mang về",
+            "lines": [{"MaMon": dish.id, "SoLuong": 1, "hold_id": hold_id}],
+        },
+        headers=headers,
+    )
+    assert replay.status_code == 422
+    assert "đã thuộc một order khác" in replay.json()["error"]["message"]
+
+    await session.refresh(ingredient)
+    assert float(ingredient.stock_qty) == 8
+
+
+@pytest.mark.anyio
+async def test_release_selection_only_drops_unsent_holds(session):
+    """FR-SALE-08: cancel the whole draft without touching lines already sent."""
+    dish, _, _ = await _setup(session, stock=10)
+    client = await _make_client(session)
+    headers, _ = await _headers(session)
+
+    first = await client.post(
+        "/api/v1/sales/holds",
+        json={"selection_code": "sel-first", "dish_id": dish.id, "quantity": 1},
+        headers=headers,
+    )
+    assert first.status_code == 201, first.text
+    sent = await client.post(
+        "/api/v1/sales/orders",
+        json={
+            "LoaiDon": "Mang về",
+            "lines": [{"MaMon": dish.id, "SoLuong": 1, "hold_id": first.json()["MaGiuCho"]}],
+        },
+        headers=headers,
+    )
+    assert sent.status_code == 201, sent.text
+    order_id = sent.json()["MaOrder"]
+
+    for quantity in (1, 2):
+        added = await client.post(
+            "/api/v1/sales/holds",
+            json={
+                "selection_code": "sel-more",
+                "order_id": order_id,
+                "dish_id": dish.id,
+                "quantity": quantity,
+            },
+            headers=headers,
+        )
+        assert added.status_code == 201, added.text
+
+    released = await client.post(
+        "/api/v1/sales/holds/release",
+        json={"selection_code": "sel-more", "order_id": order_id},
+        headers=headers,
+    )
+    assert released.status_code == 200
+    assert released.json()["released"] == 2
+
+    listed = await client.get(
+        f"/api/v1/sales/holds?selection_code=sel-more&order_id={order_id}",
+        headers=headers,
+    )
+    assert listed.json() == []
+    detail = await client.get(f"/api/v1/sales/orders/{order_id}", headers=headers)
+    assert len(detail.json()["lines"]) == 1
+
+    # The released 3 units are available again.
+    freed = await client.post(
+        "/api/v1/sales/holds",
+        json={"order_id": order_id, "dish_id": dish.id, "quantity": 3},
+        headers=headers,
+    )
+    assert freed.status_code == 201, freed.text
+
+
+@pytest.mark.anyio
+async def test_reopening_a_selection_can_show_expired_holds(session):
+    """FR-SALE-05: an expired line must be visible so it can be confirmed, not forgotten."""
+    dish, _, table = await _setup(session, stock=3)
+    client = await _make_client(session)
+    headers, _ = await _headers(session)
+    created = await _hold(client, headers, dish, table, quantity=1)
+    hold = await session.get(Reservation, created.json()["MaGiuCho"])
+    hold.expires_at = business_date.now().replace(tzinfo=None) - timedelta(minutes=1)
+    await session.commit()
+
+    visible = await client.get(
+        f"/api/v1/sales/holds?selection_code={hold.selection_code}&include_expired=true",
+        headers=headers,
+    )
+    assert visible.status_code == 200
+    assert [row["TrangThai"] for row in visible.json()] == ["Hết hạn"]
+
+    active_only = await client.get(
+        f"/api/v1/sales/holds?selection_code={hold.selection_code}", headers=headers
+    )
+    assert active_only.json() == []

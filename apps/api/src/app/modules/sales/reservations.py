@@ -293,11 +293,23 @@ async def get_hold_for_submit(
     user_id: int,
     *,
     confirm_expired: bool = False,
+    expected_order_id: int | None = None,
 ) -> Reservation:
-    """FR-SALE-05: an expired hold is re-checked at submit and never renewed silently."""
+    """FR-SALE-05: an expired hold is re-checked at submit and never renewed silently.
+
+    A hold is bound to the selection that created it. A new order may only consume a
+    hold that is not attached to an order yet; adding to an existing order must use a
+    hold created for that order. This stops a takeaway hold from one order being
+    replayed on another takeaway order of the same cashier (both have no table).
+    """
     reservation, locked_ids = await _lock_owned_hold(session, hold_id, user_id)
     if reservation.status not in (HOLD_ACTIVE, HOLD_EXPIRED):
         raise BusinessRuleError("Lượt giữ chỗ không còn hiệu lực.")
+    if expected_order_id is None:
+        if reservation.order_id is not None:
+            raise BusinessRuleError("Lượt giữ chỗ đã thuộc một order khác.")
+    elif reservation.order_id != expected_order_id:
+        raise BusinessRuleError("Lượt giữ chỗ không thuộc order này.")
     now = _now()
     expired = reservation.status == HOLD_EXPIRED or reservation.expires_at <= now
     today = _business_date()
@@ -391,13 +403,48 @@ async def update_hold(
 
 
 async def release_hold(session: AsyncSession, *, hold_id: int, user_id: int) -> Reservation:
-    reservation = await _owned_active(session, hold_id, user_id)
+    reservation, _locked_ids = await _lock_owned_hold(session, hold_id, user_id)
+    if reservation.status not in (HOLD_ACTIVE, HOLD_EXPIRED):
+        raise BusinessRuleError("Lượt giữ chỗ không còn hiệu lực.")
     reservation.status = HOLD_RELEASED
     await session.execute(
         delete(ReservationDetail).where(ReservationDetail.reservation_id == reservation.id)
     )
     await session.flush()
     return reservation
+
+
+async def release_selection(
+    session: AsyncSession,
+    *,
+    user_id: int,
+    selection_code: str | None = None,
+    order_id: int | None = None,
+) -> int:
+    """Drop every unsent hold of one selection, returning the count released.
+
+    Used by the "Hủy lượt chọn" action. Only reservations owned by the caller and
+    not yet sent are touched, so lines already sent to the kitchen stay intact.
+    """
+    if selection_code is None and order_id is None:
+        raise BusinessRuleError("Cần mã lượt chọn hoặc order để hủy.")
+    conditions = [
+        Reservation.user_id == user_id,
+        Reservation.status.in_((HOLD_ACTIVE, HOLD_EXPIRED)),
+    ]
+    if selection_code is not None:
+        conditions.append(Reservation.selection_code == selection_code)
+    if order_id is not None:
+        conditions.append(Reservation.order_id == order_id)
+    rows = list((await session.execute(select(Reservation).where(*conditions))).scalars().all())
+    for reservation in rows:
+        reservation.status = HOLD_RELEASED
+        await session.execute(
+            delete(ReservationDetail).where(ReservationDetail.reservation_id == reservation.id)
+        )
+    if rows:
+        await session.flush()
+    return len(rows)
 
 
 async def release_active_holds(
@@ -449,13 +496,17 @@ async def list_holds(
     user_id: int,
     selection_code: str | None = None,
     order_id: int | None = None,
+    include_expired: bool = False,
 ) -> list[Reservation]:
+    """Active holds for a selection; expired ones are included when reopening a cart."""
     await expire_due_holds(session)
+    statuses = (HOLD_ACTIVE, HOLD_EXPIRED) if include_expired else (HOLD_ACTIVE,)
     query = select(Reservation).where(
         Reservation.user_id == user_id,
-        Reservation.status == HOLD_ACTIVE,
-        Reservation.expires_at > _now(),
+        Reservation.status.in_(statuses),
     )
+    if not include_expired:
+        query = query.where(Reservation.expires_at > _now())
     if selection_code:
         query = query.where(Reservation.selection_code == selection_code)
     if order_id is not None:

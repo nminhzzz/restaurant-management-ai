@@ -7,12 +7,14 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import BusinessRuleError, NotFoundError
+from app.modules.catalog.models import Ingredient, RecipeItem
 from app.modules.inventory.models import (
     GoodsReceipt,
     GoodsReceiptLine,
     IngredientLot,
     StockIssue,
     StockIssueLine,
+    StockMovement,
     Stocktake,
     StocktakeLine,
 )
@@ -23,6 +25,7 @@ from app.modules.inventory.stock import (
     lock_ingredient,
     lock_stock_operations,
 )
+from app.modules.sales.models import OrderLine
 from app.shared import business_date
 from app.shared.audit import SystemAuditLog
 from app.shared.enums import StocktakeStatus
@@ -363,6 +366,128 @@ async def list_receipts(
 ISSUE_SOURCES = ("Nguyên liệu", "Món đã chế biến", "Kiểm kê")
 
 
+async def _written_servings(session: AsyncSession, order_line_ids: list[int]) -> dict[int, int]:
+    """Servings already written off per order line, counted once per voucher.
+
+    `CHI_TIET_PHIEU_XUAT` repeats the same `servings` on every ingredient row of a
+    prepared-dish voucher, so summing the column would count one serving once per
+    ingredient. The inner MAX collapses a voucher to one number before summing.
+    """
+    if not order_line_ids:
+        return {}
+    per_voucher = (
+        select(
+            StockIssueLine.order_line_id.label("order_line_id"),
+            StockIssueLine.issue_id.label("issue_id"),
+            func.max(StockIssueLine.servings).label("servings"),
+        )
+        .where(
+            StockIssueLine.order_line_id.in_(order_line_ids),
+            StockIssueLine.servings.is_not(None),
+        )
+        .group_by(StockIssueLine.order_line_id, StockIssueLine.issue_id)
+        .subquery()
+    )
+    rows = await session.execute(
+        select(per_voucher.c.order_line_id, func.sum(per_voucher.c.servings)).group_by(
+            per_voucher.c.order_line_id
+        )
+    )
+    return {int(line_id): int(total or 0) for line_id, total in rows}
+
+
+async def _consumption_per_serving(
+    session: AsyncSession, order_line: OrderLine
+) -> dict[int, Decimal]:
+    """Ingredient quantity one serving consumed, from the original stock movements.
+
+    The current recipe is deliberately not consulted: a later recipe change must not
+    rewrite what the kitchen actually used. If the line predates stock movements
+    (legacy/manual data), fall back to the recipe version snapshotted on the line.
+    """
+    rows = await session.execute(
+        select(StockMovement.ingredient_id, func.sum(StockMovement.qty))
+        .where(StockMovement.order_line_id == order_line.id)
+        .group_by(StockMovement.ingredient_id)
+    )
+    net: dict[int, Decimal] = {}
+    for ingredient_id, change in rows:
+        consumed = -Decimal(str(change or 0))
+        if consumed > 0:
+            net[int(ingredient_id)] = consumed
+    if net:
+        servings = int(order_line.quantity)
+        if servings <= 0:
+            raise BusinessRuleError("Dòng món không còn suất để ghi nhận hủy.")
+        return {ingredient_id: amount / Decimal(servings) for ingredient_id, amount in net.items()}
+
+    if order_line.recipe_id is None:
+        return {}
+    recipe_rows = await session.execute(
+        select(RecipeItem.ingredient_id, func.sum(RecipeItem.quantity))
+        .where(RecipeItem.recipe_id == order_line.recipe_id)
+        .group_by(RecipeItem.ingredient_id)
+    )
+    return {
+        int(ingredient_id): Decimal(str(quantity))
+        for ingredient_id, quantity in recipe_rows
+        if quantity is not None and Decimal(str(quantity)) > 0
+    }
+
+
+async def preview_prepared_write_off(
+    session: AsyncSession, *, order_line_id: int, servings: int
+) -> dict:
+    """Derive the ingredient list for a prepared-dish write-off (FR-INV-05/06)."""
+    if servings <= 0:
+        raise BusinessRuleError("Số suất hủy phải lớn hơn 0.")
+    line = await session.get(OrderLine, order_line_id)
+    if line is None:
+        raise NotFoundError("Dòng món không tồn tại.")
+    if line.status == "Đã hủy":
+        raise BusinessRuleError("Dòng món đã hủy, không thể ghi nhận hủy thêm.")
+    written = (await _written_servings(session, [order_line_id])).get(order_line_id, 0)
+    eligible = max(0, int(line.quantity) - written)
+    if servings > eligible:
+        raise BusinessRuleError("Số suất hủy vượt quá số suất đã tiêu hao chưa ghi nhận.")
+    per_serving = await _consumption_per_serving(session, line)
+    if not per_serving:
+        raise BusinessRuleError("Dòng món chưa có tiêu hao để ghi nhận hủy.")
+    ingredients = {
+        ingredient.id: ingredient
+        for ingredient in (
+            await session.execute(select(Ingredient).where(Ingredient.id.in_(per_serving.keys())))
+        )
+        .scalars()
+        .all()
+    }
+    lines = []
+    for ingredient_id, per_serving_quantity in per_serving.items():
+        quantity = (per_serving_quantity * servings).quantize(Decimal("0.0001"))
+        if quantity <= 0:
+            continue
+        ingredient = ingredients.get(ingredient_id)
+        lines.append(
+            {
+                "ingredient_id": ingredient_id,
+                "ingredient_name": ingredient.name if ingredient else f"#{ingredient_id}",
+                "unit": ingredient.unit if ingredient else "",
+                "quantity": quantity,
+                "order_line_id": order_line_id,
+                "servings": servings,
+            }
+        )
+    if not lines:
+        raise BusinessRuleError("Dòng món chưa có tiêu hao để ghi nhận hủy.")
+    return {
+        "order_line_id": order_line_id,
+        "servings": servings,
+        "written_servings": written,
+        "eligible_servings": eligible,
+        "lines": lines,
+    }
+
+
 async def create_issue(
     session: AsyncSession,
     actor_id: int,
@@ -379,7 +504,6 @@ async def create_issue(
     must not draw inventory a second time.
     """
     await ensure_no_open_stocktake(session)
-    from app.modules.sales.models import OrderLine
 
     if source not in ISSUE_SOURCES:
         raise BusinessRuleError("Nguồn xuất hủy không hợp lệ.")
@@ -391,27 +515,39 @@ async def create_issue(
             raise NotFoundError("Không tìm thấy phiếu kiểm kê.")
         if stocktake.status != "Đã chốt":
             raise BusinessRuleError("Chỉ ghi nhận hủy cho phiếu kiểm kê đã chốt.")
+
+    # The prepared-dish source is expanded server-side: the client sends the order
+    # line and the number of servings, never the ingredient quantities.
+    issue_lines: list[dict] = []
     if source == "Món đã chế biến":
+        requested: dict[int, int] = {}
         for ln in lines:
             line_id = ln.get("order_line_id")
             servings = ln.get("servings")
             if not line_id or not servings:
                 raise BusinessRuleError("Nguồn món đã chế biến cần dòng món và số suất hủy.")
-            servings = int(servings)
-            order_line = await session.get(OrderLine, int(line_id))
-            if order_line is None:
-                raise NotFoundError("Dòng món không tồn tại.")
-            if order_line.status == "Đã hủy":
-                raise BusinessRuleError("Dòng món đã hủy, không thể ghi nhận hủy thêm.")
-            written = (
-                await session.execute(
-                    select(func.coalesce(func.sum(StockIssueLine.servings), 0)).where(
-                        StockIssueLine.order_line_id == order_line.id
-                    )
-                )
-            ).scalar_one()
-            if int(written or 0) + servings > int(order_line.quantity):
-                raise BusinessRuleError("Số suất hủy vượt quá số suất đã tiêu hao của dòng món.")
+            requested[int(line_id)] = requested.get(int(line_id), 0) + int(servings)
+        for line_id, servings in requested.items():
+            preview = await preview_prepared_write_off(
+                session, order_line_id=line_id, servings=servings
+            )
+            issue_lines.extend(preview["lines"])
+    else:
+        for ln in lines:
+            if ln.get("ingredient_id") is None or ln.get("quantity") is None:
+                raise BusinessRuleError("Cần nguyên liệu và số lượng cho phiếu xuất hủy.")
+            quantity = Decimal(str(ln["quantity"]))
+            if quantity <= 0:
+                raise BusinessRuleError("Số lượng phải lớn hơn 0.")
+            issue_lines.append(
+                {
+                    "ingredient_id": int(ln["ingredient_id"]),
+                    "quantity": quantity,
+                    "lot_id": ln.get("lot_id"),
+                    "order_line_id": None,
+                    "servings": None,
+                }
+            )
 
     moment = business_date.now()
     issue = StockIssue(
@@ -425,7 +561,7 @@ async def create_issue(
     )
     session.add(issue)
     await session.flush()
-    for ln in lines:
+    for ln in issue_lines:
         iid = ln["ingredient_id"]
         qty = Decimal(str(ln["quantity"]))
         il = StockIssueLine(

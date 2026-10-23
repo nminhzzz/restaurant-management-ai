@@ -80,6 +80,21 @@ type DraftLine = {
   servings: string;
 };
 
+type PreparedPreviewLine = {
+  ingredient_id: number;
+  ingredient_name: string;
+  unit: string;
+  quantity: number;
+};
+
+type PreparedPreviewData = {
+  order_line_id: number;
+  servings: number;
+  written_servings: number;
+  eligible_servings: number;
+  lines: PreparedPreviewLine[];
+};
+
 function emptyLine(): DraftLine {
   return {
     key: Math.random().toString(36).slice(2),
@@ -89,6 +104,60 @@ function emptyLine(): DraftLine {
     orderLineId: "",
     servings: "",
   };
+}
+
+function PreparedPreview({
+  orderLineId,
+  servings,
+}: {
+  orderLineId: string;
+  servings: string;
+}) {
+  const ready = Boolean(orderLineId) && Number(servings) > 0;
+  const load = useCallback(() => {
+    if (!ready) return Promise.resolve(null);
+    return apiFetch<PreparedPreviewData>(
+      `/inventory/issues/prepared-preview?order_line_id=${orderLineId}&servings=${servings}`,
+    );
+  }, [ready, orderLineId, servings]);
+  const preview = useResource(load);
+
+  if (!ready) return null;
+  if (preview.status === "loading") {
+    return <p className="text-xs text-muted">Đang tính nguyên liệu…</p>;
+  }
+  if (preview.status === "error") {
+    return <p className="text-xs text-danger-fg">{preview.message}</p>;
+  }
+  if (!preview.data) return null;
+  return (
+    <div className="space-y-1 rounded-control bg-surface-sunken p-2.5">
+      <p className="text-xs font-semibold text-muted">
+        Nguyên liệu ghi nhận theo tiêu hao gốc · đã hủy{" "}
+        {preview.data.written_servings}/{preview.data.eligible_servings} suất
+      </p>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Nguyên liệu</TableHead>
+            <TableHead className="text-right">Số lượng</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {preview.data.lines.map((line) => (
+            <TableRow key={line.ingredient_id}>
+              <TableCell>
+                {line.ingredient_name} ({line.unit})
+              </TableCell>
+              <TableCell className="text-right tabular-nums">
+                {formatNumber(line.quantity)}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
 }
 
 function IssueForm({
@@ -105,7 +174,12 @@ function IssueForm({
   const [stocktakeId, setStocktakeId] = useState("");
   const [orderCode, setOrderCode] = useState("");
   const [orderLines, setOrderLines] = useState<
-    { MaChiTietOrder: number; TenMon?: string; SoLuong: number }[]
+    {
+      MaChiTietOrder: number;
+      TenMon?: string;
+      SoLuong: number;
+      TrangThai?: string;
+    }[]
   >([]);
   const [orderLookupError, setOrderLookupError] = useState<string | null>(null);
   const [lines, setLines] = useState<DraftLine[]>([emptyLine()]);
@@ -143,9 +217,12 @@ function IssueForm({
           MaChiTietOrder: number;
           TenMon?: string;
           SoLuong: number;
+          TrangThai?: string;
         }[];
       }>(`/sales/orders/${order.MaOrder}`);
-      setOrderLines(detail.lines ?? []);
+      setOrderLines(
+        (detail.lines ?? []).filter((line) => line.TrangThai !== "Đã hủy"),
+      );
     } catch {
       setOrderLookupError("Không tra cứu được order.");
     }
@@ -153,17 +230,18 @@ function IssueForm({
 
   async function submit() {
     setError(null);
-    if (lines.some((l) => !l.ingredientId)) {
-      setError("Chọn nguyên liệu cho từng dòng.");
-      return;
-    }
-    if (lines.some((l) => !(Number(l.quantity) > 0))) {
-      setError("Số lượng phải lớn hơn 0.");
-      return;
-    }
     if (source === "Món đã chế biến") {
       if (lines.some((l) => !l.orderLineId || !(Number(l.servings) > 0))) {
         setError("Chọn dòng món và nhập số suất hủy.");
+        return;
+      }
+    } else {
+      if (lines.some((l) => !l.ingredientId)) {
+        setError("Chọn nguyên liệu cho từng dòng.");
+        return;
+      }
+      if (lines.some((l) => !(Number(l.quantity) > 0))) {
+        setError("Số lượng phải lớn hơn 0.");
         return;
       }
     }
@@ -179,13 +257,17 @@ function IssueForm({
             reason,
             source,
             stocktake_id: stocktakeId ? Number(stocktakeId) : null,
-            lines: lines.map((l) => ({
-              ingredient_id: Number(l.ingredientId),
-              quantity: Number(l.quantity),
-              lot_id: l.lotId ? Number(l.lotId) : null,
-              order_line_id: l.orderLineId ? Number(l.orderLineId) : null,
-              servings: l.servings ? Number(l.servings) : null,
-            })),
+            lines:
+              source === "Món đã chế biến"
+                ? lines.map((l) => ({
+                    order_line_id: Number(l.orderLineId),
+                    servings: Number(l.servings),
+                  }))
+                : lines.map((l) => ({
+                    ingredient_id: Number(l.ingredientId),
+                    quantity: Number(l.quantity),
+                    lot_id: l.lotId ? Number(l.lotId) : null,
+                  })),
           },
         }),
       "Đã ghi nhận xuất kho. Nếu lô đang được giữ, hệ thống đã giải phóng lượt giữ — kiểm tra lại dòng món liên quan.",
@@ -249,92 +331,63 @@ function IssueForm({
         {lines.map((line, index) => (
           <div
             key={line.key}
-            className="grid grid-cols-2 gap-2 rounded-container border border-border p-3 sm:grid-cols-5"
+            className="grid grid-cols-2 gap-2 rounded-container border border-border p-3 sm:grid-cols-6"
           >
-            <div className="col-span-2 sm:col-span-3">
-              <FormField id={`${formId}-ing-${line.key}`} label="Nguyên liệu">
-                <Select
-                  value={line.ingredientId}
-                  onValueChange={(v) =>
-                    updateLine(line.key, { ingredientId: v, lotId: "" })
-                  }
-                >
-                  <SelectTrigger id={`${formId}-ing-${line.key}`}>
-                    <SelectValue placeholder="Chọn" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ingredients.map((ing) => (
-                      <SelectItem
-                        key={ing.MaNguyenLieu}
-                        value={String(ing.MaNguyenLieu)}
-                      >
-                        {ing.TenNguyenLieu} ({ing.DonViTinh})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormField>
-            </div>
-            {source === "Nguyên liệu" ? (
-              <FormField
-                id={`${formId}-lot-${line.key}`}
-                label="Lô nguyên liệu"
-              >
-                <LotSelect
-                  key={line.ingredientId}
-                  id={`${formId}-lot-${line.key}`}
-                  ingredientId={line.ingredientId}
-                  value={line.lotId}
-                  onChange={(value) => updateLine(line.key, { lotId: value })}
-                />
-              </FormField>
-            ) : null}
             {source === "Món đã chế biến" ? (
               <>
-                <FormField id={`${formId}-order-${line.key}`} label="Mã order">
-                  <div className="flex gap-2">
-                    <Input
-                      id={`${formId}-order-${line.key}`}
-                      value={orderCode}
-                      onChange={(e) => setOrderCode(e.target.value)}
-                      placeholder="ORD-..."
-                    />
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      onClick={findOrderLines}
-                    >
-                      Tìm
-                    </Button>
-                  </div>
-                  {orderLookupError && (
-                    <p className="text-xs text-danger-fg">{orderLookupError}</p>
-                  )}
-                </FormField>
-                <FormField id={`${formId}-line-${line.key}`} label="Dòng món">
-                  <Select
-                    value={line.orderLineId}
-                    onValueChange={(value) =>
-                      updateLine(line.key, { orderLineId: value })
-                    }
+                <div className="col-span-2">
+                  <FormField
+                    id={`${formId}-order-${line.key}`}
+                    label="Mã order"
                   >
-                    <SelectTrigger id={`${formId}-line-${line.key}`}>
-                      <SelectValue placeholder="Chọn dòng món" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {orderLines.map((orderLine) => (
-                        <SelectItem
-                          key={orderLine.MaChiTietOrder}
-                          value={String(orderLine.MaChiTietOrder)}
-                        >
-                          #{orderLine.MaChiTietOrder} ·{" "}
-                          {orderLine.TenMon ?? "Món"} × {orderLine.SoLuong}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FormField>
+                    <div className="flex gap-2">
+                      <Input
+                        id={`${formId}-order-${line.key}`}
+                        value={orderCode}
+                        onChange={(e) => setOrderCode(e.target.value)}
+                        placeholder="ORD-..."
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        onClick={findOrderLines}
+                      >
+                        Tìm
+                      </Button>
+                    </div>
+                    {orderLookupError && (
+                      <p className="text-xs text-danger-fg">
+                        {orderLookupError}
+                      </p>
+                    )}
+                  </FormField>
+                </div>
+                <div className="col-span-2">
+                  <FormField id={`${formId}-line-${line.key}`} label="Dòng món">
+                    <Select
+                      value={line.orderLineId}
+                      onValueChange={(value) =>
+                        updateLine(line.key, { orderLineId: value })
+                      }
+                    >
+                      <SelectTrigger id={`${formId}-line-${line.key}`}>
+                        <SelectValue placeholder="Chọn dòng món" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {orderLines.map((orderLine) => (
+                          <SelectItem
+                            key={orderLine.MaChiTietOrder}
+                            value={String(orderLine.MaChiTietOrder)}
+                          >
+                            #{orderLine.MaChiTietOrder} ·{" "}
+                            {orderLine.TenMon ?? "Món"} × {orderLine.SoLuong}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormField>
+                </div>
                 <FormField id={`${formId}-sv-${line.key}`} label="Số suất">
                   <Input
                     id={`${formId}-sv-${line.key}`}
@@ -346,34 +399,100 @@ function IssueForm({
                     }
                   />
                 </FormField>
+                <div className="flex items-end justify-end">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`Xoá dòng ${index + 1}`}
+                    disabled={lines.length === 1}
+                    onClick={() =>
+                      setLines((prev) => prev.filter((l) => l.key !== line.key))
+                    }
+                  >
+                    <Trash2 aria-hidden />
+                  </Button>
+                </div>
+                <div className="col-span-full">
+                  <PreparedPreview
+                    orderLineId={line.orderLineId}
+                    servings={line.servings}
+                  />
+                </div>
               </>
-            ) : null}
-            <FormField id={`${formId}-qty-${line.key}`} label="Số lượng">
-              <Input
-                id={`${formId}-qty-${line.key}`}
-                type="number"
-                inputMode="decimal"
-                min={0}
-                value={line.quantity}
-                onChange={(e) =>
-                  updateLine(line.key, { quantity: e.target.value })
-                }
-              />
-            </FormField>
-            <div className="flex items-end">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label={`Xoá dòng ${index + 1}`}
-                disabled={lines.length === 1}
-                onClick={() =>
-                  setLines((prev) => prev.filter((l) => l.key !== line.key))
-                }
-              >
-                <Trash2 aria-hidden />
-              </Button>
-            </div>
+            ) : (
+              <>
+                <div className="col-span-2 sm:col-span-3">
+                  <FormField
+                    id={`${formId}-ing-${line.key}`}
+                    label="Nguyên liệu"
+                  >
+                    <Select
+                      value={line.ingredientId}
+                      onValueChange={(v) =>
+                        updateLine(line.key, { ingredientId: v, lotId: "" })
+                      }
+                    >
+                      <SelectTrigger id={`${formId}-ing-${line.key}`}>
+                        <SelectValue placeholder="Chọn" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ingredients.map((ing) => (
+                          <SelectItem
+                            key={ing.MaNguyenLieu}
+                            value={String(ing.MaNguyenLieu)}
+                          >
+                            {ing.TenNguyenLieu} ({ing.DonViTinh})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormField>
+                </div>
+                {source === "Nguyên liệu" ? (
+                  <FormField
+                    id={`${formId}-lot-${line.key}`}
+                    label="Lô nguyên liệu"
+                  >
+                    <LotSelect
+                      key={line.ingredientId}
+                      id={`${formId}-lot-${line.key}`}
+                      ingredientId={line.ingredientId}
+                      value={line.lotId}
+                      onChange={(value) =>
+                        updateLine(line.key, { lotId: value })
+                      }
+                    />
+                  </FormField>
+                ) : null}
+                <FormField id={`${formId}-qty-${line.key}`} label="Số lượng">
+                  <Input
+                    id={`${formId}-qty-${line.key}`}
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    value={line.quantity}
+                    onChange={(e) =>
+                      updateLine(line.key, { quantity: e.target.value })
+                    }
+                  />
+                </FormField>
+                <div className="flex items-end justify-end">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`Xoá dòng ${index + 1}`}
+                    disabled={lines.length === 1}
+                    onClick={() =>
+                      setLines((prev) => prev.filter((l) => l.key !== line.key))
+                    }
+                  >
+                    <Trash2 aria-hidden />
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         ))}
         <Button
