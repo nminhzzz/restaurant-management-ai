@@ -1042,7 +1042,7 @@
         <mxCell id="QT-16_start" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="228.0" y="80.0" width="34.0" height="34.0" as="geometry"/>
         </mxCell>
-        <mxCell id="QT-16_b1" value="Chọn nguồn xuất hủy (Nguyên liệu&#10;hoặc Món đã chế biến), nhập số lượng, lý do" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.4;fontSize=14.0;fontColor=#000000;spacing=6;" vertex="1" parent="1">
+        <mxCell id="QT-16_b1" value="Chọn nguồn, lý do; nhập lượng&#10;nguyên liệu hoặc số suất món hủy" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.4;fontSize=14.0;fontColor=#000000;spacing=6;" vertex="1" parent="1">
           <mxGeometry x="80.0" y="179.0" width="330" height="62" as="geometry"/>
         </mxCell>
         <mxCell id="QT-16_b2" value="Kiểm tra nguồn, số lượng tồn sổ sách&#10;của lô hoặc số suất đã tiêu hao" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.4;fontSize=16;fontColor=#000000;spacing=6;" vertex="1" parent="1">
@@ -1060,7 +1060,7 @@
         <mxCell id="QT-16_b_yes" value="Giải phóng giữ bị ảnh hưởng;&#10;trừ tồn lô thực tế" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.4;fontSize=15.0;fontColor=#000000;spacing=6;" vertex="1" parent="1">
           <mxGeometry x="480.0" y="490.0" width="200" height="70" as="geometry"/>
         </mxCell>
-        <mxCell id="QT-16_b_no" value="Tham chiếu tiêu hao gốc;&#10;không trừ kho lần hai" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.4;fontSize=15.0;fontColor=#000000;spacing=6;" vertex="1" parent="1">
+        <mxCell id="QT-16_b_no" value="Tính theo số suất và&#10;tiêu hao gốc;&#10;không trừ kho lần hai" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.4;fontSize=15.0;fontColor=#000000;spacing=6;" vertex="1" parent="1">
           <mxGeometry x="710.0" y="490.0" width="200" height="70" as="geometry"/>
         </mxCell>
         <mxCell id="QT-16_m2" value="" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.4;" vertex="1" parent="1">
