@@ -33,6 +33,19 @@ Các phép lấy tồn hiện tại vẫn cần bản sao CSDL đánh giá ở �
 3. Người khác kiểm tra SQL, số liệu, định nghĩa chỉ số và rubric; 20 câu được ba
    thành viên giải độc lập theo báo cáo. Lưu biên bản đồng thuận và sửa đáp án
    trước khi khóa bộ đề. Công cụ không tự ghi nhận bước kiểm tra con người là đạt.
+
+   Phiếu 20 câu (không có SQL chuẩn) nằm ở `data/eval/crosscheck/`. Mỗi người điền SQL
+   vào một bản sao `mau-tra-loi.json` riêng, sau đó so với đáp án chuẩn và sinh
+   biên bản nháp:
+
+   ```bash
+   cd apps/api
+   uv run python ../../data/eval/crosscheck.py check \
+     --answers ../../data/eval/crosscheck/answers.*.json \
+     --out ../../data/eval/crosscheck/bien-ban.md
+   ```
+
+   Câu "Cần thảo luận" do nhóm quyết định ở cột cuối biên bản; sửa đáp án nếu cần.
 4. Giữ tệp `.manifest.json`, SHA256 bộ đề/lược đồ và bản sao CSDL; không thay prompt
    theo từng đáp án của bộ đã khóa. Chụp kết quả không thay thế việc lưu bản sao CSDL.
 
