@@ -52,6 +52,12 @@ class Settings(BaseSettings):
     # Opus 5.5 cannot disable thinking and defaults to "medium"; two LLM calls per
     # question then overrun the 8s budget (NFR-02), so configurations A/B run at "low".
     llm_reasoning_effort: Literal["low", "medium", "high", "xhigh", "max"] | None = "low"
+    # The prose answer runs on a faster model without thinking: on Opus 5.5 it took a
+    # median 6s (max 11s), past the 5s provider timeout, against 2.4s here (26/10/2026).
+    # The SQL itself stays on `llm_model`. Must accept `thinking: disabled`.
+    llm_interpretation_model: str = "claude-haiku-5-5"
+    ai_interpretation_input_usd_per_million: float = Field(default=0.10, ge=0)
+    ai_interpretation_output_usd_per_million: float = Field(default=0.50, ge=0)
     # Configuration C of the A/B/C experiment runs configuration B on a second model
     # (master-roadmap Q5); empty means the harness falls back to a suffixed name.
     ai_config_c_model: str = ""

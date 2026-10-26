@@ -307,3 +307,42 @@ def test_cached_prompt_tokens_are_counted_and_priced_separately() -> None:
     assert usage.cost_complete
     # 100*4 + 1000*5 + 3000*0.2 + 200*20 = 10_000 per million
     assert usage.cost_usd == pytest.approx(0.01)
+
+
+def test_a_model_with_its_own_price_is_billed_at_that_price() -> None:
+    """The interpretation model is far cheaper than the SQL model (NFR-16)."""
+    from app.modules.ai.usage import collect_usage
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        payload = _message("ok", model=json.loads(request.content)["model"])
+        payload["usage"] = {"input_tokens": 1000, "output_tokens": 1000}
+        return _json_response(200, payload)
+
+    with collect_usage(
+        input_price=4.0, output_price=20.0, model_prices={"claude-haiku-5-5": (0.1, 0.5)}
+    ) as usage:
+        _client(handler).complete("q")
+        _client(handler, model="claude-haiku-5-5").complete("q")
+
+    # (1000*4 + 1000*20) + (1000*0.1 + 1000*0.5) = 24_600 per million
+    assert usage.cost_usd == pytest.approx(0.0246)
+
+
+@pytest.mark.anyio
+async def test_a_generation_option_can_route_one_call_to_another_model() -> None:
+    from app.modules.ai import llm
+
+    sent: list[dict] = []
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        sent.append(json.loads(request.content))
+        return _json_response(200, _message("ok", model=sent[-1]["model"]))
+
+    client = _client(handler, fallback_model="claude-opus-5")
+    with llm.generation_options(model="claude-haiku-5-5", thinking=False, fallback=False):
+        await llm.complete_async(client, "q")
+    await llm.complete_async(client, "q")
+
+    assert [body["model"] for body in sent] == ["claude-haiku-5-5", "claude-opus-5-5"]
+    assert sent[0]["thinking"] == {"type": "disabled"}
+    assert "thinking" not in sent[1]

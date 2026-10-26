@@ -48,6 +48,11 @@ class ProviderRefusal(RuntimeError):
 class GenerationOptions:
     reasoning_effort: Effort | None = None
     fallback: bool = True
+    # Routes one call to another model, e.g. the interpretation model (NFR-02).
+    model: str | None = None
+    # False sends `thinking: disabled`; Opus 5.5 rejects it, so only set it for models
+    # that accept it.
+    thinking: bool = True
 
 
 _options: ContextVar[GenerationOptions | None] = ContextVar("ai_generation_options", default=None)
@@ -55,13 +60,19 @@ _options: ContextVar[GenerationOptions | None] = ContextVar("ai_generation_optio
 
 @contextmanager
 def generation_options(
-    *, reasoning_effort: Effort | None = None, fallback: bool | None = None
+    *,
+    reasoning_effort: Effort | None = None,
+    fallback: bool | None = None,
+    model: str | None = None,
+    thinking: bool = True,
 ) -> Iterator[None]:
     previous = _options.get()
     effective_fallback = (
         fallback if fallback is not None else (previous.fallback if previous else True)
     )
-    token = _options.set(GenerationOptions(reasoning_effort, effective_fallback))
+    token = _options.set(
+        GenerationOptions(reasoning_effort, effective_fallback, model=model, thinking=thinking)
+    )
     try:
         yield
     finally:
@@ -151,6 +162,7 @@ class CommercialClient:
             max_tokens=MAX_OUTPUT_TOKENS,
             messages=[{"role": "user", "content": _content(prompt)}],
             output_config={"effort": effort} if effort else anthropic.omit,
+            thinking={"type": "disabled"} if options and not options.thinking else anthropic.omit,
             betas=[REFUSAL_FALLBACK_BETA],
             fallbacks="default",
         )
@@ -197,10 +209,10 @@ async def complete_async(client: LlmClient, prompt: str) -> str:
                 return await asyncio.to_thread(
                     client.complete, prompt.replace(CACHE_BREAKPOINT, "")
                 )
-    models = [client.model]
     options = _options.get()
+    models = [(options.model if options else None) or client.model]
     allow_fallback = options is None or options.fallback
-    if allow_fallback and client._fallback_model and client._fallback_model != client.model:
+    if allow_fallback and client._fallback_model and client._fallback_model != models[0]:
         models.append(client._fallback_model)
     last_error: Exception | None = None
     for model in models:
