@@ -113,3 +113,23 @@ def test_fallback_still_reports_the_numbers_when_prose_times_out():
     assert "2 ngày" in result.text
     assert "220.000" in result.text
     assert "02/09/2026" in result.text
+
+
+@pytest.mark.parametrize(
+    ("rows", "expected", "unexpected"),
+    [
+        ([{"SoPhieuNhap": 12}], "là 12.", "₫"),
+        ([{"SoLuongBan": 1500}], "là 1.500.", "₫"),
+        ([{"TongTienMat": 185000}], "185.000 ₫", None),
+        ([{"GiaBinhQuanThang": 42000}], "42.000 ₫", None),
+    ],
+)
+def test_fallback_only_formats_money_columns_as_currency(rows, expected, unexpected):
+    """A count of receipts is not an amount of money (smoke test 26/10: "0 ₫")."""
+    from app.modules.ai.pipeline.interpreter import fallback
+
+    result = fallback(rows, Role.MANAGER)
+
+    assert expected in result.text
+    if unexpected:
+        assert unexpected not in result.text

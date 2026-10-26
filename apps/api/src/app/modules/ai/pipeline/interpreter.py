@@ -72,6 +72,19 @@ def _money(value: float) -> str:
     return f"{value:,.0f} ₫".replace(",", ".")
 
 
+# View columns name amounts after their meaning: SoTien/TongTienMat/DoanhThu/GiaVon.
+_MONEY_MARKERS = ("Tien", "DoanhThu", "Gia", "ChiPhi")
+
+
+def _amount(column: str, value: float) -> str:
+    """Money for amount columns; a plain Vietnamese-grouped number for counts."""
+    if any(marker in column for marker in _MONEY_MARKERS):
+        return _money(value)
+    if value.is_integer():
+        return f"{value:,.0f}".replace(",", ".")
+    return f"{value:,.2f}".replace(",", "_").replace(".", ",").replace("_", ".")
+
+
 def _day(value: Any) -> str:
     text = str(value)[:10]
     try:
@@ -113,19 +126,19 @@ def fallback(rows: list[dict[str, Any]], role: Role) -> Interpretation:
         total = sum(values)
         if date_column is not None:
             peak = max(rows, key=lambda row: float(row[key]))
-            headlines.append(f"{len(rows)} ngày có dữ liệu; tổng {label} là {_money(total)}.")
-            highlights.append(f"Tổng {label}: {_money(total)}.")
+            headlines.append(f"{len(rows)} ngày có dữ liệu; tổng {label} là {_amount(key, total)}.")
+            highlights.append(f"Tổng {label}: {_amount(key, total)}.")
             highlights.append(
-                f"Cao nhất: {_money(float(peak[key]))} vào {_day(peak[date_column])}."
+                f"Cao nhất: {_amount(key, float(peak[key]))} vào {_day(peak[date_column])}."
             )
-            highlights.append(f"Trung bình mỗi ngày: {_money(total / len(rows))}.")
+            highlights.append(f"Trung bình mỗi ngày: {_amount(key, total / len(rows))}.")
         else:
-            headlines.append(f"{len(rows)} dòng dữ liệu; tổng {label} là {_money(total)}.")
-            highlights.append(f"Tổng {label}: {_money(total)}.")
-            highlights.append(f"Trung bình mỗi dòng: {_money(total / len(rows))}.")
+            headlines.append(f"{len(rows)} dòng dữ liệu; tổng {label} là {_amount(key, total)}.")
+            highlights.append(f"Tổng {label}: {_amount(key, total)}.")
+            highlights.append(f"Trung bình mỗi dòng: {_amount(key, total / len(rows))}.")
             if len(values) > 1:
-                highlights.append(f"Cao nhất: {_money(max(values))}.")
-                highlights.append(f"Thấp nhất: {_money(min(values))}.")
+                highlights.append(f"Cao nhất: {_amount(key, max(values))}.")
+                highlights.append(f"Thấp nhất: {_amount(key, min(values))}.")
     else:
         headlines.append(f"Có {len(rows)} dòng dữ liệu thỏa câu hỏi.")
 
