@@ -39,6 +39,17 @@ Các phép lấy tồn hiện tại vẫn cần bản sao CSDL đánh giá ở �
 Nếu chạy bản chưa khóa, harness chạy SQL chuẩn để so sánh nhưng kết quả đó chỉ
 phù hợp phát triển công cụ, chưa phải bằng chứng thực nghiệm chính thức.
 
+**Chỉ số chính** (thống nhất 26/10/2026) là độ đúng thực thi *nới lỏng*: mọi cột của
+SQL chuẩn phải có trong kết quả với cùng giá trị trên cùng dòng, cho phép thừa cột
+(ví dụ trả thêm đơn vị tính). Độ đúng khắt khe vẫn được ghi để đối chiếu.
+
+**Quy ước diễn giải** dùng chung cho SQL chuẩn và prompt của cả ba cấu hình:
+'N ngày qua' = N ngày kinh doanh kết thúc hôm nay; 'tuần này' = thứ Hai đến hôm nay;
+'tuần trước' = thứ Hai đến Chủ nhật tuần trước; 'N tháng gần đây' = N tháng dương lịch
+gồm tháng hiện tại; doanh thu/lượng bán của món chỉ tính order đã thanh toán; 'bán được'
+= order đã có hóa đơn; 'chưa thanh toán' = chưa Đã thanh toán, Đã hủy hoặc Đóng – chưa thu
+được tiền. Các câu đã sửa theo quy ước có ghi chú "Sửa 26/10/2026" trong `notes`.
+
 ## Cấu hình thực nghiệm
 
 | Cấu hình | Prompt | Model | Thinking khi sinh SQL |

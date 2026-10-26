@@ -555,12 +555,14 @@ async def _main(
         encoding="utf-8",
     )
     for row in table.rows:
+        # Relaxed accuracy is the headline (agreed 26/10/2026): extra columns such as
+        # the unit next to a stock figure still answer the question.
         print(
-            f"{row['config']}: chính xác {row['execution_accuracy']:.2%} · "
-            f"lỗi {row['error_rate']:.2%} · từ chối {row['refusal_rate']:.2%} · "
-            f"{row['mean_latency_ms']:.0f} ms (p95 {row['p95_latency_ms']:.0f} ms, "
-            f"{row['runs']} lần) · theo độ khó {row['by_difficulty']} · "
-            f"nới lỏng {row['relaxed_accuracy']:.2%} {row['by_difficulty_relaxed']}"
+            f"{row['config']}: chính xác (nới lỏng) {row['relaxed_accuracy']:.2%} "
+            f"{row['by_difficulty_relaxed']} · khắt khe {row['execution_accuracy']:.2%} "
+            f"{row['by_difficulty']} · lỗi {row['error_rate']:.2%} · "
+            f"từ chối {row['refusal_rate']:.2%} · {row['mean_latency_ms']:.0f} ms "
+            f"(p95 {row['p95_latency_ms']:.0f} ms, {row['runs']} lần)"
         )
     print(f"Đã ghi {out}")
     return 0
