@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import REPO_ROOT
 from app.core.errors import BusinessRuleError
 from app.modules.ai.guard import validate_sql
+from app.modules.ai.llm import CACHE_BREAKPOINT
 from app.modules.ai.scope import views_for
 from app.shared import business_date
 from app.shared.roles import Role
@@ -185,14 +186,16 @@ async def build_prompt(
         "Hệ quản trị là MySQL 8.4: chỉ dùng cú pháp MySQL (CURDATE(), NOW(), DATE_SUB, "
         "DATE_FORMAT, LIMIT), không dùng GETDATE, TOP hay cú pháp của hệ quản trị khác.",
         "Ngày kinh doanh nằm ở cột BusinessDate, theo lịch mốc giờ hiệu lực của hệ thống.",
-        # CURDATE() is wrong before 06:00: the business day is still yesterday.
-        "'Hôm nay' nghĩa là BusinessDate = "
-        f"'{business_date.business_date_of(business_date.now()):%Y-%m-%d}'; "
-        "hãy dùng đúng hằng ngày này thay vì CURDATE() khi câu hỏi nói hôm nay/hôm qua.",
         f"Phạm vi dữ liệu của vai trò này: {ROLE_SCOPE_NOTE[role]}.",
         "Quy ước khoảng thời gian: 'tháng này' = từ ngày kinh doanh đầu tháng đến hôm nay; "
-        "'tháng trước' = trọn tháng dương lịch trước; 'N ngày gần nhất' = N ngày kinh doanh "
-        "kết thúc hôm nay; '1 tháng nay' = 30 ngày gần nhất.",
+        "'tháng trước' = trọn tháng dương lịch trước; 'N ngày gần nhất'/'N ngày qua' = N ngày "
+        "kinh doanh kết thúc hôm nay; '1 tháng nay' = 30 ngày gần nhất; 'tuần này' = từ thứ "
+        "Hai đến hôm nay; 'tuần trước' = thứ Hai đến Chủ nhật của tuần trước; 'N tháng gần "
+        "đây' = N tháng dương lịch gần nhất, gồm tháng hiện tại.",
+        # Agreed 26/10/2026 with the eval set so A/B/C are graded against one meaning.
+        "Quy ước nghiệp vụ: doanh thu và lượng bán của món chỉ tính order đã thanh toán; "
+        "'bán được' = order đã có hóa đơn; 'chưa thanh toán' = order chưa ở trạng thái "
+        "Đã thanh toán, Đã hủy hoặc Đóng \u2013 chưa thu được tiền.",
         "Nếu câu hỏi nằm ngoài phạm vi hoặc còn thiếu thông tin, hãy trả lời bắt đầu bằng "
         "'CLARIFY:' kèm một câu hỏi làm rõ thay vì đoán. Chỉ hỏi lại khi thực sự không thể "
         "suy ra từ ngữ cảnh hội thoại bên dưới.",
@@ -214,6 +217,16 @@ async def build_prompt(
             except BusinessRuleError:
                 continue
             parts.append(f"- Hỏi: {asked}\n  SQL: {sql}")
+
+    # Everything above depends only on role and configuration, so it is cached; the
+    # date line comes after the breakpoint because it changes every business day.
+    parts += [
+        CACHE_BREAKPOINT,
+        # CURDATE() is wrong before 06:00: the business day is still yesterday.
+        "'Hôm nay' nghĩa là BusinessDate = "
+        f"'{business_date.business_date_of(business_date.now()):%Y-%m-%d}'; "
+        "hãy dùng đúng hằng ngày này thay vì CURDATE() khi câu hỏi nói hôm nay/hôm qua.",
+    ]
 
     if history:
         parts += ["", "Ngữ cảnh hội thoại gần nhất:"]

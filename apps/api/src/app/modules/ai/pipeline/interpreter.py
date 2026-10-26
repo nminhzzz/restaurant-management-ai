@@ -11,7 +11,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.ai import llm
+from app.modules.ai import labels, llm
 from app.modules.ai.pipeline.answer_format import (
     StructuredAnswer,
     compose_answer,
@@ -28,7 +28,8 @@ PROMPT = (
     "trả về đúng MỘT đối tượng JSON, không kèm chữ nào khác:\n"
     '{{"headline": "một câu kết luận", "highlights": ["2 đến 4 ý, mỗi ý một câu có số liệu"], '
     '"follow_ups": ["tối đa 3 câu hỏi tiếp theo về dữ liệu"]}}\n'
-    "Viết tiếng Việt. Tiền viết dạng 185.000 ₫. Ngày viết dạng dd/mm/yyyy. "
+    "Mọi chuỗi trong JSON viết bằng tiếng Việt có dấu, kể cả khi tên cột hay dữ liệu "
+    "là tiếng Anh. Tiền viết dạng 185.000 ₫. Ngày viết dạng dd/mm/yyyy. "
     "Không nhắc tới SQL, tên bảng hay tên cột.\n"
     "Câu hỏi: {question}\n"
     "Câu SQL đã chạy: {sql}\n"
@@ -72,6 +73,40 @@ def _money(value: float) -> str:
     return f"{value:,.0f} ₫".replace(",", ".")
 
 
+def _number(value: float) -> str:
+    if value.is_integer():
+        return f"{value:,.0f}".replace(",", ".")
+    return f"{value:,.2f}".replace(",", "_").replace(".", ",").replace("_", ".")
+
+
+def _amount(kind: str, value: float) -> str:
+    """Money only for amount columns; a receipt count is not "0 ₫"."""
+    if kind == "money":
+        return _money(value)
+    if kind == "percent":
+        return f"{_number(value)}%"
+    return _number(value)
+
+
+def _single_value(rows: list[dict[str, Any]], role: Role) -> Interpretation | None:
+    """One cell needs no prose: answering it in code saves a model call (NFR-02)."""
+    if len(rows) != 1 or len(rows[0]) != 1:
+        return None
+    column, value = next(iter(rows[0].items()))
+    meta = labels.describe_columns([column], rows)[0]
+    if value is None:
+        shown = "chưa có dữ liệu"
+    elif _is_number(value):
+        shown = _amount(meta["kind"], float(value))
+    elif meta["kind"] in ("date", "datetime"):
+        shown = _day(value)
+    else:
+        shown = str(value)
+    note = scope_note(role)
+    answer = StructuredAnswer(headline=f"{meta['label']}: {shown}.")
+    return Interpretation(answer, compose_answer(answer, note), note)
+
+
 def _day(value: Any) -> str:
     text = str(value)[:10]
     try:
@@ -109,23 +144,26 @@ def fallback(rows: list[dict[str, Any]], role: Role) -> Interpretation:
     if numeric:
         key = numeric[-1]
         label = FALLBACK_LABELS.get(key, key)
+        kind = labels.describe_columns([key], rows)[0]["kind"]
         values = [float(row[key]) for row in rows]
         total = sum(values)
         if date_column is not None:
             peak = max(rows, key=lambda row: float(row[key]))
-            headlines.append(f"{len(rows)} ngày có dữ liệu; tổng {label} là {_money(total)}.")
-            highlights.append(f"Tổng {label}: {_money(total)}.")
-            highlights.append(
-                f"Cao nhất: {_money(float(peak[key]))} vào {_day(peak[date_column])}."
+            headlines.append(
+                f"{len(rows)} ngày có dữ liệu; tổng {label} là {_amount(kind, total)}."
             )
-            highlights.append(f"Trung bình mỗi ngày: {_money(total / len(rows))}.")
+            highlights.append(f"Tổng {label}: {_amount(kind, total)}.")
+            highlights.append(
+                f"Cao nhất: {_amount(kind, float(peak[key]))} vào {_day(peak[date_column])}."
+            )
+            highlights.append(f"Trung bình mỗi ngày: {_amount(kind, total / len(rows))}.")
         else:
-            headlines.append(f"{len(rows)} dòng dữ liệu; tổng {label} là {_money(total)}.")
-            highlights.append(f"Tổng {label}: {_money(total)}.")
-            highlights.append(f"Trung bình mỗi dòng: {_money(total / len(rows))}.")
+            headlines.append(f"{len(rows)} dòng dữ liệu; tổng {label} là {_amount(kind, total)}.")
+            highlights.append(f"Tổng {label}: {_amount(kind, total)}.")
+            highlights.append(f"Trung bình mỗi dòng: {_amount(kind, total / len(rows))}.")
             if len(values) > 1:
-                highlights.append(f"Cao nhất: {_money(max(values))}.")
-                highlights.append(f"Thấp nhất: {_money(min(values))}.")
+                highlights.append(f"Cao nhất: {_amount(kind, max(values))}.")
+                highlights.append(f"Thấp nhất: {_amount(kind, min(values))}.")
     else:
         headlines.append(f"Có {len(rows)} dòng dữ liệu thỏa câu hỏi.")
 
@@ -144,9 +182,13 @@ async def interpret(
     note = scope_note(role)
     if not rows:
         return fallback(rows, role)
+    single = _single_value(rows, role)
+    if single is not None:
+        return single
 
     prompt = PROMPT.format(question=question, sql=sql, count=len(rows), rows=rows[:20])
-    with llm.generation_options(thinking="disabled"):
+    # Interpretation stays at configuration B's effort even under configuration C.
+    with llm.generation_options(reasoning_effort="low"):
         raw = await llm.complete_async(llm.get_client(), prompt) or ""
     answer = parse_model_answer(raw)
     if not answer.headline:

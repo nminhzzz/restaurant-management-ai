@@ -6,11 +6,11 @@ set -euo pipefail
 : "${MYSQL_ROOT_PASSWORD:=restaurant-root}"
 
 for view in db/views/vw_ai_*_ton.sql db/views/vw_ai_*_*.sql; do
-  docker compose exec -T db mysql -uroot -p"$MYSQL_ROOT_PASSWORD" restaurant < "$view"
+  docker compose exec -T db mysql --default-character-set=utf8mb4 -uroot -p"$MYSQL_ROOT_PASSWORD" restaurant < "$view"
 done
 
 sed -e "s|__AI_READONLY_PASSWORD_MANAGER__|$AI_READONLY_PASSWORD_MANAGER|" \
     -e "s|__AI_READONLY_PASSWORD_CASHIER__|$AI_READONLY_PASSWORD_CASHIER|" \
     -e "s|__AI_READONLY_PASSWORD_WAREHOUSE__|$AI_READONLY_PASSWORD_WAREHOUSE|" \
   db/views/grants.sql.template \
-  | docker compose exec -T db mysql -uroot -p"$MYSQL_ROOT_PASSWORD" restaurant
+  | docker compose exec -T db mysql --default-character-set=utf8mb4 -uroot -p"$MYSQL_ROOT_PASSWORD" restaurant

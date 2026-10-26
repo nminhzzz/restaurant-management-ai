@@ -256,9 +256,12 @@ async def test_each_role_talks_to_its_own_view(
 async def test_a_successful_turn_returns_the_structured_fields(
     api_client, cashier_token, seed_views, fake_llm, ai_engine, session
 ):
+    # Two cells: a single value is answered in code without the second call.
+    ai_engine.columns = ["SoDon", "SoHoaDon"]
+    ai_engine.rows = [(2, 2)]
     fake_llm.reply_sequence(
         [
-            "SELECT COUNT(*) AS SoDon FROM vw_ai_thungan_order",
+            "SELECT COUNT(*) AS SoDon, COUNT(MaHoaDon) AS SoHoaDon FROM vw_ai_thungan_order",
             '{"headline": "Có 2 đơn.", "highlights": ["Cả hai đã thanh toán."], '
             '"follow_ups": ["Doanh thu hôm nay?"]}',
         ]
@@ -271,7 +274,10 @@ async def test_a_successful_turn_returns_the_structured_fields(
     assert body["highlights"] == ["Cả hai đã thanh toán."]
     assert body["follow_ups"] == ["Doanh thu hôm nay?"]
     assert "vw_ai_thungan" in body["scope_note"]
-    assert body["columns"] == [{"key": "SoDon", "label": "Số đơn", "kind": "number"}]
+    assert body["columns"] == [
+        {"key": "SoDon", "label": "Số đơn", "kind": "number"},
+        {"key": "SoHoaDon", "label": "Số hoá đơn", "kind": "number"},
+    ]
     assert body["answer"].startswith("Có 2 đơn.\n- Cả hai đã thanh toán.")
 
 

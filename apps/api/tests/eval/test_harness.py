@@ -39,7 +39,12 @@ async def test_configuration_c_uses_the_same_model_with_thinking(fake_llm, one_q
 
 
 @pytest.mark.anyio
-async def test_harness_keeps_interpretation_and_usage_for_manual_grading(fake_llm, one_question):
+async def test_harness_keeps_interpretation_and_usage_for_manual_grading(
+    fake_llm, one_question, fake_engine_factory
+):
+    # Two cells, so the interpretation still goes through the model.
+    fake_engine_factory.columns = ["n", "m"]
+    fake_engine_factory.rows = [(1, 2)]
     fake_llm.reply(f"SELECT COUNT(MaOrder) AS so_don FROM {one_question['view']}")
     result = await run_configuration(Config.B, [one_question])
     outcome = result.outcomes[0]
@@ -65,7 +70,28 @@ def test_reference_clock_replaces_relative_mysql_dates_without_changing_literals
     result = bind_reference_sql(sql, question)
     assert "CURDATE()" in result  # The quoted data remains literal.
     assert "2026-10-23" in result
-    assert "INTERVAL 6" not in result
+    assert "INTERVAL" not in result
+
+
+@pytest.mark.parametrize(
+    "anchor",
+    ["DATE(CURRENT_DATE - INTERVAL '6' HOUR)", "DATE(CURDATE() - INTERVAL 6 HOUR)"],
+)
+def test_the_gold_business_date_anchor_becomes_the_reference_day(anchor):
+    """Regression: binding CURRENT_DATE alone left DATE('2026-10-23' - 6h) = 22/10, so
+    every 'hôm nay' reference query counted the previous business day."""
+    from data.eval.harness import bind_reference_sql
+
+    question = {
+        "reference_time": "2026-10-23T12:00:00+07:00",
+        "reference_business_date": "2026-10-23",
+    }
+    sql = f"SELECT COUNT(*) AS SoDon FROM vw_ai_quanly_order WHERE BusinessDate = {anchor}"
+
+    result = bind_reference_sql(sql, question)
+
+    assert "HOUR" not in result
+    assert "'2026-10-23'" in result
 
 
 @pytest.mark.anyio

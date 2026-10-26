@@ -48,6 +48,6 @@ Ngày kinh doanh của phiếu nhập/xuất/kiểm kê và công thức/giá hi
 
 ## Nhật ký nhà cung cấp
 
-`TRUY_VAN_AI` ghi model/phiên bản thực tế trả về, tổng token đầu vào/đầu ra (completion_tokens đã gồm token suy luận), số lần gọi gồm SQL/thử lại/diễn giải/fallback. `ChiTietSuDung` lưu từng lần gọi và đơn giá USD/triệu token tại lượt hỏi. Ollama không tính phí API thương mại. Khi lỗi/timeout không có usage từ nhà cung cấp, `ChiPhiUSD` để NULL; JSON đánh dấu `cost_complete=false` cùng `known_cost_usd` là phần chi phí đã biết, không giả định tổng chi phí bằng 0. Các trường token khi thiếu chỉ phản ánh usage đã nhận, kèm cờ `usage_reported` cho từng lần gọi. Chỉ được kết luận chi phí chính xác khi `cost_complete=true`.
+`TRUY_VAN_AI` ghi model/phiên bản thực tế trả về, tổng token đầu vào/đầu ra (output_tokens đã gồm token suy luận), số lần gọi gồm SQL/thử lại/diễn giải/fallback. `ChiTietSuDung` lưu từng lần gọi và đơn giá USD/triệu token tại lượt hỏi. Khi lỗi/timeout không có usage từ nhà cung cấp, `ChiPhiUSD` để NULL; JSON đánh dấu `cost_complete=false` cùng `known_cost_usd` là phần chi phí đã biết, không giả định tổng chi phí bằng 0. Các trường token khi thiếu chỉ phản ánh usage đã nhận, kèm cờ `usage_reported` cho từng lần gọi. Chỉ được kết luận chi phí chính xác khi `cost_complete=true`.
 
 FK từ truy vấn tới phiên chat dùng RESTRICT; trigger MySQL cấm UPDATE/DELETE nhật ký tiếp tục được giữ nguyên. Không xóa phiên để xóa gián tiếp nhật ký.

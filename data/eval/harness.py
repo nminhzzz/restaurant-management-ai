@@ -2,7 +2,7 @@
 
     A — schema only (the baseline)
     B — schema + Vietnamese normalisation + few-shot examples
-    C — configuration B on the same model with thinking enabled/high
+    C — configuration B on the same model at effort=high for SQL generation
 
 Accuracy is measured by **executing** what the model produced and what the reference
 SQL produces, then comparing the rows — never by comparing SQL text, because two
@@ -67,7 +67,7 @@ def normalises(config: Config) -> bool:
 
 
 async def model_for(config: Config) -> str:
-    # The independent variable is thinking/prompt policy, never model identity.
+    # The independent variable is effort/prompt policy, never model identity.
     return get_settings().llm_model
 
 
@@ -221,7 +221,8 @@ def bind_reference_sql(sql: str, question: dict[str, Any]) -> str:
     tree = sqlglot.parse_one(sql, read="mysql")
     # Old gold SQL used DATE(CURDATE() - INTERVAL 6 HOUR); use its intended
     # business-date anchor explicitly, including when a different cutoff is active.
-    for date_node in list(tree.find_all(exp.Date)):
+    # sqlglot parses MySQL DATE(expr) as TsOrDsToDate, not exp.Date.
+    for date_node in list(tree.find_all(exp.Date, exp.TsOrDsToDate)):
         if date_node.find(exp.CurrentDate) is not None and date_node.find(exp.Interval) is not None:
             date_node.replace(exp.Cast(this=exp.Literal.string(day), to=exp.DataType.build("DATE")))
     for node in list(tree.walk()):
@@ -255,8 +256,7 @@ async def _generate(
     client = llm.get_client()
     _bind_model(client, await model_for(config))
     with llm.generation_options(
-        thinking="enabled" if config is Config.C else "disabled",
-        reasoning_effort="high" if config is Config.C else "",
+        reasoning_effort="high" if config is Config.C else "low",
         fallback=False,
     ):
         raw = await llm.complete_async(client, prompt) or ""
@@ -329,6 +329,8 @@ async def _run(config: Config, questions: list[Any], session: AsyncSession) -> C
             collect_usage(
                 input_price=settings.ai_input_usd_per_million,
                 output_price=settings.ai_output_usd_per_million,
+                cache_write_price=settings.ai_cache_write_usd_per_million,
+                cache_read_price=settings.ai_cache_read_usd_per_million,
             ) as usage,
         ):
             started = time.perf_counter()
@@ -347,9 +349,7 @@ async def _run(config: Config, questions: list[Any], session: AsyncSession) -> C
                     produced = await executor.execute(
                         sql, role=role, timeout_seconds=settings.ai_sql_timeout_seconds
                     )
-                    with llm.generation_options(
-                        thinking="disabled", reasoning_effort="", fallback=False
-                    ):
+                    with llm.generation_options(reasoning_effort="low", fallback=False):
                         try:
                             interpreted = await interpreter.interpret(
                                 session, text, sql, produced, role
@@ -555,12 +555,14 @@ async def _main(
         encoding="utf-8",
     )
     for row in table.rows:
+        # Relaxed accuracy is the headline (agreed 26/10/2026): extra columns such as
+        # the unit next to a stock figure still answer the question.
         print(
-            f"{row['config']}: chính xác {row['execution_accuracy']:.2%} · "
-            f"lỗi {row['error_rate']:.2%} · từ chối {row['refusal_rate']:.2%} · "
-            f"{row['mean_latency_ms']:.0f} ms (p95 {row['p95_latency_ms']:.0f} ms, "
-            f"{row['runs']} lần) · theo độ khó {row['by_difficulty']} · "
-            f"nới lỏng {row['relaxed_accuracy']:.2%} {row['by_difficulty_relaxed']}"
+            f"{row['config']}: chính xác (nới lỏng) {row['relaxed_accuracy']:.2%} "
+            f"{row['by_difficulty_relaxed']} · khắt khe {row['execution_accuracy']:.2%} "
+            f"{row['by_difficulty']} · lỗi {row['error_rate']:.2%} · "
+            f"từ chối {row['refusal_rate']:.2%} · {row['mean_latency_ms']:.0f} ms "
+            f"(p95 {row['p95_latency_ms']:.0f} ms, {row['runs']} lần)"
         )
     print(f"Đã ghi {out}")
     return 0

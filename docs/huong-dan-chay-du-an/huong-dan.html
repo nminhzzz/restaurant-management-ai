@@ -128,7 +128,7 @@
   <h3>1.1 Kiến trúc</h3>
 <pre class="arch">Trình duyệt ──▶ Next.js (web, cổng 3000) ──HTTP──▶ FastAPI (api, cổng 8000) ──SQL──▶ MySQL 8.4 (Docker, cổng 3306)
                                                          │
-                                                         ├──▶ LLM: DeepSeek / OpenAI / Ollama (trợ lý AI)
+                                                         ├──▶ LLM: Claude Opus 5.5 qua Claude API (trợ lý AI)
                                                          └──▶ SePay (thanh toán VietQR, tuỳ chọn)</pre>
 
   <h3>1.2 Thành phần trong kho mã</h3>
@@ -160,7 +160,7 @@
   <h2>2. Chuẩn bị máy và cài công cụ</h2>
   <h3>2.1 Cấu hình tối thiểu</h3>
   <ul>
-    <li>RAM 8 GB (khuyến nghị 16 GB nếu chạy Ollama cục bộ), trống ≥ 10 GB ổ đĩa.</li>
+    <li>RAM 8 GB, trống ≥ 10 GB ổ đĩa.</li>
     <li>Kết nối Internet cho lần cài đầu (tải thư viện, Docker image) và khi dùng LLM thương mại.</li>
   </ul>
 
@@ -259,11 +259,11 @@ git pull</pre>
     <tr><td><code>JWT_SECRET</code></td><td>chuỗi dev</td><td>Khoá ký token đăng nhập. Máy thật: đặt chuỗi ngẫu nhiên ≥ 32 ký tự (<code>openssl rand -hex 32</code>).</td></tr>
     <tr><td><code>ACCESS_TOKEN_TTL_MINUTES</code></td><td><code>480</code></td><td>Thời gian sống của phiên đăng nhập (phút).</td></tr>
     <tr><td><code>CORS_ORIGINS</code></td><td><code>["http://localhost:3000"]</code></td><td>Địa chỉ web được phép gọi API. Đổi cổng web thì phải sửa ở đây (dạng JSON).</td></tr>
-    <tr><td><code>AI_PROVIDER</code></td><td><code>deepseek</code></td><td><code>deepseek</code> · <code>openai</code> · <code>ollama</code> (mục 13).</td></tr>
-    <tr><td><code>AI_API_KEY</code></td><td>(trống)</td><td>Khoá API của nhà cung cấp LLM.</td></tr>
-    <tr><td><code>LLM_MODEL</code></td><td><code>deepseek-flash</code></td><td>Tên mô hình.</td></tr>
-    <tr><td><code>LLM_BASE_URL</code></td><td>(trống)</td><td>Để trống thì dùng địa chỉ mặc định của nhà cung cấp.</td></tr>
-    <tr><td><code>AI_OLLAMA_BASE_URL</code></td><td><code>http://localhost:11434</code></td><td>Địa chỉ Ollama khi <code>AI_PROVIDER=ollama</code>.</td></tr>
+    <tr><td><code>AI_PROVIDER</code></td><td><code>anthropic</code></td><td><code>anthropic</code> · <code>fake</code> (trả lời giả lập, mục 13).</td></tr>
+    <tr><td><code>AI_API_KEY</code></td><td>(trống)</td><td>Khoá Claude API của Anthropic; để trống thì đọc <code>ANTHROPIC_API_KEY</code>.</td></tr>
+    <tr><td><code>LLM_MODEL</code></td><td><code>claude-opus-5-5</code></td><td>Tên mô hình.</td></tr>
+    <tr><td><code>LLM_BASE_URL</code></td><td>(trống)</td><td>Để trống thì dùng <code>https://api.anthropic.com</code>.</td></tr>
+    <tr><td><code>LLM_REASONING_EFFORT</code></td><td><code>low</code></td><td>Mức effort: <code>low</code> · <code>medium</code> · <code>high</code> · <code>xhigh</code> · <code>max</code>.</td></tr>
     <tr><td><code>AI_READONLY_URL_MANAGER</code> · <code>_CASHIER</code> · <code>_WAREHOUSE</code></td><td>(trống)</td><td>Chuỗi kết nối của 3 tài khoản chỉ-đọc cho trợ lý AI (mục 8). Thiếu thì trợ lý không chạy được truy vấn.</td></tr>
     <tr><td><code>AI_MAX_ROWS</code> · <code>AI_SQL_TIMEOUT_SECONDS</code> · <code>AI_MAX_SQL_ATTEMPTS</code></td><td><code>500</code> · <code>3</code> · <code>2</code></td><td>Giới hạn an toàn theo NFR-06. Không cần đổi.</td></tr>
     <tr><td><code>PAYMENT_GATEWAY</code></td><td><code>simulator</code></td><td><code>simulator</code> (giả lập) hoặc <code>sepay</code> (mục 14).</td></tr>
@@ -430,32 +430,23 @@ pnpm start          <span class="comment"># mặc định cổng 3000</span></pr
 <!-- ============ 13 ============ -->
 <section class="section">
   <h2>13. Cấu hình trợ lý AI (LLM)</h2>
-  <p>Chọn <b>một</b> trong ba cách, sửa <code>.env</code>, rồi khởi động lại API.</p>
+  <p>Sửa <code>.env</code> rồi khởi động lại API.</p>
 
-  <h3>13.1 DeepSeek (mặc định, rẻ, nhanh)</h3>
+  <h3>13.1 Claude Opus 5.5 (mặc định)</h3>
   <ol>
-    <li>Tạo tài khoản tại platform.deepseek.com, nạp tiền tối thiểu, vào <b>API Keys</b> → tạo khoá.</li>
+    <li>Tạo khoá tại platform.claude.com → <b>API Keys</b>.</li>
     <li>Trong <code>.env</code>:</li>
   </ol>
-<pre>AI_PROVIDER=deepseek
-AI_API_KEY=sk-...khoá-của-bạn...
-LLM_MODEL=deepseek-flash      <span class="comment"># mặc định của dự án</span></pre>
-  <p class="small muted">Để trống <code>LLM_BASE_URL</code> (dùng <code>https://api.deepseek.com</code>). <code>LLM_REASONING_EFFORT=low</code> giữ mỗi câu hỏi trong ngân sách 8 giây (NFR-02).</p>
+<pre>AI_PROVIDER=anthropic
+AI_API_KEY=sk-ant-...khoá-của-bạn...
+LLM_MODEL=claude-opus-5-5     <span class="comment"># mặc định của dự án</span>
+LLM_REASONING_EFFORT=low
+AI_INPUT_USD_PER_MILLION=4
+AI_OUTPUT_USD_PER_MILLION=20</pre>
+  <p class="small muted">Để trống <code>LLM_BASE_URL</code>. Opus 5.5 không tắt được suy luận; <code>LLM_REASONING_EFFORT=low</code> giữ mỗi câu hỏi trong ngân sách 8 giây (NFR-02). Khi Claude API không khả dụng, trợ lý báo lỗi và ghi nhận lần gọi thất bại.</p>
 
-  <h3>13.2 OpenAI</h3>
-<pre>AI_PROVIDER=openai
-AI_API_KEY=sk-...
-LLM_MODEL=gpt-4o-mini           <span class="comment"># ví dụ; chọn mô hình còn hỗ trợ trong tài khoản của bạn</span></pre>
-
-  <h3>13.3 Ollama (chạy mô hình ngay trên máy, không cần khoá)</h3>
-  <ol>
-    <li>Cài Ollama (ollama.com) và mở ứng dụng.</li>
-    <li>Tải một mô hình giỏi SQL, ví dụ: <code>ollama pull qwen2.5-coder:7b</code> (khoảng 4–5 GB).</li>
-    <li>Trong <code>.env</code>:</li>
-  </ol>
-<pre>AI_PROVIDER=ollama
-LLM_MODEL=qwen2.5-coder:7b
-AI_OLLAMA_BASE_URL=http://localhost:11434</pre>
+  <h3>13.2 Chạy không cần khoá</h3>
+<pre>AI_PROVIDER=fake              <span class="comment"># trợ lý trả lời giả lập, dùng để demo giao diện</span></pre>
   <div class="note"><b>Kiểm tra nhanh</b>Đăng nhập <code>seed_manager</code> → Trợ lý AI → bấm gợi ý "Doanh thu 7 ngày gần nhất theo từng ngày?". Có bảng và biểu đồ là đã thông. Nếu báo lỗi, xem API log trong cửa sổ <code>make api</code> và mục 17.</div>
   <p class="small muted">Các giới hạn an toàn luôn bật: mọi câu SQL do mô hình sinh ra phải qua bộ kiểm duyệt <code>validate_sql</code> (chỉ <code>SELECT</code> trên đúng view), tối đa 500 dòng, 3 giây mỗi truy vấn, 2 lần sinh SQL mỗi câu hỏi, hạn mức <code>AI_DAILY_QUESTION_QUOTA</code> câu/ngày.</p>
 </section>
@@ -557,8 +548,8 @@ make web            <span class="comment"># cửa sổ 2 → http://localhost:30
     <tr><td>Seed báo "CSDL đã có dữ liệu danh mục"</td><td>Seed chỉ chạy trên CSDL sạch. Làm lại theo mục 9.4.</td></tr>
     <tr><td>Đăng nhập báo sai tài khoản</td><td>Chưa chạy seed (mục 9), hoặc gõ sai mật khẩu <code>matkhau123</code>.</td></tr>
     <tr><td>Trang web hiện "Không tải được dữ liệu"</td><td>API chưa chạy (xem cửa sổ <code>make api</code>), hoặc lỗi CORS do web không chạy ở cổng 3000 — mở DevTools (<kbd>F12</kbd>) → Console; sửa <code>CORS_ORIGINS</code> rồi khởi động lại API.</td></tr>
-    <tr><td>Trợ lý AI báo lỗi hoặc "Không thể tạo truy vấn an toàn"</td><td>Thiếu <code>AI_API_KEY</code>/sai <code>LLM_MODEL</code>; thiếu <code>AI_READONLY_URL_*</code> hoặc chưa chạy <code>apply_grants.sh</code>; Ollama chưa mở. Xem log ở cửa sổ API. Câu hỏi ngoài phạm vi vai trò bị từ chối là đúng thiết kế.</td></tr>
-    <tr><td>Trợ lý trả lời chậm rồi "phản hồi quá lâu"</td><td>Ngân sách mỗi câu là 8 giây. Dùng mô hình nhanh hơn, hoặc với Ollama chọn mô hình nhỏ hơn.</td></tr>
+    <tr><td>Trợ lý AI báo lỗi hoặc "Không thể tạo truy vấn an toàn"</td><td>Thiếu <code>AI_API_KEY</code>/sai <code>LLM_MODEL</code>; thiếu <code>AI_READONLY_URL_*</code> hoặc chưa chạy <code>apply_grants.sh</code>. Xem log ở cửa sổ API. Câu hỏi ngoài phạm vi vai trò bị từ chối là đúng thiết kế.</td></tr>
+    <tr><td>Trợ lý trả lời chậm rồi "phản hồi quá lâu"</td><td>Ngân sách mỗi câu là 8 giây. Giữ <code>LLM_REASONING_EFFORT=low</code>; xem độ trễ thực tế trong log API.</td></tr>
     <tr><td>QR SePay không tự xác nhận</td><td>Tunnel đã tắt/đổi địa chỉ (cập nhật lại URL webhook trong SePay); sai API key; nội dung chuyển khoản sai tiền tố; số tiền khác tổng order (sẽ vào "Chờ đối soát"). Dùng nút "Kiểm tra lại" nếu có <code>SEPAY_API_TOKEN</code>.</td></tr>
     <tr><td>API không khởi động sau khi bật SePay</td><td>Thiếu <code>SEPAY_BANK_ACCOUNT</code>, <code>SEPAY_BANK_CODE</code> hoặc <code>SEPAY_WEBHOOK_API_KEY</code>; đọc dòng lỗi đầu tiên trong log.</td></tr>
     <tr><td><code>pnpm: command not found</code> / sai phiên bản</td><td><code>corepack enable &amp;&amp; corepack prepare pnpm@9.15.0 --activate</code>.</td></tr>

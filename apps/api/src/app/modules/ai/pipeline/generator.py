@@ -59,7 +59,6 @@ async def generate_sql(
         "prompt": base_prompt,
         "provider": settings.ai_provider,
         "endpoint": settings.llm_base_url,
-        "ollama_endpoint": settings.ai_ollama_base_url,
         "model": settings.llm_model,
         "client_model": getattr(llm.get_client(), "model", None),
         "fallback_model": settings.llm_fallback_model or settings.ai_config_c_model,

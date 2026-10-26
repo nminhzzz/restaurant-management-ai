@@ -14,7 +14,7 @@ from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.sql.dml import Insert
 
-from app.core.database import get_engine, get_session_factory
+from app.core.database import get_engine, get_session_factory, session_scope
 from app.modules.ai.errors import QuotaExceeded
 from app.modules.ai.runtime_models import AiDailyUsage, AiSqlCache
 from app.shared import business_date
@@ -26,7 +26,7 @@ class AiRuntimeStore:
 
     async def reserve_call(self, day: date, quota: int, user_id: int = 0) -> None:
         """Commit one reservation only when this user's daily counter is below quota."""
-        async with self.session_factory.begin() as session:
+        async with session_scope(self.session_factory) as session:
             insert_day: Insert
             dialect = session.get_bind().dialect.name
             if dialect == "mysql":
@@ -67,7 +67,7 @@ class AiRuntimeStore:
     async def put_sql(self, key: str, sql: str, now: datetime, ttl_seconds: int) -> None:
         # Do not mix expiry range deletes with inserts: InnoDB REPEATABLE READ
         # gap locks can deadlock otherwise independent writers on an empty range.
-        async with self.session_factory.begin() as session:
+        async with session_scope(self.session_factory) as session:
             values = {
                 "KhoaCache": key,
                 "CauSQL": sql,
@@ -113,7 +113,7 @@ class AiRuntimeStore:
                 )
             )
         removed = 0
-        async with self.session_factory.begin() as session:
+        async with session_scope(self.session_factory) as session:
             for key in keys:
                 result = await session.execute(
                     delete(AiSqlCache).where(AiSqlCache.key == key, AiSqlCache.expires_at <= now)

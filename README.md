@@ -10,7 +10,7 @@ và **khối trợ lý AI** cho phép hỏi đáp, phân tích dữ liệu kinh 
 ```
 Next.js (web)  ──HTTP──▶  FastAPI (api)  ──SQL──▶  MySQL
                                 │
-                                └──▶  LLM (API thương mại, dự phòng Ollama)
+                                └──▶  LLM (Claude Opus 5.5 qua Claude API)
 ```
 
 - Câu SQL do LLM sinh ra đi qua lớp kiểm duyệt `sqlglot` trước khi thực thi: chỉ nhận `SELECT`
@@ -49,8 +49,10 @@ make env        # copy .env.example -> .env (chỉ khi chưa có)
 
 Sửa `.env` trước khi chạy:
 
-- **Bắt buộc cho trợ lý AI:** đặt `AI_API_KEY` (DeepSeek). Không có key thì đặt
-  `AI_PROVIDER=fake` để trợ lý trả lời giả lập, hoặc `AI_PROVIDER=ollama` nếu đã chạy Ollama.
+- **Bắt buộc cho trợ lý AI:** đặt `AI_API_KEY` (khóa Claude API của Anthropic; để trống thì SDK
+  đọc `ANTHROPIC_API_KEY`). Mặc định `AI_PROVIDER=anthropic`, `LLM_MODEL=claude-opus-5-5`,
+  `LLM_REASONING_EFFORT=low`, giá `AI_INPUT_USD_PER_MILLION=4`, `AI_OUTPUT_USD_PER_MILLION=20`.
+  Không có key thì đặt `AI_PROVIDER=fake` để trợ lý trả lời giả lập.
 - Đặt `AI_LLM_TIMEOUT_SECONDS=5.0`. Mẫu `.env.example` hiện còn ghi `1.5`, giá trị này làm
   prompt đầy đủ (~4.200 ký tự, ~3 giây) luôn timeout và trợ lý trả lỗi.
 - **Thanh toán:** giữ `PAYMENT_GATEWAY=simulator` để demo không cần ngân hàng; muốn chuyển
@@ -123,10 +125,10 @@ Báo cáo · Trợ lý AI. Có script sinh dữ liệu 12 tháng (`make seed`), 
 (`data/eval/questions.jsonl`) và harness A/B/C (`data/eval/harness.py`). Điều này không đồng nghĩa
 mọi yêu cầu trong bản báo cáo cập nhật đã được nghiệm thu.
 
-**Q5/Q6 đã chốt ngày 26/09/2026**: DeepSeek, mô hình chính `deepseek-flash`, cấu hình C
-`deepseek-v4-pro`. Kết quả lần chạy đã lưu ở [`docs/eval-results.json`](docs/eval-results.json):
-độ đúng thực thi A/B/C lần lượt **56,84% / 66,32% / 57,89%**. Đây là kết quả đã lưu trên bộ 95 câu,
-không phải kết quả cho kế hoạch đánh giá mới gồm 80 câu trong báo cáo.
+**Từ 26/10/2026 trợ lý dùng Claude Opus 5.5** (báo cáo §5.1.1): cấu hình A/B chạy `effort=low`,
+cấu hình C giữ prompt B và đặt `effort=high` khi sinh SQL. Kết quả cũ trong
+[`docs/eval-results.json`](docs/eval-results.json) (A/B/C **56,84% / 66,32% / 57,89%**) là lần chạy
+DeepSeek trên bộ 95 câu, chưa phải kết quả của Claude Opus 5.5 hay kế hoạch 80 câu trong báo cáo.
 
 Thanh toán QR thật dùng SePay: xem [hướng dẫn cấu hình](docs/payment-sepay-setup.md) và script
 kiểm thử chuyển tiền thật `scripts/sepay_smoke.py`. Chạy AI hoặc thực nghiệm mới cần cấu hình `AI_PROVIDER`, `LLM_MODEL`, `AI_API_KEY` và các URL

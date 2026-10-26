@@ -3,10 +3,11 @@ import { describe, expect, it } from "vitest";
 import { MODULES, MODULE_LIST, homePathFor } from "@/lib/modules";
 
 describe("module registry", () => {
-  it("exposes the six business modules in navigation order", () => {
+  it("exposes the six business modules and the order screen in navigation order", () => {
     expect(MODULE_LIST.map((descriptor) => descriptor.key)).toEqual([
       "catalog",
       "sales",
+      "orders",
       "inventory",
       "reports",
       "settings",

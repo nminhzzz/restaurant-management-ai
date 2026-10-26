@@ -4,6 +4,7 @@ Models stay in their module packages; this module only owns the connection.
 """
 
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Any, Self
 
 from sqlalchemy.ext.asyncio import (
@@ -65,4 +66,16 @@ async def get_session() -> AsyncIterator[AsyncSession]:
         yield session
 
 
-__all__ = ["Base", "get_engine", "get_session", "get_session_factory"]
+@asynccontextmanager
+async def session_scope(factory: async_sessionmaker[AsyncSession]) -> AsyncIterator[AsyncSession]:
+    """Open a session and a committing transaction through `__aenter__`.
+
+    `async_sessionmaker.begin()` yields the session without entering it, so
+    `BusinessDateSession` never installs the cutoff snapshot and its `__aexit__`
+    fails. Short-lived background transactions must use this instead.
+    """
+    async with factory() as session, session.begin():
+        yield session
+
+
+__all__ = ["Base", "get_engine", "get_session", "get_session_factory", "session_scope"]

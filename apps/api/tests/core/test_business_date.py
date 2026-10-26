@@ -138,3 +138,31 @@ def test_reference_clock_is_nested_and_restored(monkeypatch):
         assert business_date.now() != moment
     finally:
         monkeypatch.setattr(business_date, "now", original)
+
+
+async def test_transaction_scope_installs_the_schedule_and_commits(engine):
+    from datetime import time
+
+    from sqlalchemy import func, select
+    from sqlalchemy.ext.asyncio import async_sessionmaker
+
+    from app.core.database import BusinessDateSession, session_scope
+    from app.modules.settings.models import BusinessDateCutoff
+
+    factory = async_sessionmaker(engine, class_=BusinessDateSession, expire_on_commit=False)
+    async with session_scope(factory) as scoped:
+        scoped.add(
+            BusinessDateCutoff(
+                effective_date=date(2026, 1, 1),
+                start_time=time(8, 15),
+                starts_at=datetime(2026, 1, 1, 8, 15),
+            )
+        )
+        # The schedule is read when the session opens, so a row added inside is not in it.
+        assert business_date_start(date(2026, 9, 1)) == datetime(2026, 9, 1, 6)
+    # Leaving the block must reset the context and keep the write.
+    assert business_date_start(date(2026, 9, 1)) == datetime(2026, 9, 1, 6)
+
+    async with session_scope(factory) as scoped:
+        assert business_date_start(date(2026, 9, 1)) == datetime(2026, 9, 1, 8, 15)
+        assert await scoped.scalar(select(func.count()).select_from(BusinessDateCutoff)) == 1

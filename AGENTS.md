@@ -10,7 +10,7 @@ Quy tắc chung trong `~/.codex/AGENTS.md` vẫn áp dụng đầy đủ; file n
 | Web | Next.js 16 (App Router), React 19, TypeScript, Tailwind 4, Vitest |
 | API | Python 3.12, FastAPI, SQLAlchemy 2 (async), Alembic, pytest, ruff, mypy |
 | Dữ liệu | MySQL 8.4, view phân quyền `vw_ai_*` (một tài khoản chỉ-đọc riêng cho mỗi vai trò) |
-| AI | LLM qua API thương mại (mặc định), dự phòng Ollama; kiểm duyệt SQL bằng `sqlglot` |
+| AI | Claude Opus 5.5 qua Claude API (SDK `anthropic`); kiểm duyệt SQL bằng `sqlglot` |
 
 ## Bản đồ repository
 
@@ -23,7 +23,7 @@ apps/web/src/
 ├── app/           # routes: (app)/<module> + /login
 ├── components/    # app shell, module placeholder
 ├── features/      # theo module, ví dụ features/assistant
-├── lib/           # api-client, env, modules (registry 6 module)
+├── lib/           # api-client, env, modules (registry 6 module + mục Quản lý đơn hàng)
 └── types/
 db/views/          # DDL view phân quyền cho trợ lý AI
 data/eval/         # bộ câu hỏi – SQL chuẩn phục vụ đánh giá

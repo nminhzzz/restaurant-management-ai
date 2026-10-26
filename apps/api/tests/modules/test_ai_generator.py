@@ -166,7 +166,7 @@ async def test_cache_expires_and_provider_and_limits_invalidate_it(
     now = business_date.now()
     monkeypatch.setattr(business_date, "now", lambda: now + timedelta(seconds=301))
     await generate_sql(session, "hỏi", Role.CASHIER)
-    monkeypatch.setenv("AI_PROVIDER", "ollama")
+    monkeypatch.setenv("AI_PROVIDER", "fake")
     get_settings.cache_clear()
     await generate_sql(session, "hỏi", Role.CASHIER)
     monkeypatch.setenv("AI_MAX_ROWS", "20")

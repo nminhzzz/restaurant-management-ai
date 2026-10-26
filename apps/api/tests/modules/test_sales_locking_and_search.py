@@ -291,3 +291,36 @@ async def test_warehouse_cannot_search_or_read_orders(session):
     assert search.status_code == 403
     assert detail.status_code == 403
     assert tickets.status_code == 403
+
+
+@pytest.mark.anyio
+async def test_order_list_shows_type_table_creator_and_live_total(session):
+    """FR-SALE-25: the order-management list needs these columns without opening each order."""
+    d, t = await _setup(session)
+    client = await _make_client(session)
+    h, cashier = await _headers(session)
+    oid, _ = await _submit(session, client, h, d, t)
+    await client.post(
+        f"/api/v1/sales/orders/{oid}/lines", json={"dish_id": d.id, "quantity": 2}, headers=h
+    )
+    hm, _ = await _headers(session, role="MANAGER", username="mgr")
+
+    r = await client.get("/api/v1/sales/orders", headers=hm)
+
+    item = next(o for o in r.json()["items"] if o["MaOrder"] == oid)
+    assert item["LoaiDon"] == "Tại chỗ"
+    assert item["TenBan"] == t.name
+    assert item["NguoiLap"] == cashier.full_name
+    # Open orders have no settled TongTien yet; the list shows the running total.
+    assert item["TongTien"] == 150000
+
+
+@pytest.mark.anyio
+async def test_order_list_is_closed_to_the_warehouse_role(session):
+    """FR-SALE-25 / §4.4.2: only Manager and Cashier/Order staff may look orders up."""
+    client = await _make_client(session)
+    hw, _ = await _headers(session, role="WAREHOUSE", username="kho")
+
+    r = await client.get("/api/v1/sales/orders", headers=hw)
+
+    assert r.status_code == 403

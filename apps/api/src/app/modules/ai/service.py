@@ -91,6 +91,8 @@ async def _record(
         usage_detail={
             "input_usd_per_million": usage.input_price,
             "output_usd_per_million": usage.output_price,
+            "cache_write_usd_per_million": usage.cache_write_price,
+            "cache_read_usd_per_million": usage.cache_read_price,
             "attempts": [asdict(attempt) for attempt in usage.attempts],
             "cost_complete": usage.cost_complete,
             "known_cost_usd": usage.cost_usd,
@@ -119,6 +121,8 @@ async def answer(
     with collect_usage(
         input_price=settings.ai_input_usd_per_million,
         output_price=settings.ai_output_usd_per_million,
+        cache_write_price=settings.ai_cache_write_usd_per_million,
+        cache_read_price=settings.ai_cache_read_usd_per_million,
     ):
         return await _answer(session, question, role, user_id, session_id)
 

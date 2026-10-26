@@ -33,26 +33,28 @@ class Settings(BaseSettings):
     auth_revalidate_tokens: bool = True
 
     # AI Assistant (NFR-02 response budget, NFR-16 cost control).
-    # DeepSeek's OpenAI-compatible API is the default commercial provider.
-    ai_input_usd_per_million: float = Field(default=0.30, ge=0)
-    ai_output_usd_per_million: float = Field(default=1.20, ge=0)
-    ai_provider: str = "deepseek"
+    # Claude Opus 5.5 via the Anthropic API is the default provider (report §5.1.1);
+    # prices are its list rates on 25/10/2026, output including thinking tokens.
+    ai_input_usd_per_million: float = Field(default=4.0, ge=0)
+    ai_output_usd_per_million: float = Field(default=20.0, ge=0)
+    # 5-minute prompt-cache writes bill at 1.25x input; reads at $0.20 on Opus 5.5.
+    ai_cache_write_usd_per_million: float = Field(default=5.0, ge=0)
+    ai_cache_read_usd_per_million: float = Field(default=0.20, ge=0)
+    ai_provider: str = "anthropic"
+    # Empty defers to ANTHROPIC_API_KEY.
     ai_api_key: str = ""
-    llm_model: str = "deepseek-flash"
+    llm_model: str = "claude-opus-5-5"
+    # Empty uses the SDK default (https://api.anthropic.com).
     llm_base_url: str = ""
     # Runtime fallback (report §1.4.2, §4.1.1): used only when the primary model call
     # fails (transport error, timeout, 429 or 5xx); empty falls back to `ai_config_c_model`.
     llm_fallback_model: str = ""
-    # DeepSeek thinks at "high" by default; two LLM calls per question then overrun
-    # the 8s budget (NFR-02). Only sent when AI_PROVIDER=deepseek; empty = send nothing.
-    llm_reasoning_effort: str = "low"
+    # Opus 5.5 cannot disable thinking and defaults to "medium"; two LLM calls per
+    # question then overrun the 8s budget (NFR-02), so configurations A/B run at "low".
+    llm_reasoning_effort: Literal["low", "medium", "high", "xhigh", "max"] | None = "low"
     # Configuration C of the A/B/C experiment runs configuration B on a second model
     # (master-roadmap Q5); empty means the harness falls back to a suffixed name.
     ai_config_c_model: str = ""
-    ai_ollama_base_url: str = "http://localhost:11434"
-    # Commercial outage → self-hosted Ollama (report §1.4.2). Set false in CI.
-    ai_ollama_fallback: bool = True
-    ai_ollama_model: str = "qwen2.5:7b"
     # The full schema prompt takes ~3s; 1.5-3s made every real call time out (22/10).
     ai_llm_timeout_seconds: float = Field(default=5.0, gt=0, le=8)
     ai_max_rows: int = 500

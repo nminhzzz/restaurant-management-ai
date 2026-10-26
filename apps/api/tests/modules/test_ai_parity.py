@@ -1,6 +1,7 @@
 """Report parity: topic isolation and accountable provider usage."""
 
-import httpx
+import anthropic
+import httpx2
 import pytest
 
 from app.core.errors import BusinessRuleError
@@ -44,13 +45,20 @@ async def test_provider_usage_records_actual_versions_tokens_cost_and_failed_fal
 
         model = json.loads(request.content)["model"]
         if model == "primary":
-            return httpx.Response(503, json={"error": "down"})
-        return httpx.Response(
+            return httpx2.Response(
+                503, json={"type": "error", "error": {"type": "api_error", "message": "down"}}
+            )
+        return httpx2.Response(
             200,
             json={
+                "id": "msg_1",
+                "type": "message",
+                "role": "assistant",
                 "model": "fallback-20261009",
-                "usage": {"prompt_tokens": 1000, "completion_tokens": 200},
-                "choices": [{"message": {"content": "SELECT 1"}}],
+                "content": [{"type": "text", "text": "SELECT 1"}],
+                "stop_reason": "end_turn",
+                "stop_sequence": None,
+                "usage": {"input_tokens": 1000, "output_tokens": 200},
             },
         )
 
@@ -59,7 +67,7 @@ async def test_provider_usage_records_actual_versions_tokens_cost_and_failed_fal
         model="primary",
         base_url="https://example.test",
         fallback_model="fallback",
-        transport=httpx.MockTransport(handler),
+        transport=httpx2.MockTransport(handler),
     )
     with collect_usage(input_price=0.3, output_price=1.2) as usage:
         assert await llm.complete_async(client, "question") == "SELECT 1"
@@ -157,18 +165,21 @@ async def test_provider_failure_still_persists_attempt_without_claiming_exact_co
     from app.modules.ai.service import answer
 
     def handler(request):
-        return httpx.Response(401, json={"error": "no"})
+        return httpx2.Response(
+            401,
+            json={"type": "error", "error": {"type": "authentication_error", "message": "no"}},
+        )
 
     llm.set_client(
         llm.CommercialClient(
             api_key="fixture",
             model="version-actual",
             base_url="https://example.test",
-            transport=httpx.MockTransport(handler),
+            transport=httpx2.MockTransport(handler),
         )
     )
     try:
-        with pytest.raises(httpx.HTTPStatusError):
+        with pytest.raises(anthropic.AuthenticationError):
             await answer(session, "đơn?", Role.CASHIER, user_id=1)
         record = (await session.scalars(select(AssistantQuery))).one()
         assert record.call_count == 1
@@ -270,10 +281,12 @@ async def test_timeout_attempt_is_counted_before_dispatch_and_fallback(monkeypat
         api_key="fixture",
         model="stalled",
         base_url="https://example.test",
-        fallback_client=llm.FakeClient("SELECT 1"),
+        fallback_model="fallback",
     )
 
     def stalled(model, prompt):
+        if model == "fallback":
+            return "SELECT 1"
         release.wait(1)
         return "late"
 
