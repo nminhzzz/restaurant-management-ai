@@ -65,7 +65,28 @@ def test_reference_clock_replaces_relative_mysql_dates_without_changing_literals
     result = bind_reference_sql(sql, question)
     assert "CURDATE()" in result  # The quoted data remains literal.
     assert "2026-10-23" in result
-    assert "INTERVAL 6" not in result
+    assert "INTERVAL" not in result
+
+
+@pytest.mark.parametrize(
+    "anchor",
+    ["DATE(CURRENT_DATE - INTERVAL '6' HOUR)", "DATE(CURDATE() - INTERVAL 6 HOUR)"],
+)
+def test_the_gold_business_date_anchor_becomes_the_reference_day(anchor):
+    """Regression: binding CURRENT_DATE alone left DATE('2026-10-23' - 6h) = 22/10, so
+    every 'hôm nay' reference query counted the previous business day."""
+    from data.eval.harness import bind_reference_sql
+
+    question = {
+        "reference_time": "2026-10-23T12:00:00+07:00",
+        "reference_business_date": "2026-10-23",
+    }
+    sql = f"SELECT COUNT(*) AS SoDon FROM vw_ai_quanly_order WHERE BusinessDate = {anchor}"
+
+    result = bind_reference_sql(sql, question)
+
+    assert "HOUR" not in result
+    assert "'2026-10-23'" in result
 
 
 @pytest.mark.anyio

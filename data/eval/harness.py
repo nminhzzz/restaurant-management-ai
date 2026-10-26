@@ -221,7 +221,8 @@ def bind_reference_sql(sql: str, question: dict[str, Any]) -> str:
     tree = sqlglot.parse_one(sql, read="mysql")
     # Old gold SQL used DATE(CURDATE() - INTERVAL 6 HOUR); use its intended
     # business-date anchor explicitly, including when a different cutoff is active.
-    for date_node in list(tree.find_all(exp.Date)):
+    # sqlglot parses MySQL DATE(expr) as TsOrDsToDate, not exp.Date.
+    for date_node in list(tree.find_all(exp.Date, exp.TsOrDsToDate)):
         if date_node.find(exp.CurrentDate) is not None and date_node.find(exp.Interval) is not None:
             date_node.replace(exp.Cast(this=exp.Literal.string(day), to=exp.DataType.build("DATE")))
     for node in list(tree.walk()):
