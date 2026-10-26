@@ -88,3 +88,23 @@ async def test_expiry_maintenance_is_explicit_bounded_and_keeps_fresh_rows(sessi
     assert await store.prune_expired(later, batch_size=1) == 1
     assert await store.prune_expired(later, batch_size=1) == 0
     assert await store.get_sql("c" * 64, later) == "SELECT 3"
+
+
+@pytest.mark.anyio
+async def test_runtime_store_runs_on_the_application_session(engine):
+    """Regression: a session opened with `async_sessionmaker.begin()` skipped
+    `BusinessDateSession.__aenter__`, so every AI question failed in `__aexit__`."""
+    from sqlalchemy.ext.asyncio import async_sessionmaker
+
+    from app.core.database import BusinessDateSession
+
+    factory = async_sessionmaker(engine, expire_on_commit=False, class_=BusinessDateSession)
+    store = runtime.AiRuntimeStore(factory)
+    day = date(2026, 9, 1)
+
+    await store.reserve_call(day, 1)
+    await store.put_sql("c" * 64, "SELECT 1", datetime(2026, 9, 1, 10), 60)
+
+    with pytest.raises(QuotaExceeded):
+        await store.reserve_call(day, 1)
+    assert await store.get_sql("c" * 64, datetime(2026, 9, 1, 10)) == "SELECT 1"
