@@ -38,6 +38,8 @@ export const ORDER_STATUSES = [
   "Chờ xác nhận thanh toán",
   "Chờ xác minh thanh toán",
   "Đã thanh toán",
+  "Chờ đối soát",
+  "Tranh chấp",
   "Đóng – chưa thu được tiền",
   "Đã hủy",
 ];

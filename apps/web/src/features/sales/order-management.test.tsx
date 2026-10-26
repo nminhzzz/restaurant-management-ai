@@ -132,3 +132,17 @@ describe("OrderManagement", () => {
     expect(await screen.findByText("Không có order phù hợp")).toBeTruthy();
   });
 });
+
+it("can filter the QR orders that need reconciliation or are disputed", async () => {
+  render(<OrderManagement />);
+  await screen.findByText("ORD-20261023-0041");
+
+  fireEvent.change(screen.getByLabelText("Trạng thái"), {
+    target: { value: "Tranh chấp" },
+  });
+
+  await waitFor(() =>
+    expect(lastOrderQuery().get("status")).toBe("Tranh chấp"),
+  );
+  expect(screen.getByRole("option", { name: "Chờ đối soát" })).toBeTruthy();
+});
