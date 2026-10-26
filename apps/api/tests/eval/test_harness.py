@@ -39,7 +39,12 @@ async def test_configuration_c_uses_the_same_model_with_thinking(fake_llm, one_q
 
 
 @pytest.mark.anyio
-async def test_harness_keeps_interpretation_and_usage_for_manual_grading(fake_llm, one_question):
+async def test_harness_keeps_interpretation_and_usage_for_manual_grading(
+    fake_llm, one_question, fake_engine_factory
+):
+    # Two cells, so the interpretation still goes through the model.
+    fake_engine_factory.columns = ["n", "m"]
+    fake_engine_factory.rows = [(1, 2)]
     fake_llm.reply(f"SELECT COUNT(MaOrder) AS so_don FROM {one_question['view']}")
     result = await run_configuration(Config.B, [one_question])
     outcome = result.outcomes[0]

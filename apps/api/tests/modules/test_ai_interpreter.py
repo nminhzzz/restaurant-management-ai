@@ -57,14 +57,18 @@ def test_two_columns_that_are_not_a_series_get_no_chart():
     assert choose_chart(columns=["TenNguyenLieu", "DonViTinh"], rows=plain_rows) is None
 
 
+TWO_DAYS = [
+    {"BusinessDate": "2026-10-22", "SoDon": 42},
+    {"BusinessDate": "2026-10-23", "SoDon": 40},
+]
+
+
 @pytest.mark.anyio
 async def test_the_answer_is_vietnamese_and_carries_the_scope_note(session, fake_llm):
     """FR-AI-07 and business rule 16."""
     fake_llm.reply('{"headline": "Hôm qua có 42 đơn hàng.", "highlights": [], "follow_ups": []}')
 
-    result = await interpret(
-        session, "hôm qua bao nhiêu đơn?", "SELECT 1", [{"SoDon": 42}], Role.CASHIER
-    )
+    result = await interpret(session, "hôm qua bao nhiêu đơn?", "SELECT 1", TWO_DAYS, Role.CASHIER)
 
     assert result.answer.headline == "Hôm qua có 42 đơn hàng."
     assert "vw_ai_thungan" in result.scope_note
@@ -74,7 +78,7 @@ async def test_the_answer_is_vietnamese_and_carries_the_scope_note(session, fake
 @pytest.mark.anyio
 async def test_the_scope_note_survives_a_model_that_ignores_the_format(session, fake_llm):
     fake_llm.reply("Có 42 đơn. Phạm vi: tất cả dữ liệu.")
-    result = await interpret(session, "q", "SELECT 1", [{"SoDon": 42}], Role.CASHIER)
+    result = await interpret(session, "q", "SELECT 1", TWO_DAYS, Role.CASHIER)
     assert result.answer.headline == "Có 42 đơn. Phạm vi: tất cả dữ liệu."
     assert result.text.endswith(scope_note(Role.CASHIER))
 
@@ -133,3 +137,29 @@ def test_fallback_only_formats_money_columns_as_currency(rows, expected, unexpec
     assert expected in result.text
     if unexpected:
         assert unexpected not in result.text
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("rows", "headline"),
+    [
+        ([{"SoDon": 42}], "Số đơn: 42."),
+        ([{"TongTienMat": 185000}], "Tong Tien Mat: 185.000 ₫."),
+        ([{"DoanhThu": None}], "Doanh thu: chưa có dữ liệu."),
+        ([{"HanSuDungLo": "2026-10-30"}], "Hạn sử dụng lô: 30/10/2026."),
+    ],
+)
+async def test_a_single_value_is_answered_without_a_model_call(session, fake_llm, rows, headline):
+    """NFR-02: one cell needs no prose, so the second model call is skipped."""
+    result = await interpret(session, "bao nhiêu?", "SELECT 1", rows, Role.MANAGER)
+
+    assert fake_llm.calls == 0
+    assert result.answer.headline == headline
+    assert result.text.endswith(scope_note(Role.MANAGER))
+
+
+def test_the_interpretation_prompt_demands_vietnamese_even_for_english_columns():
+    """Smoke test 26/10: Opus 5.5 answered "Range 20/10-26/10: data for ..." in English."""
+    from app.modules.ai.pipeline.interpreter import PROMPT
+
+    assert "tiếng Việt có dấu" in PROMPT
