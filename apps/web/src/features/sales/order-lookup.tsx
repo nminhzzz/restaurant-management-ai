@@ -33,7 +33,7 @@ type FoundOrder = {
   TrangThai: string;
 };
 
-const STATUSES = [
+export const ORDER_STATUSES = [
   "Đang mở",
   "Chờ xác nhận thanh toán",
   "Chờ xác minh thanh toán",
@@ -141,7 +141,7 @@ export function OrderLookupDialog({
                 <SelectValue placeholder="Tất cả trạng thái" />
               </SelectTrigger>
               <SelectContent>
-                {STATUSES.map((value) => (
+                {ORDER_STATUSES.map((value) => (
                   <SelectItem key={value} value={value}>
                     {value}
                   </SelectItem>

@@ -244,17 +244,7 @@ async def search_orders(
     # `limit` is a backward-compatible alias for `size` (no offset applied).
     query = query.limit(limit) if limit is not None else query.offset((page - 1) * size).limit(size)
     rows = list((await session.execute(query)).scalars().all())
-    items = [
-        {
-            "MaOrder": order.id,
-            "MaOrderHienThi": order.display_code,
-            "MaBan": order.table_id,
-            "BusinessDate": order.business_date.isoformat(),
-            "TrangThai": order.status,
-        }
-        for order in rows
-    ]
-    return {"total": total, "items": items}
+    return {"total": total, "items": await orders.list_summaries(session, rows)}
 
 
 @router.get("/orders/{order_id}")

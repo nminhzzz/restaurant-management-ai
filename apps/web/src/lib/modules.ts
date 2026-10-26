@@ -1,6 +1,7 @@
 import {
   BookOpen,
   ChartColumn,
+  ClipboardList,
   MessageSquareText,
   Package,
   ReceiptText,
@@ -9,7 +10,13 @@ import {
 } from "lucide-react";
 
 export type ModuleKey =
-  "catalog" | "sales" | "inventory" | "reports" | "settings" | "assistant";
+  | "catalog"
+  | "sales"
+  | "orders"
+  | "inventory"
+  | "reports"
+  | "settings"
+  | "assistant";
 
 export interface ModuleDescriptor {
   key: ModuleKey;
@@ -34,6 +41,14 @@ export const MODULE_LIST: readonly ModuleDescriptor[] = [
     title: "Bán hàng",
     icon: ReceiptText,
     allowedRoles: ["MANAGER", "CASHIER"],
+  },
+  {
+    // A Sales screen with its own navigation entry for the Manager (FR-SALE-25).
+    key: "orders",
+    path: "/orders",
+    title: "Quản lý đơn hàng",
+    icon: ClipboardList,
+    allowedRoles: ["MANAGER"],
   },
   {
     key: "inventory",

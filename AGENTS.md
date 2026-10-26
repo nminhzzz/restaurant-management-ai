@@ -23,7 +23,7 @@ apps/web/src/
 ├── app/           # routes: (app)/<module> + /login
 ├── components/    # app shell, module placeholder
 ├── features/      # theo module, ví dụ features/assistant
-├── lib/           # api-client, env, modules (registry 6 module)
+├── lib/           # api-client, env, modules (registry 6 module + mục Quản lý đơn hàng)
 └── types/
 db/views/          # DDL view phân quyền cho trợ lý AI
 data/eval/         # bộ câu hỏi – SQL chuẩn phục vụ đánh giá

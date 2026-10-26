@@ -9,7 +9,7 @@ was taken: the two operations together return exactly the quantity the line was 
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import BusinessRuleError, NotFoundError
@@ -23,6 +23,7 @@ from app.modules.inventory.stock import (
 from app.modules.sales import reservations
 from app.modules.sales.models import DemOrder, KitchenTicket, Order, OrderLine
 from app.modules.sales.tickets import render_ticket
+from app.modules.settings.models import User
 from app.shared import business_date
 from app.shared.audit import SystemAuditLog
 from app.shared.enums import StockMovementType
@@ -32,6 +33,56 @@ LINE_WAITING = "Chờ"
 LINE_CONFIRMED = "Đã xác nhận xong"
 LINE_SERVED = "Đã phục vụ"
 LINE_CANCELLED = "Đã hủy"
+
+
+async def list_summaries(session: AsyncSession, found: list[Order]) -> list[dict[str, object]]:
+    """Rows for the order-management list (FR-SALE-25), batched for one page.
+
+    `ORDER.TongTien` is only written at settlement, so open orders show the running
+    total of their non-cancelled lines instead.
+    """
+    if not found:
+        return []
+    ids = [order.id for order in found]
+    total_rows = await session.execute(
+        select(
+            OrderLine.order_id,
+            func.coalesce(func.sum(OrderLine.unit_price * OrderLine.quantity), 0),
+        )
+        .where(OrderLine.order_id.in_(ids), OrderLine.status != LINE_CANCELLED)
+        .group_by(OrderLine.order_id)
+    )
+    totals: dict[int, Decimal] = {order_id: amount for order_id, amount in total_rows}
+    tables: dict[int, str] = {}
+    table_ids = {order.table_id for order in found if order.table_id is not None}
+    if table_ids:
+        table_rows = await session.execute(
+            select(DiningTable.id, DiningTable.name).where(DiningTable.id.in_(table_ids))
+        )
+        tables = {table_id: name for table_id, name in table_rows}
+    creators: dict[int, str] = {}
+    creator_ids = {order.created_by for order in found if order.created_by is not None}
+    if creator_ids:
+        user_rows = await session.execute(
+            select(User.id, User.full_name).where(User.id.in_(creator_ids))
+        )
+        creators = {user_id: name for user_id, name in user_rows}
+    return [
+        {
+            "MaOrder": order.id,
+            "MaOrderHienThi": order.display_code,
+            "LoaiDon": order.order_type,
+            "MaBan": order.table_id,
+            "TenBan": tables.get(order.table_id) if order.table_id is not None else None,
+            "BusinessDate": order.business_date.isoformat(),
+            "NguoiLap": creators.get(order.created_by) if order.created_by is not None else None,
+            "TrangThai": order.status,
+            "TongTien": float(totals.get(order.id, 0)),
+        }
+        for order in found
+    ]
+
+
 LINE_FORWARD = {LINE_WAITING: LINE_CONFIRMED, LINE_CONFIRMED: LINE_SERVED}
 
 
