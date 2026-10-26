@@ -328,6 +328,8 @@ async def _run(config: Config, questions: list[Any], session: AsyncSession) -> C
             collect_usage(
                 input_price=settings.ai_input_usd_per_million,
                 output_price=settings.ai_output_usd_per_million,
+                cache_write_price=settings.ai_cache_write_usd_per_million,
+                cache_read_price=settings.ai_cache_read_usd_per_million,
             ) as usage,
         ):
             started = time.perf_counter()

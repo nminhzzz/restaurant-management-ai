@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     # prices are its list rates on 25/10/2026, output including thinking tokens.
     ai_input_usd_per_million: float = Field(default=4.0, ge=0)
     ai_output_usd_per_million: float = Field(default=20.0, ge=0)
+    # 5-minute prompt-cache writes bill at 1.25x input; reads at $0.20 on Opus 5.5.
+    ai_cache_write_usd_per_million: float = Field(default=5.0, ge=0)
+    ai_cache_read_usd_per_million: float = Field(default=0.20, ge=0)
     ai_provider: str = "anthropic"
     # Empty defers to ANTHROPIC_API_KEY.
     ai_api_key: str = ""

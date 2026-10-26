@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import REPO_ROOT
 from app.core.errors import BusinessRuleError
 from app.modules.ai.guard import validate_sql
+from app.modules.ai.llm import CACHE_BREAKPOINT
 from app.modules.ai.scope import views_for
 from app.shared import business_date
 from app.shared.roles import Role
@@ -185,10 +186,6 @@ async def build_prompt(
         "Hệ quản trị là MySQL 8.4: chỉ dùng cú pháp MySQL (CURDATE(), NOW(), DATE_SUB, "
         "DATE_FORMAT, LIMIT), không dùng GETDATE, TOP hay cú pháp của hệ quản trị khác.",
         "Ngày kinh doanh nằm ở cột BusinessDate, theo lịch mốc giờ hiệu lực của hệ thống.",
-        # CURDATE() is wrong before 06:00: the business day is still yesterday.
-        "'Hôm nay' nghĩa là BusinessDate = "
-        f"'{business_date.business_date_of(business_date.now()):%Y-%m-%d}'; "
-        "hãy dùng đúng hằng ngày này thay vì CURDATE() khi câu hỏi nói hôm nay/hôm qua.",
         f"Phạm vi dữ liệu của vai trò này: {ROLE_SCOPE_NOTE[role]}.",
         "Quy ước khoảng thời gian: 'tháng này' = từ ngày kinh doanh đầu tháng đến hôm nay; "
         "'tháng trước' = trọn tháng dương lịch trước; 'N ngày gần nhất' = N ngày kinh doanh "
@@ -214,6 +211,16 @@ async def build_prompt(
             except BusinessRuleError:
                 continue
             parts.append(f"- Hỏi: {asked}\n  SQL: {sql}")
+
+    # Everything above depends only on role and configuration, so it is cached; the
+    # date line comes after the breakpoint because it changes every business day.
+    parts += [
+        CACHE_BREAKPOINT,
+        # CURDATE() is wrong before 06:00: the business day is still yesterday.
+        "'Hôm nay' nghĩa là BusinessDate = "
+        f"'{business_date.business_date_of(business_date.now()):%Y-%m-%d}'; "
+        "hãy dùng đúng hằng ngày này thay vì CURDATE() khi câu hỏi nói hôm nay/hôm qua.",
+    ]
 
     if history:
         parts += ["", "Ngữ cảnh hội thoại gần nhất:"]

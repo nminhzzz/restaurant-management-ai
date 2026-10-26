@@ -97,3 +97,31 @@ async def test_the_prompt_carries_the_recent_conversation(session, seed_views):
 
     assert "Ngữ cảnh hội thoại" in prompt
     assert "Doanh thu 7 ngày gần nhất?" in prompt
+
+
+@pytest.mark.anyio
+async def test_only_role_and_configuration_content_precedes_the_cache_breakpoint(
+    session, seed_views, monkeypatch
+):
+    """The cached prefix must be identical across questions, turns and business days."""
+    from datetime import datetime, timedelta
+
+    from app.modules.ai.llm import CACHE_BREAKPOINT
+    from app.shared import business_date
+
+    first = await build_prompt(session, "Doanh thu hôm nay?", Role.MANAGER)
+    moment = datetime(2026, 10, 26, 12)
+    monkeypatch.setattr(business_date, "now", lambda: moment + timedelta(days=1))
+    later = await build_prompt(
+        session,
+        "doanh thu thôi",
+        Role.MANAGER,
+        history=[("Doanh thu 7 ngày gần nhất?", "SELECT 1", None)],
+    )
+
+    assert first.count(CACHE_BREAKPOINT) == 1
+    prefix, _, tail = first.partition(CACHE_BREAKPOINT)
+    assert later.partition(CACHE_BREAKPOINT)[0] == prefix
+    assert "vw_ai_quanly" in prefix
+    assert "Doanh thu hôm nay?" in tail
+    assert "'Hôm nay' nghĩa là BusinessDate" in tail

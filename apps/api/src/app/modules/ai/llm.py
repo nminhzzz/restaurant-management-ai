@@ -22,6 +22,7 @@ from typing import Literal, Protocol
 
 import anthropic
 import httpx2
+from anthropic.types.beta import BetaTextBlockParam
 
 from app.core.config import get_settings
 from app.modules.ai.usage import attempt_context, finish_attempt, start_attempt
@@ -32,6 +33,9 @@ logger = logging.getLogger(__name__)
 # bounds the cost of a runaway reply (NFR-16).
 MAX_OUTPUT_TOKENS = 8192
 REFUSAL_FALLBACK_BETA = "server-side-fallback-2026-07-01"
+# Ends the per-role stable prefix (instructions, schema, examples) of a prompt. The
+# hosted client caches everything before it; other clients never see the marker.
+CACHE_BREAKPOINT = "\x1e"
 
 Effort = Literal["low", "medium", "high", "xhigh", "max"]
 
@@ -90,6 +94,16 @@ def _strip_code_fence(text: str) -> str:
     return "\n".join(lines).strip()
 
 
+def _content(prompt: str) -> str | list[BetaTextBlockParam]:
+    prefix, found, tail = prompt.partition(CACHE_BREAKPOINT)
+    if not found:
+        return prompt
+    return [
+        {"type": "text", "text": prefix, "cache_control": {"type": "ephemeral"}},
+        {"type": "text", "text": tail},
+    ]
+
+
 def _is_retryable(exc: anthropic.APIError) -> bool:
     if isinstance(exc, anthropic.APIStatusError):
         return exc.status_code == 429 or exc.status_code >= 500
@@ -135,7 +149,7 @@ class CommercialClient:
         response = self._sdk.with_options(timeout=_provider_timeout()).beta.messages.create(
             model=model,
             max_tokens=MAX_OUTPUT_TOKENS,
-            messages=[{"role": "user", "content": prompt}],
+            messages=[{"role": "user", "content": _content(prompt)}],
             output_config={"effort": effort} if effort else anthropic.omit,
             betas=[REFUSAL_FALLBACK_BETA],
             fallbacks="default",
@@ -180,7 +194,9 @@ async def complete_async(client: LlmClient, prompt: str) -> str:
     if not isinstance(client, CommercialClient):
         async with asyncio.timeout(timeout):
             with attempt_context(str(getattr(client, "model", type(client).__name__))):
-                return await asyncio.to_thread(client.complete, prompt)
+                return await asyncio.to_thread(
+                    client.complete, prompt.replace(CACHE_BREAKPOINT, "")
+                )
     models = [client.model]
     options = _options.get()
     allow_fallback = options is None or options.fallback

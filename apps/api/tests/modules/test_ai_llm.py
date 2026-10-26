@@ -245,3 +245,65 @@ async def test_async_provider_deadline_reaches_fallback_even_when_primary_thread
         assert result == "SELECT 1 FROM vw_ai_kho_ton"
     finally:
         release.set()
+
+
+def test_the_stable_prompt_prefix_is_marked_for_the_prompt_cache() -> None:
+    from app.modules.ai.llm import CACHE_BREAKPOINT
+
+    captured: dict = {}
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        captured.update(json.loads(request.content))
+        return _json_response(200, _message("SELECT 1"))
+
+    _client(handler).complete(f"lược đồ{CACHE_BREAKPOINT}câu hỏi")
+
+    assert captured["messages"] == [
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": "lược đồ", "cache_control": {"type": "ephemeral"}},
+                {"type": "text", "text": "câu hỏi"},
+            ],
+        }
+    ]
+
+
+@pytest.mark.anyio
+async def test_clients_without_a_prompt_cache_never_see_the_breakpoint() -> None:
+    from app.modules.ai import llm
+
+    seen: list[str] = []
+
+    class Recorder:
+        def complete(self, prompt: str) -> str:
+            seen.append(prompt)
+            return "SELECT 1"
+
+    await llm.complete_async(Recorder(), f"lược đồ{llm.CACHE_BREAKPOINT}câu hỏi")
+
+    assert seen == ["lược đồcâu hỏi"]
+
+
+def test_cached_prompt_tokens_are_counted_and_priced_separately() -> None:
+    from app.modules.ai.usage import collect_usage
+
+    def handler(_: httpx2.Request) -> httpx2.Response:
+        payload = _message("SELECT 1")
+        payload["usage"] = {
+            "input_tokens": 100,
+            "cache_creation_input_tokens": 1000,
+            "cache_read_input_tokens": 3000,
+            "output_tokens": 200,
+        }
+        return _json_response(200, payload)
+
+    with collect_usage(
+        input_price=4.0, output_price=20.0, cache_write_price=5.0, cache_read_price=0.2
+    ) as usage:
+        _client(handler).complete("q")
+
+    assert usage.input_tokens == 4100
+    assert usage.cost_complete
+    # 100*4 + 1000*5 + 3000*0.2 + 200*20 = 10_000 per million
+    assert usage.cost_usd == pytest.approx(0.01)
