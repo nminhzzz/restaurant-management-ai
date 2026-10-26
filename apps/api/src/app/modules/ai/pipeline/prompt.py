@@ -188,8 +188,14 @@ async def build_prompt(
         "Ngày kinh doanh nằm ở cột BusinessDate, theo lịch mốc giờ hiệu lực của hệ thống.",
         f"Phạm vi dữ liệu của vai trò này: {ROLE_SCOPE_NOTE[role]}.",
         "Quy ước khoảng thời gian: 'tháng này' = từ ngày kinh doanh đầu tháng đến hôm nay; "
-        "'tháng trước' = trọn tháng dương lịch trước; 'N ngày gần nhất' = N ngày kinh doanh "
-        "kết thúc hôm nay; '1 tháng nay' = 30 ngày gần nhất.",
+        "'tháng trước' = trọn tháng dương lịch trước; 'N ngày gần nhất'/'N ngày qua' = N ngày "
+        "kinh doanh kết thúc hôm nay; '1 tháng nay' = 30 ngày gần nhất; 'tuần này' = từ thứ "
+        "Hai đến hôm nay; 'tuần trước' = thứ Hai đến Chủ nhật của tuần trước; 'N tháng gần "
+        "đây' = N tháng dương lịch gần nhất, gồm tháng hiện tại.",
+        # Agreed 26/10/2026 with the eval set so A/B/C are graded against one meaning.
+        "Quy ước nghiệp vụ: doanh thu và lượng bán của món chỉ tính order đã thanh toán; "
+        "'bán được' = order đã có hóa đơn; 'chưa thanh toán' = order chưa ở trạng thái "
+        "Đã thanh toán, Đã hủy hoặc Đóng \u2013 chưa thu được tiền.",
         "Nếu câu hỏi nằm ngoài phạm vi hoặc còn thiếu thông tin, hãy trả lời bắt đầu bằng "
         "'CLARIFY:' kèm một câu hỏi làm rõ thay vì đoán. Chỉ hỏi lại khi thực sự không thể "
         "suy ra từ ngữ cảnh hội thoại bên dưới.",

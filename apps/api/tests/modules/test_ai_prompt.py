@@ -125,3 +125,13 @@ async def test_only_role_and_configuration_content_precedes_the_cache_breakpoint
     assert "vw_ai_quanly" in prefix
     assert "Doanh thu hôm nay?" in tail
     assert "'Hôm nay' nghĩa là BusinessDate" in tail
+
+
+@pytest.mark.anyio
+async def test_the_prompt_states_the_period_and_business_conventions(session, seed_views):
+    """The eval gold SQL follows these meanings; every configuration must see them."""
+    prompt = await build_prompt(session, "Doanh thu tuần này?", Role.CASHIER, examples=[])
+
+    assert "'tuần này' = từ thứ Hai đến hôm nay" in prompt
+    assert "'N tháng gần đây' = N tháng dương lịch gần nhất, gồm tháng hiện tại" in prompt
+    assert "chỉ tính order đã thanh toán" in prompt
