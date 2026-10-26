@@ -11,6 +11,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.modules.ai import labels, llm
 from app.modules.ai.pipeline.answer_format import (
     StructuredAnswer,
@@ -187,8 +188,13 @@ async def interpret(
         return single
 
     prompt = PROMPT.format(question=question, sql=sql, count=len(rows), rows=rows[:20])
-    # Interpretation stays at configuration B's effort even under configuration C.
-    with llm.generation_options(reasoning_effort="low"):
+    # Interpretation is the same for every configuration; only the SQL step varies.
+    with llm.generation_options(
+        reasoning_effort="low",
+        model=get_settings().llm_interpretation_model,
+        thinking=False,
+        fallback=False,
+    ):
         raw = await llm.complete_async(llm.get_client(), prompt) or ""
     answer = parse_model_answer(raw)
     if not answer.headline:

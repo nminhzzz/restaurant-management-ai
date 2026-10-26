@@ -123,6 +123,12 @@ async def answer(
         output_price=settings.ai_output_usd_per_million,
         cache_write_price=settings.ai_cache_write_usd_per_million,
         cache_read_price=settings.ai_cache_read_usd_per_million,
+        model_prices={
+            settings.llm_interpretation_model: (
+                settings.ai_interpretation_input_usd_per_million,
+                settings.ai_interpretation_output_usd_per_million,
+            )
+        },
     ):
         return await _answer(session, question, role, user_id, session_id)
 

@@ -163,3 +163,50 @@ def test_the_interpretation_prompt_demands_vietnamese_even_for_english_columns()
     from app.modules.ai.pipeline.interpreter import PROMPT
 
     assert "tiếng Việt có dấu" in PROMPT
+
+
+@pytest.mark.anyio
+async def test_the_prose_runs_on_the_interpretation_model_without_thinking(session):
+    """NFR-02: Opus 5.5 always thinks and took ~6s for this prose; the SQL stays on Opus."""
+    import json
+
+    import httpx2
+
+    from app.core.config import get_settings
+    from app.modules.ai import llm
+
+    sent: list[dict] = []
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        sent.append(json.loads(request.content))
+        reply = '{"headline": "Hôm qua có 42 đơn hàng.", "highlights": [], "follow_ups": []}'
+        return httpx2.Response(
+            200,
+            json={
+                "id": "msg_1",
+                "type": "message",
+                "role": "assistant",
+                "model": sent[-1]["model"],
+                "content": [{"type": "text", "text": reply}],
+                "stop_reason": "end_turn",
+                "stop_sequence": None,
+                "usage": {"input_tokens": 10, "output_tokens": 5},
+            },
+        )
+
+    llm.set_client(
+        llm.CommercialClient(
+            api_key="k",
+            model="claude-opus-5-5",
+            base_url="https://api.test",
+            transport=httpx2.MockTransport(handler),
+        )
+    )
+    try:
+        result = await interpret(session, "q", "SELECT 1", TWO_DAYS, Role.CASHIER)
+    finally:
+        llm.set_client(None)
+
+    assert result.answer.headline == "Hôm qua có 42 đơn hàng."
+    assert [body["model"] for body in sent] == [get_settings().llm_interpretation_model]
+    assert sent[0]["thinking"] == {"type": "disabled"}

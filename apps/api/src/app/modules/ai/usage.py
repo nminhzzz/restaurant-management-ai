@@ -24,6 +24,9 @@ class Usage:
     output_price: float
     cache_write_price: float = 0.0
     cache_read_price: float = 0.0
+    # (input, output) per million for models billed differently from the main one;
+    # their cache tokens are billed at the input price.
+    model_prices: dict[str, tuple[float, float]] = field(default_factory=dict)
     attempts: list[ProviderAttempt] = field(default_factory=list)
 
     @property
@@ -50,18 +53,21 @@ class Usage:
     def cost_complete(self) -> bool:
         return all(item.usage_reported for item in self.attempts)
 
+    def _cost(self, item: ProviderAttempt) -> float:
+        if item.model in self.model_prices:
+            input_price, output_price = self.model_prices[item.model]
+            prompt = item.input_tokens + item.cache_write_tokens + item.cache_read_tokens
+            return (prompt * input_price + item.output_tokens * output_price) / 1e6
+        return (
+            item.input_tokens * self.input_price
+            + item.cache_write_tokens * self.cache_write_price
+            + item.cache_read_tokens * self.cache_read_price
+            + item.output_tokens * self.output_price
+        ) / 1e6
+
     @property
     def cost_usd(self) -> float:
-        return sum(
-            (
-                item.input_tokens * self.input_price
-                + item.cache_write_tokens * self.cache_write_price
-                + item.cache_read_tokens * self.cache_read_price
-                + item.output_tokens * self.output_price
-            )
-            / 1e6
-            for item in self.attempts
-        )
+        return sum(self._cost(item) for item in self.attempts)
 
 
 _current: ContextVar[Usage | None] = ContextVar("ai_usage", default=None)
@@ -75,8 +81,11 @@ def collect_usage(
     output_price: float,
     cache_write_price: float = 0.0,
     cache_read_price: float = 0.0,
+    model_prices: dict[str, tuple[float, float]] | None = None,
 ) -> Iterator[Usage]:
-    usage = Usage(input_price, output_price, cache_write_price, cache_read_price)
+    usage = Usage(
+        input_price, output_price, cache_write_price, cache_read_price, dict(model_prices or {})
+    )
     token = _current.set(usage)
     try:
         yield usage

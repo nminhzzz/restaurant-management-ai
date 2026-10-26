@@ -126,7 +126,9 @@ Báo cáo · Trợ lý AI. Có script sinh dữ liệu 12 tháng (`make seed`), 
 mọi yêu cầu trong bản báo cáo cập nhật đã được nghiệm thu.
 
 **Từ 26/10/2026 trợ lý dùng Claude Opus 5.5** (báo cáo §5.1.1): cấu hình A/B chạy `effort=low`,
-cấu hình C giữ prompt B và đặt `effort=high` khi sinh SQL. Kết quả cũ trong
+cấu hình C giữ prompt B và đặt `effort=high` khi sinh SQL. Bước diễn giải kết quả thành câu trả lời
+chạy trên Claude Haiku 5.5, tắt suy luận (`LLM_INTERPRETATION_MODEL`): trên Opus 5.5 bước này mất
+trung vị 6 giây, vượt timeout 5 giây, còn Haiku 5.5 mất 2,4 giây. Kết quả cũ trong
 [`docs/eval-results.json`](docs/eval-results.json) (A/B/C **56,84% / 66,32% / 57,89%**) là lần chạy
 DeepSeek trên bộ 95 câu, chưa phải kết quả của Claude Opus 5.5 hay kế hoạch 80 câu trong báo cáo.
 
