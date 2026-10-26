@@ -2,7 +2,7 @@
 
     A — schema only (the baseline)
     B — schema + Vietnamese normalisation + few-shot examples
-    C — configuration B on the same model with thinking enabled/high
+    C — configuration B on the same model at effort=high for SQL generation
 
 Accuracy is measured by **executing** what the model produced and what the reference
 SQL produces, then comparing the rows — never by comparing SQL text, because two
@@ -67,7 +67,7 @@ def normalises(config: Config) -> bool:
 
 
 async def model_for(config: Config) -> str:
-    # The independent variable is thinking/prompt policy, never model identity.
+    # The independent variable is effort/prompt policy, never model identity.
     return get_settings().llm_model
 
 
@@ -255,8 +255,7 @@ async def _generate(
     client = llm.get_client()
     _bind_model(client, await model_for(config))
     with llm.generation_options(
-        thinking="enabled" if config is Config.C else "disabled",
-        reasoning_effort="high" if config is Config.C else "",
+        reasoning_effort="high" if config is Config.C else "low",
         fallback=False,
     ):
         raw = await llm.complete_async(client, prompt) or ""
@@ -347,9 +346,7 @@ async def _run(config: Config, questions: list[Any], session: AsyncSession) -> C
                     produced = await executor.execute(
                         sql, role=role, timeout_seconds=settings.ai_sql_timeout_seconds
                     )
-                    with llm.generation_options(
-                        thinking="disabled", reasoning_effort="", fallback=False
-                    ):
+                    with llm.generation_options(reasoning_effort="low", fallback=False):
                         try:
                             interpreted = await interpreter.interpret(
                                 session, text, sql, produced, role

@@ -14,7 +14,6 @@ class ProviderAttempt:
     output_tokens: int = 0
     usage_reported: bool = False
     succeeded: bool = False
-    billable: bool = True
 
 
 @dataclass
@@ -41,14 +40,13 @@ class Usage:
 
     @property
     def cost_complete(self) -> bool:
-        return all(not item.billable or item.usage_reported for item in self.attempts)
+        return all(item.usage_reported for item in self.attempts)
 
     @property
     def cost_usd(self) -> float:
         return sum(
             (item.input_tokens * self.input_price + item.output_tokens * self.output_price) / 1e6
             for item in self.attempts
-            if item.billable
         )
 
 
@@ -71,8 +69,8 @@ def current_usage() -> Usage | None:
 
 
 @contextmanager
-def attempt_context(model: str, *, billable: bool = True) -> Iterator[ProviderAttempt]:
-    attempt = ProviderAttempt(model, billable=billable)
+def attempt_context(model: str) -> Iterator[ProviderAttempt]:
+    attempt = ProviderAttempt(model)
     usage = _current.get()
     if usage is not None:
         usage.attempts.append(attempt)
@@ -94,20 +92,12 @@ def start_attempt(model: str) -> ProviderAttempt:
     return attempt
 
 
-def finish_attempt(
-    attempt: ProviderAttempt, payload: dict[str, Any], *, ollama: bool = False
-) -> None:
+def finish_attempt(attempt: ProviderAttempt, payload: dict[str, Any]) -> None:
     attempt.model = str(payload.get("model") or attempt.model)
-    attempt.billable = not ollama
-    usage = payload if ollama else payload.get("usage", {})
+    usage = payload.get("usage", {})
     if isinstance(usage, dict):
-        input_key, output_key = (
-            ("prompt_eval_count", "eval_count")
-            if ollama
-            else ("prompt_tokens", "completion_tokens")
-        )
-        attempt.usage_reported = input_key in usage and output_key in usage
-        attempt.input_tokens = max(0, int(usage.get(input_key) or 0))
-        # completion_tokens already includes reasoning tokens; never double-count them.
-        attempt.output_tokens = max(0, int(usage.get(output_key) or 0))
+        attempt.usage_reported = "input_tokens" in usage and "output_tokens" in usage
+        attempt.input_tokens = max(0, int(usage.get("input_tokens") or 0))
+        # output_tokens already includes thinking tokens; never double-count them.
+        attempt.output_tokens = max(0, int(usage.get("output_tokens") or 0))
     attempt.succeeded = True

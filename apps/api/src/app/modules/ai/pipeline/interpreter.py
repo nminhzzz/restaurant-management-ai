@@ -146,7 +146,8 @@ async def interpret(
         return fallback(rows, role)
 
     prompt = PROMPT.format(question=question, sql=sql, count=len(rows), rows=rows[:20])
-    with llm.generation_options(thinking="disabled"):
+    # Interpretation stays at configuration B's effort even under configuration C.
+    with llm.generation_options(reasoning_effort="low"):
         raw = await llm.complete_async(llm.get_client(), prompt) or ""
     answer = parse_model_answer(raw)
     if not answer.headline:

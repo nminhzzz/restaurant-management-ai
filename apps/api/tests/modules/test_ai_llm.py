@@ -1,230 +1,200 @@
-"""DeepSeek-compatible commercial client: request shape, fence stripping, and the
+"""Anthropic Messages API client: request shape, fence stripping, refusals and the
 runtime fallback model (report §1.4.2, §4.1.1). No real network — every request goes
-through `httpx.MockTransport`.
+through `httpx2.MockTransport`.
 """
 
 import json
 
-import httpx
+import anthropic
+import httpx2
 import pytest
 
-from app.modules.ai.llm import CommercialClient
+from app.modules.ai.llm import CommercialClient, ProviderRefusal
+
+BASE_URL = "https://api.test"
 
 
-def _json_response(status_code: int, payload: dict) -> httpx.Response:
-    return httpx.Response(status_code, json=payload)
+def _json_response(status_code: int, payload: dict) -> httpx2.Response:
+    return httpx2.Response(status_code, json=payload)
 
 
-def _completion(content: str, model: str = "deepseek-flash") -> dict:
-    return {
-        "id": "1",
-        "object": "chat.completion",
-        "model": model,
-        "choices": [{"message": {"role": "assistant", "content": content}}],
-    }
-
-
-def test_sends_the_expected_request_body() -> None:
-    captured: dict = {}
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        captured["url"] = str(request.url)
-        captured["auth"] = request.headers["authorization"]
-        captured["json"] = json.loads(request.content)
-        return _json_response(200, _completion("SELECT 1"))
-
-    client = CommercialClient(
-        api_key="secret",
-        model="deepseek-flash",
-        base_url="https://api.deepseek.com",
-        transport=httpx.MockTransport(handler),
+def _error(status_code: int, message: str = "boom") -> httpx2.Response:
+    return _json_response(
+        status_code, {"type": "error", "error": {"type": "api_error", "message": message}}
     )
 
-    result = client.complete("hỏi gì đó")
+
+def _message(
+    content: list[dict] | str,
+    model: str = "claude-opus-5-5",
+    stop_reason: str = "end_turn",
+) -> dict:
+    blocks = [{"type": "text", "text": content}] if isinstance(content, str) else content
+    return {
+        "id": "msg_1",
+        "type": "message",
+        "role": "assistant",
+        "model": model,
+        "content": blocks,
+        "stop_reason": stop_reason,
+        "stop_sequence": None,
+        "usage": {"input_tokens": 10, "output_tokens": 5},
+    }
+
+
+def _client(handler, **kwargs) -> CommercialClient:
+    kwargs.setdefault("model", "claude-opus-5-5")
+    return CommercialClient(
+        api_key=kwargs.pop("api_key", "secret"),
+        base_url=BASE_URL,
+        transport=httpx2.MockTransport(handler),
+        **kwargs,
+    )
+
+
+def test_sends_the_expected_request() -> None:
+    captured: dict = {}
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        captured["path"] = request.url.path
+        captured["auth"] = request.headers["authorization"]
+        captured["beta"] = request.headers["anthropic-beta"]
+        captured["json"] = json.loads(request.content)
+        return _json_response(200, _message("SELECT 1"))
+
+    result = _client(handler, reasoning_effort="low").complete("hỏi gì đó")
 
     assert result == "SELECT 1"
-    assert captured["url"] == "https://api.deepseek.com/chat/completions"
+    assert captured["path"] == "/v1/messages"
     assert captured["auth"] == "Bearer secret"
+    assert captured["beta"] == "server-side-fallback-2026-07-01"
     assert captured["json"] == {
-        "model": "deepseek-flash",
+        "model": "claude-opus-5-5",
+        "max_tokens": 8192,
         "messages": [{"role": "user", "content": "hỏi gì đó"}],
-        "temperature": 0,
-        "thinking": {"type": "disabled"},
+        "output_config": {"effort": "low"},
+        "fallbacks": "default",
     }
+
+
+def test_no_effort_is_sent_when_none_is_configured() -> None:
+    """Opus 5.5 rejects `thinking: disabled` and sampling params; nothing extra is sent."""
+    captured: dict = {}
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        captured.update(json.loads(request.content))
+        return _json_response(200, _message("SELECT 1"))
+
+    _client(handler).complete("q")
+
+    assert "output_config" not in captured
+    assert "thinking" not in captured
+    assert "temperature" not in captured
+
+
+@pytest.mark.parametrize("effort", ["low", "high"])
+def test_a_generation_option_overrides_the_configured_effort(effort) -> None:
+    from app.modules.ai import llm
+
+    captured: dict = {}
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        captured.update(json.loads(request.content))
+        return _json_response(200, _message("SELECT 1"))
+
+    with llm.generation_options(reasoning_effort=effort):
+        _client(handler, reasoning_effort="medium").complete("q")
+
+    assert captured["output_config"] == {"effort": effort}
 
 
 def test_strips_a_code_fence_around_the_sql() -> None:
-    def handler(_: httpx.Request) -> httpx.Response:
-        return _json_response(200, _completion("```sql\nSELECT 1\n```"))
+    def handler(_: httpx2.Request) -> httpx2.Response:
+        return _json_response(200, _message("```sql\nSELECT 1\n```"))
 
-    client = CommercialClient(
-        api_key="k",
-        model="deepseek-flash",
-        base_url="https://api.deepseek.com",
-        transport=httpx.MockTransport(handler),
-    )
-
-    assert client.complete("q") == "SELECT 1"
+    assert _client(handler).complete("q") == "SELECT 1"
 
 
-def test_only_content_is_used_never_reasoning_content() -> None:
-    def handler(_: httpx.Request) -> httpx.Response:
-        payload = _completion("SELECT 1", model="deepseek-v4-pro")
-        payload["choices"][0]["message"]["reasoning_content"] = "vì bảng này..."
-        return _json_response(200, payload)
+def test_only_text_blocks_are_used_never_thinking() -> None:
+    def handler(_: httpx2.Request) -> httpx2.Response:
+        blocks = [
+            {"type": "thinking", "thinking": "vì bảng này...", "signature": "sig"},
+            {"type": "text", "text": "SELECT 1"},
+        ]
+        return _json_response(200, _message(blocks))
 
-    client = CommercialClient(
-        api_key="k",
-        model="deepseek-v4-pro",
-        base_url="https://api.deepseek.com",
-        transport=httpx.MockTransport(handler),
-    )
+    assert _client(handler).complete("q") == "SELECT 1"
 
-    assert client.complete("q") == "SELECT 1"
+
+def test_a_refusal_raises_instead_of_returning_empty_sql() -> None:
+    def handler(_: httpx2.Request) -> httpx2.Response:
+        return _json_response(200, _message([], stop_reason="refusal"))
+
+    with pytest.raises(ProviderRefusal):
+        _client(handler).complete("q")
 
 
 @pytest.mark.parametrize(
     "make_response",
     [
-        lambda: _json_response(500, {"error": "boom"}),
-        lambda: _json_response(429, {"error": "rate limited"}),
-        lambda: (_ for _ in ()).throw(httpx.ConnectTimeout("timed out")),
+        lambda: _error(500),
+        lambda: _error(529, "overloaded"),
+        lambda: _error(429, "rate limited"),
+        lambda: (_ for _ in ()).throw(httpx2.ConnectTimeout("timed out")),
     ],
 )
 def test_retries_once_on_the_fallback_model_after_a_retryable_error(make_response) -> None:
     calls: list[str] = []
 
-    def handler(request: httpx.Request) -> httpx.Response:
+    def handler(request: httpx2.Request) -> httpx2.Response:
         model = json.loads(request.content)["model"]
         calls.append(model)
-        if model == "deepseek-flash":
+        if model == "claude-opus-5-5":
             response = make_response()
-            if isinstance(response, httpx.Response):
+            if isinstance(response, httpx2.Response):
                 return response
             raise response
-        return _json_response(200, _completion("SELECT 1", model=model))
+        return _json_response(200, _message("SELECT 1", model=model))
 
-    client = CommercialClient(
-        api_key="k",
-        model="deepseek-flash",
-        base_url="https://api.deepseek.com",
-        fallback_model="deepseek-v4-pro",
-        transport=httpx.MockTransport(handler),
-    )
-
-    result = client.complete("q")
+    result = _client(handler, fallback_model="claude-sonnet-5-5").complete("q")
 
     assert result == "SELECT 1"
-    assert calls == ["deepseek-flash", "deepseek-v4-pro"]
+    assert calls == ["claude-opus-5-5", "claude-sonnet-5-5"]
 
 
 def test_never_retries_on_a_4xx_auth_or_validation_error() -> None:
     calls: list[str] = []
 
-    def handler(request: httpx.Request) -> httpx.Response:
+    def handler(request: httpx2.Request) -> httpx2.Response:
         calls.append(json.loads(request.content)["model"])
-        return _json_response(401, {"error": "invalid api key"})
+        return _error(401, "invalid api key")
 
-    client = CommercialClient(
-        api_key="bad",
-        model="deepseek-flash",
-        base_url="https://api.deepseek.com",
-        fallback_model="deepseek-v4-pro",
-        transport=httpx.MockTransport(handler),
-    )
-
-    with pytest.raises(httpx.HTTPStatusError):
+    client = _client(handler, api_key="bad", fallback_model="claude-sonnet-5-5")
+    with pytest.raises(anthropic.AuthenticationError):
         client.complete("q")
 
-    assert calls == ["deepseek-flash"]
+    assert calls == ["claude-opus-5-5"]
 
 
 def test_no_fallback_configured_raises_the_original_error() -> None:
-    def handler(_: httpx.Request) -> httpx.Response:
-        return _json_response(500, {"error": "boom"})
+    def handler(_: httpx2.Request) -> httpx2.Response:
+        return _error(500)
 
-    client = CommercialClient(
-        api_key="k",
-        model="deepseek-flash",
-        base_url="https://api.deepseek.com",
-        transport=httpx.MockTransport(handler),
-    )
-
-    with pytest.raises(httpx.HTTPStatusError):
-        client.complete("q")
+    with pytest.raises(anthropic.InternalServerError):
+        _client(handler).complete("q")
 
 
 def test_fallback_equal_to_primary_model_is_never_retried() -> None:
     calls: list[str] = []
 
-    def handler(request: httpx.Request) -> httpx.Response:
+    def handler(request: httpx2.Request) -> httpx2.Response:
         calls.append(json.loads(request.content)["model"])
-        return _json_response(500, {"error": "boom"})
+        return _error(500)
 
-    client = CommercialClient(
-        api_key="k",
-        model="deepseek-flash",
-        base_url="https://api.deepseek.com",
-        fallback_model="deepseek-flash",
-        transport=httpx.MockTransport(handler),
-    )
+    with pytest.raises(anthropic.InternalServerError):
+        _client(handler, fallback_model="claude-opus-5-5").complete("q")
 
-    with pytest.raises(httpx.HTTPStatusError):
-        client.complete("q")
-
-    assert calls == ["deepseek-flash"]
-
-
-def _capture_body(client_kwargs: dict) -> dict:
-    captured: dict = {}
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        captured.update(json.loads(request.content))
-        return _json_response(200, _completion("SELECT 1"))
-
-    client = CommercialClient(
-        api_key="secret",
-        model="deepseek-flash",
-        base_url="https://api.deepseek.com",
-        transport=httpx.MockTransport(handler),
-        **client_kwargs,
-    )
-    client.complete("sinh SQL")
-    return captured
-
-
-def test_a_reasoning_effort_is_sent_when_configured() -> None:
-    """DeepSeek models think at "high" by default, which blows the 8s budget (NFR-02)."""
-    assert _capture_body({"reasoning_effort": "low"})["reasoning_effort"] == "low"
-
-
-def test_no_reasoning_effort_is_sent_by_default() -> None:
-    """OpenAI-style models reject unknown parameters, so the field stays opt-in."""
-    assert "reasoning_effort" not in _capture_body({})
-
-
-def test_a_commercial_outage_falls_back_to_the_self_hosted_provider() -> None:
-    """Report §1.4.2: DeepSeek failing must hand over to Ollama, not only a peer model."""
-    calls: list[str] = []
-
-    class FakeOllama:
-        def complete(self, prompt: str) -> str:
-            calls.append(prompt)
-            return "SELECT 2"
-
-    def handler(_: httpx.Request) -> httpx.Response:
-        return httpx.Response(503, json={"error": "down"})
-
-    client = CommercialClient(
-        api_key="k",
-        model="deepseek-flash",
-        base_url="https://api.deepseek.com",
-        transport=httpx.MockTransport(handler),
-        fallback_client=FakeOllama(),
-    )
-
-    assert client.complete("hỏi") == "SELECT 2"
-    assert calls == ["hỏi"]
+    assert calls == ["claude-opus-5-5"]
 
 
 def test_provider_timeout_leaves_time_for_fallback_inside_the_response_budget() -> None:
@@ -233,21 +203,13 @@ def test_provider_timeout_leaves_time_for_fallback_inside_the_response_budget() 
 
     observed = []
 
-    class AvailableFallback:
-        def complete(self, prompt):
-            return "SELECT 1 FROM vw_ai_kho_ton"
-
     def handler(request):
         observed.append(request.extensions["timeout"]["read"])
-        raise httpx.ReadTimeout("Primary stalled", request=request)
+        if json.loads(request.content)["model"] == "primary":
+            raise httpx2.ReadTimeout("Primary stalled", request=request)
+        return _json_response(200, _message("SELECT 1 FROM vw_ai_kho_ton"))
 
-    client = CommercialClient(
-        api_key="test",
-        model="primary",
-        base_url="https://test",
-        transport=httpx.MockTransport(handler),
-        fallback_client=AvailableFallback(),
-    )
+    client = _client(handler, model="primary", fallback_model="fallback")
     assert client.complete("question") == "SELECT 1 FROM vw_ai_kho_ton"
     # Leave ~2.5s for the interpretation call; a real schema prompt takes ~3s.
     assert observed[0] <= get_settings().ai_response_budget_seconds - 2.0
@@ -267,18 +229,13 @@ async def test_async_provider_deadline_reaches_fallback_even_when_primary_thread
     get_settings.cache_clear()
     release = threading.Event()
 
-    class AvailableFallback:
-        def complete(self, prompt):
-            return "SELECT 1 FROM vw_ai_kho_ton"
-
     client = CommercialClient(
-        api_key="test",
-        model="primary",
-        base_url="https://test",
-        fallback_client=AvailableFallback(),
+        api_key="test", model="primary", base_url=BASE_URL, fallback_model="fallback"
     )
 
     def stalled_post(model, prompt):
+        if model == "fallback":
+            return "SELECT 1 FROM vw_ai_kho_ton"
         release.wait(2)
         return "late primary answer"
 
