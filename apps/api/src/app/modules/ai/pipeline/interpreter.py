@@ -35,7 +35,14 @@ PROMPT = (
     "Câu hỏi: {question}\n"
     "Câu SQL đã chạy: {sql}\n"
     "Kết quả ({count} dòng, hiển thị tối đa 20): {rows}"
+    "{facts}"
 )
+FACTS_HEADER = (
+    "\nSố liệu tính sẵn trên toàn bộ kết quả. Dùng đúng các số này khi nêu tổng, cao nhất, "
+    "thấp nhất, trung bình hay khoảng ngày; không tự cộng, so sánh hay tính tỉ lệ khác:\n"
+)
+# Averages and rates do not add up to anything meaningful.
+_NO_TOTAL = ("trungbinh", "tyle", "tile", "phantram", "tytrong")
 
 
 def scope_note(role: Role) -> str:
@@ -116,6 +123,49 @@ def _day(value: Any) -> str:
         return text
 
 
+def _looks_like_date(value: Any) -> bool:
+    if isinstance(value, (date, datetime)):
+        return True
+    text = str(value)
+    return len(text) >= 10 and text[4] == "-" and text[7] == "-"
+
+
+def facts(rows: list[dict[str, Any]]) -> list[str]:
+    """Totals, extremes and the date span, computed in code over every row.
+
+    AI grading on 27/10/2026 found the prose model picking the wrong lowest day and
+    mis-adding totals; it now only phrases numbers it is given.
+    """
+    if len(rows) < 2:
+        return []
+    columns = list(rows[0])
+    numeric = [c for c in columns if all(_is_number(row.get(c)) for row in rows)]
+    date_column = next((c for c in columns if all(_looks_like_date(r.get(c)) for r in rows)), None)
+    label_column = date_column or next((c for c in columns if c not in numeric), None)
+    lines = [f"{len(rows)} dòng"]
+    if date_column is not None:
+        days = sorted(str(row[date_column])[:10] for row in rows)
+        lines[0] += f", từ {_day(days[0])} đến {_day(days[-1])}"
+    for meta in labels.describe_columns(numeric[:3], rows):
+        key, kind = meta["key"], meta["kind"]
+        values = [float(row[key]) for row in rows]
+        named = "" if len(numeric) == 1 else f" {meta['label']}"
+
+        def tagged(row: dict[str, Any], key: str = key, kind: str = kind) -> str:
+            shown = _amount(kind, float(row[key]))
+            if label_column is None:
+                return shown
+            tag = row[label_column]
+            return f"{shown} ({_day(tag) if label_column == date_column else tag})"
+
+        if not any(hint in key.lower() for hint in _NO_TOTAL):
+            lines.append(f"Tổng {meta['label']}: {_amount(kind, sum(values))}")
+        lines.append(f"Cao nhất{named}: {tagged(max(rows, key=lambda r: float(r[key])))}")
+        lines.append(f"Thấp nhất{named}: {tagged(min(rows, key=lambda r: float(r[key])))}")
+        lines.append(f"Trung bình{named}: {_amount(kind, sum(values) / len(values))}")
+    return lines
+
+
 def fallback(rows: list[dict[str, Any]], role: Role) -> Interpretation:
     """A truthful, numeric answer when the model cannot finish in time (NFR-02).
 
@@ -129,15 +179,8 @@ def fallback(rows: list[dict[str, Any]], role: Role) -> Interpretation:
 
     columns = list(rows[0])
     numeric = [column for column in columns if all(_is_number(row.get(column)) for row in rows)]
-
-    def looks_like_date(value: Any) -> bool:
-        if isinstance(value, (date, datetime)):
-            return True
-        text = str(value)
-        return len(text) >= 10 and text[4] == "-" and text[7] == "-"
-
     date_column = next(
-        (column for column in columns if all(looks_like_date(row.get(column)) for row in rows)),
+        (column for column in columns if all(_looks_like_date(row.get(column)) for row in rows)),
         None,
     )
     headlines: list[str] = []
@@ -187,7 +230,14 @@ async def interpret(
     if single is not None:
         return single
 
-    prompt = PROMPT.format(question=question, sql=sql, count=len(rows), rows=rows[:20])
+    lines = facts(rows)
+    prompt = PROMPT.format(
+        question=question,
+        sql=sql,
+        count=len(rows),
+        rows=rows[:20],
+        facts=FACTS_HEADER + "\n".join(f"- {line}" for line in lines) if lines else "",
+    )
     # Interpretation is the same for every configuration; only the SQL step varies.
     with llm.generation_options(
         reasoning_effort="low",

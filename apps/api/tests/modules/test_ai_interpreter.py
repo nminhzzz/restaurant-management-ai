@@ -210,3 +210,44 @@ async def test_the_prose_runs_on_the_interpretation_model_without_thinking(sessi
     assert result.answer.headline == "Hôm qua có 42 đơn hàng."
     assert [body["model"] for body in sent] == [get_settings().llm_interpretation_model]
     assert sent[0]["thinking"] == {"type": "disabled"}
+
+
+REVENUE_BY_DAY = [
+    {"BusinessDate": "2026-10-19", "DoanhThu": 27000000},
+    {"BusinessDate": "2026-10-20", "DoanhThu": 31500000},
+    {"BusinessDate": "2026-10-21", "DoanhThu": 24000000},
+    {"BusinessDate": "2026-10-22", "DoanhThu": 35250000},
+]
+
+
+@pytest.mark.anyio
+async def test_the_prompt_carries_precomputed_totals_and_extremes(session, fake_llm):
+    """AI grading 27/10: Haiku picked the wrong lowest day and mis-added totals, so the
+    arithmetic is done in code and the model only phrases it."""
+    fake_llm.reply('{"headline": "ok", "highlights": [], "follow_ups": []}')
+
+    await interpret(session, "doanh thu từng ngày?", "SELECT 1", REVENUE_BY_DAY, Role.MANAGER)
+
+    prompt = fake_llm.last_prompt or ""
+    assert "4 dòng, từ 19/10/2026 đến 22/10/2026" in prompt
+    assert "Tổng Doanh thu: 117.750.000 ₫" in prompt
+    assert "Cao nhất: 35.250.000 ₫ (22/10/2026)" in prompt
+    assert "Thấp nhất: 24.000.000 ₫ (21/10/2026)" in prompt
+    assert "Trung bình: 29.437.500 ₫" in prompt
+
+
+@pytest.mark.anyio
+async def test_extremes_are_labelled_by_the_first_text_column(session, fake_llm):
+    fake_llm.reply('{"headline": "ok", "highlights": [], "follow_ups": []}')
+    rows = [
+        {"TenMon": "Phở bò", "SoLuong": 30},
+        {"TenMon": "Bún chả", "SoLuong": 12},
+        {"TenMon": "Cơm rang", "SoLuong": 18},
+    ]
+
+    await interpret(session, "món bán chạy?", "SELECT 1", rows, Role.MANAGER)
+
+    prompt = fake_llm.last_prompt or ""
+    assert "Cao nhất: 30 (Phở bò)" in prompt
+    assert "Thấp nhất: 12 (Bún chả)" in prompt
+    assert "₫" not in prompt.split("Số liệu tính sẵn")[1]
