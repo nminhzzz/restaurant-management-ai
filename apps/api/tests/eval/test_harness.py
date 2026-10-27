@@ -217,6 +217,19 @@ def test_strict_match_treats_equal_numbers_as_equal():
     assert not strict_match([{"n": 10, "x": 1}], [{"SoDon": 10}])
 
 
+def test_numbers_are_compared_at_two_decimal_places():
+    """An unrounded average is the same answer as the gold's ROUND(..., 2)."""
+    from data.eval.harness import relaxed_match, strict_match
+
+    assert strict_match([{"avg": "32091166.66666667"}], [{"TrungBinh": "32091166.67"}])
+    assert relaxed_match(
+        [{"Thang": "2026-01", "avg": "66.9032", "SoNgay": 31}],
+        [{"Thang": "2026-01", "TrungBinh": "66.90"}],
+    )
+    assert not strict_match([{"avg": "66.91"}], [{"TrungBinh": "66.90"}])
+    assert strict_match([{"n": 2074}], [{"SoDon": "2074.0000"}])
+
+
 @pytest.mark.anyio
 async def test_both_accuracies_are_reported(fake_llm, one_question):
     fake_llm.reply(f"SELECT COUNT(MaOrder) AS so_don FROM {one_question['view']}")

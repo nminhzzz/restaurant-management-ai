@@ -46,6 +46,9 @@ Các phép lấy tồn hiện tại vẫn cần bản sao CSDL đánh giá ở �
    ```
 
    Câu "Cần thảo luận" do nhóm quyết định ở cột cuối biên bản; sửa đáp án nếu cần.
+
+   Lần kiểm tra ngày 27/10/2026 do ba agent AI độc lập giải (không phải ba thành viên):
+   xem `crosscheck/bien-ban-2026-10-27.md`.
 4. Giữ tệp `.manifest.json`, SHA256 bộ đề/lược đồ và bản sao CSDL; không thay prompt
    theo từng đáp án của bộ đã khóa. Chụp kết quả không thay thế việc lưu bản sao CSDL.
 
@@ -54,7 +57,8 @@ phù hợp phát triển công cụ, chưa phải bằng chứng thực nghiệm
 
 **Chỉ số chính** (thống nhất 26/10/2026) là độ đúng thực thi *nới lỏng*: mọi cột của
 SQL chuẩn phải có trong kết quả với cùng giá trị trên cùng dòng, cho phép thừa cột
-(ví dụ trả thêm đơn vị tính). Độ đúng khắt khe vẫn được ghi để đối chiếu.
+(ví dụ trả thêm đơn vị tính). Độ đúng khắt khe vẫn được ghi để đối chiếu. Cả hai so số ở
+2 chữ số thập phân: trung bình chưa làm tròn vẫn khớp `ROUND(..., 2)` của đáp án chuẩn.
 
 **Quy ước diễn giải** dùng chung cho SQL chuẩn và prompt của cả ba cấu hình:
 'N ngày qua' = N ngày kinh doanh kết thúc hôm nay; 'tuần này' = thứ Hai đến hôm nay;

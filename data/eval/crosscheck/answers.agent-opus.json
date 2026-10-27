@@ -1,0 +1,25 @@
+{
+  "member": "Agent Opus 5.5",
+  "answers": {
+    "Q010": "SELECT TenMon, SUM(SoLuongMon) AS TongSoLuong FROM vw_ai_quanly_dongmon WHERE TrangThaiOrder = 'Đã thanh toán' AND BusinessDate BETWEEN '2026-10-19' AND '2026-10-23' GROUP BY TenMon ORDER BY TongSoLuong DESC LIMIT 1",
+    "Q016": "SELECT COUNT(*) AS SoOrderChuaThanhToan FROM vw_ai_quanly_order WHERE BusinessDate = '2026-10-23' AND TrangThaiOrder NOT IN ('Đã thanh toán', 'Đã hủy', 'Đóng – chưa thu được tiền')",
+    "Q018": "SELECT COUNT(*) AS SoOrderMangVe FROM vw_ai_quanly_order WHERE LoaiDon = 'Mang về' AND BusinessDate BETWEEN '2026-10-17' AND '2026-10-23'",
+    "Q061": "SELECT COUNT(*) AS SoDon FROM vw_ai_thungan_hoadon WHERE BusinessDate = '2026-10-23'",
+    "Q064": "SELECT SUM(SoTien) AS TongTienQR FROM vw_ai_thungan_thanhtoan WHERE PhuongThuc = 'QR' AND BusinessDate BETWEEN '2026-10-01' AND '2026-10-23'",
+    "Q073": "SELECT TenNguyenLieu, SoLuongTon, DonViTinh FROM vw_ai_kho_ton WHERE TenNguyenLieu = 'Thịt bò'",
+    "Q026": "SELECT LoaiDon, COUNT(*) AS SoDon FROM vw_ai_quanly_order WHERE BusinessDate BETWEEN '2026-09-24' AND '2026-10-23' GROUP BY LoaiDon",
+    "Q030": "SELECT SUM(TongTien) / 30 AS DoanhThuTrungBinhNgay FROM vw_ai_quanly_hoadon WHERE BusinessDate BETWEEN '2026-09-24' AND '2026-10-23'",
+    "Q036": "SELECT COUNT(*) AS SoOrderHuy FROM vw_ai_quanly_order WHERE TrangThaiOrder = 'Đã hủy' AND BusinessDate BETWEEN '2026-10-01' AND '2026-10-23'",
+    "Q038": "SELECT TenNhom, SUM(ThanhTienMon) AS DoanhThu FROM vw_ai_quanly_dongmon WHERE TrangThaiOrder = 'Đã thanh toán' AND BusinessDate BETWEEN '2026-10-01' AND '2026-10-23' GROUP BY TenNhom ORDER BY DoanhThu DESC LIMIT 3",
+    "Q066": "SELECT BusinessDate, SUM(SoTien) AS DoanhThu FROM vw_ai_thungan_thanhtoan WHERE BusinessDate BETWEEN '2026-10-19' AND '2026-10-23' GROUP BY BusinessDate ORDER BY BusinessDate",
+    "Q076": "SELECT BusinessDate, SUM(SoLuong) AS SoLuongNhap FROM vw_ai_kho_giaodich WHERE LoaiGiaoDich = 'Nhập' AND BusinessDate BETWEEN '2026-10-01' AND '2026-10-23' GROUP BY BusinessDate ORDER BY BusinessDate",
+    "Q080": "SELECT MaNguyenLieu, TenNguyenLieu, DonViTinh, SUM(SoLuong) AS SoLuongNhap FROM vw_ai_kho_giaodich WHERE LoaiGiaoDich = 'Nhập' AND BusinessDate BETWEEN '2026-09-24' AND '2026-10-23' GROUP BY MaNguyenLieu, TenNguyenLieu, DonViTinh ORDER BY SoLuongNhap DESC",
+    "Q041": "SELECT t.DoanhThuThangNay, t.DoanhThuThangTruoc, ROUND((t.DoanhThuThangNay - t.DoanhThuThangTruoc) * 100 / t.DoanhThuThangTruoc, 2) AS PhanTramThayDoi FROM (SELECT SUM(CASE WHEN BusinessDate BETWEEN '2026-10-01' AND '2026-10-23' THEN TongTien ELSE 0 END) AS DoanhThuThangNay, SUM(CASE WHEN BusinessDate BETWEEN '2026-09-01' AND '2026-09-30' THEN TongTien ELSE 0 END) AS DoanhThuThangTruoc FROM vw_ai_quanly_hoadon WHERE BusinessDate BETWEEN '2026-09-01' AND '2026-10-23') AS t",
+    "Q045": "SELECT DATE_FORMAT(BusinessDate, '%Y-%m') AS Thang, LoaiDon, COUNT(*) AS SoDon FROM vw_ai_quanly_order WHERE BusinessDate BETWEEN '2026-08-01' AND '2026-10-23' GROUP BY Thang, LoaiDon ORDER BY Thang, LoaiDon",
+    "Q049": "SELECT DATE_FORMAT(BusinessDate, '%Y-%m') AS Thang, COUNT(*) / COUNT(DISTINCT BusinessDate) AS SoDonTrungBinhNgay FROM vw_ai_quanly_order WHERE BusinessDate BETWEEN '2026-01-01' AND '2026-10-23' GROUP BY Thang ORDER BY Thang",
+    "Q050": "SELECT PhuongThuc, SUM(SoTien) AS SoTien, ROUND(SUM(SoTien) * 100 / (SELECT SUM(SoTien) FROM vw_ai_quanly_thanhtoan WHERE BusinessDate BETWEEN '2026-09-24' AND '2026-10-23'), 2) AS TiLePhanTram FROM vw_ai_quanly_thanhtoan WHERE BusinessDate BETWEEN '2026-09-24' AND '2026-10-23' GROUP BY PhuongThuc ORDER BY SoTien DESC LIMIT 1",
+    "Q053": "SELECT TenMon, SUM(ThanhTienMon) AS DoanhThu FROM vw_ai_quanly_dongmon WHERE TrangThaiOrder = 'Đã thanh toán' AND BusinessDate BETWEEN '2026-10-01' AND '2026-10-23' GROUP BY TenMon ORDER BY DoanhThu DESC LIMIT 3",
+    "Q057": "SELECT t.MaNguyenLieu, t.TenNguyenLieu, t.DonViTinh, t.SoLuongTon, t.MucTonToiThieu FROM vw_ai_quanly_ton t WHERE t.SoLuongTon < t.MucTonToiThieu AND t.MaNguyenLieu NOT IN (SELECT n.MaNguyenLieu FROM vw_ai_quanly_nhap n WHERE n.BusinessDate BETWEEN '2026-09-24' AND '2026-10-23') ORDER BY t.TenNguyenLieu",
+    "Q060": "SELECT t.MaNguyenLieu, t.TenNguyenLieu, t.DonViTinh, t.SoLuongTon FROM vw_ai_quanly_ton t WHERE t.SoLuongTon < (SELECT AVG(SoLuongTon) FROM vw_ai_quanly_ton) AND t.MaNguyenLieu IN (SELECT g.MaNguyenLieu FROM vw_ai_quanly_giaodich g WHERE g.LoaiGiaoDich IN ('Trừ tự động', 'Xuất thủ công') AND g.BusinessDate BETWEEN '2026-09-24' AND '2026-10-23') ORDER BY t.SoLuongTon"
+  }
+}

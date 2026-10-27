@@ -71,12 +71,12 @@ Tự viết SQL cho từng câu trên CSDL đánh giá, **không xem đáp án c
 - Ngày kinh doanh 'hôm nay': 2026-10-23
 - Định nghĩa chỉ số: Doanh thu trung bình mỗi ngày trong 30 ngày qua?
 
-## 9. Q036 — Tổng giá trị các order bị hủy trong tháng này là bao nhiêu?
+## 9. Q036 — Tháng này có bao nhiêu order bị hủy?
 
 - Độ khó: medium · Vai trò: MANAGER
-- View được dùng: vw_ai_quanly_dongmon, vw_ai_quanly_order
+- View được dùng: vw_ai_quanly_order
 - Ngày kinh doanh 'hôm nay': 2026-10-23
-- Định nghĩa chỉ số: FR-REP-10: giá trị order hủy tính qua tổng dòng món của các order đã hủy.
+- Định nghĩa chỉ số: Số order có trạng thái Đã hủy trong tháng hiện tại.
 
 ## 10. Q038 — Top 3 nhóm món có doanh thu cao nhất tháng này?
 

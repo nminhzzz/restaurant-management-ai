@@ -24,7 +24,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, nullcontext
 from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime
-from decimal import Decimal, InvalidOperation
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from enum import StrEnum
 from itertools import product
 from pathlib import Path
@@ -160,7 +160,11 @@ def _bind_model(client: Any, model: str) -> None:
 
 
 def _norm(value: Any) -> str:
-    """Compare numbers by value (10 == 10.0000 == Decimal("10")), everything else as text."""
+    """Compare numbers by value at two decimal places, everything else as text.
+
+    10 == 10.0000 == Decimal("10"), and an unrounded average equals the gold's
+    ROUND(..., 2): the question never fixes the precision, so neither does the grade.
+    """
     if value is None:
         return "NULL"
     if isinstance(value, bool):
@@ -171,7 +175,7 @@ def _norm(value: Any) -> str:
         return str(value)
     if not number.is_finite():
         return str(value)
-    return format(number.normalize(), "f")
+    return format(number.quantize(Decimal("0.01"), ROUND_HALF_UP).normalize(), "f")
 
 
 def _rows(rows: list[dict[str, Any]]) -> list[tuple[str, ...]]:
