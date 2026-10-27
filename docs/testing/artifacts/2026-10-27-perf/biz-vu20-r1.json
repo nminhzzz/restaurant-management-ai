@@ -1,0 +1,80 @@
+{
+  "run_id": "biz-vu20-r1",
+  "vu": 20,
+  "seed": 20261019,
+  "warmup_seconds": 120.0,
+  "measurement_seconds": 600.0,
+  "cache": "Không có bộ nhớ đệm báo cáo; thao tác nghiệp vụ không dùng cache",
+  "operations": {
+    "receipt": {
+      "samples": 513,
+      "successes": 513,
+      "p50_ms": 30.75016698858235,
+      "p95_ms": 268.7258331949117,
+      "success_per_second": 0.855,
+      "technical_errors": 0,
+      "technical_error_rate": 0.0,
+      "business_rejections": 0
+    },
+    "read_menu": {
+      "samples": 517,
+      "successes": 516,
+      "p50_ms": 96.90018749824958,
+      "p95_ms": 582.7396769964253,
+      "success_per_second": 0.86,
+      "technical_errors": 1,
+      "technical_error_rate": 0.0019342359767891683,
+      "business_rejections": 0
+    },
+    "catalog": {
+      "samples": 515,
+      "successes": 514,
+      "p50_ms": 24.222125008236617,
+      "p95_ms": 153.5005772078868,
+      "success_per_second": 0.8566666666666667,
+      "technical_errors": 1,
+      "technical_error_rate": 0.001941747572815534,
+      "business_rejections": 0
+    },
+    "send": {
+      "samples": 1036,
+      "successes": 1028,
+      "p50_ms": 64.10304149903823,
+      "p95_ms": 451.67748399835546,
+      "success_per_second": 1.7133333333333334,
+      "technical_errors": 8,
+      "technical_error_rate": 0.007722007722007722,
+      "business_rejections": 0
+    },
+    "read_order": {
+      "samples": 516,
+      "successes": 515,
+      "p50_ms": 33.36491700611077,
+      "p95_ms": 69.33923309552459,
+      "success_per_second": 0.8583333333333333,
+      "technical_errors": 1,
+      "technical_error_rate": 0.001937984496124031,
+      "business_rejections": 0
+    },
+    "adjust_hold": {
+      "samples": 1032,
+      "successes": 1029,
+      "p50_ms": 36.19983300450258,
+      "p95_ms": 418.3827916014701,
+      "success_per_second": 1.715,
+      "technical_errors": 3,
+      "technical_error_rate": 0.0029069767441860465,
+      "business_rejections": 0
+    },
+    "hold": {
+      "samples": 1037,
+      "successes": 1031,
+      "p50_ms": 35.00495800108183,
+      "p95_ms": 603.8119584991364,
+      "success_per_second": 1.7183333333333333,
+      "technical_errors": 6,
+      "technical_error_rate": 0.0057859209257473485,
+      "business_rejections": 0
+    }
+  }
+}

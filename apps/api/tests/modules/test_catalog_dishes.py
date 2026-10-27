@@ -319,3 +319,26 @@ async def test_a_soft_deleted_dish_is_still_visible_in_the_admin_lookup(session,
     assert all(item["MaMon"] != dish.id for item in default.json()["items"])
     deleted = next(item for item in included.json()["items"] if item["MaMon"] == dish.id)
     assert deleted["DaXoa"] is True
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("body", [{}, {"MaNhomMon": None}])
+async def test_a_dish_without_a_group_is_rejected(session, body):
+    """FR-CAT-02: every dish belongs to exactly one group, whoever calls the API."""
+    headers = await _auth_headers(session)
+    async with await _make_client(session) as client:
+        resp = await client.post(
+            "/api/v1/catalog/dishes", json={"TenMon": "Phở bò", **body}, headers=headers
+        )
+    app.dependency_overrides.clear()
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_a_dish_cannot_be_moved_out_of_every_group(session, dish):
+    headers = await _auth_headers(session)
+    async with await _make_client(session) as client:
+        resp = await update_dish(client, headers, dish.id, MaNhomMon=None)
+    app.dependency_overrides.clear()
+    assert resp.status_code == 422
+    assert (await get_dish(session, dish.id)).group_id is not None

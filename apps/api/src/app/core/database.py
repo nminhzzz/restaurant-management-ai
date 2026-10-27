@@ -19,6 +19,7 @@ from app.shared.base import Base
 from app.shared.business_date import business_date_schedule, load_business_date_schedule
 
 _engine: AsyncEngine | None = None
+_counter_engine: AsyncEngine | None = None
 _session_factory: async_sessionmaker[AsyncSession] | None = None
 
 
@@ -52,6 +53,21 @@ def get_engine() -> AsyncEngine:
     return _engine
 
 
+def get_counter_engine() -> AsyncEngine:
+    """A separate small pool for the self-committing order-number bump.
+
+    The request claiming a number already holds a connection from the main pool. Taking
+    the second one from that same pool deadlocks once every pooled connection belongs to
+    a request waiting for another (seen at 20 VU in the 2026-10-27 performance run).
+    """
+    global _counter_engine
+    if _counter_engine is None:
+        _counter_engine = create_async_engine(
+            get_engine().url, pool_pre_ping=True, pool_size=2, max_overflow=3
+        )
+    return _counter_engine
+
+
 def get_session_factory() -> async_sessionmaker[AsyncSession]:
     global _session_factory
     if _session_factory is None:
@@ -78,4 +94,11 @@ async def session_scope(factory: async_sessionmaker[AsyncSession]) -> AsyncItera
         yield session
 
 
-__all__ = ["Base", "get_engine", "get_session", "get_session_factory", "session_scope"]
+__all__ = [
+    "Base",
+    "get_counter_engine",
+    "get_engine",
+    "get_session",
+    "get_session_factory",
+    "session_scope",
+]

@@ -40,6 +40,7 @@ async def mysql_workflow_session(mysql_engine_factory, monkeypatch):
     from app.core import database as database_module
 
     monkeypatch.setattr(database_module, "_engine", engine)
+    monkeypatch.setattr(database_module, "_counter_engine", None)
     try:
         async with engine.connect() as connection:
             transaction = await connection.begin()
@@ -54,6 +55,8 @@ async def mysql_workflow_session(mysql_engine_factory, monkeypatch):
                 await transaction.rollback()
     finally:
         await engine.dispose()
+        if database_module._counter_engine is not None:
+            await database_module._counter_engine.dispose()
 
 
 @pytest.mark.asyncio
@@ -111,8 +114,11 @@ async def test_mysql_stock_sale_payment_costing_and_permissions(
             manager,
         )
         iid = ingredient["MaNguyenLieu"]
+        group = await post("/catalog/groups", {"TenNhom": "Nhóm kiểm thử MySQL"}, manager)
         dish = await post(
-            "/catalog/dishes", {"TenMon": "Món kiểm thử MySQL", "GiaHienTai": 50000}, manager
+            "/catalog/dishes",
+            {"TenMon": "Món kiểm thử MySQL", "MaNhomMon": group["MaNhomMon"], "GiaHienTai": 50000},
+            manager,
         )
         did = dish["MaMon"]
         await post(

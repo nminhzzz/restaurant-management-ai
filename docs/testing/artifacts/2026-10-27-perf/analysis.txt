@@ -1,0 +1,182 @@
+
+#### Nghiệp vụ — 5 VU
+
+| Thao tác | Lần chạy | Mẫu | p50 (ms) | p95 (ms) | Thông lượng (req/s) | Lỗi kỹ thuật | Từ chối nghiệp vụ |
+|---|---|---:|---:|---:|---:|---:|---:|
+| hold | 1 | 296 | 35 | 80 | 0.49 | 0 (0.00%) | 0 |
+| hold | 2 | 297 | 29 | 63 | 0.49 | 0 (0.00%) | 0 |
+| hold | 3 | 297 | 29 | 76 | 0.49 | 0 (0.00%) | 0 |
+| **hold** | **gộp 3 lần** | 890 | 30 | 74 | 1.48 | 0 (0.00%) | 0 |
+| adjust_hold | 1 | 293 | 36 | 77 | 0.49 | 0 (0.00%) | 0 |
+| adjust_hold | 2 | 298 | 31 | 61 | 0.50 | 0 (0.00%) | 0 |
+| adjust_hold | 3 | 295 | 29 | 77 | 0.49 | 0 (0.00%) | 0 |
+| **adjust_hold** | **gộp 3 lần** | 886 | 31 | 73 | 1.48 | 0 (0.00%) | 0 |
+| send | 1 | 294 | 64 | 143 | 0.49 | 0 (0.00%) | 0 |
+| send | 2 | 296 | 53 | 111 | 0.49 | 0 (0.00%) | 0 |
+| send | 3 | 293 | 54 | 135 | 0.49 | 0 (0.00%) | 0 |
+| **send** | **gộp 3 lần** | 883 | 56 | 132 | 1.47 | 0 (0.00%) | 0 |
+| read_order | 1 | 147 | 46 | 67 | 0.24 | 0 (0.00%) | 0 |
+| read_order | 2 | 148 | 45 | 63 | 0.25 | 0 (0.00%) | 0 |
+| read_order | 3 | 147 | 45 | 66 | 0.24 | 0 (0.00%) | 0 |
+| **read_order** | **gộp 3 lần** | 442 | 45 | 65 | 0.74 | 0 (0.00%) | 0 |
+| read_menu | 1 | 147 | 82 | 189 | 0.24 | 0 (0.00%) | 0 |
+| read_menu | 2 | 147 | 67 | 148 | 0.24 | 0 (0.00%) | 0 |
+| read_menu | 3 | 147 | 72 | 135 | 0.24 | 0 (0.00%) | 0 |
+| **read_menu** | **gộp 3 lần** | 441 | 74 | 158 | 0.73 | 0 (0.00%) | 0 |
+| catalog | 1 | 149 | 28 | 65 | 0.25 | 0 (0.00%) | 0 |
+| catalog | 2 | 147 | 23 | 50 | 0.24 | 0 (0.00%) | 0 |
+| catalog | 3 | 147 | 22 | 44 | 0.24 | 0 (0.00%) | 0 |
+| **catalog** | **gộp 3 lần** | 443 | 24 | 54 | 0.74 | 0 (0.00%) | 0 |
+| receipt | 1 | 150 | 32 | 82 | 0.25 | 0 (0.00%) | 0 |
+| receipt | 2 | 147 | 25 | 44 | 0.24 | 0 (0.00%) | 0 |
+| receipt | 3 | 147 | 25 | 53 | 0.24 | 0 (0.00%) | 0 |
+| **receipt** | **gộp 3 lần** | 444 | 27 | 61 | 0.74 | 0 (0.00%) | 0 |
+
+#### Nghiệp vụ — 10 VU
+
+| Thao tác | Lần chạy | Mẫu | p50 (ms) | p95 (ms) | Thông lượng (req/s) | Lỗi kỹ thuật | Từ chối nghiệp vụ |
+|---|---|---:|---:|---:|---:|---:|---:|
+| hold | 1 | 572 | 41 | 418 | 0.95 | 0 (0.00%) | 0 |
+| hold | 2 | 592 | 27 | 55 | 0.99 | 0 (0.00%) | 0 |
+| hold | 3 | 579 | 27 | 105 | 0.96 | 0 (0.00%) | 0 |
+| **hold** | **gộp 3 lần** | 1743 | 30 | 200 | 2.90 | 0 (0.00%) | 0 |
+| adjust_hold | 1 | 571 | 43 | 356 | 0.95 | 0 (0.00%) | 0 |
+| adjust_hold | 2 | 593 | 30 | 60 | 0.99 | 0 (0.00%) | 0 |
+| adjust_hold | 3 | 582 | 30 | 167 | 0.97 | 0 (0.00%) | 0 |
+| **adjust_hold** | **gộp 3 lần** | 1746 | 33 | 211 | 2.91 | 0 (0.00%) | 0 |
+| send | 1 | 570 | 85 | 548 | 0.95 | 0 (0.00%) | 0 |
+| send | 2 | 592 | 51 | 103 | 0.99 | 0 (0.00%) | 0 |
+| send | 3 | 581 | 52 | 145 | 0.97 | 0 (0.00%) | 0 |
+| **send** | **gộp 3 lần** | 1743 | 57 | 272 | 2.90 | 0 (0.00%) | 0 |
+| read_order | 1 | 283 | 35 | 83 | 0.47 | 0 (0.00%) | 0 |
+| read_order | 2 | 295 | 44 | 61 | 0.49 | 0 (0.00%) | 0 |
+| read_order | 3 | 292 | 39 | 59 | 0.49 | 0 (0.00%) | 0 |
+| **read_order** | **gộp 3 lần** | 870 | 41 | 62 | 1.45 | 0 (0.00%) | 0 |
+| read_menu | 1 | 283 | 107 | 365 | 0.47 | 0 (0.00%) | 0 |
+| read_menu | 2 | 293 | 66 | 125 | 0.49 | 0 (0.00%) | 0 |
+| read_menu | 3 | 291 | 72 | 174 | 0.48 | 0 (0.00%) | 0 |
+| **read_menu** | **gộp 3 lần** | 867 | 78 | 252 | 1.45 | 0 (0.00%) | 0 |
+| catalog | 1 | 284 | 30 | 446 | 0.47 | 0 (0.00%) | 0 |
+| catalog | 2 | 294 | 21 | 42 | 0.49 | 0 (0.00%) | 0 |
+| catalog | 3 | 292 | 22 | 71 | 0.49 | 0 (0.00%) | 0 |
+| **catalog** | **gộp 3 lần** | 870 | 23 | 140 | 1.45 | 0 (0.00%) | 0 |
+| receipt | 1 | 283 | 38 | 366 | 0.47 | 0 (0.00%) | 0 |
+| receipt | 2 | 293 | 24 | 50 | 0.49 | 0 (0.00%) | 0 |
+| receipt | 3 | 290 | 25 | 142 | 0.48 | 0 (0.00%) | 0 |
+| **receipt** | **gộp 3 lần** | 866 | 27 | 218 | 1.44 | 0 (0.00%) | 0 |
+
+#### Nghiệp vụ — 20 VU
+
+| Thao tác | Lần chạy | Mẫu | p50 (ms) | p95 (ms) | Thông lượng (req/s) | Lỗi kỹ thuật | Từ chối nghiệp vụ |
+|---|---|---:|---:|---:|---:|---:|---:|
+| hold | 1 | 1037 | 35 | 604 | 1.72 | 6 (0.58%) | 0 |
+| hold | 2 | 1137 | 32 | 113 | 1.90 | 0 (0.00%) | 0 |
+| hold | 3 | 1175 | 31 | 74 | 1.96 | 0 (0.00%) | 0 |
+| **hold** | **gộp 3 lần** | 3349 | 33 | 122 | 5.57 | 6 (0.18%) | 0 |
+| adjust_hold | 1 | 1032 | 36 | 418 | 1.72 | 3 (0.29%) | 0 |
+| adjust_hold | 2 | 1138 | 33 | 126 | 1.90 | 0 (0.00%) | 0 |
+| adjust_hold | 3 | 1174 | 33 | 67 | 1.96 | 0 (0.00%) | 0 |
+| **adjust_hold** | **gộp 3 lần** | 3344 | 34 | 131 | 5.57 | 3 (0.09%) | 0 |
+| send | 1 | 1036 | 64 | 452 | 1.71 | 8 (0.77%) | 0 |
+| send | 2 | 1135 | 55 | 166 | 1.89 | 0 (0.00%) | 0 |
+| send | 3 | 1171 | 55 | 106 | 1.95 | 0 (0.00%) | 0 |
+| **send** | **gộp 3 lần** | 3342 | 57 | 183 | 5.56 | 8 (0.24%) | 0 |
+| read_order | 1 | 516 | 33 | 69 | 0.86 | 1 (0.19%) | 0 |
+| read_order | 2 | 561 | 42 | 64 | 0.94 | 0 (0.00%) | 0 |
+| read_order | 3 | 584 | 45 | 64 | 0.97 | 0 (0.00%) | 0 |
+| **read_order** | **gộp 3 lần** | 1661 | 42 | 65 | 2.77 | 1 (0.06%) | 0 |
+| read_menu | 1 | 517 | 97 | 583 | 0.86 | 1 (0.19%) | 0 |
+| read_menu | 2 | 560 | 74 | 179 | 0.93 | 0 (0.00%) | 0 |
+| read_menu | 3 | 583 | 72 | 139 | 0.97 | 0 (0.00%) | 0 |
+| **read_menu** | **gộp 3 lần** | 1660 | 78 | 213 | 2.77 | 1 (0.06%) | 0 |
+| catalog | 1 | 515 | 24 | 154 | 0.86 | 1 (0.19%) | 0 |
+| catalog | 2 | 559 | 24 | 63 | 0.93 | 0 (0.00%) | 0 |
+| catalog | 3 | 583 | 23 | 43 | 0.97 | 0 (0.00%) | 0 |
+| **catalog** | **gộp 3 lần** | 1657 | 24 | 56 | 2.76 | 1 (0.06%) | 0 |
+| receipt | 1 | 513 | 31 | 269 | 0.85 | 0 (0.00%) | 0 |
+| receipt | 2 | 560 | 27 | 112 | 0.93 | 0 (0.00%) | 0 |
+| receipt | 3 | 583 | 26 | 54 | 0.97 | 0 (0.00%) | 0 |
+| **receipt** | **gộp 3 lần** | 1656 | 27 | 97 | 2.76 | 0 (0.00%) | 0 |
+
+#### Báo cáo — 5 VU
+
+| Thao tác | Lần chạy | Mẫu | p50 (ms) | p95 (ms) | Thông lượng (req/s) | Lỗi kỹ thuật | Từ chối nghiệp vụ |
+|---|---|---:|---:|---:|---:|---:|---:|
+| revenue_day | 1 | 500 | 11 | 23 | 0.83 | 0 (0.00%) | 0 |
+| revenue_day | 2 | 500 | 11 | 24 | 0.83 | 0 (0.00%) | 0 |
+| revenue_day | 3 | 500 | 10 | 24 | 0.83 | 0 (0.00%) | 0 |
+| **revenue_day** | **gộp 3 lần** | 1500 | 10 | 24 | 2.50 | 0 (0.00%) | 0 |
+| revenue_month | 1 | 500 | 18 | 33 | 0.83 | 0 (0.00%) | 0 |
+| revenue_month | 2 | 500 | 18 | 34 | 0.83 | 0 (0.00%) | 0 |
+| revenue_month | 3 | 498 | 17 | 32 | 0.83 | 0 (0.00%) | 0 |
+| **revenue_month** | **gộp 3 lần** | 1498 | 18 | 33 | 2.50 | 0 (0.00%) | 0 |
+| ranking | 1 | 500 | 29 | 41 | 0.83 | 0 (0.00%) | 0 |
+| ranking | 2 | 500 | 29 | 42 | 0.83 | 0 (0.00%) | 0 |
+| ranking | 3 | 499 | 28 | 40 | 0.83 | 0 (0.00%) | 0 |
+| **ranking** | **gộp 3 lần** | 1499 | 29 | 41 | 2.50 | 0 (0.00%) | 0 |
+
+SUMMARY pooled p95 (ms):
+('biz', 5, 'hold') 74 n= 890 te= 0
+('biz', 5, 'adjust_hold') 73 n= 886 te= 0
+('biz', 5, 'send') 132 n= 883 te= 0
+('biz', 5, 'read_order') 65 n= 442 te= 0
+('biz', 5, 'read_menu') 158 n= 441 te= 0
+('biz', 5, 'catalog') 54 n= 443 te= 0
+('biz', 5, 'receipt') 61 n= 444 te= 0
+('biz', 10, 'hold') 200 n= 1743 te= 0
+('biz', 10, 'adjust_hold') 211 n= 1746 te= 0
+('biz', 10, 'send') 272 n= 1743 te= 0
+('biz', 10, 'read_order') 62 n= 870 te= 0
+('biz', 10, 'read_menu') 252 n= 867 te= 0
+('biz', 10, 'catalog') 140 n= 870 te= 0
+('biz', 10, 'receipt') 218 n= 866 te= 0
+('biz', 20, 'hold') 122 n= 3349 te= 6
+('biz', 20, 'adjust_hold') 131 n= 3344 te= 3
+('biz', 20, 'send') 183 n= 3342 te= 8
+('biz', 20, 'read_order') 65 n= 1661 te= 1
+('biz', 20, 'read_menu') 213 n= 1660 te= 1
+('biz', 20, 'catalog') 56 n= 1657 te= 1
+('biz', 20, 'receipt') 97 n= 1656 te= 0
+('rep', 5, 'revenue_day') 24 n= 1500 te= 0
+('rep', 5, 'revenue_month') 33 n= 1498 te= 0
+('rep', 5, 'ranking') 41 n= 1499 te= 0
+
+PER-REP max p95:
+biz 5 hold [80, 63, 76]
+biz 5 adjust_hold [77, 61, 77]
+biz 5 send [143, 111, 135]
+biz 5 read_order [67, 63, 66]
+biz 5 read_menu [189, 148, 135]
+biz 5 catalog [65, 50, 44]
+biz 5 receipt [82, 44, 53]
+biz 10 hold [418, 55, 105]
+biz 10 adjust_hold [356, 60, 167]
+biz 10 send [548, 103, 145]
+biz 10 read_order [83, 61, 59]
+biz 10 read_menu [365, 125, 174]
+biz 10 catalog [446, 42, 71]
+biz 10 receipt [366, 50, 142]
+biz 20 hold [604, 113, 74]
+biz 20 adjust_hold [418, 126, 67]
+biz 20 send [452, 166, 106]
+biz 20 read_order [69, 64, 64]
+biz 20 read_menu [583, 179, 139]
+biz 20 catalog [154, 63, 43]
+biz 20 receipt [269, 112, 54]
+rep 5 revenue_day [23, 24, 24]
+rep 5 revenue_month [33, 34, 32]
+rep 5 ranking [41, 42, 40]
+
+RESOURCES:
+resources-biz-vu05-r1.csv n= 24 load1 avg/max 6.8/11.7 idle% avg/min 54/2 dbcpu avg/max 6/11 dbmem max 926MiB thr max 6 lock_ms delta 3963 waits delta 88 apicpu avg/max 4/12 apirss max 205MB
+resources-biz-vu05-r2.csv n= 24 load1 avg/max 5.4/8.8 idle% avg/min 58/9 dbcpu avg/max 5/11 dbmem max 956MiB thr max 6 lock_ms delta 1750 waits delta 68 apicpu avg/max 2/7 apirss max 205MB
+resources-biz-vu05-r3.csv n= 24 load1 avg/max 5.4/7.4 idle% avg/min 64/7 dbcpu avg/max 5/10 dbmem max 958MiB thr max 6 lock_ms delta 8581 waits delta 85 apicpu avg/max 3/11 apirss max 206MB
+resources-biz-vu10-r1.csv n= 24 load1 avg/max 15.3/25.7 idle% avg/min 24/0 dbcpu avg/max 9/20 dbmem max 984MiB thr max 11 lock_ms delta 88228 waits delta 577 apicpu avg/max 6/17 apirss max 208MB
+resources-biz-vu10-r2.csv n= 24 load1 avg/max 5.6/8.7 idle% avg/min 61/22 dbcpu avg/max 9/17 dbmem max 996MiB thr max 6 lock_ms delta 6327 waits delta 302 apicpu avg/max 6/18 apirss max 209MB
+resources-biz-vu10-r3.csv n= 24 load1 avg/max 8.6/11.5 idle% avg/min 43/7 dbcpu avg/max 8/17 dbmem max 1012MiB thr max 8 lock_ms delta 48965 waits delta 330 apicpu avg/max 5/12 apirss max 208MB
+resources-biz-vu20-r1.csv n= 24 load1 avg/max 11.6/14.9 idle% avg/min 23/0 dbcpu avg/max 10/22 dbmem max 1135MiB thr max 16 lock_ms delta 1866367 waits delta 1437 apicpu avg/max 11/25 apirss max 204MB
+resources-biz-vu20-r2.csv n= 24 load1 avg/max 9.5/19.9 idle% avg/min 42/0 dbcpu avg/max 13/22 dbmem max 1218MiB thr max 16 lock_ms delta 922897 waits delta 1408 apicpu avg/max 11/33 apirss max 206MB
+resources-biz-vu20-r3.csv n= 24 load1 avg/max 3.9/7.0 idle% avg/min 67/13 dbcpu avg/max 13/20 dbmem max 1227MiB thr max 6 lock_ms delta 31706 waits delta 1254 apicpu avg/max 10/27 apirss max 204MB
+resources-rep-vu05-r1.csv n= 23 load1 avg/max 6.0/8.8 idle% avg/min 67/40 dbcpu avg/max 4/8 dbmem max 1228MiB thr max 6 lock_ms delta 0 waits delta 0 apicpu avg/max 1/3 apirss max 206MB
+resources-rep-vu05-r2.csv n= 23 load1 avg/max 6.9/12.9 idle% avg/min 61/0 dbcpu avg/max 4/9 dbmem max 1228MiB thr max 6 lock_ms delta 0 waits delta 0 apicpu avg/max 1/3 apirss max 206MB
+resources-rep-vu05-r3.csv n= 23 load1 avg/max 5.8/10.6 idle% avg/min 63/7 dbcpu avg/max 4/10 dbmem max 1309MiB thr max 6 lock_ms delta 0 waits delta 0 apicpu avg/max 1/2 apirss max 207MB
