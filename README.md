@@ -132,6 +132,11 @@ trung vị 6 giây, vượt timeout 5 giây, còn Haiku 5.5 mất 2,4 giây. K�
 [`docs/eval-results.json`](docs/eval-results.json) (A/B/C **56,84% / 66,32% / 57,89%**) là lần chạy
 DeepSeek trên bộ 95 câu, chưa phải kết quả của Claude Opus 5.5 hay kế hoạch 80 câu trong báo cáo.
 
+**Kết quả chính thức 27/10/2026** trên bộ 80 câu đã khóa (3 lần mỗi cấu hình,
+[`docs/eval-results-official-2026-10-27.json`](docs/eval-results-official-2026-10-27.json)):
+độ đúng nới lỏng / khắt khe A **83,33% / 67,50%**, B **85,42% / 72,50%**, C **61,25% / 54,17%**;
+p95 khoảng 7 giây. Gần như mọi lượt không đạt ở C là timeout 5 giây khi sinh SQL với `effort=high`.
+
 Thanh toán QR thật dùng SePay: xem [hướng dẫn cấu hình](docs/payment-sepay-setup.md) và script
 kiểm thử chuyển tiền thật `scripts/sepay_smoke.py`. Chạy AI hoặc thực nghiệm mới cần cấu hình `AI_PROVIDER`, `LLM_MODEL`, `AI_API_KEY` và các URL
 CSDL chỉ-đọc; unit test dùng client giả, không cần khóa API. QR có adapter giả lập mặc định và
