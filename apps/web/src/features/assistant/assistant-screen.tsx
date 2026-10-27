@@ -174,6 +174,7 @@ export function AssistantScreen() {
                 <AssistantMessage
                   key={turn.id}
                   turn={turn}
+                  role={user?.role}
                   busy={pending}
                   onAsk={(q) => void ask(q)}
                 />

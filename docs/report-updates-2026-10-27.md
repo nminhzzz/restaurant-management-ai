@@ -128,6 +128,28 @@ Trong đoạn về ba cấu hình, thay "bước diễn giải dùng cấu hình
 >
 > Kết quả không suy rộng cho mọi câu hỏi hoặc mọi nhà hàng.
 
+## 4b. Thêm vào cuối mục mới ở 4 — "Cải tiến bước diễn giải"
+
+> **Cải tiến bước diễn giải.** Từ các lỗi chấm được, nhóm sửa hai điểm trong mã nguồn: (1) nhận dạng cột
+> "số giao dịch" không còn bị gắn đơn vị ₫; (2) trước khi gọi Haiku, code tự tính sẵn số dòng, khoảng ngày,
+> tổng, giá trị cao nhất, thấp nhất và trung bình rồi đưa vào prompt, để model chỉ diễn đạt lại chứ không
+> tự cộng hoặc dò bảng. Phần sinh SQL giữ nguyên. Nhóm chạy lại toàn bộ 720 lượt trên cùng tập đã khóa
+> trong cùng ngày và chấm câu trả lời theo đúng quy trình cũ (ba agent Claude Sonnet 5.5, chấm mù cấu hình).
+>
+> | Cấu hình | Nới lỏng | Khắt khe | Câu trả lời (trước → sau) | Câu trả lời đạt khi SQL đúng (trước → sau) |
+> |---|---|---|---|---|
+> | A | 82,08% | 66,67% | 58,33% → 61,67% | 86,4% → 92,5% |
+> | B | 84,58% | 70,42% | 62,08% → 66,67% | 85,6% → 94,7% |
+> | C | 63,33% | 53,75% | 49,17% → 49,58% | 90,8% → 92,2% |
+>
+> Bảng X. Lần chạy sau cải tiến (720 lượt). Độ đúng SQL dao động ±2 điểm so với lần đầu do model sinh
+> SQL không tất định; độ đúng câu trả lời phụ thuộc cả vào số lượt có SQL đúng.
+>
+> Trên các lượt có SQL đúng, tỉ lệ câu trả lời đạt tăng từ 87,3% (407/466) lên 93,2% (427/458). Lỗi số
+> liệu giảm từ 36 xuống 2 lượt. Lỗi nhận xét còn 27 lượt (trước là 18), chủ yếu là kết luận "giảm dần"
+> cho chuỗi có dao động và bỏ sót các ngày đồng hạng khi nói "cao nhất"/"thấp nhất". Đây là hướng cải
+> tiến tiếp theo. Hai lần chấm do hai lượt agent khác nhau thực hiện nên so sánh mang tính tham khảo.
+
 ## 5. Phần Kết luận — đoạn "Tại thời điểm báo cáo …"
 
 Thay bằng:
@@ -146,6 +168,8 @@ Thay bằng:
 |---|---|
 | Kết quả 720 lượt | `docs/eval-results-official-2026-10-27.json` |
 | Kết quả đã chấm câu trả lời | `docs/eval-results-official-2026-10-27-graded.json`, `docs/eval-grades-official-2026-10-27.json` |
+| Lần chạy sau cải tiến diễn giải | `docs/eval-results-after-2026-10-27-graded.json`, `docs/eval-grades-after-2026-10-27.json` |
+| Kiểm thử hiệu năng (Phụ lục J) | `docs/testing/performance-2026-10-27.md` |
 | Bộ an toàn | `docs/eval-safety-2026-10-27.json` |
 | Bộ đề đã khóa | `data/eval/questions.locked.jsonl`, `data/eval/questions.locked.manifest.json` |
 | Kiểm tra chéo | `data/eval/crosscheck/bien-ban-2026-10-27.md` |
