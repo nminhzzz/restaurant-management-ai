@@ -41,7 +41,7 @@ MySQL 8.4  ◀── view vw_ai_* theo vai trò ◀┘  Claude Opus 5.5 (sinh SQ
 - Ba vai trò: Quản lý, Thu ngân, Thủ kho. Quyền được kiểm tra ở API cho mọi thao tác ghi. Ẩn nút trên
   giao diện chỉ để dễ dùng, không phải cơ chế phân quyền.
 - Mỗi module là một gói riêng; logic nghiệp vụ nằm ở tầng service, không nằm trong handler.
-- Có 715 test API và 198 test giao diện. Mọi thay đổi phải qua `make gate`: format, lint, type-check,
+- Có 720 test API và 199 test giao diện. Mọi thay đổi phải qua `make gate`: format, lint, type-check,
   test và build.
 
 ---
@@ -134,11 +134,17 @@ hạn sử dụng) → xem bảng tồn: mỗi nguyên liệu có nhiều lô, c
 
 | Tài khoản | Câu hỏi | Điều muốn cho thấy |
 |---|---|---|
-| Quản lý | "Doanh thu theo từng ngày trong tuần này?" | SQL đúng, câu trả lời tiếng Việt và biểu đồ tự chọn |
+| Quản lý | "Doanh thu 7 ngày gần nhất theo từng ngày?" | SQL đúng, câu trả lời tiếng Việt và biểu đồ đường tự chọn |
 | Quản lý | "Ba món có doanh thu cao nhất tháng này là món nào?" | Xếp hạng, có nhận xét |
 | Thủ kho | "Doanh thu hôm nay là bao nhiêu?" | **Bị từ chối**, vì thủ kho không có quyền xem doanh thu |
 
-**Làm:** sau câu đầu, mở phần "SQL đã chạy" cho hội đồng xem.
+**Làm:** sau câu đầu, mở phần "Chi tiết kỹ thuật" để hội đồng xem SQL đã chạy.
+
+Ghi chú chạy thử 27/10:
+- Đừng hỏi "tuần này" nếu buổi bảo vệ rơi vào đầu tuần. Thứ Ba chỉ có 2 điểm dữ liệu nên biểu đồ rất nghèo.
+  "7 ngày gần nhất" luôn có 7 điểm.
+- Với Thủ kho, trợ lý không chạy truy vấn mà báo "Cần làm rõ câu hỏi": vai trò kho không có dữ liệu doanh
+  thu, kèm 3 câu gợi ý **về kho**. Đó chính là điểm cần cho thấy: model không nhìn thấy view doanh thu.
 
 ### 5.2 Nói — luồng xử lý một câu hỏi (vẽ thành slide)
 
@@ -159,7 +165,8 @@ Câu hỏi → chuẩn hóa tiếng Việt → prompt (chỉ lược đồ view 
 - Opus 5.5 giỏi suy luận nên sinh SQL tốt, nhưng không tắt được suy luận nên viết đoạn văn chậm (khoảng
   6 giây).
 - Haiku 5.5 tắt suy luận viết đoạn văn trong khoảng 2,4 giây, rẻ hơn khoảng 40 lần.
-- Tổng, giá trị lớn nhất và nhỏ nhất do **code tính sẵn**, Haiku chỉ diễn đạt lại. Cách này tránh lỗi
+- Tổng, giá trị lớn nhất và nhỏ nhất do **code tính sẵn**, Haiku chỉ diễn đạt lại. Sau cải tiến này, trên
+  các lượt có SQL đúng, câu trả lời đạt tăng từ 87,3% lên 93,2%, lỗi số liệu giảm từ 36 xuống 2 lượt. Cách này tránh lỗi
   cộng sai mà nhóm phát hiện khi chấm.
 
 **Khái niệm:**
@@ -185,6 +192,10 @@ Câu hỏi → chuẩn hóa tiếng Việt → prompt (chỉ lược đồ view 
   ba cấu hình đúng 98–100%. Bài học: **độ trễ là ràng buộc thật**, không phải cứ suy luận nhiều là tốt.
 - **Bộ an toàn 30 ca:** từ chối đúng trên 92%, **không có lượt nào đọc dữ liệu ngoài quyền**.
 - **Chi phí** khoảng 0,006 USD/câu, tức khoảng 18 USD/tháng nếu hỏi 100 câu/ngày.
+- ⏩ **Hiệu năng (Phụ lục J):** 5–20 người dùng đồng thời, p95 thao tác bán hàng và kho dưới 300 ms (mục
+  tiêu 1 giây), báo cáo dưới 50 ms. Lần đo ở 20 người lộ ra lỗi cạn kết nối khi cấp mã order; nhóm đã
+  sửa và có test tái hiện. Đây là ví dụ tốt để kể "kiểm thử tìm ra lỗi thật". INP đo trên màn bán hàng
+  dưới 70 ms.
 
 ---
 
