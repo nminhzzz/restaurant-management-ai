@@ -247,11 +247,11 @@ async def test_a_provider_connection_error_is_an_llm_error_tried_once(
 ):
     """A dropped connection is not a SQL execution error and must not spend a 2nd attempt."""
     import anthropic
-    import httpx
+    import httpx2
 
     def drop(prompt: str) -> str:
         fake_llm.calls += 1
-        raise anthropic.APIConnectionError(request=httpx.Request("POST", "https://api.test"))
+        raise anthropic.APIConnectionError(request=httpx2.Request("POST", "https://api.test"))
 
     monkeypatch.setattr(fake_llm, "complete", drop)
 
@@ -260,3 +260,37 @@ async def test_a_provider_connection_error_is_an_llm_error_tried_once(
     assert result.outcomes[0].status == "lỗi"
     assert result.failures[0].reason.startswith("Lỗi gọi LLM")
     assert fake_llm.calls == 1
+
+
+@pytest.mark.anyio
+async def test_a_provider_outage_reruns_the_question_but_a_timeout_still_counts(monkeypatch):
+    """Losing the network says nothing about the model; a slow model does."""
+    from data.eval import harness
+
+    def result(reason: str | None) -> harness.ConfigResult:
+        failures = [harness.Failure("Q001", reason)] if reason else []
+        return harness._summarize(harness.Config.B, [], failures)
+
+    def scripted(*reasons: str | None):
+        queue = list(reasons)
+        calls: list[None] = []
+
+        async def fake_run(config, questions, session):
+            calls.append(None)
+            return result(queue.pop(0))
+
+        monkeypatch.setattr(harness, "_run", fake_run)
+        return calls
+
+    outage = "Lỗi gọi LLM hoặc timeout: APIConnectionError"
+    calls = scripted(outage, outage, None)
+    rerun = await harness._run_reachable(harness.Config.B, {"id": "Q001"}, None, waits=(0, 0))
+    assert rerun.failures == [] and len(calls) == 3
+
+    calls = scripted("Lỗi gọi LLM hoặc timeout: TimeoutError")
+    slow = await harness._run_reachable(harness.Config.B, {"id": "Q001"}, None, waits=(0, 0))
+    assert len(slow.failures) == 1 and len(calls) == 1
+
+    calls = scripted(outage, outage, outage)
+    down = await harness._run_reachable(harness.Config.B, {"id": "Q001"}, None, waits=(0, 0))
+    assert down.failures[0].reason == outage and len(calls) == 3

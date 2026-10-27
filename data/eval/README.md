@@ -93,7 +93,8 @@ uv run python ../../data/eval/harness.py --configs A,B,C --runs 3 \
   --questions ../../data/eval/questions.locked.jsonl --out ../../docs/eval-parity-results.json
 ```
 
-Các cấu hình chạy xen kẽ theo câu, đảo cấu hình bắt đầu theo lần lặp. Kết quả ghi
+Các cấu hình chạy xen kẽ theo câu, đảo cấu hình bắt đầu theo lần lặp. Nếu không kết nối được
+provider (mất mạng), harness chờ rồi chạy lại câu đó từ đầu; timeout của model vẫn tính là lỗi. Kết quả ghi
 lại từng câu/lần, SQL, bảng chuẩn, bảng nhận được, diễn giải, model, token, chi phí
 đã biết và độ trễ từ chuẩn hóa/sinh SQL đến diễn giải; thời gian chạy SQL chuẩn
 không cộng vào độ trễ sản phẩm. Token hoặc chi phí thiếu do provider không trả

@@ -445,6 +445,35 @@ async def _run(config: Config, questions: list[Any], session: AsyncSession) -> C
     return _summarize(config, outcomes, failures)
 
 
+# Waits (seconds) for the provider to become reachable again before giving up.
+OUTAGE_WAITS = (30, 60, 120, 240, 300, 300)
+
+
+async def _run_reachable(
+    config: Config,
+    question: dict[str, Any],
+    session: AsyncSession,
+    waits: tuple[float, ...] = OUTAGE_WAITS,
+) -> ConfigResult:
+    """Rerun a question from scratch when the provider could not be reached.
+
+    A dropped network says nothing about the model, so it must not count as the model's
+    error; a timeout, or an outage that outlasts every wait, still does.
+    """
+    for wait in (*waits, None):
+        result = await _run(config, [question], session)
+        unreachable = any("APIConnectionError" in failure.reason for failure in result.failures)
+        if not unreachable or wait is None:
+            return result
+        print(
+            f"[{config.value}] {question['id']} provider unreachable; retrying in {wait:.0f}s",
+            file=sys.stderr,
+            flush=True,
+        )
+        await asyncio.sleep(wait)
+    raise AssertionError("unreachable")
+
+
 async def run_interleaved(
     configs: list[Config], questions: list[Any], runs: int = 3
 ) -> list[ConfigResult]:
@@ -457,7 +486,7 @@ async def run_interleaved(
             order = configs[rotation:] + configs[:rotation]
             for question in questions:
                 for config in order:
-                    result = await _run(config, [question], session)
+                    result = await _run_reachable(config, question, session)
                     buckets[config].extend(
                         replace(o, run_index=repeat + 1) for o in result.outcomes
                     )
