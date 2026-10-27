@@ -1,0 +1,6348 @@
+[
+ {
+  "config": "A",
+  "question_id": "Q017",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q050",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q001",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q024",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu đúng; giải thích tháng 10 thấp do chưa hết tháng có cơ sở từ ngày tham chiếu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q010",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Đúng món và số; câu \"không có món nào khác cùng số lượng\" hơi vượt dữ liệu nhưng không sai số liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q014",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q004",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q008",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q016",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q002",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q036",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q024",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q079",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q038",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q031",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q029",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Khớp bảng (một dòng giờ 15, 46 hóa đơn)."
+ },
+ {
+  "config": "A",
+  "question_id": "Q061",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q017",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q037",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q023",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q008",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q053",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q003",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q071",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q033",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "conclusions"
+  ],
+  "notes": "Nói đỉnh 6 đơn \"gấp đôi mức trung bình\" nhưng trung bình ~2 đơn/ngày nên gấp khoảng 3 lần; kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q065",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q074",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Số giao dịch kho ghi đơn vị ₫ sai (là số đếm, không phải tiền)."
+ },
+ {
+  "config": "C",
+  "question_id": "Q065",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q047",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "conclusions"
+  ],
+  "notes": "Nói ngày thấp nhất là 19/10 (24,4 tr) nhưng 05/10 (24,165 tr) và 01/10 (24,27 tr) thấp hơn."
+ },
+ {
+  "config": "A",
+  "question_id": "Q062",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q018",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q047",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "conclusions"
+  ],
+  "notes": "Nói ngày thấp nhất là 01/10 (24,27 tr) trong khi chính câu đó nêu 05/10 thấp hơn (24,165 tr); mâu thuẫn dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q024",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q037",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q020",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Số giao dịch kho 485 ghi đơn vị ₫ sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q056",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q069",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q028",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q063",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q040",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q069",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q002",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q008",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q068",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q005",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q007",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q009",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q057",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q061",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q072",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q062",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q001",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q026",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q040",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; ngày bắt đầu 25/09 khác các câu trả lời khác (24/09) nhưng không kiểm chứng được từ bảng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q056",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q067",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Khớp bảng (một dòng giờ 15, 46 hóa đơn)."
+ },
+ {
+  "config": "A",
+  "question_id": "Q003",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q024",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q020",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Số giao dịch kho 485 ghi đơn vị ₫ sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q011",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q015",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q033",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values",
+   "conclusions"
+  ],
+  "notes": "Tổng 40 đơn hủy sai (20 dòng cộng 41, cả tháng 43); \"gấp đôi mức trung bình\" sai (6 gấp ~3 lần mức 2)."
+ },
+ {
+  "config": "A",
+  "question_id": "Q076",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "conclusions"
+  ],
+  "notes": "Nói ngày thấp là cuối tuần/đầu tuần nhưng 01/10, 08/10, 22/10 đều là thứ Năm; suy diễn không có cơ sở."
+ },
+ {
+  "config": "B",
+  "question_id": "Q014",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q074",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Số giao dịch kho 202.020 ghi đơn vị ₫ sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q014",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q015",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q016",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q053",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q030",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q002",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q078",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; 87,4% nói \"gần 88%\" chấp nhận được."
+ },
+ {
+  "config": "B",
+  "question_id": "Q031",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q025",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số và tỉ lệ đúng; giải thích tháng 10 có rào \"có thể\"."
+ },
+ {
+  "config": "B",
+  "question_id": "Q056",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; ngày bắt đầu 25/09 không kiểm chứng được từ bảng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q068",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q078",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; \"gần 90%\" hơi thô so với 87,4% nhưng chấp nhận được."
+ },
+ {
+  "config": "A",
+  "question_id": "Q025",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "conclusions"
+  ],
+  "notes": "Nói tháng 09 \"cao thứ hai trong năm\" nhưng tháng 05 (999,43 tr) cao hơn tháng 09 (979,43 tr)."
+ },
+ {
+  "config": "A",
+  "question_id": "Q031",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q050",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q005",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q079",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q026",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q013",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q071",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q021",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Tổng 20 ngày nêu ~706 tr và TB 35,3 tr sai; thực tế 643,535 tr và ~32,2 tr/ngày."
+ },
+ {
+  "config": "B",
+  "question_id": "Q036",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q019",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q013",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q040",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q020",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Số giao dịch kho 485 ghi đơn vị ₫ sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q061",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q016",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q023",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q001",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q070",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q030",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q007",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q035",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "conclusions"
+  ],
+  "notes": "Nói tháng 06 (1.494) thấp nhất trước tháng 10 nhưng tháng 07 (1.467) thấp hơn."
+ },
+ {
+  "config": "B",
+  "question_id": "Q009",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q061",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q072",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q072",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q017",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q029",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q056",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q018",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q066",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q019",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q027",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q071",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q004",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q062",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q018",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q078",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q065",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q074",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Số giao dịch kho 202.020 ghi đơn vị ₫ sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q030",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q019",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q009",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q075",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q005",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q016",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q005",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q068",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q037",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q069",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q035",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Nói tháng 10 thấp hơn ~23% so với tháng 05; thực tế 1.191 vs 1.661 thấp hơn ~28%."
+ },
+ {
+  "config": "A",
+  "question_id": "Q023",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q063",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q016",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q018",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q031",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q027",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q053",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q004",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q069",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q066",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q062",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q013",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q001",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q068",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q002",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q074",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Số giao dịch kho 202.020 ghi đơn vị ₫ sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q036",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q050",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q025",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q002",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q013",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q064",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q007",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q042",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; câu \"ngoại trừ tháng 8\" rối nhưng kết luận cuối vẫn đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q008",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q065",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q015",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q028",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp; kỳ/đối tượng phù hợp câu hỏi (câu trả lời ngắn ngầm hiểu đúng kỳ); không có kết luận sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q070",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q011",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Đúng món và số; phần gợi ý xem lại giá bán/vị trí thực đơn chỉ là khuyến nghị, không khẳng định nguyên nhân."
+ },
+ {
+  "config": "B",
+  "question_id": "Q066",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q008",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q007",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q033",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values",
+   "conclusions"
+  ],
+  "notes": "Câu mở đầu nói \"2 đơn hủy\" vào 07/10 nhưng cao nhất là 6 đơn (tự mâu thuẫn); 6 đơn không phải \"gấp đôi\" mức thường (2) mà gấp ba."
+ },
+ {
+  "config": "A",
+  "question_id": "Q029",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "scope"
+  ],
+  "notes": "Chỉ nêu tổng 46, không nói khung giờ 15 giờ và không nêu ngày hôm qua; câu hỏi theo từng giờ nhưng bỏ mất chiều giờ."
+ },
+ {
+  "config": "A",
+  "question_id": "Q002",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q008",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q027",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q020",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Đơn vị sai: số giao dịch kho (485) ghi kèm \"₫\"."
+ },
+ {
+  "config": "A",
+  "question_id": "Q031",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q053",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "C",
+  "question_id": "Q036",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q024",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q003",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q019",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q079",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q002",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q019",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q066",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q050",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q056",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "scope"
+  ],
+  "notes": "Nêu khoảng 25/09-23/10 chỉ có 29 ngày, không đúng 30 ngày qua (24/09-23/10); số tiền đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q006",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q035",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu đúng; lỗi định dạng: trả về chuỗi JSON thô."
+ },
+ {
+  "config": "C",
+  "question_id": "Q033",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "conclusions"
+  ],
+  "notes": "Nói 6 đơn \"gấp đôi mức thường thấy\" trong khi mức thường là 2 đơn (gấp ba)."
+ },
+ {
+  "config": "B",
+  "question_id": "Q024",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q033",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Tổng 40 đơn sai (20 dòng hiển thị cộng 41, cả tháng 43); kỳ \"đến 21/10\" cũng không trọn."
+ },
+ {
+  "config": "B",
+  "question_id": "Q037",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "C",
+  "question_id": "Q056",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q069",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q053",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q013",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q062",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q075",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q044",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q072",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Đúng: không có dòng nào thỏa điều kiện."
+ },
+ {
+  "config": "B",
+  "question_id": "Q007",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q013",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q004",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q037",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q026",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "scope"
+  ],
+  "notes": "Chỉ liệt kê tổng, trung bình, cao nhất, thấp nhất, không gắn nhãn tại chỗ/mang về và không nêu kỳ 30 ngày; người đọc không biết 1.361 và 304 là gì."
+ },
+ {
+  "config": "C",
+  "question_id": "Q027",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q009",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q079",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q065",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q026",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q010",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q008",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q020",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Đơn vị sai: 485 giao dịch kho ghi kèm \"₫\"."
+ },
+ {
+  "config": "C",
+  "question_id": "Q079",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q065",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q038",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "C",
+  "question_id": "Q074",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Đơn vị sai: 202.020 giao dịch kho ghi kèm \"₫\"."
+ },
+ {
+  "config": "C",
+  "question_id": "Q018",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q075",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q057",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Đúng: không có dòng nào thỏa điều kiện."
+ },
+ {
+  "config": "C",
+  "question_id": "Q066",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "C",
+  "question_id": "Q005",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q020",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Đơn vị sai: 485 giao dịch kho ghi kèm \"₫\"."
+ },
+ {
+  "config": "A",
+  "question_id": "Q070",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Tổng 231.825.000 ₫ sai (đúng 230.825.000); trung bình 33.118.000 sai (đúng ~32.975.000)."
+ },
+ {
+  "config": "A",
+  "question_id": "Q031",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q013",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q040",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "scope"
+  ],
+  "notes": "Nêu khoảng 25/09-23/10 chỉ 29 ngày, không khớp 30 ngày qua (24/09-23/10)."
+ },
+ {
+  "config": "B",
+  "question_id": "Q021",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "conclusions"
+  ],
+  "notes": "Gán doanh thu cao cho \"dịp đặc biệt\" - không có trong dữ liệu."
+ },
+ {
+  "config": "C",
+  "question_id": "Q008",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q004",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q065",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q040",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "C",
+  "question_id": "Q028",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q009",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q001",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q015",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q040",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "scope"
+  ],
+  "notes": "Nêu khoảng 25/09-23/10 chỉ 29 ngày, không khớp 30 ngày qua."
+ },
+ {
+  "config": "C",
+  "question_id": "Q050",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q025",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Tổng doanh thu 8.506.000.000 ₫ sai; cộng 10 tháng được 9.105.745.000 ₫."
+ },
+ {
+  "config": "A",
+  "question_id": "Q036",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q035",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q074",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Đơn vị sai: 202.020 giao dịch kho ghi kèm \"₫\"."
+ },
+ {
+  "config": "B",
+  "question_id": "Q017",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q027",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "C",
+  "question_id": "Q078",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q067",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q027",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "C",
+  "question_id": "Q006",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q033",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Nói 16/10 không có đơn hủy, nhưng 16/10 có 2 đơn (ngày không có là 15/10)."
+ },
+ {
+  "config": "A",
+  "question_id": "Q029",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q010",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "C",
+  "question_id": "Q066",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q020",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Đơn vị sai: 485 giao dịch kho ghi kèm \"₫\"."
+ },
+ {
+  "config": "B",
+  "question_id": "Q064",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q019",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q078",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; \"gần 90%\" là làm tròn lỏng của 87,4%, chấp nhận được."
+ },
+ {
+  "config": "A",
+  "question_id": "Q003",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q067",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q056",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "scope"
+  ],
+  "notes": "Nêu khoảng 25/09-23/10 chỉ 29 ngày, không khớp 30 ngày qua."
+ },
+ {
+  "config": "C",
+  "question_id": "Q019",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q063",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q062",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q014",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q023",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q068",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q057",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Đúng: không có dòng nào thỏa điều kiện."
+ },
+ {
+  "config": "C",
+  "question_id": "Q026",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q011",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q057",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Đúng: không có dòng nào thỏa điều kiện."
+ },
+ {
+  "config": "C",
+  "question_id": "Q001",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q038",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "C",
+  "question_id": "Q063",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q065",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q006",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q068",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu đúng; lỗi định dạng: trả về chuỗi JSON thô (thừa dấu ngoặc)."
+ },
+ {
+  "config": "B",
+  "question_id": "Q040",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q064",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q015",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q024",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Nói tháng 03-09 trong khoảng 1.482-1.661, nhưng tháng 07 là 1.467 (thấp hơn 1.482)."
+ },
+ {
+  "config": "B",
+  "question_id": "Q003",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q067",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q025",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q019",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q021",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "conclusions"
+  ],
+  "notes": "Nói 03/10 (46,23 triệu) cao nhất rồi \"tiếp theo\" 18/10 (52,255 triệu): mâu thuẫn, 18/10 mới cao nhất."
+ },
+ {
+  "config": "A",
+  "question_id": "Q014",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q028",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q038",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q066",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q044",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; lời khuyên kiểm tra dữ liệu thiếu chỉ là cảnh báo có điều kiện, không khẳng định nguyên nhân."
+ },
+ {
+  "config": "B",
+  "question_id": "Q011",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q018",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q037",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q005",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q063",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q072",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Đúng: không có dòng nào thỏa điều kiện."
+ },
+ {
+  "config": "B",
+  "question_id": "Q031",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q074",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Đơn vị sai: 202.020 giao dịch kho ghi kèm \"₫\"."
+ },
+ {
+  "config": "B",
+  "question_id": "Q028",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q050",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q026",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q037",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q001",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q072",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Đúng: không có dòng nào thỏa điều kiện."
+ },
+ {
+  "config": "C",
+  "question_id": "Q001",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q006",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q029",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q067",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q036",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q074",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Đơn vị sai: 202.020 giao dịch kho ghi kèm \"₫\"."
+ },
+ {
+  "config": "A",
+  "question_id": "Q076",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "conclusions"
+  ],
+  "notes": "Nói 05/10 nhập cao nhất (đúng là 15/10: 3.658,37); nói 01/10 và 08/10 thấp nhất nhưng 22/10 (847,07) thấp hơn 01/10 (939,19)."
+ },
+ {
+  "config": "B",
+  "question_id": "Q043",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q004",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q023",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "C",
+  "question_id": "Q063",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q016",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số đúng; nhãn trần không nêu kỳ nhưng câu hỏi đã nêu kỳ nên không gây hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q076",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "conclusions"
+  ],
+  "notes": "Nói ngày thấp nhất là 01/10 (939,19) nhưng 08/10 và 22/10 còn thấp hơn; mâu thuẫn với phần mở đầu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q033",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Tổng 42 đơn sai (20 dòng hiển thị cộng 41, cả tháng 43); kèm khối JSON thô lặp lại nội dung."
+ },
+ {
+  "config": "C",
+  "question_id": "Q070",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu khớp, kỳ/đối tượng rõ, kết luận suy ra được từ dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q062",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q037",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q047",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "conclusions"
+  ],
+  "notes": "Nói ngày thấp nhất là 19/10 (24,4 tr) nhưng 05/10 (24,165 tr) và 01/10 (24,27 tr) thấp hơn."
+ },
+ {
+  "config": "C",
+  "question_id": "Q017",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q011",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "C",
+  "question_id": "Q005",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q044",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "C",
+  "question_id": "Q020",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Số giao dịch kho 485 bị gắn đơn vị ₫ sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q036",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q071",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q078",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số khớp; \"gần 88%\" cho 87,4% chấp nhận được."
+ },
+ {
+  "config": "B",
+  "question_id": "Q061",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q067",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "C",
+  "question_id": "Q017",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q008",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q003",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q035",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q053",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q002",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q075",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q041",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q016",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q079",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q017",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q015",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q011",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số khớp; gợi ý \"đáng xem xét\" là khuyến nghị, không khẳng định nguyên nhân."
+ },
+ {
+  "config": "A",
+  "question_id": "Q021",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "conclusions"
+  ],
+  "notes": "Nói 19/10 thấp nhất (24,4 tr) trong khi 05/10 là 24,165 tr và 01/10 là 24,27 tr, thấp hơn; tự mâu thuẫn với dòng 05/10."
+ },
+ {
+  "config": "B",
+  "question_id": "Q037",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "C",
+  "question_id": "Q064",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q056",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "C",
+  "question_id": "Q018",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q026",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q065",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q079",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q009",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q050",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "C",
+  "question_id": "Q061",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q028",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q072",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Nêu đúng không có dòng nào."
+ },
+ {
+  "config": "B",
+  "question_id": "Q018",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q076",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "conclusions"
+  ],
+  "notes": "Nói ngày nhập cao nhất là 05/10 (3.565,58) trong khi 15/10 (3.658,37) cao hơn."
+ },
+ {
+  "config": "B",
+  "question_id": "Q076",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "conclusions"
+  ],
+  "notes": "Nói ngày nhập ít nhất là 01/10 (939,19) rồi mới nêu 08/10 (715,75); thực tế thấp nhất là 08/10."
+ },
+ {
+  "config": "B",
+  "question_id": "Q023",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "C",
+  "question_id": "Q016",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q011",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số khớp; gợi ý \"đáng cân nhắc\" là khuyến nghị, không khẳng định nguyên nhân."
+ },
+ {
+  "config": "B",
+  "question_id": "Q019",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q035",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "C",
+  "question_id": "Q067",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q062",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q003",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q035",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q018",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q066",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q053",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q075",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q071",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q070",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q007",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q070",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q079",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q014",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q079",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q005",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q053",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q069",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Nói QR 408 đơn khoảng 26% số đơn tiền mặt; đúng ra 26% tổng (35,5% so với tiền mặt)."
+ },
+ {
+  "config": "A",
+  "question_id": "Q009",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q038",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "C",
+  "question_id": "Q033",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số khớp; liệt kê ngày 1 đơn thiếu 17/10 nhưng không sai khẳng định."
+ },
+ {
+  "config": "A",
+  "question_id": "Q036",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q038",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q006",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q014",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q042",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Tháng 9 tăng 4,6% so với tháng 8; tính ra 629.855/603.979 là khoảng 4,3%."
+ },
+ {
+  "config": "A",
+  "question_id": "Q075",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q027",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "scope"
+  ],
+  "notes": "Câu trả lời mẫu chung: không nêu kỳ 7 ngày qua, không gọi tên phương thức thanh toán nào là cao nhất/thấp nhất; số đúng nhưng người đọc không biết đang nói về gì."
+ },
+ {
+  "config": "B",
+  "question_id": "Q063",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q023",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "C",
+  "question_id": "Q009",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q069",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "C",
+  "question_id": "Q071",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q078",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Trừ tự động chiếm 87,6% sai; thực tế 87,4% (176.585/202.020)."
+ },
+ {
+  "config": "C",
+  "question_id": "Q029",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q038",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q061",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q078",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Trừ tự động chiếm 87,7% sai; thực tế 87,4%."
+ },
+ {
+  "config": "A",
+  "question_id": "Q013",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q017",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q061",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q027",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q064",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q036",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q005",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q062",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q027",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q029",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "C",
+  "question_id": "Q020",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Số giao dịch kho 485 bị gắn đơn vị ₫ sai."
+ },
+ {
+  "config": "B",
+  "question_id": "Q043",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "C",
+  "question_id": "Q067",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "C",
+  "question_id": "Q070",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số khớp; \"đầu tuần\" cho 17/10 hơi lỏng nhưng không sai số liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q023",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "C",
+  "question_id": "Q038",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "C",
+  "question_id": "Q004",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q064",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q035",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q016",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q004",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q072",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Nêu đúng không có dòng nào."
+ },
+ {
+  "config": "C",
+  "question_id": "Q031",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q024",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q006",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q061",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q072",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Nêu đúng không có dòng nào."
+ },
+ {
+  "config": "A",
+  "question_id": "Q057",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Nêu đúng không có dòng nào."
+ },
+ {
+  "config": "A",
+  "question_id": "Q006",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q013",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q015",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q078",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Nói trừ tự động chiếm gần 90% và khoảng 88%; thực tế 87,4%."
+ },
+ {
+  "config": "C",
+  "question_id": "Q044",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q007",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q001",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q068",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q002",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q014",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q053",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q070",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q069",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q064",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q021",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q063",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q021",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "conclusions"
+  ],
+  "notes": "Nói 19/10 thấp nhất (24,4 tr) dù 01/10 (24,27 tr) và 05/10 (24,165 tr) thấp hơn."
+ },
+ {
+  "config": "B",
+  "question_id": "Q067",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "C",
+  "question_id": "Q064",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q015",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q056",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q025",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Nói tháng 3-9 dao động từ 888.290.000 trong khi tháng 3 là 883.555.000."
+ },
+ {
+  "config": "C",
+  "question_id": "Q009",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q071",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "C",
+  "question_id": "Q070",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q074",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Số giao dịch kho 202.020 bị gắn đơn vị ₫ sai."
+ },
+ {
+  "config": "A",
+  "question_id": "Q035",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q007",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q068",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q028",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "B",
+  "question_id": "Q006",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q071",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q040",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "C",
+  "question_id": "Q038",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "C",
+  "question_id": "Q033",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Nói có 4 ngày chỉ 1 đơn hủy nhưng liệt kê 5 ngày (06,08,10,12,17) và tổng 5; số 4 sai."
+ },
+ {
+  "config": "C",
+  "question_id": "Q069",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [
+   "numeric_values"
+  ],
+  "notes": "Nói QR là 26% so với đơn tiền mặt (408 trên 1.549 đơn); 1.549 sai (tổng là 1.557) và 26% là tỉ lệ trên tổng, không phải so với tiền mặt."
+ },
+ {
+  "config": "C",
+  "question_id": "Q004",
+  "run_index": 3,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q075",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "A",
+  "question_id": "Q015",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Trả lời ngắn có nhãn và số khớp; không nêu kỳ nhưng đi liền câu hỏi nên khó hiểu nhầm."
+ },
+ {
+  "config": "B",
+  "question_id": "Q068",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q066",
+  "run_index": 2,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q029",
+  "run_index": 1,
+  "answer_correct": true,
+  "reviewer": "Agent Claude Sonnet 5.5 (AI, chấm mù cấu hình)",
+  "failed": [],
+  "notes": "Số liệu, phạm vi và kết luận khớp dữ liệu."
+ },
+ {
+  "config": "A",
+  "question_id": "Q012",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q022",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q026",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q030",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q032",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q034",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q039",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q041",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q042",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q043",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q044",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q045",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q046",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q048",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q049",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q051",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q052",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q054",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q055",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q058",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q059",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q060",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q063",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q073",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q077",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q080",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q010",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q012",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q022",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q030",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q032",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q034",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q039",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q042",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q043",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q044",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q045",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q046",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q047",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q048",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q049",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q051",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q052",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q054",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q055",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q058",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q059",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q060",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q073",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q077",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q080",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q010",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q012",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q022",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q026",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q030",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q032",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q034",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q039",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q041",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q042",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q043",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q044",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q045",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q046",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q047",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q048",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q049",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q051",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q052",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q054",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q055",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q058",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q059",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q060",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q073",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q077",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "A",
+  "question_id": "Q080",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q012",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q022",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q032",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q034",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q039",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q041",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q043",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q045",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q046",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q047",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q048",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q049",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q051",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q052",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q054",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q055",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q057",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q058",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q059",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q060",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q073",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q076",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q077",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q080",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q010",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q012",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q022",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q032",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q034",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q039",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q041",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q045",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q046",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q048",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q049",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q051",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q052",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q054",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q055",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q058",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q059",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q060",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q073",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q077",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q080",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q012",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q022",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q032",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q034",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q039",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q041",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q042",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q045",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q046",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q048",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q049",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q051",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q052",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q054",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q055",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q058",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q059",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q060",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q073",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q077",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "B",
+  "question_id": "Q080",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q010",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q011",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q012",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q021",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q022",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q024",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q025",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q028",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q030",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q031",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q032",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q034",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q039",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q041",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q042",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q043",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q044",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q045",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q046",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q047",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q048",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q049",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q050",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q051",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q052",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q054",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q055",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q057",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q058",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q059",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q060",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q071",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q073",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q075",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q076",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q077",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q080",
+  "run_index": 1,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q003",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q006",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q007",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q010",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q011",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q012",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q014",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q021",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q022",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q025",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q028",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q029",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q030",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q032",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q034",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q039",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q041",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q042",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q043",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q044",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q045",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q046",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q047",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q048",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q049",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q050",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q051",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q052",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q054",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q055",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q057",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q058",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q059",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q060",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q064",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q073",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q075",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q076",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q077",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q080",
+  "run_index": 2,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q003",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q010",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q012",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q017",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q021",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q022",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q023",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q025",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q030",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q032",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q034",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q039",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q040",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q041",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q042",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q043",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q045",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q046",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q047",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q048",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q049",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q051",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q052",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q054",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q055",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q057",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q058",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q059",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q060",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q073",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q076",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q077",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ },
+ {
+  "config": "C",
+  "question_id": "Q080",
+  "run_index": 3,
+  "answer_correct": false,
+  "reviewer": "Tự động",
+  "notes": "SQL không khớp đáp án chuẩn (khắt khe) hoặc lỗi; câu trả lời không thể đúng."
+ }
+]
