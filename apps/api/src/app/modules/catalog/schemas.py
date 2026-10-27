@@ -50,7 +50,7 @@ class GroupReorderRequest(BaseModel):
 
 class DishCreate(BaseModel):
     TenMon: Name
-    MaNhomMon: int | None = None
+    MaNhomMon: int
     HinhAnh: str | None = Field(default=None, max_length=500)
     GiaHienTai: float | None = Field(default=None, ge=0)
 
@@ -63,6 +63,14 @@ class DishUpdate(BaseModel):
     HinhAnh: str | None = Field(default=None, max_length=500)
 
     _check_hinh_anh = field_validator("HinhAnh")(_validate_image_url)
+
+    @field_validator("MaNhomMon")
+    @classmethod
+    def _group_cannot_be_cleared(cls, value: int | None) -> int | None:
+        # Omitting the field keeps the group; only an explicit null reaches here.
+        if value is None:
+            raise ValueError("Món ăn phải thuộc một nhóm món")
+        return value
 
 
 class DishOut(BaseModel):

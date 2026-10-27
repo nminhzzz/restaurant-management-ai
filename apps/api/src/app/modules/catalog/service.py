@@ -137,14 +137,13 @@ async def create_dish(
     session: AsyncSession,
     actor_id: int,
     name: str,
-    group_id: int | None,
+    group_id: int,
     image: str | None = None,
     price: float | None = None,
 ) -> Dish:
-    if group_id is not None:
-        g = await session.get(DishGroup, group_id)
-        if g is None or g.is_deleted:
-            raise BusinessRuleError("Nhóm món không tồn tại.")
+    g = await session.get(DishGroup, group_id)
+    if g is None or g.is_deleted:
+        raise BusinessRuleError("Nhóm món không tồn tại.")
     d = Dish(
         name=name,
         group_id=group_id,

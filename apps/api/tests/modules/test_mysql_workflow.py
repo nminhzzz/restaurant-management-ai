@@ -114,8 +114,11 @@ async def test_mysql_stock_sale_payment_costing_and_permissions(
             manager,
         )
         iid = ingredient["MaNguyenLieu"]
+        group = await post("/catalog/groups", {"TenNhom": "Nhóm kiểm thử MySQL"}, manager)
         dish = await post(
-            "/catalog/dishes", {"TenMon": "Món kiểm thử MySQL", "GiaHienTai": 50000}, manager
+            "/catalog/dishes",
+            {"TenMon": "Món kiểm thử MySQL", "MaNhomMon": group["MaNhomMon"], "GiaHienTai": 50000},
+            manager,
         )
         did = dish["MaMon"]
         await post(
