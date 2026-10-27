@@ -1,0 +1,80 @@
+{
+  "run_id": "biz-vu05-r1",
+  "vu": 5,
+  "seed": 20261019,
+  "warmup_seconds": 120.0,
+  "measurement_seconds": 600.0,
+  "cache": "Không có bộ nhớ đệm báo cáo; thao tác nghiệp vụ không dùng cache",
+  "operations": {
+    "receipt": {
+      "samples": 150,
+      "successes": 150,
+      "p50_ms": 31.886958502582274,
+      "p95_ms": 81.97395640818281,
+      "success_per_second": 0.25,
+      "technical_errors": 0,
+      "technical_error_rate": 0.0,
+      "business_rejections": 0
+    },
+    "catalog": {
+      "samples": 149,
+      "successes": 149,
+      "p50_ms": 27.850792001117952,
+      "p95_ms": 64.70083340245765,
+      "success_per_second": 0.24833333333333332,
+      "technical_errors": 0,
+      "technical_error_rate": 0.0,
+      "business_rejections": 0
+    },
+    "send": {
+      "samples": 294,
+      "successes": 294,
+      "p50_ms": 64.22535399906337,
+      "p95_ms": 142.79050174591242,
+      "success_per_second": 0.49,
+      "technical_errors": 0,
+      "technical_error_rate": 0.0,
+      "business_rejections": 0
+    },
+    "read_order": {
+      "samples": 147,
+      "successes": 147,
+      "p50_ms": 45.55579200678039,
+      "p95_ms": 67.48822939407546,
+      "success_per_second": 0.245,
+      "technical_errors": 0,
+      "technical_error_rate": 0.0,
+      "business_rejections": 0
+    },
+    "read_menu": {
+      "samples": 147,
+      "successes": 147,
+      "p50_ms": 81.51204200112261,
+      "p95_ms": 188.57384990260465,
+      "success_per_second": 0.245,
+      "technical_errors": 0,
+      "technical_error_rate": 0.0,
+      "business_rejections": 0
+    },
+    "hold": {
+      "samples": 296,
+      "successes": 296,
+      "p50_ms": 35.422832996118814,
+      "p95_ms": 79.95355199454934,
+      "success_per_second": 0.49333333333333335,
+      "technical_errors": 0,
+      "technical_error_rate": 0.0,
+      "business_rejections": 0
+    },
+    "adjust_hold": {
+      "samples": 293,
+      "successes": 293,
+      "p50_ms": 36.35229100473225,
+      "p95_ms": 77.05364179564629,
+      "success_per_second": 0.48833333333333334,
+      "technical_errors": 0,
+      "technical_error_rate": 0.0,
+      "business_rejections": 0
+    }
+  }
+}

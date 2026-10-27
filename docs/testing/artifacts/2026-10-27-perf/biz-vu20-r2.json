@@ -1,0 +1,80 @@
+{
+  "run_id": "biz-vu20-r2",
+  "vu": 20,
+  "seed": 20261019,
+  "warmup_seconds": 120.0,
+  "measurement_seconds": 600.0,
+  "cache": "Không có bộ nhớ đệm báo cáo; thao tác nghiệp vụ không dùng cache",
+  "operations": {
+    "receipt": {
+      "samples": 560,
+      "successes": 560,
+      "p50_ms": 26.908624997304287,
+      "p95_ms": 111.85650800325668,
+      "success_per_second": 0.9333333333333333,
+      "technical_errors": 0,
+      "technical_error_rate": 0.0,
+      "business_rejections": 0
+    },
+    "catalog": {
+      "samples": 559,
+      "successes": 559,
+      "p50_ms": 23.624542009201832,
+      "p95_ms": 63.22941629041459,
+      "success_per_second": 0.9316666666666666,
+      "technical_errors": 0,
+      "technical_error_rate": 0.0,
+      "business_rejections": 0
+    },
+    "adjust_hold": {
+      "samples": 1138,
+      "successes": 1138,
+      "p50_ms": 32.6675419928506,
+      "p95_ms": 125.51227754665854,
+      "success_per_second": 1.8966666666666667,
+      "technical_errors": 0,
+      "technical_error_rate": 0.0,
+      "business_rejections": 0
+    },
+    "send": {
+      "samples": 1135,
+      "successes": 1135,
+      "p50_ms": 54.878333990927786,
+      "p95_ms": 166.4875622998806,
+      "success_per_second": 1.8916666666666666,
+      "technical_errors": 0,
+      "technical_error_rate": 0.0,
+      "business_rejections": 0
+    },
+    "hold": {
+      "samples": 1137,
+      "successes": 1137,
+      "p50_ms": 32.36908299732022,
+      "p95_ms": 113.16812479926743,
+      "success_per_second": 1.895,
+      "technical_errors": 0,
+      "technical_error_rate": 0.0,
+      "business_rejections": 0
+    },
+    "read_order": {
+      "samples": 561,
+      "successes": 561,
+      "p50_ms": 41.92766599589959,
+      "p95_ms": 64.39683301141486,
+      "success_per_second": 0.935,
+      "technical_errors": 0,
+      "technical_error_rate": 0.0,
+      "business_rejections": 0
+    },
+    "read_menu": {
+      "samples": 560,
+      "successes": 560,
+      "p50_ms": 74.47481249982957,
+      "p95_ms": 178.63051874373903,
+      "success_per_second": 0.9333333333333333,
+      "technical_errors": 0,
+      "technical_error_rate": 0.0,
+      "business_rejections": 0
+    }
+  }
+}

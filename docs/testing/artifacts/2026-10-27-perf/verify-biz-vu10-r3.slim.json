@@ -1,0 +1,23 @@
+{
+  "failures": [],
+  "counts": {
+    "orders": 20710,
+    "dishes": 40,
+    "ingredients": 30,
+    "tables": 20,
+    "suppliers": 5,
+    "movements": 64200,
+    "lots": 385
+  },
+  "statuses": {
+    "Chờ xác minh thanh toán": 500,
+    "Đã hủy": 1000,
+    "Đã thanh toán": 18000,
+    "Đóng – chưa thu được tiền": 500,
+    "Đang mở": 710
+  },
+  "total_revenue": "3739234000.0000",
+  "checksum": "7b35b9ce77e4003cc4371551f07805224485bd6018c257a2a133005b5001160c",
+  "lots": 385,
+  "ledger_rows": 64200
+}

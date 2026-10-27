@@ -1,0 +1,40 @@
+{
+  "run_id": "rep-vu05-r1",
+  "vu": 5,
+  "seed": 20261019,
+  "warmup_seconds": 120.0,
+  "measurement_seconds": 600.0,
+  "cache": "Không dùng cache ứng dụng cho doanh thu/xếp hạng món (chỉ /reports/comparison có cache, không được gọi); buffer pool InnoDB vẫn ấm",
+  "operations": {
+    "ranking": {
+      "samples": 500,
+      "successes": 500,
+      "p50_ms": 28.92766650620615,
+      "p95_ms": 40.83954404486575,
+      "success_per_second": 0.8333333333333334,
+      "technical_errors": 0,
+      "technical_error_rate": 0.0,
+      "business_rejections": 0
+    },
+    "revenue_month": {
+      "samples": 500,
+      "successes": 500,
+      "p50_ms": 18.216374999610707,
+      "p95_ms": 32.8879981963837,
+      "success_per_second": 0.8333333333333334,
+      "technical_errors": 0,
+      "technical_error_rate": 0.0,
+      "business_rejections": 0
+    },
+    "revenue_day": {
+      "samples": 500,
+      "successes": 500,
+      "p50_ms": 10.506166996492539,
+      "p95_ms": 22.65046841057482,
+      "success_per_second": 0.8333333333333334,
+      "technical_errors": 0,
+      "technical_error_rate": 0.0,
+      "business_rejections": 0
+    }
+  }
+}
