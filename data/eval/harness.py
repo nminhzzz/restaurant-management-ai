@@ -24,12 +24,13 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, nullcontext
 from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime
-from decimal import Decimal, InvalidOperation
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from enum import StrEnum
 from itertools import product
 from pathlib import Path
 from typing import Any
 
+import anthropic
 import httpx
 import sqlglot
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -160,7 +161,11 @@ def _bind_model(client: Any, model: str) -> None:
 
 
 def _norm(value: Any) -> str:
-    """Compare numbers by value (10 == 10.0000 == Decimal("10")), everything else as text."""
+    """Compare numbers by value at two decimal places, everything else as text.
+
+    10 == 10.0000 == Decimal("10"), and an unrounded average equals the gold's
+    ROUND(..., 2): the question never fixes the precision, so neither does the grade.
+    """
     if value is None:
         return "NULL"
     if isinstance(value, bool):
@@ -171,7 +176,7 @@ def _norm(value: Any) -> str:
         return str(value)
     if not number.is_finite():
         return str(value)
-    return format(number.normalize(), "f")
+    return format(number.quantize(Decimal("0.01"), ROUND_HALF_UP).normalize(), "f")
 
 
 def _rows(rows: list[dict[str, Any]]) -> list[tuple[str, ...]]:
@@ -360,7 +365,7 @@ async def _run(config: Config, questions: list[Any], session: AsyncSession) -> C
                             interpreted = await interpreter.interpret(
                                 session, text, sql, produced, role
                             )
-                        except (httpx.HTTPError, TimeoutError):
+                        except (httpx.HTTPError, TimeoutError, anthropic.APIError):
                             interpreted = interpreter.fallback(produced, role)
                     answer = interpreted.text
                     status = "sai"  # Execution correctness is determined below.
@@ -373,7 +378,7 @@ async def _run(config: Config, questions: list[Any], session: AsyncSession) -> C
                     status, reason = ("đúng" if expected_refusal else "từ chối"), last_error
                     if attempt + 1 == settings.ai_max_sql_attempts:
                         break
-                except (httpx.HTTPError, TimeoutError) as exc:
+                except (httpx.HTTPError, TimeoutError, anthropic.APIError) as exc:
                     status, reason = "lỗi", f"Lỗi gọi LLM hoặc timeout: {type(exc).__name__}"
                     break
                 except Exception as exc:
@@ -440,6 +445,35 @@ async def _run(config: Config, questions: list[Any], session: AsyncSession) -> C
     return _summarize(config, outcomes, failures)
 
 
+# Waits (seconds) for the provider to become reachable again before giving up.
+OUTAGE_WAITS = (30, 60, 120, 240, 300, 300)
+
+
+async def _run_reachable(
+    config: Config,
+    question: dict[str, Any],
+    session: AsyncSession,
+    waits: tuple[float, ...] = OUTAGE_WAITS,
+) -> ConfigResult:
+    """Rerun a question from scratch when the provider could not be reached.
+
+    A dropped network says nothing about the model, so it must not count as the model's
+    error; a timeout, or an outage that outlasts every wait, still does.
+    """
+    for wait in (*waits, None):
+        result = await _run(config, [question], session)
+        unreachable = any("APIConnectionError" in failure.reason for failure in result.failures)
+        if not unreachable or wait is None:
+            return result
+        print(
+            f"[{config.value}] {question['id']} provider unreachable; retrying in {wait:.0f}s",
+            file=sys.stderr,
+            flush=True,
+        )
+        await asyncio.sleep(wait)
+    raise AssertionError("unreachable")
+
+
 async def run_interleaved(
     configs: list[Config], questions: list[Any], runs: int = 3
 ) -> list[ConfigResult]:
@@ -452,7 +486,7 @@ async def run_interleaved(
             order = configs[rotation:] + configs[:rotation]
             for question in questions:
                 for config in order:
-                    result = await _run(config, [question], session)
+                    result = await _run_reachable(config, question, session)
                     buckets[config].extend(
                         replace(o, run_index=repeat + 1) for o in result.outcomes
                     )

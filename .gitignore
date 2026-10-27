@@ -244,3 +244,6 @@ test-results/
 
 # --- Local agent tooling ---
 .crossweave/
+
+# Evaluation DB dumps may hold real payment data pulled from the gateway; keep them local.
+data/eval/snapshots/

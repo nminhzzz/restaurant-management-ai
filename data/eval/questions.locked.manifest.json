@@ -1,0 +1,10 @@
+{
+  "dataset_id": "restaurant-eval-20261023",
+  "captured_at": "2026-10-27T02:00:36.165559+00:00",
+  "question_count": 80,
+  "source_sha256": "7e1d6aeb534266ced182cc1cc50c4128c735ef2e7cde5e0c1c88bf515f873101",
+  "snapshot_sha256": "81655e1f24dd8c6804a70025b76a0f9a27fb166cc4654b3d68118a793a0c76b5",
+  "schema_sha256": "d11e4a77e8e799d1517993a62be0b6a601062d4b1069582ff78f344327c4f82a",
+  "prerequisite": "CSDL đánh giá đã phục hồi và không có tác vụ ghi trong lúc chụp.",
+  "human_review_complete": false
+}
