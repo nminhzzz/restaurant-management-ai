@@ -52,6 +52,11 @@ Các phép lấy tồn hiện tại vẫn cần bản sao CSDL đánh giá ở �
 4. Giữ tệp `.manifest.json`, SHA256 bộ đề/lược đồ và bản sao CSDL; không thay prompt
    theo từng đáp án của bộ đã khóa. Chụp kết quả không thay thế việc lưu bản sao CSDL.
 
+   Khóa ngày 27/10/2026: `questions.locked.jsonl` và `questions.locked.manifest.json`.
+   Bản sao CSDL lúc khóa là `data/eval/snapshots/restaurant-eval-locked-2026-10-27.sql.gz`
+   (SHA256 `48c8fc802ec666a42aff12373e596bbf15dc0f319f44f86162935ac754c6af10`). Bản sao
+   chỉ lưu trên máy, không commit, vì có thể chứa giao dịch thanh toán thật.
+
 Nếu chạy bản chưa khóa, harness chạy SQL chuẩn để so sánh nhưng kết quả đó chỉ
 phù hợp phát triển công cụ, chưa phải bằng chứng thực nghiệm chính thức.
 
