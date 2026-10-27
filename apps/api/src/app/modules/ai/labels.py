@@ -87,6 +87,7 @@ KNOWN: dict[str, tuple[str, Kind]] = {
     "Gio": ("Giờ", "text"),
     "SoBan": ("Số bàn", "number"),
     "SoNgay": ("Số ngày", "number"),
+    "SoGiaoDichKho": ("Số giao dịch kho", "number"),
 }
 
 _MONEY = ("tien", "gia", "doanhthu", "loinhuan", "chiphi", "giavon", "thu")
@@ -111,11 +112,13 @@ def _guess(column: str, rows: list[dict[str, Any]]) -> Kind:
     values = [row.get(column) for row in rows if row.get(column) is not None]
     numeric = bool(values) and all(_is_number(v) for v in values)
     # A numeric column is never a date/datetime — only its non-numeric values can
-    # hint at one. "thoigian" (a duration) contains "gia" but isn't money.
+    # hint at one. "thoigian" (a duration) and "giao" (giao dịch, a transaction)
+    # contain "gia" but aren't money.
     if numeric:
         if any(h in name for h in _PERCENT):
             return "percent"
-        if "thoigian" not in name and any(h in name for h in _MONEY):
+        money_name = name.replace("thoigian", "").replace("giao", "")
+        if any(h in money_name for h in _MONEY):
             return "money"
         return "number"
     if any(h in name for h in _DATETIME):

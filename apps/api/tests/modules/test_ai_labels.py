@@ -50,3 +50,10 @@ def test_a_numeric_column_never_becomes_a_date_and_time_hints_win_over_money():
     assert _one("DoanhThuTheoNgay", [{"DoanhThuTheoNgay": 5000}])["kind"] == "money"
     assert _one("ThoiGianPhucVu", [{"ThoiGianPhucVu": 12}])["kind"] == "number"
     assert _one("NgayCuoi", [{"NgayCuoi": "2026-09-01"}])["kind"] == "date"
+
+
+def test_a_transaction_count_is_not_money():
+    """The "giao" in giao dịch contains the money hint "gia"; 485 transactions are not 485 ₫."""
+    assert _one("SoGiaoDichKho", [{"SoGiaoDichKho": 485}])["kind"] == "number"
+    assert _one("SoGiaoDich", [{"SoGiaoDich": 12}])["kind"] == "number"
+    assert _one("GiaNhapMoi", [{"GiaNhapMoi": 120000}])["kind"] == "money"
