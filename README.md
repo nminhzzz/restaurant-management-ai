@@ -136,6 +136,9 @@ DeepSeek trên bộ 95 câu, chưa phải kết quả của Claude Opus 5.5 hay 
 [`docs/eval-results-official-2026-10-27.json`](docs/eval-results-official-2026-10-27.json)):
 độ đúng nới lỏng / khắt khe A **83,33% / 67,50%**, B **85,42% / 72,50%**, C **61,25% / 54,17%**;
 p95 khoảng 7 giây. Gần như mọi lượt không đạt ở C là timeout 5 giây khi sinh SQL với `effort=high`.
+Độ đúng câu trả lời (SQL đúng khắt khe và câu trả lời đạt rubric) A **58,33%**, B **62,08%**,
+C **49,17%**, do agent AI chấm mù cấu hình
+([`docs/eval-results-official-2026-10-27-graded.json`](docs/eval-results-official-2026-10-27-graded.json)).
 
 Thanh toán QR thật dùng SePay: xem [hướng dẫn cấu hình](docs/payment-sepay-setup.md) và script
 kiểm thử chuyển tiền thật `scripts/sepay_smoke.py`. Chạy AI hoặc thực nghiệm mới cần cấu hình `AI_PROVIDER`, `LLM_MODEL`, `AI_API_KEY` và các URL
