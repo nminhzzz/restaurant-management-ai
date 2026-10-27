@@ -40,6 +40,7 @@ async def mysql_workflow_session(mysql_engine_factory, monkeypatch):
     from app.core import database as database_module
 
     monkeypatch.setattr(database_module, "_engine", engine)
+    monkeypatch.setattr(database_module, "_counter_engine", None)
     try:
         async with engine.connect() as connection:
             transaction = await connection.begin()
@@ -54,6 +55,8 @@ async def mysql_workflow_session(mysql_engine_factory, monkeypatch):
                 await transaction.rollback()
     finally:
         await engine.dispose()
+        if database_module._counter_engine is not None:
+            await database_module._counter_engine.dispose()
 
 
 @pytest.mark.asyncio

@@ -109,10 +109,10 @@ async def _claim_display_number(session: AsyncSession, bd: date) -> int:
     connection, so a rollback of the order transaction cannot hand the number back.
     """
     if _dialect_name(session) == "mysql":
-        from app.core.database import get_engine
+        from app.core.database import get_counter_engine
 
         params = {"bd": bd.isoformat()}
-        async with get_engine().begin() as conn:
+        async with get_counter_engine().begin() as conn:
             await conn.execute(
                 text(
                     "INSERT INTO DEM_ORDER (BusinessDate, SoDaCap) VALUES (:bd, 1) "
