@@ -239,3 +239,24 @@ async def test_both_accuracies_are_reported(fake_llm, one_question):
     assert row["execution_accuracy"] == 1.0
     assert row["relaxed_accuracy"] == 1.0
     assert row["by_difficulty_relaxed"] == {one_question["difficulty"]: 1.0}
+
+
+@pytest.mark.anyio
+async def test_a_provider_connection_error_is_an_llm_error_tried_once(
+    fake_llm, one_question, monkeypatch
+):
+    """A dropped connection is not a SQL execution error and must not spend a 2nd attempt."""
+    import anthropic
+    import httpx
+
+    def drop(prompt: str) -> str:
+        fake_llm.calls += 1
+        raise anthropic.APIConnectionError(request=httpx.Request("POST", "https://api.test"))
+
+    monkeypatch.setattr(fake_llm, "complete", drop)
+
+    result = await run_configuration(Config.A, [one_question])
+
+    assert result.outcomes[0].status == "lỗi"
+    assert result.failures[0].reason.startswith("Lỗi gọi LLM")
+    assert fake_llm.calls == 1

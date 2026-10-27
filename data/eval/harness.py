@@ -30,6 +30,7 @@ from itertools import product
 from pathlib import Path
 from typing import Any
 
+import anthropic
 import httpx
 import sqlglot
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -364,7 +365,7 @@ async def _run(config: Config, questions: list[Any], session: AsyncSession) -> C
                             interpreted = await interpreter.interpret(
                                 session, text, sql, produced, role
                             )
-                        except (httpx.HTTPError, TimeoutError):
+                        except (httpx.HTTPError, TimeoutError, anthropic.APIError):
                             interpreted = interpreter.fallback(produced, role)
                     answer = interpreted.text
                     status = "sai"  # Execution correctness is determined below.
@@ -377,7 +378,7 @@ async def _run(config: Config, questions: list[Any], session: AsyncSession) -> C
                     status, reason = ("đúng" if expected_refusal else "từ chối"), last_error
                     if attempt + 1 == settings.ai_max_sql_attempts:
                         break
-                except (httpx.HTTPError, TimeoutError) as exc:
+                except (httpx.HTTPError, TimeoutError, anthropic.APIError) as exc:
                     status, reason = "lỗi", f"Lỗi gọi LLM hoặc timeout: {type(exc).__name__}"
                     break
                 except Exception as exc:
