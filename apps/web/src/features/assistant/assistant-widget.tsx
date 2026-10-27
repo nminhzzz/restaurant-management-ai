@@ -157,6 +157,7 @@ export function AssistantWidget() {
               <AssistantMessage
                 key={turn.id}
                 turn={turn}
+                role={role}
                 compact
                 busy={pending}
                 onAsk={(q) => void ask(q)}

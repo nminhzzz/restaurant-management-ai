@@ -92,6 +92,30 @@ describe("AssistantMessage", () => {
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
   });
 
+  it("only offers clarification hints the role may ask about", () => {
+    render(
+      <AssistantMessage
+        role="WAREHOUSE"
+        turn={turn({
+          result: {
+            ...base,
+            kind: "clarify",
+            headline: "Vai trò kho không xem được doanh thu.",
+            data: [],
+            detail: null,
+          },
+        })}
+        onAsk={vi.fn()}
+      />,
+    );
+    expect(
+      screen.queryByRole("button", { name: /doanh thu|bán chạy/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /dưới mức tối thiểu/ }),
+    ).toBeInTheDocument();
+  });
+
   it("shows a backend error as an alert with a retry", () => {
     const onAsk = vi.fn();
     render(

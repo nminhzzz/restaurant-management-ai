@@ -17,13 +17,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import { ResultTabs } from "./result-tabs";
+import { suggestionsFor } from "./suggestions";
 import type { Turn } from "./use-conversation";
-
-const RETRY_HINTS = [
-  "Cho tôi xem doanh thu 7 ngày gần nhất",
-  "Tồn kho nguyên liệu nào dưới mức tối thiểu?",
-  "Món nào bán chạy nhất tháng này?",
-];
 
 function Elapsed() {
   const [seconds, setSeconds] = useState(0);
@@ -78,11 +73,13 @@ function Points({
 
 export function AssistantMessage({
   turn,
+  role,
   compact = false,
   busy = false,
   onAsk,
 }: {
   turn: Turn;
+  role?: string;
   compact?: boolean;
   busy?: boolean;
   onAsk: (text: string) => void;
@@ -225,18 +222,20 @@ export function AssistantMessage({
           {result.headline || result.answer}
         </p>
         <div className="flex flex-wrap gap-1.5 pt-1">
-          {RETRY_HINTS.map((hint) => (
-            <button
-              key={hint}
-              type="button"
-              disabled={busy}
-              onClick={() => onAsk(hint)}
-              className="inline-flex items-center gap-2 rounded-control border border-border bg-surface px-2.5 py-1.5 text-left font-medium hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <ArrowRight className="size-3.5 text-subtle" aria-hidden />
-              {hint}
-            </button>
-          ))}
+          {suggestionsFor(role)
+            .slice(0, 3)
+            .map(({ text: hint }) => (
+              <button
+                key={hint}
+                type="button"
+                disabled={busy}
+                onClick={() => onAsk(hint)}
+                className="inline-flex items-center gap-2 rounded-control border border-border bg-surface px-2.5 py-1.5 text-left font-medium hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <ArrowRight className="size-3.5 text-subtle" aria-hidden />
+                {hint}
+              </button>
+            ))}
         </div>
       </div>
     );
