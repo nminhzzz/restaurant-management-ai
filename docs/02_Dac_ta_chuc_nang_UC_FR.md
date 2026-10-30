@@ -445,7 +445,7 @@ Yêu cầu chức năng liên quan: FR-REP-01, FR-REP-08, FR-REP-09.
 
   - Bước 3. Hệ thống hiển thị kết quả, chi tiết theo món và so sánh giữa các kỳ; thông báo khi không có dữ liệu.
 
-Yêu cầu chức năng liên quan: FR-REP-04, FR-REP-05, FR-REP-05a, FR-REP-05b, FR-REP-05c, FR-REP-06; FR-REP-08–09.
+Yêu cầu chức năng liên quan: FR-REP-04, FR-REP-05, FR-REP-11, FR-REP-12, FR-REP-13, FR-REP-06; FR-REP-08–09.
 
 **4.3 – Xem báo cáo tiêu thụ món**
 
@@ -750,7 +750,7 @@ Các yêu cầu chức năng được tổ chức theo sáu module và gắn v�
 
 - **FR-SALE-16 – Tiền QR đến muộn và khoản ngoại lệ:** Webhook đến sau khi giao dịch đã “Hết hạn” hoặc “Đã hủy”, hoặc khi order “Chờ xác minh thanh toán”, được xác nhận tự động nếu đúng giao dịch, đủ tiền và order chưa mở lại thanh toán, chưa đóng hoặc hủy, chưa thanh toán bằng giao dịch khác. Khi đó, nếu order đang có giao dịch QR mới “Chờ xác nhận” chưa có tiền, hệ thống hủy giao dịch mới trong cùng transaction. Nếu order đã mở lại, đã đóng hoặc hủy, hoặc đã thanh toán bằng giao dịch khác, khoản nhận được đưa vào danh sách ngoại lệ theo MaGiaoDichCong duy nhất, không tự đổi order. Khoản đến muộn mà số tiền không còn khớp order (ví dụ order đã được sửa sau khi QR hết hạn) cũng vào danh sách ngoại lệ. Webhook lặp của khoản đã xác nhận thủ công được đối chiếu theo MaGiaoDichNganHang (duy nhất khi khác NULL) để ghi MaGiaoDichCong vào cùng giao dịch, không coi là khoản thu mới. Quản lý xử lý các khoản ngoại lệ theo FR-SALE-17.
 
-- **FR-SALE-17 – Quản lý xử lý khoản QR ngoại lệ:** Quản lý đối chiếu sao kê các khoản trong danh sách ngoại lệ: (a) order mở lại nhưng chưa thu lần hai: áp dụng khoản cũ và hủy lần thử QR mới chưa có tiền; (b) order “Đóng – chưa thu được tiền”: áp dụng khoản nhận, chuyển “Đã thanh toán”, loại khỏi tổng hiện tại của FR-REP-10 và chuyển giá vốn từ FR-REP-05c sang FR-REP-05a, giữ lịch sử đóng; (c) order đã thu lần hai, đã hủy, số tiền không còn khớp hoặc khoản không thể áp dụng: hoàn tiền ngoài hệ thống và lưu số tiền, mã tham chiếu, người thực hiện, thời điểm. Khi áp dụng phải khóa order và các giao dịch liên quan, kiểm tra lại chưa thanh toán, phát hành hóa đơn đúng một lần. Ngoại lệ chưa xử lý vẫn được theo dõi, không cộng vào doanh thu.
+- **FR-SALE-17 – Quản lý xử lý khoản QR ngoại lệ:** Quản lý đối chiếu sao kê các khoản trong danh sách ngoại lệ: (a) order mở lại nhưng chưa thu lần hai: áp dụng khoản cũ và hủy lần thử QR mới chưa có tiền; (b) order “Đóng – chưa thu được tiền”: áp dụng khoản nhận, chuyển “Đã thanh toán”, loại khỏi tổng hiện tại của FR-REP-10 và chuyển giá vốn từ FR-REP-13 sang FR-REP-11, giữ lịch sử đóng; (c) order đã thu lần hai, đã hủy, số tiền không còn khớp hoặc khoản không thể áp dụng: hoàn tiền ngoài hệ thống và lưu số tiền, mã tham chiếu, người thực hiện, thời điểm. Khi áp dụng phải khóa order và các giao dịch liên quan, kiểm tra lại chưa thanh toán, phát hành hóa đơn đúng một lần. Ngoại lệ chưa xử lý vẫn được theo dõi, không cộng vào doanh thu.
 
 - **FR-SALE-18 – Mã QR hết hạn:** Sau 10 phút, nếu giao dịch vẫn ở trạng thái “Chờ xác nhận”, mã QR hết hạn; giao diện hiển thị “Mã QR hết hạn”. Giao dịch chuyển sang “Hết hạn”, order về “Đang mở”, cho phép Thu ngân chọn tiền mặt hoặc tạo mã QR mới theo FR-SALE-13–14. Nếu khách báo đã chuyển tiền, Thu ngân ghi nhận yêu cầu xác minh theo FR-SALE-19. Tiền về muộn được xử lý theo FR-SALE-16.
 
@@ -768,7 +768,7 @@ Các yêu cầu chức năng được tổ chức theo sáu module và gắn v�
 
 - **FR-SALE-27 – Hủy toàn bộ order chưa thanh toán:** Quản lý được hủy toàn bộ order ở trạng thái “Đang mở”, chưa có thanh toán thành công và không có yêu cầu xác minh đang chờ xử lý; bắt buộc nhập lý do. Thao tác áp dụng cả khi order có món “Đã xác nhận xong” hoặc “Đã phục vụ”.
 
-- **FR-SALE-28 – Xử lý nguyên liệu khi hủy toàn bộ order:** Nguyên liệu của các món ở trạng thái “Đã xác nhận xong” hoặc “Đã phục vụ” không được hoàn kho; phần nguyên liệu đã tiêu hao này được ghi vào chi phí hao hụt do hủy order (FR-REP-05c) và hiển thị trong báo cáo FR-REP-10. Các món “Chờ làm” được hoàn kho theo FR-INV-04; hủy toàn bộ order kết thúc các lượt chọn chưa gửi và giải phóng lượng giữ liên quan.
+- **FR-SALE-28 – Xử lý nguyên liệu khi hủy toàn bộ order:** Nguyên liệu của các món ở trạng thái “Đã xác nhận xong” hoặc “Đã phục vụ” không được hoàn kho; phần nguyên liệu đã tiêu hao này được ghi vào chi phí hao hụt do hủy order (FR-REP-13) và hiển thị trong báo cáo FR-REP-10. Các món “Chờ làm” được hoàn kho theo FR-INV-04; hủy toàn bộ order kết thúc các lượt chọn chưa gửi và giải phóng lượng giữ liên quan.
 
 - **FR-SALE-29 – Ngoại lệ khi đang chờ xác nhận thanh toán QR:** Không cho hủy toàn order khi đang “Chờ xác nhận thanh toán” (đã tạo mã QR), phải chủ động hủy mã QR (FR-SALE-33) hoặc chờ hết hạn trước; nếu khách đã báo chuyển tiền thì chuyển sang “Chờ xác minh thanh toán” theo FR-SALE-19.
 
@@ -816,15 +816,15 @@ Các yêu cầu chức năng được tổ chức theo sáu module và gắn v�
 
 - **FR-REP-09 – Hiển thị dạng bảng và biểu đồ:** Báo cáo hiển thị dưới dạng bảng biểu và biểu đồ trực quan.
 
-- **FR-REP-04 – Lợi nhuận gộp theo chi phí nguyên liệu:** Tính bằng tiền ở mức tổng toàn nhà hàng theo chu kỳ tháng = Doanh thu bán hàng − Giá vốn nguyên liệu tiêu hao (05a + 05b + 05c); không bao gồm lương, thuê mặt bằng hay chi phí vận hành khác.
+- **FR-REP-04 – Lợi nhuận gộp theo chi phí nguyên liệu:** Tính bằng tiền ở mức tổng toàn nhà hàng theo chu kỳ tháng = Doanh thu bán hàng − Giá vốn nguyên liệu tiêu hao (FR-REP-11 + FR-REP-12 + FR-REP-13); không bao gồm lương, thuê mặt bằng hay chi phí vận hành khác.
 
-- **FR-REP-05 – Cấu thành giá vốn nguyên liệu tiêu hao:** Giá vốn gồm ba khoản 05a, 05b và 05c dưới đây. Mỗi lượng nguyên liệu chỉ được tính một lần. Hao hụt kiểm kê lấy từ giao dịch điều chỉnh kho; phiếu xuất hủy tự sinh chỉ là chứng từ đối chiếu.
+- **FR-REP-05 – Cấu thành giá vốn nguyên liệu tiêu hao:** Giá vốn gồm ba khoản FR-REP-11, FR-REP-12 và FR-REP-13 dưới đây. Mỗi lượng nguyên liệu chỉ được tính một lần. Hao hụt kiểm kê lấy từ giao dịch điều chỉnh kho; phiếu xuất hủy tự sinh chỉ là chứng từ đối chiếu.
 
-  - **FR-REP-05a – Giá vốn bán hàng:** Nguyên liệu tiêu hao theo công thức của order thanh toán thành công, tính theo phiên bản công thức lưu trên từng dòng món tại thời điểm gửi món. Giá vốn được tổng hợp theo ORDER.BusinessDate để đối chiếu với doanh thu và nhân đơn giá bình quân gia quyền của tháng tương ứng. Đơn giá tính trên tồn đầu kỳ và lượng nhập trong tháng; tháng không có lần nhập dùng đơn giá của kỳ gần nhất trước đó.
+  - **FR-REP-11 – Giá vốn bán hàng:** Nguyên liệu tiêu hao theo công thức của order thanh toán thành công, tính theo phiên bản công thức lưu trên từng dòng món tại thời điểm gửi món. Giá vốn được tổng hợp theo ORDER.BusinessDate để đối chiếu với doanh thu và nhân đơn giá bình quân gia quyền của tháng tương ứng. Đơn giá tính trên tồn đầu kỳ và lượng nhập trong tháng; tháng không có lần nhập dùng đơn giá của kỳ gần nhất trước đó.
 
-  - **FR-REP-05b – Hao hụt kho:** Tổng hợp nguyên liệu hao hụt, hư hỏng, hết hạn từ nguồn Nguyên liệu và chênh lệch âm kiểm kê theo ngày biến động kho. Phiếu nguồn Món đã chế biến dùng phân tích lý do tiêu hao gắn với order; chi phí của phần này được giữ trong nhóm 05a hoặc 05c theo kết quả order, mỗi giao dịch gốc chỉ được tổng hợp một lần.
+  - **FR-REP-12 – Hao hụt kho:** Tổng hợp nguyên liệu hao hụt, hư hỏng, hết hạn từ nguồn Nguyên liệu và chênh lệch âm kiểm kê theo ngày biến động kho. Phiếu nguồn Món đã chế biến dùng phân tích lý do tiêu hao gắn với order; chi phí của phần này được giữ trong nhóm FR-REP-11 hoặc FR-REP-13 theo kết quả order, mỗi giao dịch gốc chỉ được tổng hợp một lần.
 
-  - **FR-REP-05c – Tiêu hao của order bị hủy hoặc đóng chưa thu được tiền:** Nguyên liệu đã tiêu hao và không hoàn kho của order bị hủy toàn phần (FR-SALE-28) hoặc “Đóng – chưa thu được tiền” (FR-SALE-35). Phiên bản công thức, kỳ báo cáo và đơn giá bình quân được xác định như 05a. Lịch sử kho giữ nguyên thời điểm biến động thực tế.
+  - **FR-REP-13 – Tiêu hao của order bị hủy hoặc đóng chưa thu được tiền:** Nguyên liệu đã tiêu hao và không hoàn kho của order bị hủy toàn phần (FR-SALE-28) hoặc “Đóng – chưa thu được tiền” (FR-SALE-35). Phiên bản công thức, kỳ báo cáo và đơn giá bình quân được xác định như FR-REP-11. Lịch sử kho giữ nguyên thời điểm biến động thực tế.
 
 - **FR-REP-06 – Chi phí nguyên liệu theo món (tham khảo):** Hiển thị riêng chi phí nguyên liệu theo từng món (không kèm hao hụt) để tham khảo.
 
@@ -834,7 +834,7 @@ Các yêu cầu chức năng được tổ chức theo sáu module và gắn v�
 
 - **FR-REP-02 – Theo dõi thanh toán chưa hoàn tất:** Order “Chờ xác minh thanh toán” hiển thị riêng cùng giá trị order, thời gian đã chờ và kết quả xử lý gần nhất; chưa có hóa đơn và không cộng doanh thu. Khi Quản lý mở lại thanh toán, order về “Đang mở” và tiếp tục hiển thị trong danh sách khoản chưa thu cùng lịch sử xác minh. Nếu order bị hủy, khoản rời danh sách này và được theo dõi trong báo cáo order bị hủy. Khi xác nhận thành công, khoản rời danh sách và doanh thu được ghi nhận một lần theo ORDER.BusinessDate. Khi Quản lý đóng “Đóng – chưa thu được tiền”, khoản chuyển sang FR-REP-10. Ngoại lệ tiền đến muộn/thu trùng theo FR-SALE-16 được theo dõi riêng đến khi đã áp dụng hoặc hoàn tiền, không cộng doanh thu lần nữa.
 
-- **FR-REP-10 – Báo cáo order bị hủy và order đóng chưa thu được tiền:** Hiển thị thành hai nhóm riêng theo Business Date/tuần/tháng: order bị hủy toàn bộ (số lượng, giá trị, lý do) và order “Đóng – chưa thu được tiền” (số lượng, số tiền chưa thu, giá vốn nguyên liệu đã tiêu hao, lý do, người đóng, thời điểm đóng). Các khoản không cộng doanh thu. Giá trị order và giá vốn được hiển thị thành hai chỉ tiêu riêng. Khi khoản tiền đến muộn được áp dụng hợp lệ theo FR-SALE-17, order rời tổng hiện tại của nhóm đóng chưa thu, giá vốn chuyển từ FR-REP-05c sang FR-REP-05a và doanh thu ghi một lần; giữ lịch sử đóng và xử lý để tra cứu.
+- **FR-REP-10 – Báo cáo order bị hủy và order đóng chưa thu được tiền:** Hiển thị thành hai nhóm riêng theo Business Date/tuần/tháng: order bị hủy toàn bộ (số lượng, giá trị, lý do) và order “Đóng – chưa thu được tiền” (số lượng, số tiền chưa thu, giá vốn nguyên liệu đã tiêu hao, lý do, người đóng, thời điểm đóng). Các khoản không cộng doanh thu. Giá trị order và giá vốn được hiển thị thành hai chỉ tiêu riêng. Khi khoản tiền đến muộn được áp dụng hợp lệ theo FR-SALE-17, order rời tổng hiện tại của nhóm đóng chưa thu, giá vốn chuyển từ FR-REP-13 sang FR-REP-11 và doanh thu ghi một lần; giữ lịch sử đóng và xử lý để tra cứu.
 
 ### K.5. Cài đặt hệ thống
 
@@ -872,4 +872,4 @@ Các yêu cầu chức năng được tổ chức theo sáu module và gắn v�
 
 - **FR-AI-09 – Thông báo khi không thể trả lời:** Khi không tạo được câu trả lời hợp lệ, hệ thống thông báo và gợi ý diễn đạt lại, không im lặng hoặc trả kết quả sai.
 
-- **FR-AI-10 – Hạn mức và bộ nhớ đệm:** Hạn mức SoCauHoiAIMoiNgay mặc định 50 câu/người/ngày theo FR-SET-04 và NFR-09; hệ thống thông báo khi đạt hạn mức. Cache có thời hạn ngắn, gắn người dùng, vai trò, phạm vi, tham số thời gian và phiên bản quyền. Biến động dữ liệu hoặc quyền làm mất hiệu lực cache liên quan; khi không xác định được dữ liệu phụ thuộc, hệ thống truy vấn trực tiếp. Câu hỏi về giữ món, tồn khả dụng và số suất còn phục vụ được luôn dùng dữ liệu hiện tại.
+- **FR-AI-10 – Hạn mức và bộ nhớ đệm:** Hạn mức SoCauHoiAIMoiNgay mặc định 50 câu/người/ngày theo FR-SET-04 và NFR-08; hệ thống thông báo khi đạt hạn mức. Cache có thời hạn ngắn, gắn người dùng, vai trò, phạm vi, tham số thời gian và phiên bản quyền. Biến động dữ liệu hoặc quyền làm mất hiệu lực cache liên quan; khi không xác định được dữ liệu phụ thuộc, hệ thống truy vấn trực tiếp. Câu hỏi về giữ món, tồn khả dụng và số suất còn phục vụ được luôn dùng dữ liệu hiện tại.
