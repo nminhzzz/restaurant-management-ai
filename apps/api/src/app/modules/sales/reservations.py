@@ -394,10 +394,14 @@ async def update_hold(
             )
         )
     await _add_details(session, reservation, allocations)
-    reservation.quantity = quantity
-    reservation.expires_at = _expiry_for(
+    refreshed_expiry = _expiry_for(
         now, await _hold_minutes(session), [lot for lot, _ in allocations]
     )
+    # FR-SALE-08: only an increase renews the deadline; a decrease keeps (or shortens) it.
+    reservation.expires_at = (
+        refreshed_expiry if quantity > current else min(reservation.expires_at, refreshed_expiry)
+    )
+    reservation.quantity = quantity
     await session.flush()
     return reservation
 
