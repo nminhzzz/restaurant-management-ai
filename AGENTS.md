@@ -81,6 +81,6 @@ Chạy riêng: `cd apps/api && uv run pytest`, `cd apps/web && pnpm test`.
 - `next-env.d.ts` bị gitignore; `pnpm typecheck` trên bản clone mới không có file này vẫn phải xanh —
   đừng dùng `LayoutProps`/`PageProps` sinh tự động trong code.
 - `apps/web/AGENTS.md` do chính `next dev` sinh và ghi lại; không sửa file đó.
-- Báo cáo dùng **Class Diagram** (`docs/ClassDiagram_*.drawio`) và ánh xạ sang lược đồ quan hệ ở
+- Báo cáo dùng **Class Diagram** (`docs/So_do/ClassDiagram_*.drawio`) và ánh xạ sang lược đồ quan hệ ở
   §3.2.2; BFD/DFD đã bị bỏ khỏi báo cáo nên đừng viện dẫn lại.
-- Đường dẫn ảnh trong báo cáo là `Images/` (chữ hoa) — Linux phân biệt hoa/thường, đổi lại là vỡ ảnh.
+- Đường dẫn ảnh trong báo cáo là `images/` (chữ thường) — Linux phân biệt hoa/thường, đổi lại là vỡ ảnh.
