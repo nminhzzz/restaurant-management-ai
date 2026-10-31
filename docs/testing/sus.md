@@ -4,7 +4,7 @@
 Các ô dưới đây giữ trống cho tới khi khảo sát. Không lấy kết quả test tự động hoặc thao tác của trợ lý
 để tính điểm SUS. Xem [kết quả kiểm chứng kỹ thuật](results-2026-10-17.md).
 
-Theo Phụ lục 4 của `docs/BaoCao_HeThongQuanLyNhaHang.md`: 3–5 người đóng vai Chủ nhà hàng/Quản lý,
+Theo NFR-09 của `docs/BaoCao_HeThongQuanLyNhaHang.md`: ít nhất 5 người từng làm quản lý hoặc thu ngân,
 kết hợp phỏng vấn ngắn. Với cỡ mẫu này kết quả chỉ có giá trị định tính, tham khảo — không suy rộng
 thành kết luận thống kê.
 
@@ -79,7 +79,7 @@ SUS = [ Σ(điểm lẻ − 1) + Σ(5 − điểm chẵn) ] × 2.5
 
 Kết quả nằm trong khoảng 0–100 cho mỗi người tham gia.
 
-## 5. Bảng tổng hợp kết quả (3–5 người tham gia)
+## 5. Bảng tổng hợp kết quả (ít nhất 5 người tham gia)
 
 | Người tham gia | Q1 | Q2 | Q3 | Q4 | Q5 | Q6 | Q7 | Q8 | Q9 | Q10 | Điểm SUS |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -102,6 +102,6 @@ Brooke, 1996):
 | 51 – 67.9 | C (OK) | Chấp nhận được nhưng còn điểm cần cải thiện |
 | < 51 | D/F (Poor) | Cần cải thiện đáng kể trước khi đưa vào vận hành thật |
 
-Vì cỡ mẫu 3–5 người, điểm trung bình và khung xếp hạng ở trên chỉ dùng để **định hướng** cải thiện UX
+Vì cỡ mẫu nhỏ (tối thiểu 5 người), điểm trung bình và khung xếp hạng ở trên chỉ dùng để **định hướng** cải thiện UX
 (ưu tiên sửa gì trước), không dùng làm kết luận định lượng chính thức trong báo cáo khoa học. Nội dung
 phỏng vấn ngắn (mục 3) quan trọng hơn con số điểm khi cỡ mẫu nhỏ.

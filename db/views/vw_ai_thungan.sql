@@ -1,6 +1,6 @@
 SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- Cashier / order-staff scope (NFR-12, FR-AI-03): orders, dish-sale lines (selling
+-- Cashier / order-staff scope (NFR-05, FR-AI-03): orders, dish-sale lines (selling
 -- price only), invoices and payments. No inventory, no purchase prices, no cost or
 -- margin columns, no password hashes.
 --

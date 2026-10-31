@@ -1,5 +1,8 @@
 # Cập nhật báo cáo theo kết quả thực nghiệm AI ngày 27/10/2026
 
+> **Đã cũ (lịch sử):** ghi chú này viết trước khi báo cáo được đánh số lại (kết quả nay ở chương 6, dự toán chi phí 0,0242 USD/câu,
+> số liệu lần chạy "after" thay cho lần "official"). Không dùng để cập nhật báo cáo; xem `docs/ba-handoff-2026-10-31.md`.
+
 Tài liệu này gửi Khánh để cập nhật `BaoCao_HeThongQuanLyNhaHang.md`. Mỗi mục ghi rõ chỗ cần sửa và
 đoạn văn thay thế. Số liệu lấy từ các tệp trong `docs/`; số bảng ghi tạm là "Bảng X", cần đánh lại khi
 chèn vào báo cáo.

@@ -1,6 +1,6 @@
 """SQL guard: the only path from generated text to an executed query.
 
-Rules enforced here, in order (NFR-06, risk register items 1 and 3):
+Rules enforced here, in order (NFR-05, risk register items 1 and 3):
 
 1. exactly one statement;
 2. a read-only query — no DML, no DDL, no `SELECT ... INTO`;

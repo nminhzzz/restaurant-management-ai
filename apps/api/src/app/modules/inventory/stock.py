@@ -162,7 +162,7 @@ async def lock_stock_operations(session: AsyncSession) -> None:
 
 
 async def ensure_no_open_stocktake(session: AsyncSession) -> None:
-    """NFR-20: a counting session freezes stock-changing transactions."""
+    """NFR-07: a counting session freezes stock-changing transactions."""
     from app.modules.inventory.models import Stocktake
 
     await lock_stock_operations(session)

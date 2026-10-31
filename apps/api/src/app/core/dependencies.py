@@ -1,6 +1,6 @@
 """Reusable FastAPI dependencies: authentication and role authorisation.
 
-Authorisation is enforced here, at the API layer, not in the UI (NFR-05).
+Authorisation is enforced here, at the API layer, not in the UI (NFR-04).
 """
 
 from collections.abc import Callable, Coroutine

@@ -5,7 +5,7 @@ import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 
 // Design tokens §6: primary for the main action, secondary for cancel/back, ghost for
-// icons, danger for destructive calls; h-11 is the tablet/POS size (NFR-13).
+// icons, danger for destructive calls; h-11 is the tablet/POS size (NFR-10).
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 rounded-control text-sm font-semibold transition-[color,background-color,border-color,transform] active:translate-y-px focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
   {

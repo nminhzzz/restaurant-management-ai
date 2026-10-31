@@ -1,6 +1,6 @@
 """Domain errors and the handlers that turn them into API responses.
 
-Messages are Vietnamese because they are surfaced to end users (NFR-14);
+Messages are Vietnamese because they are surfaced to end users (NFR-09);
 internal details are never leaked (rule 5).
 """
 
@@ -92,7 +92,7 @@ def _mask(value: Any) -> Any:
 
 
 def _describe(request: Request) -> str:
-    """Operation and input of the failing request, with credentials masked (NFR-15)."""
+    """Operation and input of the failing request, with credentials masked (NFR-06)."""
     operation = f"{request.method} {request.url.path}"
     if request.url.query:
         operation += f"?{request.url.query}"

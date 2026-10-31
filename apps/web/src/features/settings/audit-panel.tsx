@@ -127,7 +127,7 @@ function targetLabel(target: string): string {
   return TARGET_LABELS[target] ?? target;
 }
 
-/** FR-SET-08/09: filterable, expandable, server-paged audit log lookup. */
+/** FR-SET-06/07: filterable, expandable, server-paged audit log lookup. */
 export function AuditPanel() {
   const [page, setPage] = useState(1);
   const [actionFilter, setActionFilter] = useState("");

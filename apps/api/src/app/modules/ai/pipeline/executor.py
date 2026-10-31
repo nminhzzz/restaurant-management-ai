@@ -1,4 +1,4 @@
-"""Step 5 — execution on the asking role's read-only account (NFR-06).
+"""Step 5 — execution on the asking role's read-only account (NFR-05).
 
 The account is per role and only ever gets `SELECT` on that role's view, so a query
 that slipped past the guard still cannot reach another role's data. The statement

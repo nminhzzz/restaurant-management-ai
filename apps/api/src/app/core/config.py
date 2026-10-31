@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     # password reset takes effect immediately (tests disable this for speed).
     auth_revalidate_tokens: bool = True
 
-    # AI Assistant (NFR-02 response budget, NFR-16 cost control).
+    # AI Assistant (NFR-02 response budget, NFR-08 cost control).
     # Claude Opus 5.5 via the Anthropic API is the default provider (report §5.1.1);
     # prices are its list rates on 25/10/2026, output including thinking tokens.
     ai_input_usd_per_million: float = Field(default=4.0, ge=0)
@@ -68,7 +68,7 @@ class Settings(BaseSettings):
     ai_daily_question_quota: int = 50
     ai_sql_cache_ttl_seconds: int = Field(default=300, ge=1, le=86400)
 
-    # NFR-06 execution limits: a query runs at most `ai_sql_timeout_seconds` on the
+    # NFR-05 execution limits: a query runs at most `ai_sql_timeout_seconds` on the
     # database, and the model gets at most `ai_max_sql_attempts` tries per question.
     ai_sql_timeout_seconds: float = 3.0
     ai_max_sql_attempts: int = 2
@@ -99,7 +99,7 @@ class Settings(BaseSettings):
     # transaction list every N seconds and settle matching payments. 0 disables.
     sepay_poll_interval_seconds: int = Field(default=30, ge=0)
 
-    # NFR-06 requires one read-only account per role, each granted SELECT on that
+    # NFR-05 requires one read-only account per role, each granted SELECT on that
     # role's view only — never a single account shared by all three roles.
     ai_readonly_url_manager: str = ""
     ai_readonly_url_cashier: str = ""

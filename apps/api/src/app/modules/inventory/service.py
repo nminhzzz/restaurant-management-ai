@@ -634,7 +634,7 @@ async def list_issues(
 # Stocktakes
 async def create_stocktake(session: AsyncSession, actor_id: int) -> Stocktake:
     await lock_stock_operations(session)
-    # NFR-20: one open counting session at a time; the session blocks stock changes.
+    # NFR-07: one open counting session at a time; the session blocks stock changes.
     existing = (
         await session.execute(
             select(Stocktake.id).where(Stocktake.status == "Nháp").limit(1).with_for_update()

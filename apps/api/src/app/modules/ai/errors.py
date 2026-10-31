@@ -1,4 +1,4 @@
-"""Signals the assistant pipeline raises to the orchestrator (FR-AI-06, NFR-16)."""
+"""Signals the assistant pipeline raises to the orchestrator (FR-AI-06, NFR-08)."""
 
 
 class ClarificationNeeded(Exception):
@@ -10,7 +10,7 @@ class ClarificationNeeded(Exception):
 
 
 class QuotaExceeded(Exception):
-    """The daily question quota is spent (NFR-16)."""
+    """The daily question quota is spent (NFR-08)."""
 
     def __init__(self, message: str = "Đã đạt hạn mức câu hỏi trong ngày.") -> None:
         super().__init__(message)
