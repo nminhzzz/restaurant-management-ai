@@ -930,7 +930,7 @@
         <mxCell id="QT-14_start" value="" style="ellipse;html=1;shape=startState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="228.0" y="80.0" width="34.0" height="34.0" as="geometry"/>
         </mxCell>
-        <mxCell id="QT-14_b1" value="Nhận hàng, chọn nhà cung cấp, nhập&#10;nguyên liệu, số lượng, đơn giá" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.4;fontSize=16;fontColor=#000000;spacing=6;" vertex="1" parent="1">
+        <mxCell id="QT-14_b1" value="Nhận hàng, nhập nhà cung cấp,&#10;nguyên liệu, lượng và đơn giá" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.4;fontSize=16;fontColor=#000000;spacing=6;" vertex="1" parent="1">
           <mxGeometry x="80.0" y="179.0" width="330" height="62" as="geometry"/>
         </mxCell>
         <mxCell id="QT-14_b2" value="Kiểm tra dữ liệu phiếu nhập và&#10;trạng thái không khóa kiểm kê" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.4;fontSize=16;fontColor=#000000;spacing=6;" vertex="1" parent="1">
@@ -948,13 +948,13 @@
         <mxCell id="QT-14_b_yes" value="Tạo lô nguyên liệu riêng, tự tính&#10;hạn dùng và tăng tồn kho" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.4;fontSize=14.0;fontColor=#000000;spacing=6;" vertex="1" parent="1">
           <mxGeometry x="480.0" y="490.0" width="200" height="70" as="geometry"/>
         </mxCell>
-        <mxCell id="QT-14_b_no" value="Sửa hoặc hủy phiếu khi lô&#10;chưa xuất và chưa được giữ" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.4;fontSize=14.0;fontColor=#000000;spacing=6;" vertex="1" parent="1">
+        <mxCell id="QT-14_b_no" value="Sửa/hủy khi lô chưa xuất,&#10;không có giữ còn hiệu lực" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.4;fontSize=14.0;fontColor=#000000;spacing=6;" vertex="1" parent="1">
           <mxGeometry x="710.0" y="490.0" width="200" height="70" as="geometry"/>
         </mxCell>
         <mxCell id="QT-14_m2" value="" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.4;" vertex="1" parent="1">
           <mxGeometry x="677.0" y="602.0" width="36" height="36" as="geometry"/>
         </mxCell>
-        <mxCell id="QT-14_b_save" value="Lưu phiếu nhập, lô nguyên liệu, sổ cái&#10;kho và nhật ký trong 1 transaction" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.4;fontSize=16;fontColor=#000000;spacing=6;" vertex="1" parent="1">
+        <mxCell id="QT-14_b_save" value="Lưu dữ liệu và audit; tính lại giá vốn&#10;các kỳ bị ảnh hưởng trong transaction" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.4;fontSize=16;fontColor=#000000;spacing=6;" vertex="1" parent="1">
           <mxGeometry x="525.0" y="669.0" width="340" height="62" as="geometry"/>
         </mxCell>
         <mxCell id="QT-14_b_view" value="Xem phiếu nhập và tồn kho&#10;theo lô sau cập nhật" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.4;fontSize=16;fontColor=#000000;spacing=6;" vertex="1" parent="1">
@@ -1066,7 +1066,7 @@
         <mxCell id="QT-16_m2" value="" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.4;" vertex="1" parent="1">
           <mxGeometry x="677.0" y="602.0" width="36" height="36" as="geometry"/>
         </mxCell>
-        <mxCell id="QT-16_b_save" value="Lưu phiếu xuất hủy, giao dịch kho&#10;và ghi nhật ký hệ thống" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.4;fontSize=16;fontColor=#000000;spacing=6;" vertex="1" parent="1">
+        <mxCell id="QT-16_b_save" value="Lưu phiếu và audit; chỉ nguồn&#10;Nguyên liệu tạo giao dịch xuất mới" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.4;fontSize=16;fontColor=#000000;spacing=6;" vertex="1" parent="1">
           <mxGeometry x="525.0" y="669.0" width="340" height="62" as="geometry"/>
         </mxCell>
         <mxCell id="QT-16_b_view" value="Xem chứng từ xuất hủy và&#10;tồn kho sau xử lý" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.4;fontSize=16;fontColor=#000000;spacing=6;" vertex="1" parent="1">
@@ -1155,7 +1155,7 @@
         <mxCell id="QT-17_b1" value="Yêu cầu mở phiên kiểm kê&#10;sau khi kết thúc phục vụ" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.4;fontSize=16;fontColor=#000000;spacing=6;" vertex="1" parent="1">
           <mxGeometry x="80.0" y="163.0" width="330" height="54" as="geometry"/>
         </mxCell>
-        <mxCell id="QT-17_b_chk1" value="Kiểm tra món và lượt chọn;&#10;loại giữ hết hạn theo giờ server" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.4;fontSize=16;fontColor=#000000;spacing=6;fontSize=17;" vertex="1" parent="1">
+        <mxCell id="QT-17_b_chk1" value="Kiểm tra mọi lượt chọn chưa gửi/hủy;&#10;hết hạn chỉ giải phóng khả dụng" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.4;fontSize=16;fontColor=#000000;spacing=6;fontSize=17;" vertex="1" parent="1">
           <mxGeometry x="530.0" y="163.0" width="330" height="54" as="geometry"/>
         </mxCell>
         <mxCell id="QT-17_d1" value="" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.4;" vertex="1" parent="1">
@@ -1176,7 +1176,7 @@
         <mxCell id="QT-17_d2" value="" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.4;" vertex="1" parent="1">
           <mxGeometry x="672.0" y="542.0" width="46" height="46" as="geometry"/>
         </mxCell>
-        <mxCell id="QT-17_b_adj" value="Phân bổ chênh lệch xuống lô (BR-LOT-02),&#10;sinh phiếu xuất hủy nếu âm &amp; ghi sổ cái" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.4;fontSize=15.5;fontColor=#000000;spacing=6;" vertex="1" parent="1">
+        <mxCell id="QT-17_b_adj" value="Điều chỉnh lượng, không nhập giá;&#10;giá trị theo bình quân khi có;&#10;âm có phiếu xuất hủy tham chiếu" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.4;fontSize=15.5;fontColor=#000000;spacing=6;" vertex="1" parent="1">
           <mxGeometry x="522.5" y="630.0" width="345" height="60" as="geometry"/>
         </mxCell>
         <mxCell id="QT-17_m2" value="" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.4;" vertex="1" parent="1">

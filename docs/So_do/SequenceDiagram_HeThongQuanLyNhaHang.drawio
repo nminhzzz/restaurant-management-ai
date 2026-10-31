@@ -6385,8 +6385,8 @@
             <mxPoint x="605.3333333333334" y="675" as="targetPoint"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="c18" value="[đủ tiền, khớp order; chưa mở lại / đóng / hủy / trả lần khác]" style="text;html=0;align=left;verticalAlign=top;whiteSpace=wrap;overflow=hidden;fontFamily=DejaVu Sans;fontSize=16;fontColor=#000000;fillColor=#FFFFFF;spacing=2;" parent="1" vertex="1">
-          <mxGeometry x="87" y="695" width="491.609375" height="22" as="geometry"/>
+        <mxCell id="c18" value="[đủ tiền, đúng order; chưa có quyết định mở lại của Quản lý / đóng / hủy / thu khác]" style="text;html=0;align=left;verticalAlign=top;whiteSpace=wrap;overflow=hidden;fontFamily=DejaVu Sans;fontSize=16;fontColor=#000000;fillColor=#FFFFFF;spacing=2;fontSize=14;" parent="1" vertex="1">
+          <mxGeometry x="87" y="695" width="491.609375" height="37.0" as="geometry"/>
         </mxCell>
         <mxCell id="c19" value="[QR mới đang chờ chưa có tiền]" style="text;html=0;align=left;verticalAlign=top;whiteSpace=wrap;overflow=hidden;fontFamily=DejaVu Sans;fontSize=16;fontColor=#000000;fillColor=#FFFFFF;spacing=2;" parent="1" vertex="1">
           <mxGeometry x="98" y="746" width="263.828125" height="22" as="geometry"/>
@@ -6433,8 +6433,8 @@
             <mxPoint x="346.6666666666667" y="1046" as="targetPoint"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="c30" value="[sai tiền / đã mở lại, đóng, hủy hoặc trả lần khác]" style="text;html=0;align=left;verticalAlign=top;whiteSpace=wrap;overflow=hidden;fontFamily=DejaVu Sans;fontSize=16;fontColor=#000000;fillColor=#FFFFFF;spacing=2;" parent="1" vertex="1">
-          <mxGeometry x="87" y="1066" width="405.15625" height="22" as="geometry"/>
+        <mxCell id="c30" value="[sai tiền / Quản lý đã mở lại / đóng / hủy / đã thu lần khác]" style="text;html=0;align=left;verticalAlign=top;whiteSpace=wrap;overflow=hidden;fontFamily=DejaVu Sans;fontSize=16;fontColor=#000000;fillColor=#FFFFFF;spacing=2;fontSize=14;" parent="1" vertex="1">
+          <mxGeometry x="87" y="1066" width="405.15625" height="37.0" as="geometry"/>
         </mxCell>
         <mxCell id="c31" value="12: lưu khoản ngoại lệ&#10;theo mã cổng duy nhất;&#10;không tự đổi order" style="text;html=0;align=center;verticalAlign=top;whiteSpace=wrap;overflow=hidden;fontFamily=DejaVu Sans;fontSize=17;fontColor=#000000;fillColor=#FFFFFF;spacing=2;" parent="1" vertex="1">
           <mxGeometry x="621.5260416666667" y="1093" width="214.28125" height="61" as="geometry"/>
@@ -7299,7 +7299,7 @@
             <mxPoint x="605.3333333333334" y="923" as="targetPoint"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="c27" value="13: doanh thu theo ngày order;&#10;chuyển giá vốn 05c → 05a; loại&#10;tổng đóng chưa thu" style="text;html=0;align=left;verticalAlign=top;whiteSpace=wrap;overflow=hidden;fontFamily=DejaVu Sans;fontSize=17;fontColor=#000000;fillColor=#FFFFFF;spacing=2;" parent="1" vertex="1">
+        <mxCell id="c27" value="13: doanh thu theo ngày order;&#10;chuyển giá vốn đóng chưa thu&#10;sang bán hàng; giữ lịch sử" style="text;html=0;align=left;verticalAlign=top;whiteSpace=wrap;overflow=hidden;fontFamily=DejaVu Sans;fontSize=17;fontColor=#000000;fillColor=#FFFFFF;spacing=2;" parent="1" vertex="1">
           <mxGeometry x="618.3333333333334" y="935" width="277.25" height="61" as="geometry"/>
         </mxCell>
         <mxCell id="c28" value="" style="endArrow=block;endFill=1;rounded=0;strokeWidth=1.2;" parent="1" edge="1">
@@ -8333,7 +8333,7 @@
             <mxPoint x="852.0" y="661" as="targetPoint"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="c19" value="9: tăng tồn lô; ghi giao&#10;dịch nhập" style="text;html=0;align=center;verticalAlign=top;whiteSpace=wrap;overflow=hidden;fontFamily=DejaVu Sans;fontSize=17;fontColor=#000000;fillColor=#FFFFFF;spacing=2;" parent="1" vertex="1">
+        <mxCell id="c19" value="9: tăng tồn, ghi giao dịch;&#10;tự tính bình quân và giá vốn" style="text;html=0;align=center;verticalAlign=top;whiteSpace=wrap;overflow=hidden;fontFamily=DejaVu Sans;fontSize=17;fontColor=#000000;fillColor=#FFFFFF;spacing=2;" parent="1" vertex="1">
           <mxGeometry x="626.8619791666667" y="673" width="203.609375" height="42" as="geometry"/>
         </mxCell>
         <mxCell id="c20" value="" style="endArrow=block;endFill=1;rounded=0;strokeWidth=1.2;" parent="1" edge="1">
@@ -8421,7 +8421,7 @@
         <mxCell id="c38" value="[đủ điều kiện]" style="text;html=0;align=left;verticalAlign=top;whiteSpace=wrap;overflow=hidden;fontFamily=DejaVu Sans;fontSize=16;fontColor=#000000;fillColor=#FFFFFF;spacing=2;" parent="1" vertex="1">
           <mxGeometry x="87" y="1151" width="121.28125" height="22" as="geometry"/>
         </mxCell>
-        <mxCell id="c39" value="16: transaction: sửa/hủy&#10;phiếu và tồn liên quan;&#10;audit log" style="text;html=0;align=center;verticalAlign=top;whiteSpace=wrap;overflow=hidden;fontFamily=DejaVu Sans;fontSize=17;fontColor=#000000;fillColor=#FFFFFF;spacing=2;" parent="1" vertex="1">
+        <mxCell id="c39" value="16: sửa/hủy phiếu và lô;&#10;tính lại các kỳ bị ảnh hưởng;&#10;audit và commit" style="text;html=0;align=center;verticalAlign=top;whiteSpace=wrap;overflow=hidden;fontFamily=DejaVu Sans;fontSize=17;fontColor=#000000;fillColor=#FFFFFF;spacing=2;" parent="1" vertex="1">
           <mxGeometry x="619.9713541666667" y="1178" width="217.390625" height="61" as="geometry"/>
         </mxCell>
         <mxCell id="c40" value="" style="endArrow=block;endFill=1;rounded=0;strokeWidth=1.2;" parent="1" edge="1">
@@ -9375,7 +9375,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="c7" value="4: kiểm tra món/lượt chọn;&#10;xử lý hết hạn theo giờ;&#10;không còn giữ hiệu lực" style="text;html=0;align=center;verticalAlign=top;whiteSpace=wrap;overflow=hidden;fontFamily=DejaVu Sans;fontSize=17;fontColor=#000000;fillColor=#FFFFFF;spacing=2;" parent="1" vertex="1">
+        <mxCell id="c7" value="4: kiểm tra lượt chọn chưa gửi/hủy;&#10;kể cả giữ đã hết hạn;&#10;chưa xử lý thì từ chối" style="text;html=0;align=center;verticalAlign=top;whiteSpace=wrap;overflow=hidden;fontFamily=DejaVu Sans;fontSize=17;fontColor=#000000;fillColor=#FFFFFF;spacing=2;" parent="1" vertex="1">
           <mxGeometry x="614.3151041666667" y="301" width="228.703125" height="61" as="geometry"/>
         </mxCell>
         <mxCell id="c8" value="" style="endArrow=block;endFill=1;rounded=0;strokeWidth=1.2;" parent="1" edge="1">
@@ -9496,7 +9496,7 @@
         <mxCell id="c34" value="[dương]" style="text;html=0;align=left;verticalAlign=top;whiteSpace=wrap;overflow=hidden;fontFamily=DejaVu Sans;fontSize=16;fontColor=#000000;fillColor=#FFFFFF;spacing=2;" parent="1" vertex="1">
           <mxGeometry x="98" y="1126" width="72.890625" height="22" as="geometry"/>
         </mxCell>
-        <mxCell id="c35" value="15: transaction: điều chỉnh&#10;tăng" style="text;html=0;align=center;verticalAlign=top;whiteSpace=wrap;overflow=hidden;fontFamily=DejaVu Sans;fontSize=17;fontColor=#000000;fillColor=#FFFFFF;spacing=2;" parent="1" vertex="1">
+        <mxCell id="c35" value="15: tăng số lượng; không nhập giá;&#10;giá trị theo bình quân nếu có,&#10;thiếu giá vẫn ghi nhận lượng" style="text;html=0;align=center;verticalAlign=top;whiteSpace=wrap;overflow=hidden;fontFamily=DejaVu Sans;fontSize=17;fontColor=#000000;fillColor=#FFFFFF;spacing=2;" parent="1" vertex="1">
           <mxGeometry x="609.4010416666667" y="1153" width="238.53125" height="42" as="geometry"/>
         </mxCell>
         <mxCell id="c36" value="" style="endArrow=block;endFill=1;rounded=0;strokeWidth=1.2;" parent="1" edge="1">
@@ -10386,7 +10386,7 @@
             <mxPoint x="605.3333333333334" y="500" as="targetPoint"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="c15" value="7: đơn giá bình quân tháng: tồn&#10;đầu kỳ + nhập trong tháng" style="text;html=0;align=left;verticalAlign=top;whiteSpace=wrap;overflow=hidden;fontFamily=DejaVu Sans;fontSize=17;fontColor=#000000;fillColor=#FFFFFF;spacing=2;" parent="1" vertex="1">
+        <mxCell id="c15" value="7: bình quân tự cập nhật từ&#10;tồn đầu kỳ và nhập hợp lệ;&#10;thiếu giá: chưa xác định" style="text;html=0;align=left;verticalAlign=top;whiteSpace=wrap;overflow=hidden;fontFamily=DejaVu Sans;fontSize=17;fontColor=#000000;fillColor=#FFFFFF;spacing=2;" parent="1" vertex="1">
           <mxGeometry x="618.3333333333334" y="512" width="279.8125" height="42" as="geometry"/>
         </mxCell>
         <mxCell id="c16" value="" style="endArrow=block;endFill=1;rounded=0;strokeWidth=1.2;" parent="1" edge="1">
@@ -10412,7 +10412,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="c19" value="9: tổng hợp 05a bán hàng, 05b&#10;hao hụt, 05c hủy/đóng chưa thu" style="text;html=0;align=left;verticalAlign=top;whiteSpace=wrap;overflow=hidden;fontFamily=DejaVu Sans;fontSize=17;fontColor=#000000;fillColor=#FFFFFF;spacing=2;" parent="1" vertex="1">
+        <mxCell id="c19" value="9: giá vốn bán hàng, hao hụt,&#10;hủy/đóng chưa thu (FR-REP-11–13)" style="text;html=0;align=left;verticalAlign=top;whiteSpace=wrap;overflow=hidden;fontFamily=DejaVu Sans;fontSize=17;fontColor=#000000;fillColor=#FFFFFF;spacing=2;" parent="1" vertex="1">
           <mxGeometry x="618.3333333333334" y="648" width="282.953125" height="42" as="geometry"/>
         </mxCell>
         <mxCell id="c20" value="" style="endArrow=block;endFill=1;rounded=0;strokeWidth=1.2;" parent="1" edge="1">
@@ -10425,7 +10425,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="c21" value="10: mỗi lượng tính một lần;&#10;05a/05c theo&#10;ORDER.BusinessDate" style="text;html=0;align=left;verticalAlign=top;whiteSpace=wrap;overflow=hidden;fontFamily=DejaVu Sans;fontSize=17;fontColor=#000000;fillColor=#FFFFFF;spacing=2;" parent="1" vertex="1">
+        <mxCell id="c21" value="10: mỗi lượng tính một lần;&#10;giá vốn bán/hủy/đóng&#10;theo ORDER.BusinessDate" style="text;html=0;align=left;verticalAlign=top;whiteSpace=wrap;overflow=hidden;fontFamily=DejaVu Sans;fontSize=17;fontColor=#000000;fillColor=#FFFFFF;spacing=2;" parent="1" vertex="1">
           <mxGeometry x="618.3333333333334" y="716" width="241.8125" height="61" as="geometry"/>
         </mxCell>
         <mxCell id="c22" value="" style="endArrow=block;endFill=1;rounded=0;strokeWidth=1.2;" parent="1" edge="1">
@@ -10438,7 +10438,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="c23" value="11: lợi nhuận gộp = doanh thu −&#10;(05a + 05b + 05c)" style="text;html=0;align=left;verticalAlign=top;whiteSpace=wrap;overflow=hidden;fontFamily=DejaVu Sans;fontSize=17;fontColor=#000000;fillColor=#FFFFFF;spacing=2;" parent="1" vertex="1">
+        <mxCell id="c23" value="11: lợi nhuận gộp = doanh thu&#10;trừ tổng ba nhóm giá vốn" style="text;html=0;align=left;verticalAlign=top;whiteSpace=wrap;overflow=hidden;fontFamily=DejaVu Sans;fontSize=17;fontColor=#000000;fillColor=#FFFFFF;spacing=2;" parent="1" vertex="1">
           <mxGeometry x="618.3333333333334" y="803" width="290.515625" height="42" as="geometry"/>
         </mxCell>
         <mxCell id="c24" value="" style="endArrow=block;endFill=1;rounded=0;strokeWidth=1.2;" parent="1" edge="1">
@@ -12707,35 +12707,23 @@
             <mxPoint x="334.6666666666667" y="1264" as="targetPoint"/>
           </mxGeometry>
         </mxCell>
-        <mxCell id="c48" value="18: dangXuat()" style="text;html=0;align=center;verticalAlign=top;whiteSpace=wrap;overflow=hidden;fontFamily=DejaVu Sans;fontSize=17;fontColor=#000000;fillColor=#FFFFFF;spacing=2;" parent="1" vertex="1">
-          <mxGeometry x="400.8359375" y="1276" width="138.328125" height="23" as="geometry"/>
+        <mxCell id="c48" value="18: xóa token trên trình duyệt" style="text;html=0;align=center;verticalAlign=top;whiteSpace=wrap;overflow=hidden;fontFamily=DejaVu Sans;fontSize=17;fontColor=#000000;fillColor=#FFFFFF;spacing=2;" parent="1" vertex="1">
+          <mxGeometry x="420" y="1276" width="360" height="23" as="geometry"/>
         </mxCell>
         <mxCell id="c49" value="" style="endArrow=block;endFill=1;rounded=0;strokeWidth=1.2;" parent="1" edge="1">
           <mxGeometry relative="1" as="geometry">
-            <mxPoint x="346.6666666666667" y="1300" as="sourcePoint"/>
-            <mxPoint x="593.3333333333334" y="1300" as="targetPoint"/>
-          </mxGeometry>
+            <mxPoint x="346.6667" y="1300" as="sourcePoint"/><mxPoint x="346.6667" y="1325" as="targetPoint"/><Array as="points"><mxPoint x="405" y="1300"/><mxPoint x="405" y="1325"/></Array></mxGeometry>
         </mxCell>
-        <mxCell id="c50" value="19: kết thúc phiên xác thực; lượt&#10;giữ còn lại hết hạn trên server" style="text;html=0;align=left;verticalAlign=top;whiteSpace=wrap;overflow=hidden;fontFamily=DejaVu Sans;fontSize=17;fontColor=#000000;fillColor=#FFFFFF;spacing=2;" parent="1" vertex="1">
-          <mxGeometry x="618.3333333333334" y="1312" width="287.59375" height="42" as="geometry"/>
+        <mxCell id="c50" value="19: lượt giữ tuân theo hạn server;&#10;JWT giữ thời hạn đã cấp" style="text;html=0;align=left;verticalAlign=top;whiteSpace=wrap;overflow=hidden;fontFamily=DejaVu Sans;fontSize=17;fontColor=#000000;fillColor=#FFFFFF;spacing=2;" parent="1" vertex="1">
+          <mxGeometry x="425" y="1312" width="400" height="42" as="geometry"/>
         </mxCell>
-        <mxCell id="c51" value="" style="endArrow=block;endFill=1;rounded=0;strokeWidth=1.2;" parent="1" edge="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="605.3333333333334" y="1356" as="sourcePoint"/>
-            <mxPoint x="605.3333333333334" y="1369" as="targetPoint"/>
-            <Array as="points">
-              <mxPoint x="633.3333333333334" y="1356"/>
-              <mxPoint x="633.3333333333334" y="1369"/>
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="c52" value="20: xóa thông tin phiên; về&#10;trang đăng nhập" style="text;html=0;align=center;verticalAlign=top;whiteSpace=wrap;overflow=hidden;fontFamily=DejaVu Sans;fontSize=16;fontColor=#000000;fillColor=#FFFFFF;spacing=2;" parent="1" vertex="1">
-          <mxGeometry x="356.671875" y="1380" width="226.65625" height="40" as="geometry"/>
+        <mxCell id="c52" value="20: hiển thị trang đăng nhập" style="text;html=0;align=center;verticalAlign=top;whiteSpace=wrap;overflow=hidden;fontFamily=DejaVu Sans;fontSize=16;fontColor=#000000;fillColor=#FFFFFF;spacing=2;" parent="1" vertex="1">
+          <mxGeometry x="80" y="1380" width="250" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="c53" value="" style="endArrow=open;endFill=0;dashed=1;rounded=0;strokeWidth=1.2;" parent="1" edge="1">
           <mxGeometry relative="1" as="geometry">
-            <mxPoint x="593.3333333333334" y="1421" as="sourcePoint"/>
-            <mxPoint x="346.6666666666667" y="1421" as="targetPoint"/>
+            <mxPoint x="334.6667" y="1421" as="sourcePoint"/>
+            <mxPoint x="82" y="1421" as="targetPoint"/>
           </mxGeometry>
         </mxCell>
         <mxCell id="c54" value="" style="shape=umlFrame;html=0;fillColor=none;strokeColor=#000000;" parent="1" vertex="1">

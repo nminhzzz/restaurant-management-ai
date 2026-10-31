@@ -1,106 +1,115 @@
-# Ghi chú bàn giao cho BA: chỗ tài liệu lệch với mã nguồn (31/10/2026)
+# Đối chiếu nghiệp vụ, thiết kế và mã nguồn
 
-Đối chiếu bản tài liệu `95c34d1` (báo cáo `docs/BaoCao_HeThongQuanLyNhaHang.md` và `docs/Tai_lieu/01–06`) với mã nguồn
-trên nhánh `fix/docs-code-alignment`. Chỉ liệt kê chỗ **cần BA cập nhật tài liệu**, kèm vị trí để tìm nhanh.
-Số dòng là của bản `95c34d1`. Mục nào ghi "mã nguồn" nghĩa là phía code đã/đang được xử lý riêng, BA không cần làm gì.
+Phạm vi đối chiếu: báo cáo, tài liệu 01–06, bốn nguồn drawio và mã nguồn tại commit `8423b3f`. Nghiệp vụ lấy từ bản đầy đủ tại `f789de7`, các yêu cầu hiện hành và quyết định của chủ đề tài: đúng ba vai trò với vai trò thứ ba là Bếp; giữ quy tắc xóa nhóm món. Khác biệt kỹ thuật không mặc định là lỗi yêu cầu. Kết quả kiểm thử ngày 27–28/10 là kết quả lịch sử, không chứng minh bản code hiện tại đã nghiệm thu.
 
-Phần khớp, không cần sửa: bộ 80 câu và SHA256 khóa, toàn bộ số liệu A/B/C và an toàn, số test (720/15/8/199),
-209 ca trong tài liệu 06, tên model, ma trận quyền (Bảng 12), 30 UC khớp 30 SD, mặc định Business Date 06:00,
-giữ món 5 phút, hạn mức 50 câu/ngày, QR 10 phút, các view `vw_ai_*` và quyền theo vai trò, mọi link/ảnh tương đối.
+Tài liệu 03, M.5 quy định các nhánh quyết định trọng yếu; tài liệu 02–03 quy định hành vi; phần D tài liệu 04 quy định mô hình khái niệm; phần F/G quy định thiết kế vật lý. Mã `WAREHOUSE` tương ứng Bếp. Thiết kế vật lý dùng 37 bảng để ánh xạ 31 lớp nghiệp vụ; sáu bảng phụ trợ không tạo thêm vai trò hoặc chức năng kinh doanh. Những dòng “dev” bên dưới là công việc chưa được xác nhận hoàn tất trong lần biên tập tài liệu này.
 
-## 1. Lược đồ CSDL (tài liệu 04, phần D, F, G; báo cáo §4.2)
+| **Mục** | **Điểm đối chiếu** | **Kết luận và trách nhiệm** |
+|---|---|---|
+| 01 | 31/37 bảng | Tài liệu đã phân biệt 31 lớp nghiệp vụ và 37 bảng vật lý; bổ sung sáu bảng phụ trợ trong phần F và sơ đồ khóa theo nhóm. Không xóa bảng kỹ thuật để ép số lượng về 31. |
+| 02 | Ngoại lệ thanh toán | Thuộc tính khái niệm được ánh xạ sang NGOAI_LE_THANH_TOAN; một giao dịch có thể có nhiều khoản ngoại lệ. Giữ FR-SALE-16–17, duy nhất mã khoản nhận và ghi doanh thu một lần. Dev kiểm chứng luồng áp dụng/hoàn ngoài hệ thống, không chỉ sự tồn tại của bảng. |
+| 03 | Lịch Business Date | Chấp nhận bảng LICH_GIO_BUSINESS_DATE để hiện thực FR-SET-04; tài liệu phân biệt lịch lưu với thông tin mốc giờ chờ hiệu lực. Không thay đổi BusinessDate lịch sử. |
+| 04 | MON_AN.HetNguyenLieu | Yêu cầu gốc là thuộc tính dẫn xuất, không lưu cột độc lập. Dev sửa nguồn tính trạng thái và migration phù hợp; không thay FR-CAT-27 thành dùng cờ lưu làm nguồn sự thật. |
+| 05 | PHIEU_XUAT_KHO.NguonXuat | Giữ phân biệt ba nguồn Nguyên liệu / Món đã chế biến / Kiểm kê theo FR-INV-05. Dev bổ sung hoặc chứng minh ánh xạ lưu trữ bảo toàn được nguồn, truy vết và tính chi phí đúng một lần; hằng trong service chưa đủ bằng chứng. |
+| 06 | Tên cột | Thiết kế dùng ORDER.NgayTao, PHIEU_NHAP_KHO.NguoiTao và CHI_TIET_KIEM_KE.MaChiTietKiemKe. Đây là thống nhất kỹ thuật, không đổi điều kiện nghiệp vụ. |
+| 07 | Cột kỹ thuật chưa mô tả | Bổ sung phiên bản token, mốc đồng bộ, khu vực bàn, mã chống lặp, bản chụp hóa đơn, thông tin thử in, lý do kiểm kê, usage và phản hồi AI ở phần F. Dev kiểm chứng ý nghĩa và ràng buộc; không suy từ tên cột rằng tính năng đã đạt. |
+| 08 | Kiểu dữ liệu | Mã vai trò VARCHAR(20); định danh thay thế BIGINT. Thiết kế tiền DECIMAL(18,2), lượng/hệ số DECIMAL(18,6), chi phí API DECIMAL(18,10), thời điểm DATETIME(3). Code hiện dùng DECIMAL(18,4) rộng rãi và độ chính xác thời gian khác; dev lập migration và kiểm tra làm tròn, dữ liệu hiện có, so sánh, tổng hợp. Không đổi hàng loạt mà bỏ kiểm tra mất độ chính xác. |
+| 09 | Ngưỡng tồn riêng | NULL nghĩa là dùng mặc định; 0 là ngưỡng riêng hợp lệ theo yêu cầu không âm. Dev sửa quy ước 0=dùng mặc định nếu còn tồn tại; kiểm thử cả NULL, 0 và giá trị dương. |
+| 10 | Trạng thái nghiệp vụ | Giữ vòng đời gốc của order và thanh toán. Phiếu nhập Hiệu lực/Đã hủy; kiểm kê Đang kiểm kê/Đã xác nhận/Đã hủy. Dev sửa hoặc ánh xạ giá trị nội bộ rõ ràng, không đưa thêm “Chờ đối soát”/“Tranh chấp” thành trạng thái nghiệp vụ mới. Trạng thái thử in chi tiết được mô tả riêng, không đồng nghĩa món đã chế biến. |
+| 11 | Chi tiết giữ món | Thiết kế cho ON DELETE CASCADE từ chi tiết tới lượt giữ; các tham chiếu nghiệp vụ/lịch sử còn lại RESTRICT. Không xóa lượt giữ đã gửi để mất dấu chống gửi lặp. |
+| 12 | Ràng buộc toàn vẹn | Giữ điều kiện số lượng dương, tồn không âm, phiên bản giá/công thức thuộc đúng món, điều kiện lô điều chỉnh và chống xử lý trùng khoản nhận. Giao dịch kho có một nguồn nghiệp vụ chính; liên kết bổ sung để truy vết không ghi lượng hai lần. PhamViDuLieu lưu danh sách view thực dùng. Dev đối chiếu và thêm ràng buộc còn thiếu bằng migration, kèm test MySQL. |
+| 13 | FK nhật ký | Thiết kế quy định RESTRICT tường minh tới người dùng, định danh không đổi và nhật ký chỉ ghi thêm. Dev đối chiếu migration thực tế. |
+| 14 | Đăng xuất | Bản nghiệp vụ gốc chỉ yêu cầu đăng xuất, chưa chốt thu hồi từng token ở máy chủ. Tài liệu mô tả đúng hiện trạng xóa thông tin đăng nhập trên trình duyệt. Không có endpoint logout trong Bảng 13; không tuyên bố đã thu hồi JWT. Nâng cấp thu hồi tức thời là quyết định bảo mật riêng, chưa mặc định nằm trong phạm vi đã chốt. |
+| 15 | Xóa nhóm món | Dev giữ ba trường hợp: chưa từng có món → xóa vĩnh viễn; còn món chưa xóa mềm → từ chối; chỉ còn món xóa mềm → xóa mềm nhóm. Mọi thao tác xóa có audit. Code tại bản đối chiếu vẫn xóa mềm nhóm chưa từng có món. |
+| 16 | Hợp đồng lỗi | Báo cáo mô tả cấu trúc error.code/message, error_id cho lỗi nội bộ, mã 422 cho vi phạm nghiệp vụ và thông báo hạn mức AI trong phản hồi. Không ép nghiệp vụ đổi chỉ vì lựa chọn mã HTTP. |
+| 17 | Endpoint | Bảng 13 ghi một số endpoint có trong router; không trình bày URL chưa kiểm chứng là chức năng đã triển khai. |
+| 18 | Dẫn chiếu phân quyền | Tài liệu 02 dẫn đúng Bảng 12 của báo cáo. |
+| 19 | SePay | Báo cáo phân biệt khả năng cấu hình adapter mô phỏng/SePay với bằng chứng thử nghiệm. Kết quả Chương 6 dùng mô phỏng; kết quả tiền thật để trống khi chưa có hồ sơ. |
+| 20 | Tự tính bình quân và sao lưu | Bình quân/giá vốn tự tính khi dữ liệu hiệu lực thay đổi; không có chốt giá tháng thủ công. Dev thay luồng phụ thuộc POST /inventory/costing/{month}/close bằng cập nhật tự động và bảo đảm tính lại kỳ cũ/mới cùng kỳ sau. Sao lưu/phục hồi thuộc NFR-11. |
+| 21 | Tự động đóng | Luồng gốc không tự đóng order đang chờ xác minh theo thời gian; chỉ Quản lý đóng theo FR-SALE-35. Dev rà enum, prompt và truy vấn còn dùng trạng thái “Tự động đóng”; loại bỏ hoặc cô lập mã cũ, không đưa trạng thái đó trở lại báo cáo. |
+| 22 | Chờ / Chờ làm | “Chờ làm” là trạng thái nghiệp vụ hiển thị. Nếu DB lưu “Chờ”, cần ánh xạ nhất quán ở API/UI và truy vấn; không coi hai nhãn là hai bước chế biến. |
+| 23 | Bộ câu hỏi dev | Bảng 53 lấy từ questions.dev.jsonl: D001–D030; độ khó 8/10/12; vai trò 2 Quản lý, 13 Thu ngân và 15 Bếp. Bảng 51 dùng dải Q001–Q080 cho tập đánh giá. |
+| 24 | Dẫn chiếu đánh giá | Thống nhất 6.4=thực nghiệm AI, 6.5=an toàn, 6.6=nghiệp vụ, 6.7=hiệu năng, 6.8=SUS/UAT. |
+| 25 | Lỗi chấm AI | Có 31 lượt không đạt; nhãn lỗi gồm 27 nhận xét, 4 phạm vi/kỳ, 2 số liệu. Nhãn có thể chồng nhau, không cộng thành số lượt. |
+| 26 | NFR-01 | Kết luận toàn tiêu chí là Chưa đạt cho đợt lịch sử: p95 đạt nhưng có lỗi kỹ thuật. Biên bản tải giữ số liệu gốc; dev chạy lại sau thay đổi pool trên cùng phiên bản nghiệm thu. |
+| 27 | Người chấm | Hồ sơ ghi nhãn agent Claude Sonnet 5.5 chấm mù cấu hình; không đủ bằng chứng khẳng định ba người/agent độc lập. Không nhầm với ba agent kiểm tra chéo 20 SQL ở biên bản riêng. |
+| 28 | Gói bằng chứng | Bỏ gán commit 68505dc cho đợt nghiệp vụ khi chưa chứng minh được nguồn chạy. Giữ số liệu lịch sử và để trống phiên bản/gói log ở bảng truy vết; cần chủ sở hữu bổ sung bằng chứng gốc. |
+| 29 | Bộ test cũ | docs/testing/test-cases.md được đánh dấu bộ kỹ thuật lịch sử. Danh mục nghiệm thu hiện hành là tài liệu 06; không ánh xạ cùng mã TC sang hai nội dung khác nhau. |
+| 30 | AGENTS.md | Dẫn yêu cầu hiện hành, nguồn nghiệp vụ gốc, đúng vai trò Bếp và quy tắc biên tập. Không dùng ngày báo cáo cũ làm nguồn chuẩn. |
+| 31 | Ảnh không dùng | Chỉ ảnh còn được tài liệu dẫn được đưa vào gói tài liệu bàn giao. Dọn tài nguyên lịch sử trong repo là thao tác riêng, không làm điều kiện nghiệp vụ. |
+| 32 | Biên bản kỹ thuật cũ | Giữ biên bản có ngày theo phạm vi lịch sử; số NFR cũ không thay thế mã trong báo cáo và tài liệu 06 hiện hành. |
 
-1. **Số bảng:** tài liệu ghi 31, mã nguồn có 37. Thêm 6 bảng phụ trợ chưa có trong tài liệu: `LICH_GIO_BUSINESS_DATE`,
-   `DEM_ORDER`, `DEM_HOA_DON`, `NGOAI_LE_THANH_TOAN`, `HAN_MUC_AI_NGAY`, `BO_NHO_DEM_SQL_AI`. Cần thêm mục "bảng kỹ thuật/phụ trợ"
-   hoặc ghi chú "31 là số bảng miền nghiệp vụ".
-2. **Ngoại lệ thanh toán** (04, F.17, dòng 917–921): tài liệu để 5 cột `TrangThaiNgoaiLe`, `SoTienNgoaiLe`, `MaThamChieuHoan`,
-   `ThoiDiemXuLyNgoaiLe`, `NguoiXuLyNgoaiLe` trong `GIAO_DICH_THANH_TOAN`; code tách thành bảng `NGOAI_LE_THANH_TOAN`
-   (`MaNgoaiLe`, `TrangThai`, `LyDo`, `ThoiDiemXuLy`, `NguoiXuLy`, `SoTienHoan`, …).
-3. **Giờ Business Date chờ hiệu lực** (04, F.3, dòng 721–722): tài liệu có `GioBatDauBusinessDateMoi`, `NgayHieuLucGioMoi` trong
-   `CAU_HINH_HE_THONG`; code dùng bảng lịch `LICH_GIO_BUSINESS_DATE` (đúng với FR-SET-04 "lịch hiệu lực").
-4. **`MON_AN.HetNguyenLieu`** (04, F.6, dòng 762; báo cáo §4.2.2): tài liệu ghi là thuộc tính dẫn xuất, không lưu; code lưu cột
-   boolean và dùng trong cột GENERATED `TrangThai`.
-5. **`PHIEU_XUAT_KHO.NguonXuat`** (04, F.22, dòng 984 và phần G): tài liệu có cột, code chưa có (chỉ có hằng `ISSUE_SOURCES`
-   trong service). Cần BA/dev chốt: thêm cột vào code hay bỏ khỏi tài liệu.
-6. **Tên cột lệch:** `ORDER.ThoiDiemTao` (code: `NgayTao`); `PHIEU_NHAP_KHO.NguoiLap` (code: `NguoiTao`);
-   `CHI_TIET_KIEM_KE.MaChiTietKK` (code: `MaChiTietKiemKe`).
-7. **Cột có trong code nhưng chưa có trong tài liệu:** `NGUOI_DUNG.PhienBanToken`; `CAU_HINH_HE_THONG.MocDongBoSepay`;
-   `BAN.KhuVuc`; `ORDER.MaYeuCauGui`, `NgayCapNhat`; `CHI_TIET_ORDER.MaYeuCauDong`; `HOA_DON.NoiDungChup` (JSON);
-   `GIAO_DICH_THANH_TOAN.NgayTao`; `PHIEU_BEP`: `TrangThai`, `SoLanThuTrongDot`, `LanThuTiepTheo`, `MaKhoaIn`, `HanKhoaIn`, `LoiIn`,
-   `NgayTao`; `PHIEU_XUAT_KHO`: `TrangThai`, `NgayTao`; `CHI_TIET_KIEM_KE.LyDoChenhLech`; `GIU_CHO_MON.NgayTao`;
-   `TRUY_VAN_AI`: `ChiTietSuDung`, `PhanHoi`.
-8. **Kiểu dữ liệu:** `VAI_TRO.MaVaiTro` và `NGUOI_DUNG.MaVaiTro` là `VARCHAR(20)` (`MANAGER`/`CASHIER`/`WAREHOUSE`), tài liệu ghi INT
-   (04 dòng 81, 692; báo cáo §4.2.2 và Bảng 11). Khóa chính/ngoại khác trong code là BIGINT. Tiền và lượng trong code là
-   `DECIMAL(18,4)` (tài liệu: (18,2) và (18,6)); `ChiPhiUSD` là (18,10) (tài liệu: (18,8)); `GIAO_DICH_KHO.TonSauGiaoDich` tài liệu ghi (18,2)
-   dù là lượng. Ngày nhập/xuất/kiểm kê trong code là `DateTime`, tài liệu ghi DATE. Độ chính xác thời gian: 04 ghi `DATETIME(6)`,
-   báo cáo §4.2.2 ghi `DATETIME(3)`, code dùng mặc định. Cần thống nhất.
-9. **`NGUYEN_LIEU.MucTonToiThieu`** (04, F.10): tài liệu "để trống thì dùng mặc định"; code là NOT NULL, giá trị `0` nghĩa là dùng mặc định.
-10. **Giá trị trạng thái** (04, F và phần mô tả lớp): code dùng bộ giá trị khác.
-    - `PHIEU_KIEM_KE.TrangThai`: code "Nháp / Đã chốt / Đã hủy" (tài liệu: "Đang kiểm kê / Đã xác nhận / Đã hủy"; dòng 518, 1006).
-    - `PHIEU_NHAP_KHO.TrangThai`: code tạo ở "Nháp" rồi chỉ chuyển "Đã hủy"; tài liệu ghi "Hiệu lực / Đã hủy" (dòng 424).
-    - `PHIEU_BEP.TrangThaiIn`: code "Chờ in / Đang in / Chưa rõ kết quả / Thất bại / Đã gửi máy in" (tài liệu: "Thành công / Thất bại"; dòng 928).
-    - `GIAO_DICH_THANH_TOAN.TrangThai`, `LICH_SU_GIA_MON.LoaiThayDoi`, `CHI_TIET_ORDER.TrangThai` ("Chờ" trong DB, "Chờ làm" trong tài liệu): cần thống nhất từ vựng.
-    - Order và giao dịch còn hai trạng thái chưa có trong tài liệu: **"Chờ đối soát"** và **"Tranh chấp"**, cùng các endpoint
-      `/orders/{id}/reconcile`, `/payments/{id}/reference`, `/payments/{id}/resolve` (04 dòng 297, 378 chỉ có luồng "Chờ xác minh").
-11. **`CHI_TIET_GIU_CHO → GIU_CHO_MON`** (04, G, dòng 1178): tài liệu ghi RESTRICT, code dùng `ON DELETE CASCADE` (hợp lý vì chi tiết phụ thuộc cha).
-12. **Ràng buộc có trong tài liệu nhưng code chưa có** (cần quyết định thêm vào code qua migration mới, hoặc nới tài liệu):
-    CHECK `> 0` cho `LICH_SU_GIA_MON.GiaBan`, `CHI_TIET_CONG_THUC.DinhLuong`, `CHI_TIET_ORDER.SoLuong`, `CHI_TIET_PHIEU_NHAP.SoLuong` và
-    `HeSoQuyDoi`, `LO_NGUYEN_LIEU.SoLuongNhap` (và `SoLuongConLai >= 0`), `CHI_TIET_PHIEU_XUAT.SoLuong`; quy tắc `MaChiTietNhap` NULL khi
-    `LoDieuChinhKiemKe = true` (BR-LOT-02); UNIQUE `GIAO_DICH_THANH_TOAN.MaGiaoDichCong` (code chỉ có UNIQUE `MaGiaoDichNganHang` và UNIQUE
-    trên bảng ngoại lệ); CHECK nguồn của `GIAO_DICH_KHO` ("đúng một trong bốn FK" nhưng "Hoàn kho" trong code dùng nhiều FK);
-    `PHAM_VI_DU_LIEU` trong `TRUY_VAN_AI` (F.29 yêu cầu ghi danh sách view thực tế, code ghi nhãn họ view, cột `String(50)`).
-    Đây là thay đổi lược đồ, **chưa làm**, chờ quyết định.
-13. **Khóa ngoại nhật ký:** FK `NHAT_KY_HE_THONG.MaNguoiDung` chưa khai báo `ON DELETE/UPDATE` tường minh (04, G, dòng 1116 cấm dùng mặc định).
+## Trạng thái các thay đổi code đã đọc
 
-## 2. Chức năng, trạng thái và quy tắc (tài liệu 02, 03, 04, 05; báo cáo chương 4)
+- Nhãn giao diện Bếp đã đổi tại `8423b3f`; dữ liệu VAI_TRO đã tồn tại có thể còn tên cũ vì seed không cập nhật dòng cũ.
+- Đã có code ghi audit khi giảm món và giữ nguyên/rút ngắn hạn giữ khi giảm số lượng; có test tương ứng trong repository. Lần biên tập tài liệu này không chạy lại các test đó.
+- Xóa nhóm chưa từng có món, các ràng buộc/schema và các sai lệch khác không được tự đánh dấu đã sửa hoặc đã đạt.
 
-14. **Đăng xuất** (báo cáo dòng 1203 "Thu hồi phiên; 401"; 03 dòng 568 "kết thúc phiên tại máy chủ"): code **không có** endpoint đăng xuất;
-    giao diện chỉ xóa phiên cục bộ, JWT không bị thu hồi. Cần sửa tài liệu cho đúng thực tế (hoặc chốt làm thêm cơ chế thu hồi, `PhienBanToken` đã có sẵn).
-15. **Xóa nhóm món chưa từng có món** (FR-CAT-03, 03 dòng 655): tài liệu nói xóa vĩnh viễn; code luôn xóa mềm (`catalog/service.py:100-103`).
-    Đề xuất sửa tài liệu thành "xóa mềm". Có thể liên quan TC-CAT-09 và TC-CAT-41 "chưa đạt" trong tài liệu 06.
-16. **Mã lỗi và thân lỗi** (báo cáo dòng 1220): thân lỗi chỉ gồm `{error:{code,message}}` (riêng lỗi 500 có `error_id`), không có `request_id`/`details`;
-    mọi vi phạm trạng thái trả **422** (409 chỉ dùng một chỗ ở `settings/service.py:115`); hết hạn mức AI trả **200** kèm câu trả lời, không phải 429.
-17. **Bảng 13** (báo cáo dòng 1198–1212): cột URL để trống ở mọi hàng.
-18. **Tham chiếu bảng:** tài liệu 02 dòng 10 "quyền chi tiết tại Bảng 10" phải là **Bảng 12** (Bảng 10 là danh sách lớp).
-19. **Thanh toán:** báo cáo dòng 288, 1560 nói chưa kết nối cổng thanh toán thật; code có adapter SePay chọn bằng `PAYMENT_GATEWAY`
-    (`simulator`/`sepay`) và hai webhook (`router.py:554-583`). Nên ghi hai chế độ vào tài liệu 02/03/04.
-20. **Chức năng chưa có FR/UC:** `POST /inventory/costing/{month}/close` (chốt giá bình quân tháng) và `POST /settings/backup` chưa gắn FR nào.
-21. **"Tự động đóng"** (trạng thái order): còn trong báo cáo và prompt AI nhưng không có chỗ nào trong code gán trạng thái này (`reports/queries.py:42`).
-22. **Dòng món:** tài liệu và UI dùng "Chờ làm", giá trị lưu trong DB là "Chờ". Cần thống nhất (hiện chỉ khác tên khái niệm và giá trị lưu).
+## Điều kiện nghiệm thu
 
-## 3. Tài liệu kiểm thử (tài liệu 06 và báo cáo chương 6)
+Dev thực hiện theo tài liệu nghiệp vụ đã chốt, ghi rõ migration và phiên bản chạy. Kiểm thử hồi quy sử dụng tài liệu 06, bao gồm ca trọng yếu và module Báo cáo. Các test phụ thuộc MySQL thật phải chạy trong môi trường có MySQL; báo cáo giới hạn môi trường riêng với lỗi sản phẩm. Kết quả cập nhật vào báo cáo chỉ khi có log, phiên bản và phạm vi tương ứng.
 
-23. **Bảng 53** (06 dòng 2336–2370): ghi tập dev là `DEV01–DEV30`, phân bố 11 dễ/12 trung bình/7 khó, 20 Quản lý/5 Thu ngân/5 Bếp. Thực tế
-    `data/eval/questions.dev.jsonl` là `D001–D030`, phân bố **8/10/12**, vai trò **2 Quản lý / 13 Thu ngân / 15 Bếp**; chỉ 1 câu trùng nội dung.
-    **Bảng 51** (06 dòng 2321) dùng ID `AIxx` trong khi file thật dùng `Q001…`.
-24. **Tham chiếu mục chéo sai** trong 06: dòng 2311 và 2289 trỏ "mục 6.8", đúng là **6.4** (6.8 là SUS); dòng 2386 "mục 6.4" cho bộ AT, đúng là **6.5**;
-    dòng 2459 "100 lượt tại mục 6.4", đúng là **6.6** (báo cáo dòng 1505).
-25. **Số lỗi chấm điểm:** báo cáo dòng 1442 và 06 dòng 2312 ghi "2 lỗi số liệu và 27 lỗi nhận xét" (29); `docs/eval-grades-after-2026-10-27.json` có
-    **31 lượt trượt**: 27 nhận xét, 4 kỳ/phạm vi, 2 số liệu (một lượt có thể dính nhiều nhãn).
-26. **NFR-01** (06 dòng L): ghi "Chưa đạt", trong khi `docs/testing/performance-2026-10-27.md` ghi "Đạt theo p95, kèm lỗi độ tin cậy". Hai bên dùng tiêu chí khác nhau, cần nói rõ.
-27. **"Ba agent Sonnet 5.5 chấm mù"** (báo cáo): file grades chỉ có một nhãn reviewer ("Agent Claude Sonnet 5.5"), không kiểm chứng được "ba agent".
-28. **Bằng chứng** `Bang_chung_kiem_thu_68505dc_2026-10-28` (06 dòng 30, báo cáo dòng 1665) không có trong repo (commit 68505dc chỉ đổi tên thư mục ảnh).
-29. **`docs/testing/test-cases.md`** (bảng ca kiểm thử cũ): dùng ID `TC-CAT-nn`, `TC-SALE-nn` trùng với tài liệu 06 nhưng nghĩa khác (ví dụ TC-CAT-09, TC-CAT-41, TC-SALE-19)
-    và số ca khác (41 CAT/41 SALE so với 48/101); trỏ tới 3 hàm test không còn tồn tại
-    (`test_a_supplier_with_no_history_is_deleted_outright`, `test_manual_hiding_is_independent_of_stock`,
-    `test_the_two_out_of_stock_causes_are_independent`, dòng 44, 56, 57, 126); vẫn dùng đánh số NFR cũ (NFR-06, 12, 14, 16 ở dòng 220–236). Nên bỏ file này
-    hoặc đánh dấu "đã thay bằng tài liệu 06".
+## Phụ lục đối chiếu cột và kiểu dữ liệu
 
-## 4. Khác
+Bảng dưới so sánh thiết kế phần F với khai báo ORM tại bản code đối chiếu, bao gồm các cột kế thừa từ mixin. Mũi tên chỉ từ code sang thiết kế. Đây là danh sách tĩnh để lập migration và kiểm thử, chưa phải kết quả kiểm tra CSDL đã triển khai. Ràng buộc, chỉ mục, giá trị trạng thái và dữ liệu đang có còn được kiểm tra riêng theo các mục 04–13.
 
-30. `AGENTS.md` dòng 70 ghi "báo cáo 23/10/2026"; báo cáo hiện là V33 ngày 27/10/2026. Giá trị `AI_MAX_ROWS=500`, `AI_SQL_TIMEOUT_SECONDS=3`,
-    `AI_MAX_SQL_ATTEMPTS=2` khớp cả 4 nơi.
-31. 92 ảnh (khoảng 20 MB) trong `docs/images/{00_Bao_cao_khoa_luan,01_…,03_…,04_…}` không còn tài liệu nào dẫn tới.
-32. `docs/testing/performance-2026-10-27.md` (dòng 235) và `docs/testing/source-docs-review-2026-10-21.md` còn trích NFR theo đánh số cũ (NFR-20, …).
-    Đây là biên bản có ngày nên giữ nguyên; chỉ lưu ý khi trích dẫn.
+| **Bảng** | **Sai khác cần dev xử lý/kiểm chứng** |
+|---|---|
+| NGUOI_DUNG | DATETIME → DATETIME(3): NgayTao |
+| CAU_HINH_HE_THONG | DECIMAL(18,4) → DECIMAL(18,6): NguongTonMacDinh |
+| NHAT_KY_HE_THONG | DATETIME → DATETIME(3): ThoiDiem |
+| NHOM_MON | DATETIME → DATETIME(3): NgayXoa |
+| MON_AN | Cột lưu trong code nhưng thiết kế suy ra: HetNguyenLieu; Cột lưu trong code nhưng thiết kế suy ra: TrangThai |
+| LICH_SU_GIA_MON | DECIMAL(18,4) → DECIMAL(18,2): GiaBan; DATETIME → DATETIME(3): ThoiDiemHetHieuLuc, ThoiDiemHieuLuc, ThoiDiemTao |
+| CONG_THUC | DATETIME → DATETIME(3): ThoiDiemHetHieuLuc, ThoiDiemHieuLuc, ThoiDiemTao |
+| CHI_TIET_CONG_THUC | DECIMAL(18,4) → DECIMAL(18,6): DinhLuong |
+| NGUYEN_LIEU | DECIMAL(18,4) → DECIMAL(18,6): MucTonToiThieu, SoLuongTon; Điều kiện rỗng: MucTonToiThieu → NULL |
+| ORDER | DECIMAL(18,4) → DECIMAL(18,2): TongTien; DATETIME → DATETIME(3): NgayCapNhat, NgayTao, ThoiDiemDong |
+| CHI_TIET_ORDER | DATETIME → DATETIME(3): ThoiDiemThem; BIGINT → INT: SoLuong; DECIMAL(18,4) → DECIMAL(18,2): DonGia, ThanhTien |
+| LICH_SU_DOI_BAN | DATETIME → DATETIME(3): ThoiDiem |
+| HOA_DON | DATETIME → DATETIME(3): ThoiDiemXuat; DECIMAL(18,4) → DECIMAL(18,2): TongTien |
+| GIAO_DICH_THANH_TOAN | TEXT().with_variant(mysql.LONGTEXT(), 'mysql') → LONGTEXT: AnhChungTu; DATETIME → DATETIME(3): NgayTao, ThoiDiemHetHan, ThoiDiemTaoQR; DECIMAL(18,4) → DECIMAL(18,2): SoTien |
+| PHIEU_BEP | DATETIME → DATETIME(3): HanKhoaIn, LanThuTiepTheo, NgayTao, ThoiDiemIn |
+| PHIEU_NHAP_KHO | DATETIME → DATETIME(3): NgayNhap; DECIMAL(18,4) → DECIMAL(18,2): TongTien |
+| CHI_TIET_PHIEU_NHAP | DECIMAL(18,4) → DECIMAL(18,6): HeSoQuyDoi, SoLuong; DECIMAL(18,4) → DECIMAL(18,2): DonGia, ThanhTien |
+| LO_NGUYEN_LIEU | Cột lưu trong code nhưng thiết kế suy ra: TrangThai; DATETIME → DATETIME(3): NgayNhap; DECIMAL(18,4) → DECIMAL(18,2): DonGia; DECIMAL(18,4) → DECIMAL(18,6): SoLuongConLai, SoLuongNhap; Điều kiện rỗng: DonGia → NULL |
+| PHIEU_XUAT_KHO | Cột chỉ có trong thiết kế: NguonXuat; DATETIME → DATETIME(3): NgayTao, NgayXuat |
+| CHI_TIET_PHIEU_XUAT | DECIMAL(18,4) → DECIMAL(18,6): SoLuong; DECIMAL(18,4) → DECIMAL(18,2): GiaVonUocTinh; Điều kiện rỗng: GiaVonUocTinh → NULL |
+| PHIEU_KIEM_KE | DATETIME → DATETIME(3): NgayKiemKe |
+| CHI_TIET_KIEM_KE | DECIMAL(18,4) → DECIMAL(18,6): ChenhLech, TonHeThong, TonThucTe |
+| GIAO_DICH_KHO | DECIMAL(18,4) → DECIMAL(18,6): SoLuongThayDoi, TonSauGiaoDich; DATETIME → DATETIME(3): ThoiDiem |
+| GIA_BINH_QUAN_THANG | DECIMAL(18,4) → DECIMAL(18,2): DonGiaBinhQuan; DECIMAL(18,4) → DECIMAL(18,6): TongSoLuongNhap; DATETIME → DATETIME(3): ThoiDiemTinh |
+| PHIEN_CHAT_AI | DATETIME → DATETIME(3): ThoiDiemBatDau, ThoiDiemKetThuc |
+| TRUY_VAN_AI | VARCHAR(50) → JSON: PhamViDuLieu; DATETIME → DATETIME(3): ThoiDiem; Điều kiện rỗng: TokenDauRa → NULL, TokenDauVao → NULL |
+| GIU_CHO_MON | DATETIME → DATETIME(3): NgayTao, ThoiDiemHetHan |
+| CHI_TIET_GIU_CHO | DECIMAL(18,4) → DECIMAL(18,6): SoLuongGiu |
+| LICH_GIO_BUSINESS_DATE | DATETIME → DATETIME(3): ThoiDiemBatDau |
+| NGOAI_LE_THANH_TOAN | DECIMAL(18,4) → DECIMAL(18,2): SoTien, SoTienHoan; DATETIME → DATETIME(3): NgayTao, ThoiDiemXuLy |
+| BO_NHO_DEM_SQL_AI | DATETIME → DATETIME(3): HetHanLuc |
 
-## 5. Đã xử lý ở phía mã nguồn (BA không cần làm)
+## Rà ngữ nghĩa xuyên suốt
 
-- Vai trò thứ ba thống nhất tên **"Bếp"** ở giao diện (`roles.ts`), seed người dùng và seed `VAI_TRO`. Mã định danh vẫn là `WAREHOUSE`.
-  Lưu ý: CSDL đã tạo sẵn vẫn giữ tên cũ "Nhân viên kho" ở bảng `VAI_TRO` (hàm seed chỉ chèn khi chưa có dòng).
-- FR-SALE-10: giảm số lượng món nay ghi audit `REDUCE_ORDER_LINE` (người thực hiện, thời điểm, số lượng trước và sau).
-- FR-SALE-08: giảm số lượng giữ món không còn gia hạn thời hạn; chỉ tăng mới làm mới.
-- Sửa các chú thích trong code trích sai số NFR/FR (đánh số cũ) và các tài liệu kỹ thuật (`docs/testing/*`, `docs/design/tokens.md`,
-  `docs/thuyet-trinh/kich-ban-demo.md`, `data/eval/README.md`).
-- Mã còn lại **chưa sửa** (cần quyết định, ngoài phạm vi lần này): `apps/api/src/app/shared/enums.py` chứa enum cũ gần như không dùng
-  và mâu thuẫn với máy trạng thái thật (`OrderStatus`, `OrderLineStatus`, `TableStatus`, `PaymentStatus`, …); là mã chết có từ trước.
+Đối chiếu các quy trình QT, FR/UC, trạng thái, thiết kế dữ liệu, SD và kỳ vọng kiểm thử cho các nhánh dưới. Đây là rà đặc tả, không phải kết quả chạy phần mềm.
+
+| **Luồng** | **Kết luận thống nhất** | **Nguồn quyết định và kiểm thử** |
+|---|---|---|
+| Giữ món tại mốc hết hạn | Hết hạn giải phóng khả dụng; lúc gửi phải kiểm tra lại, không tự gia hạn | FR-SALE-05/08; FR-INV-10; SD-2.1a; TC-BR-01 |
+| Mở kiểm kê khi chỉ còn giữ hết hạn | Lượt chọn chưa gửi/hủy vẫn chặn; nhân viên phải gửi hoặc hủy trước; không tự hủy khi mở kiểm kê | QT-17; FR-INV-08; SD-3.4; TC-INV-33; TC-BR-02/03 |
+| Webhook muộn khi có QR mới | Tự xác nhận khoản cũ nếu đủ điều kiện; hủy QR mới chưa nhận tiền trong cùng transaction | FR-SALE-16; SD-2.5a; TC-BR-04 |
+| Webhook sau quyết định mở lại | Mở lại của Quản lý khác tự về Đang mở khi QR hết hạn; chỉ Quản lý được áp dụng khoản ngoại lệ | FR-SALE-17/23; SD-2.6a; TC-BR-05 |
+| Webhook lặp và xác nhận thủ công | Liên kết cùng khoản nhận, không thu hoặc ghi ngoại lệ hai lần | FR-SALE-15/16; TC-BR-06 |
+| Phục vụ sau thanh toán | Khóa nội dung/tiền, vẫn cập nhật phục vụ cho dòng chưa hủy; bàn không tự trống | FR-SALE-09/22; FR-CAT-18; SD-2.3; TC-BR-07 |
+| Bàn đã phục vụ order mới | Xử lý tiền order cũ không ảnh hưởng bàn/order mới; không gọi thêm hoặc đổi bàn order cũ | FR-CAT-18; TC-BR-08 |
+| Xuất hủy món đã chế biến | Số suất và tiêu hao gốc; không trừ tồn hoặc cộng hao hụt hai lần | QT-16; FR-INV-05/06; SD-3.3; TC-BR-09 |
+| Kiểm kê thiếu | Chỉ giao dịch điều chỉnh làm giảm tồn; phiếu xuất hủy là chứng từ tham chiếu | FR-INV-09; SD-3.4; TC-BR-10 |
+| Tự tính giá vốn và giá trị 0 | Bình quân/giá vốn cập nhật tự động; giá trị chưa xác định là NULL, không coi là 0; cập nhật các kỳ phụ thuộc nhất quán | Tài liệu 04 G.1; TC-BR-11–18 |
+| Hạn dùng theo ngày | Ngày lịch tại nhà hàng, dùng được hết ngày hạn; không dùng BusinessDate để kéo dài hạn qua nửa đêm | Tài liệu 04 BR-LOT-01; kiểm thử ranh giới ngày lịch |
+
+## Quyết định nghiệp vụ được xác nhận
+
+| **Mã** | **Quy tắc áp dụng** | **Công việc dev** |
+|---|---|---|
+| QD-01 | Bình quân, giá vốn và lợi nhuận tự cập nhật khi phiếu nhập thay đổi hợp lệ. Không chốt giá tháng thủ công hoặc khóa sửa chỉ vì đã tính bình quân. Sửa ngày sang tháng khác tính lại tháng cũ, tháng mới và các kỳ sau bị ảnh hưởng. | Giữ điều kiện lô chưa xuất/không giữ hiệu lực; cập nhật ngày lô, hạn dùng và FIFO; tính lại phụ thuộc, giữ lịch sử đính chính; không đổi hóa đơn/doanh thu. |
+| QD-02 | Kiểm kê chỉ nhập số lượng và lý do. Thừa không tạo nhập mua hoặc yêu cầu nhập giá. Hệ thống tự định giá theo bình quân khi đủ căn cứ; chưa có giá vẫn ghi số lượng và để giá trị chưa xác định. | DonGia lô điều chỉnh và GiaVonUocTinh cho phép NULL khi thiếu căn cứ; phân biệt NULL với 0, không bỏ phần chưa định giá khỏi tổng rồi báo như tổng đầy đủ. |
+
+Hai quyết định này được đồng bộ vào báo cáo, tài liệu 02/03/04/06 và các hình liên quan. Kiểm thử bổ sung TC-BR-13–18 mới là thiết kế, chưa có kết quả thực thi. Không đánh dấu code đã đáp ứng chỉ từ việc cập nhật tài liệu.

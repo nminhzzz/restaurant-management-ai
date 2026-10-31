@@ -1,13 +1,12 @@
-Hệ thống quản lý nhà hàng tích hợp AI hỗ trợ hoạt động kinh doanh
+# 02. QUY TRÌNH VÀ QUY TẮC NGHIỆP VỤ
 
-Phiên bản tài liệu V33  
-Ngày 27 tháng 10 năm 2026
+Hệ thống quản lý nhà hàng tích hợp AI hỗ trợ hoạt động kinh doanh
 
 Các quy trình nghiệp vụ QT-01 đến QT-23, sơ đồ hoạt động và bộ quy tắc nghiệp vụ chung của hệ thống quản lý nhà hàng.
 
 ## 2.3. Quy trình nghiệp vụ
 
-Các quy trình đề xuất sau số hóa được tách theo mục tiêu nghiệp vụ và chỉ mô tả ở mức tổng quan: ai thực hiện, làm gì và cho kết quả gì. Thu ngân/Nhân viên order là một vai trò chung, thực hiện cả gọi món và thanh toán. Quản lý kế thừa quyền tác nghiệp của vai trò này và Bếp (quyền chi tiết tại Bảng 10). Khách hàng tham gia giao dịch thực tế nhưng không trực tiếp sử dụng hệ thống. Các sơ đồ QT trình bày luồng chính; các quy tắc nghiệp vụ chi tiết được xác định ở mục 2.4 và đặc tả ở Chương 3.
+Các quy trình đề xuất sau số hóa được tách theo mục tiêu nghiệp vụ và chỉ mô tả ở mức tổng quan: ai thực hiện, làm gì và cho kết quả gì. Thu ngân/Nhân viên order là một vai trò chung, thực hiện cả gọi món và thanh toán. Quản lý kế thừa quyền tác nghiệp của vai trò này và Bếp (quyền chi tiết tại Bảng 12 của báo cáo). Khách hàng tham gia giao dịch thực tế nhưng không trực tiếp sử dụng hệ thống. Các sơ đồ QT trình bày luồng chính; các quy tắc nghiệp vụ chi tiết được xác định ở mục 2.4 và đặc tả ở Chương 3.
 
 ### 2.3.1. Quản lý món ăn
 
@@ -17,9 +16,9 @@ Bước 2. Món mới ở trạng thái Nháp, chưa hiển thị khi gọi món
 
 Bước 3. Quản lý cập nhật thông tin, tạm dừng hoặc mở lại phục vụ món.
 
-Bước 4. Đối tượng đã có dữ liệu lịch sử chỉ được xóa mềm để order cũ vẫn được bảo toàn.
+Bước 4. Món ăn chỉ được xóa mềm. Nhóm chưa từng có món được xóa vĩnh viễn; nhóm còn món chưa xóa mềm không được xóa; nhóm chỉ còn món đã xóa mềm được xóa mềm. Thao tác xóa được ghi nhật ký.
 
-<img src="images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image2.png" width="567" />
+<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image2.png" width="567" />
 
 Hình 1. QT-01 — Quản lý món ăn. Luồng chính.
 
@@ -31,9 +30,9 @@ Bước 2. Công thức đầu tiên có hiệu lực ngay và món thoát khỏ
 
 Bước 3. Khi thay đổi công thức, Quản lý chọn lên lịch từ một ngày kinh doanh trong tương lai hoặc sửa trực tiếp để khắc phục sai sót và áp dụng ngay. Trước khi lịch có hiệu lực, Quản lý có thể hủy hoặc thay lịch; sửa trực tiếp không hủy lịch đang chờ.
 
-Bước 4. Order đã gửi giữ nguyên công thức đã ghi nhận lúc gọi món.
+Bước 4. Dòng món đã gửi giữ nguyên phiên bản công thức được xác nhận khi gửi.
 
-<img src="images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image3.png" width="567" />
+<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image3.png" width="567" />
 
 Hình 2. QT-02 — Quản lý công thức. Luồng chính.
 
@@ -45,7 +44,7 @@ Bước 2. Quản lý chọn lên lịch giá cho ngày kinh doanh tương lai h
 
 Bước 3. Khi gửi món, order lấy giá hiện hành; thay đổi giá không làm đổi các món đã bán.
 
-<img src="images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image4.png" width="567" />
+<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image4.png" width="567" />
 
 Hình 3. QT-03 — Quản lý giá bán. Luồng chính.
 
@@ -57,7 +56,7 @@ Bước 2. Bàn đang phục vụ không được xóa; bàn đã có lịch s�
 
 Bước 3. Hệ thống cập nhật danh mục và ghi nhật ký thao tác xóa.
 
-<img src="images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image5.png" width="567" />
+<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image5.png" width="567" />
 
 Hình 4. QT-04 — Quản lý danh mục bàn. Luồng chính.
 
@@ -69,7 +68,7 @@ Bước 2. Đơn vị tính không đổi được sau khi nguyên liệu đã �
 
 Bước 3. Nguyên liệu đã có lịch sử chỉ được xóa mềm; hệ thống ghi nhật ký thao tác xóa.
 
-<img src="images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image6.png" width="567" />
+<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image6.png" width="567" />
 
 Hình 5. QT-05 — Quản lý nguyên liệu. Luồng chính.
 
@@ -81,7 +80,7 @@ Bước 2. Người dùng thêm, sửa hoặc xóa nhà cung cấp; thông tin k
 
 Bước 3. Nhà cung cấp đã có lịch sử nhập chỉ được xóa mềm; danh sách được dùng khi nhập kho.
 
-<img src="images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image7.png" width="567" />
+<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image7.png" width="567" />
 
 Hình 6. QT-06 — Quản lý nhà cung cấp. Luồng chính.
 
@@ -95,7 +94,7 @@ Bước 3. Bếp chế biến và báo món xong để nhân viên cập nhật 
 
 Bước 4. Thu ngân thực hiện thanh toán. Khi khách rời đi, nhân viên giải phóng bàn; thanh toán thành công không tự giải phóng bàn khi khách còn ngồi.
 
-<img src="images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image8.png" width="468" />
+<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image8.png" width="468" />
 
 Hình 7. QT-07 — Gọi món tại chỗ. Luồng chính.
 
@@ -109,7 +108,7 @@ Bước 3. Thu ngân in phiếu tạm tính và thực hiện thanh toán tiền
 
 Bước 4. Bếp chế biến, đóng gói; nhân viên giao món và cập nhật Đã phục vụ. Khi order đã thanh toán, bị hủy hoặc đã đóng, khách mua thêm thì lập order mới.
 
-<img src="images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image9.png" width="584" />
+<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image9.png" width="584" />
 
 Hình 8. QT-08 — Gọi món mang về. Luồng chính.
 
@@ -123,7 +122,7 @@ Bước 3. Khách giao tiền; Thu ngân kiểm đếm và xác nhận đã nh�
 
 Bước 4. Hệ thống ghi nhận thanh toán thành công, chuyển order sang Đã thanh toán và phát hành hóa đơn; hóa đơn đã phát hành chỉ được in lại nguyên trạng.
 
-<img src="images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image10.png" width="567" />
+<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image10.png" width="567" />
 
 Hình 9. QT-09 — Thanh toán tiền mặt. Luồng chính.
 
@@ -137,7 +136,7 @@ Bước 3. Nếu mã hết hạn hoặc Thu ngân hủy mã còn chờ, order v�
 
 Bước 4. Nếu khách báo đã bị trừ tiền nhưng chưa có kết quả hợp lệ, Thu ngân chuyển sang quy trình xác minh thanh toán, không yêu cầu khách trả lại ngay.
 
-<img src="images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image11.png" width="485" />
+<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image11.png" width="485" />
 
 Hình 10. QT-10 — Thanh toán QR. Luồng chính.
 
@@ -151,7 +150,7 @@ Bước 3. Nếu đã nhận đủ tiền, Quản lý xác nhận; hệ thống 
 
 Bước 4. Các khoản QR đến muộn, sai số tiền hoặc thu trùng được theo dõi riêng và xử lý theo UC 2.6: áp dụng khoản hợp lệ hoặc ghi kết quả hoàn tiền ngoài hệ thống, không cộng doanh thu hai lần. Mọi kết quả và quyết định được ghi thêm vào nhật ký, không cho sửa hoặc xóa.
 
-<img src="images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image12.png" width="567" />
+<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image12.png" width="567" />
 
 Hình 11. QT-11 — Xác minh thanh toán. Luồng chính.
 
@@ -165,7 +164,7 @@ Bước 3. Hệ thống xét từng dòng món: món chưa chế biến và đ�
 
 Bước 4. Hệ thống lưu kết quả và nhật ký. Bàn chỉ được giải phóng khi khách rời đi.
 
-<img src="images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image13.png" width="567" />
+<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image13.png" width="567" />
 
 Hình 12. QT-12 — Hủy toàn bộ order. Luồng chính.
 
@@ -179,7 +178,7 @@ Bước 3. Người dùng chọn xem và in lại hóa đơn hoặc phiếu bế
 
 Bước 4. In lại chỉ in dữ liệu đã lưu; không sửa hóa đơn, không phát sinh thêm tiêu hao hay doanh thu.
 
-<img src="images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image14.png" width="567" />
+<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image14.png" width="567" />
 
 Hình 13. QT-13 — Tra cứu order và in lại chứng từ. Luồng chính.
 
@@ -193,9 +192,11 @@ Bước 3. Người lập xác nhận; hệ thống lưu phiếu, tạo lô và 
 
 Bước 4. Phiếu chỉ được sửa hoặc hủy khi các lô chưa xuất và chưa được giữ; dữ liệu đã sử dụng được xử lý qua kiểm kê.
 
-<img src="images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image15.png" width="567" />
+<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image15.png" width="567" />
 
 Hình 14. QT-14 — Nhập kho nguyên liệu theo lô. Luồng chính.
+
+Hệ thống tự cập nhật đơn giá bình quân và giá vốn khi thêm, sửa hoặc hủy phiếu nhập hợp lệ. Sửa ngày nhập sang tháng khác tính lại tháng cũ, tháng mới và các kỳ sau bị ảnh hưởng; điều kiện sửa/hủy vẫn tuân theo FR-INV-02.
 
 ### 2.3.15. Xuất nguyên liệu theo FIFO
 
@@ -207,7 +208,7 @@ Bước 3. Mỗi phần xuất được ghi theo lô và theo dòng món. Không
 
 Bước 4. Khi hủy hợp lệ trước chế biến, nguyên liệu được hoàn về đúng lô đã xuất. Bếp xem lịch sử xuất và tồn theo lô.
 
-<img src="images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image16.png" width="567" />
+<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image16.png" width="567" />
 
 Hình 15. QT-15 — Xuất nguyên liệu theo FIFO. Luồng chính.
 
@@ -221,21 +222,21 @@ Bước 3. Hệ thống kiểm tra giới hạn. Với món đã chế biến, h
 
 Bước 4. Người lập xác nhận; hệ thống lưu phiếu và nhật ký. Nguồn Nguyên liệu trừ tồn theo lô; nguồn Món đã chế biến và chứng từ Kiểm kê sử dụng giao dịch gốc để phân loại hao hụt.
 
-<img src="images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image17.png" width="584" />
+<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image17.png" width="584" />
 
 Hình 16. QT-16 — Xuất hủy nguyên liệu và món đã chế biến. Luồng chính.
 
 ### 2.3.17. Kiểm kê và điều chỉnh tồn kho
 
-Bước 1. Bếp hoặc Quản lý mở kiểm kê sau khi kết thúc phục vụ; hệ thống tạm khóa các thao tác làm thay đổi tồn.
+Bước 1. Bếp hoặc Quản lý yêu cầu mở kiểm kê sau khi kết thúc phục vụ. Hệ thống từ chối nếu còn lượt chọn chưa gửi/hủy, kể cả giữ đã hết hạn; nhân viên xử lý các lượt đó trước khi yêu cầu lại. Khi đủ điều kiện, hệ thống mở một phiên duy nhất và khóa biến động kho trong cùng transaction.
 
 Bước 2. Bếp đếm tồn thực tế theo nguyên liệu, gồm cả lô hết hạn còn hàng.
 
 Bước 3. Hệ thống tính chênh lệch so với tồn sổ sách; người kiểm kê kiểm tra, nhập lý do và xác nhận.
 
-Bước 4. Hệ thống phân bổ chênh lệch xuống từng lô và ghi nhận điều chỉnh; chênh lệch âm sinh chứng từ xuất hủy, không trừ tồn lần hai. Kết thúc phiên thì mở khóa kho.
+Bước 4. Hệ thống phân bổ chênh lệch xuống từng lô và ghi nhận điều chỉnh; chênh lệch âm sinh chứng từ xuất hủy, không trừ tồn lần hai. Người dùng không nhập đơn giá. Giá trị điều chỉnh được tự xác định theo bình quân; thiếu căn cứ giá không cản ghi số lượng và được hiển thị chưa xác định. Kết thúc phiên thì mở khóa kho.
 
-<img src="images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image1.png" width="567" />
+<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image1.png" width="567" />
 
 Hình 17. QT-17 — Kiểm kê và điều chỉnh tồn kho. Luồng chính.
 
@@ -249,7 +250,7 @@ Bước 3. Hệ thống cảnh báo khi lượng khả dụng thấp hơn mức 
 
 Bước 4. Người dùng xem chi tiết lô và lịch sử xuất, hoàn. Bếp quyết định nhập bổ sung hoặc xử lý lô hỏng; cảnh báo không tự tạo phiếu.
 
-<img src="images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image19.png" width="567" />
+<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image19.png" width="567" />
 
 Hình 18. QT-18 — Theo dõi tồn kho và cảnh báo theo lô. Luồng chính.
 
@@ -263,7 +264,7 @@ Bước 3. Hệ thống tổng hợp và hiển thị bảng, biểu đồ; doan
 
 Bước 4. Quản lý xem kết quả hoặc đổi bộ lọc; nếu không có dữ liệu, hệ thống thông báo.
 
-<img src="images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image20.png" width="567" />
+<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image20.png" width="567" />
 
 Hình 19. QT-19 — Xem báo cáo thống kê. Luồng chính.
 
@@ -277,7 +278,7 @@ Bước 3. Người dùng tự đổi mật khẩu và đăng xuất khi kết t
 
 Bước 4. Đăng nhập sai hoặc tài khoản bị khóa bị từ chối; các thao tác quản trị được ghi nhật ký.
 
-<img src="images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image21.png" width="567" />
+<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image21.png" width="567" />
 
 Hình 20. QT-20 — Quản lý người dùng và phân quyền. Luồng chính.
 
@@ -289,7 +290,7 @@ Bước 2. Quản lý sửa giá trị cần thiết và lưu; giá trị không
 
 Bước 3. Hệ thống lưu cấu hình và ghi nhật ký; mốc ngày kinh doanh mới có hiệu lực từ ngày kế tiếp.
 
-<img src="images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image22.png" width="567" />
+<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image22.png" width="567" />
 
 Hình 21. QT-21 — Cấu hình hệ thống. Luồng chính.
 
@@ -301,7 +302,7 @@ Bước 2. Hệ thống trả danh sách nhật ký phù hợp; Quản lý chọ
 
 Bước 3. Nhật ký chỉ để xem; mọi yêu cầu sửa hoặc xóa đều bị từ chối.
 
-<img src="images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image23.png" width="567" />
+<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image23.png" width="567" />
 
 Hình 22. QT-22 — Tra cứu nhật ký hệ thống. Luồng chính.
 
@@ -315,7 +316,7 @@ Bước 3. Hệ thống lấy dữ liệu trong phạm vi được phép và tr�
 
 Bước 4. Khi xử lý thành công, người dùng xem câu trả lời và mở chi tiết kỹ thuật nếu cần. Nếu ngoài quyền hoặc hết hạn mức, hệ thống từ chối và kết thúc yêu cầu; nếu câu hỏi chưa rõ, người dùng bổ sung thông tin; nếu không tạo được kết quả hợp lệ, hệ thống thông báo lỗi và gợi ý diễn đạt lại. Mỗi lượt được lưu theo quyền, người dùng có thể đặt câu hỏi tiếp theo.
 
-<img src="images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image25.png" width="567" />
+<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image25.png" width="567" />
 
 Hình 23. QT-23 — Hỏi AI Assistant. Luồng chính.
 
@@ -338,7 +339,7 @@ Các quy trình tại mục 2.3 là căn cứ xác định sáu module tại m�
 
 2\. Order chỉ được ghi nhận kể từ lần gửi món đầu tiên. Phiếu tạm tính lấy từ order để khách đối chiếu trước khi thanh toán, không tạo bản ghi HOA_DON hoặc ghi nhận doanh thu; order chỉ phát sinh hóa đơn sau khi thanh toán thành công.
 
-3\. Sau khi thanh toán thành công, order/hóa đơn bị khóa hoàn toàn, chỉ cho phép in lại nguyên trạng; việc giải phóng bàn thực hiện theo UC 2.3.
+3\. Sau khi thanh toán thành công, nội dung món và số tiền của order cùng hóa đơn được giữ nguyên; hóa đơn chỉ được in lại nguyên trạng. Nhân viên vẫn cập nhật trạng thái chế biến/phục vụ của dòng chưa hủy và giải phóng bàn khi khách rời đi theo UC 2.3.
 
 4\. Chỉ hỗ trợ tiền mặt hoặc QR do hệ thống tạo; không tích hợp thanh toán thẻ ngân hàng và không hỗ trợ chuyển khoản ngoài mã QR do hệ thống tạo. Giao dịch QR ở “Chờ xác nhận” cho đến khi webhook xác nhận hoặc quá 10 phút thì chuyển sang “Hết hạn”; khi khách báo đã thanh toán, Thu ngân chuyển sang “Chờ xác minh thanh toán”. Hệ thống lưu bằng chứng, lịch sử và kết quả xử lý, hỗ trợ xác nhận đã nhận tiền, mở lại thanh toán hoặc đóng order chưa thu được tiền; tra soát với ngân hàng và hoàn tiền thực hiện ngoài hệ thống, kết quả được lưu theo UC 2.6.
 

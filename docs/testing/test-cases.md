@@ -1,3 +1,7 @@
+# Bộ ca kiểm thử kỹ thuật lịch sử
+
+Tài liệu này lưu bộ ca và ánh xạ kỹ thuật của giai đoạn trước. Danh mục ca nghiệm thu hiện hành là [tài liệu 06](../Tai_lieu/06_Tai_lieu_kiem_thu_va_ket_qua.md); mã TC trong hai bộ thuộc hai danh mục khác nhau, không dùng thay thế nhau. Các tên hàm và số NFR dưới đây phản ánh phiên bản lịch sử, không xác nhận còn tồn tại trong code hiện hành.
+
 # Test case theo module
 
 Quy ước mã: `TC-<MODULE>-nn` (2 chữ số, không nhảy số qua các lần chỉnh sửa tài liệu). Cột **Loại** ghi

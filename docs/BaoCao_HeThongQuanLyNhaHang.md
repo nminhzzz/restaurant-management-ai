@@ -1,17 +1,3 @@
-**KHOA CÔNG NGHỆ THÔNG TIN**
-
-<img src="images/bao_cao/media/image1.png" width="256" />
-
-**Lê Nam Khánh – Nguyễn Mạnh Hùng – Lê Nho Minh**
-
-**HỆ THỐNG QUẢN LÝ NHÀ HÀNG TÍCH HỢP AI HỖ TRỢ HOẠT ĐỘNG KINH DOANH**
-
-**Ngành: Công nghệ thông tin**
-
-**KHÓA LUẬN TỐT NGHIỆP ĐẠI HỌC**
-
-**Hà Nội – Năm 2026**
-
 TRƯỜNG ĐẠI HỌC MỞ HÀ NỘI
 
 **KHOA CÔNG NGHỆ THÔNG TIN**
@@ -285,7 +271,7 @@ Các nội dung sau nằm ngoài phạm vi của đề tài:
 
 - Phạm vi mở rộng gồm tích hợp chuyên sâu cổng thanh toán, xử lý tải lớn/đa máy chủ và tự vận hành LLM. MVP dùng một CSDL MySQL với khóa dòng (mục 4.2.2).
 
-- Thanh toán QR và in phiếu bếp được kiểm thử bằng dữ liệu mô phỏng; hệ thống chưa kết nối với cổng thanh toán và máy in thật.
+- Kết quả kiểm thử thanh toán QR sử dụng dữ liệu mô phỏng; in phiếu bếp được kiểm tra qua bộ nhận TCP. Kết quả vận hành tiền thật và máy in vật lý chưa được ghi nhận.
 
 - Hóa đơn trong hệ thống là hóa đơn nội bộ, chưa phải hóa đơn điện tử theo quy định của cơ quan thuế.
 
@@ -549,7 +535,7 @@ Mức ưu tiên và tiêu chí chấp nhận cho đủ 107 FR nằm ở phần L
 
 ### 2.4.2. Yêu cầu phi chức năng
 
-Các yêu cầu phi chức năng gồm 11 tiêu chí có thể kiểm chứng, nhóm theo ISO/IEC 25010:2023 \[13\]: hiệu suất (NFR-01–03), bảo mật và truy vết (NFR-04–06), độ tin cậy (NFR-07, NFR-11), sử dụng tài nguyên (NFR-08), khả năng sử dụng (NFR-09) và tính tương thích (NFR-10). Ngưỡng hiệu năng và căn cứ được trình bày tại mục 6.1; kịch bản tái lập nằm trong tài liệu 06 (mục 6.7). Mỗi yêu cầu chỉ được kết luận đạt sau khi chạy kiểm thử và lưu bằng chứng.
+Các yêu cầu phi chức năng gồm 11 tiêu chí có thể kiểm chứng, nhóm theo ISO/IEC 25010:2023 \[13\]: hiệu suất (NFR-01–03), bảo mật và truy vết (NFR-04–06), độ tin cậy (NFR-07, NFR-11), sử dụng tài nguyên (NFR-08), khả năng sử dụng (NFR-09) và tính tương thích (NFR-10). Ngưỡng hiệu năng và căn cứ được trình bày tại mục 6.1; kịch bản tái lập nằm trong tài liệu 06, phần J. Mỗi yêu cầu chỉ được kết luận đạt sau khi chạy kiểm thử và lưu bằng chứng.
 
 <table>
 <colgroup>
@@ -717,7 +703,7 @@ Hình 4. Phân rã sáu nhóm chức năng của hệ thống
 
 ### 3.1.2. Sơ đồ Use Case
 
-Bộ Use Case gồm một sơ đồ tổng quan và sáu sơ đồ chi tiết với 30 Use Case. Thân báo cáo giữ tổng quan, bán hàng, kho và AI; các sơ đồ còn lại nằm trong file [UseCase_HeThongQuanLyNhaHang.drawio](So_do/UseCase_HeThongQuanLyNhaHang.drawio). Các nhóm chức năng trên sơ đồ tổng quan được đánh số từ 1 đến 6; Use Case chi tiết mang mã hai cấp theo nhóm, như 1.1, 1.2 và 2.1. Ba tác nhân người dùng là Quản lý, Thu ngân/Nhân viên order và Bếp; Cổng thanh toán và Claude API của Anthropic là hệ thống ngoài. Tên, mã và phạm vi từng Use Case được tổng hợp và đối chiếu với yêu cầu chức năng tại tài liệu 03.
+Bộ Use Case gồm một sơ đồ tổng quan và sáu sơ đồ chi tiết với 30 Use Case. Các sơ đồ tổng quan, bán hàng, kho và AI được trình bày dưới đây; bộ sơ đồ đầy đủ nằm trong file [UseCase_HeThongQuanLyNhaHang.drawio](So_do/UseCase_HeThongQuanLyNhaHang.drawio). Các nhóm chức năng trên sơ đồ tổng quan được đánh số từ 1 đến 6; Use Case chi tiết mang mã hai cấp theo nhóm, như 1.1, 1.2 và 2.1. Ba tác nhân người dùng là Quản lý, Thu ngân/Nhân viên order và Bếp; Cổng thanh toán và Claude API của Anthropic là hệ thống ngoài. Tên, mã và phạm vi từng Use Case được tổng hợp và đối chiếu với yêu cầu chức năng tại tài liệu 03.
 
 <img src="images/bao_cao/media/image5.png" width="597" />
 
@@ -737,7 +723,7 @@ Hình 8. Use Case AI Assistant
 
 ## 3.2. Mô hình hóa đối tượng (Class Diagram)
 
-Mô hình lớp mô tả các đối tượng nghiệp vụ, thuộc tính và quan hệ của hệ thống theo hướng phân tích thiết kế hướng đối tượng. Các sơ đồ được tổ chức theo module; thuộc tính và phương thức được đặc tả tại Phụ lục D trong tài liệu 04, còn quan hệ và bội số được ánh xạ sang lược đồ quan hệ tại mục 4.2.2. Bội số trong sơ đồ dùng ký hiệu 1, 0..1, 0..\* và 1..\*. Các kiểu dữ liệu khái niệm được định nghĩa cùng đặc tả lớp và ánh xạ sang kiểu MySQL tại mục 4.2.2.
+Mô hình lớp mô tả các đối tượng nghiệp vụ, thuộc tính và quan hệ của hệ thống theo hướng phân tích thiết kế hướng đối tượng. Các sơ đồ được tổ chức theo module; thuộc tính và phương thức được đặc tả tại phần D của tài liệu 04, còn quan hệ và bội số được ánh xạ sang lược đồ quan hệ tại mục 4.2.2. Bội số trong sơ đồ dùng ký hiệu 1, 0..1, 0..\* và 1..\*. Các kiểu dữ liệu khái niệm được định nghĩa cùng đặc tả lớp và ánh xạ sang kiểu MySQL tại mục 4.2.2.
 
 Các lớp tham chiếu từ module khác được thể hiện bằng khung nét đứt nền xám, tên lớp kèm tên module trong ngoặc (ví dụ “(Module Danh mục)”), chỉ trình bày thông tin cần thiết để nhận diện quan hệ giữa các module.
 
@@ -819,7 +805,7 @@ Bước 4. Một transaction tạo order/dòng món, ghi tiêu hao theo lô, k�
 
 Bước 5. Lưu phiếu bếp cùng dữ liệu nghiệp vụ; chỉ in sau khi commit. Trả order và trạng thái món cho người dùng.
 
-Luồng phụ và ngoại lệ: Hết hạn/thiếu nguyên liệu: từ chối hoặc yêu cầu chọn lại, không ghi dở. Giá/công thức đổi: giải phóng giữ cũ, chỉ tạo giữ mới sau xác nhận. Bàn đã bị nhận: không tạo order thứ hai. Gửi lặp: trả kết quả trước đó. In lỗi: in lại phiếu cũ, không trừ kho lại.
+Luồng phụ và ngoại lệ: Hết hạn giữ: kiểm tra lại lượng khả dụng và phiên bản; chỉ tiếp nhận khi toàn bộ dòng hợp lệ. Thiếu nguyên liệu: giữ danh sách để nhân viên trao đổi với khách, không ghi nhận dở hoặc tự gia hạn. Giá/công thức đổi: giải phóng giữ cũ, chỉ tạo giữ mới sau xác nhận. Bàn đã bị nhận: không tạo order thứ hai. Gửi lặp: trả kết quả trước đó. In lỗi: in lại phiếu cũ, không trừ kho lại.
 
 Hậu điều kiện: Thành công: mỗi lượng nguyên liệu được ghi tiêu hao một lần, bàn gắn đúng order, còn lịch sử phiên bản. Thất bại: rollback toàn bộ phần ghi dữ liệu.
 
@@ -835,11 +821,13 @@ Bước 1. Thu ngân chọn QR; hệ thống tạo lần thanh toán và mã tha
 
 Bước 2. Adapter nhận thông báo từ cổng. Backend xác thực nguồn theo hợp đồng tích hợp, đối chiếu mã giao dịch, order, số tiền và trạng thái.
 
-Bước 3. Khóa order và giao dịch trong transaction; nếu chưa có thanh toán thành công thì ghi thành công, cập nhật order và phát hành đúng một hóa đơn.
+Bước 3. Khóa order và các giao dịch liên quan trong transaction; kiểm tra mã khoản nhận, số tiền, lịch sử mở lại và điều kiện FR-SALE-15–17. Chỉ nhánh đủ điều kiện xác nhận tự động mới ghi thành công, cập nhật order và phát hành một hóa đơn; nhánh còn lại ghi ngoại lệ hoặc từ chối webhook không hợp lệ.
 
 Bước 4. Trả trạng thái để giao diện hiển thị và in chứng từ. Thanh toán không tự giải phóng bàn; việc giải phóng theo UC 2.3.
 
-Luồng phụ và ngoại lệ: Webhook lặp: không tạo thêm hóa đơn hoặc doanh thu. Hết hạn/hủy khi chưa trả: trở về Đang mở theo quy tắc. Khách báo đã trả nhưng chưa xác nhận: chuyển Chờ xác minh. Tiền đến muộn, thu trùng hoặc sai số tiền: lưu ngoại lệ cho Quản lý theo FR-SALE-16–17, không tự cộng doanh thu.
+Luồng phụ và ngoại lệ: Webhook lặp: không tạo thêm hóa đơn hoặc doanh thu. Hết hạn/hủy khi chưa trả: trở về Đang mở theo quy tắc. Khách báo đã trả nhưng chưa xác nhận: chuyển Chờ xác minh. Tiền đến muộn: tự xác nhận nếu đúng giao dịch, đủ tiền và order chưa mở lại thanh toán, chưa đóng/hủy hoặc được thanh toán bằng giao dịch khác; hủy lần QR mới chưa nhận tiền nếu có. Nếu không thỏa điều kiện, thu trùng hoặc sai số tiền thì lưu khoản ngoại lệ cho Quản lý theo FR-SALE-16–17, không tự cộng doanh thu.
+
+“Mở lại thanh toán” trong điều kiện trên chỉ quyết định của Quản lý theo FR-SALE-23. Việc QR hết hạn hoặc bị hủy đưa order về Đang mở không phải quyết định này; hệ thống đối chiếu lịch sử xử lý khi nhận tiền muộn.
 
 Hậu điều kiện: Chỉ xác nhận hợp lệ mới phát hành hóa đơn. Một order tối đa một hóa đơn; lịch sử các lần thanh toán và đối soát được giữ đầy đủ.
 
@@ -851,7 +839,7 @@ UC 3.4. Tác nhân: Bếp; Quản lý kế thừa quyền.
 
 Tiền điều kiện: Kết thúc phục vụ, món đã chế biến hoặc hủy hợp lệ; xử lý hết lượt chọn chưa gửi và giữ còn hiệu lực; không có phiên kiểm kê khác.
 
-Bước 1. Người dùng yêu cầu mở phiên. Backend khóa bản ghi điều phối; kiểm tra lại điều kiện và loại lượt giữ hết hạn theo giờ server, không phụ thuộc lịch dọn trạng thái.
+Bước 1. Người dùng yêu cầu mở phiên. Backend khóa bản ghi điều phối, xác định giữ còn hiệu lực theo giờ server và kiểm tra mọi lượt chọn chưa kết thúc. Lượt giữ hết hạn không chiếm nguyên liệu nhưng lượt chọn vẫn phải được gửi hợp lệ hoặc hủy trước khi mở kiểm kê.
 
 Bước 2. Chốt tồn sổ sách, gồm lô hết hạn; mở phiên duy nhất và chặn giữ/gửi món, nhập/xuất/hoàn kho trong phiên.
 
@@ -859,9 +847,9 @@ Bước 3. Người dùng nhập tồn thực tế theo nguyên liệu và lý d
 
 Bước 4. Xác nhận trong một transaction: âm phân bổ FIFO trên lô còn lượng kể cả hết hạn; dương cộng vào lô mới nhất còn hiệu lực, hoặc tạo lô điều chỉnh nếu không có.
 
-Bước 5. Ghi giao dịch điều chỉnh, phiếu xuất hủy tham chiếu khi thiếu và audit log; phiếu này không trừ kho lần hai. Đóng phiên và mở lại thao tác kho.
+Bước 5. Ghi giao dịch điều chỉnh, phiếu xuất hủy tham chiếu khi thiếu và audit log; phiếu này không trừ kho lần hai. Người kiểm kê không nhập giá. Hệ thống tự định giá theo bình quân khi đủ căn cứ; thiếu giá vẫn ghi số lượng, phần giá trị chưa xác định. Đóng phiên và mở lại thao tác kho.
 
-Luồng phụ và ngoại lệ: Chưa đủ điều kiện: từ chối kèm lý do. Chỉ còn giữ đã hết hạn: không coi là giữ còn hiệu lực; cần kết thúc dấu vết lượt chọn trước khi mở. Hủy phiên: không điều chỉnh tồn. Lỗi giữa chừng: rollback, không để giao dịch kho và chứng từ lệch nhau.
+Luồng phụ và ngoại lệ: Còn lượt chọn Đang giữ hoặc Hết hạn chưa được gửi/hủy: từ chối mở phiên và yêu cầu nhân viên xử lý lượt chọn. Hết hạn không tự hủy lượt chọn và không làm điều kiện mở kiểm kê trở thành hợp lệ. Hủy phiên: không điều chỉnh tồn. Lỗi giữa chừng: rollback, không để giao dịch kho và chứng từ lệch nhau.
 
 Hậu điều kiện: Mỗi chênh lệch được áp dụng một lần; tổng lô bằng tồn tổng hợp và sổ cái. Xác nhận/hủy kết thúc khóa nghiệp vụ.
 
@@ -1003,11 +991,9 @@ Từ các mô hình nghiệp vụ ở Chương 3, hệ thống xác định đư
 
 Bảng 10. Danh sách lớp đối tượng của hệ thống
 
-Thuộc tính và phương thức chi tiết của từng lớp được đặc tả tại Phụ lục D trong tài liệu 04.
+Thuộc tính và phương thức chi tiết của từng lớp được đặc tả tại phần D của tài liệu 04.
 
 ### 4.2.2. Ánh xạ Class Diagram sang lược đồ quan hệ (CSDL)
-
-Các mối liên kết giữa 31 lớp được tổng hợp trong tài liệu 04 và file [ClassDiagram_HeThongQuanLyNhaHang.drawio](So_do/ClassDiagram_HeThongQuanLyNhaHang.drawio). Hai lược đồ dưới đây tập trung vào khóa và quan hệ cốt lõi của bán hàng, giữ món và kho.
 
 Quan hệ đầy đủ giữa 31 lớp nằm trong tài liệu 04 và file [ClassDiagram_HeThongQuanLyNhaHang.drawio](So_do/ClassDiagram_HeThongQuanLyNhaHang.drawio). Hai lược đồ sau làm rõ các khóa và liên kết cốt lõi khi triển khai bán hàng, giữ món và kho.
 
@@ -1025,9 +1011,9 @@ Các khóa ngoại được xác định từ quan hệ trong tài liệu 04 và
 
 | Kiểu / nhóm dữ liệu                   | Kiểu MySQL và quy ước                                                                                                                                                                       |
 |---------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| int / Long                            | INT / BIGINT cho mã định danh; PK tự tăng khi là định danh thay thế. Các FK dùng cùng kiểu với PK được tham chiếu.                                                                          |
+| int / Long                            | BIGINT cho định danh thay thế; PK tự tăng khi là định danh thay thế. Mã vai trò dùng VARCHAR(20). Các FK dùng cùng kiểu với PK được tham chiếu.                                                                          |
 | String                                | VARCHAR theo giới hạn trường; dùng TEXT cho ghi chú, prompt/kết quả dài; dữ liệu webhook hoặc trước/sau dạng có cấu trúc dùng JSON. Tất cả dùng utf8mb4.                                    |
-| double – tiền                         | DECIMAL(18,2) cho giá bán, giá nhập, thành tiền, doanh thu và giá vốn. Chi phí API dùng DECIMAL(18,8). Không dùng FLOAT/DOUBLE cho tiền trong CSDL.                                         |
+| double – tiền                         | DECIMAL(18,2) cho giá bán, giá nhập, thành tiền, doanh thu và giá vốn. Chi phí API dùng DECIMAL(18,10). Không dùng FLOAT/DOUBLE cho tiền trong CSDL.                                         |
 | double – lượng                        | DECIMAL(18,6) cho số lượng, định lượng và hệ số quy đổi theo đơn vị chuẩn. Số suất món là INT dương.                                                                                        |
 | boolean                               | BOOLEAN (TINYINT(1)); CHECK giới hạn 0 hoặc 1; cờ không có ý nghĩa rỗng là NOT NULL.                                                                                                        |
 | LocalDate / LocalDateTime / LocalTime | DATE / DATETIME(3) / TIME. Thời điểm được diễn giải theo múi giờ nhà hàng; BusinessDate đã lưu không tính lại theo cấu hình mới.                                                            |
@@ -1044,9 +1030,9 @@ Hóa đơn và giao dịch thanh toán kế thừa Business Date của order đ�
 
 | **Bảng và trường**              | **Kiểu và khóa**                                      | **Ràng buộc thiết kế**                                                                                   |
 |---------------------------------|-------------------------------------------------------|----------------------------------------------------------------------------------------------------------|
-| ORDER.MaOrder; MaBan; NguoiTao  | BIGINT PK; INT FK BAN; INT FK NGUOI_DUNG              | MaBan NULL chỉ với mang về; BusinessDate DATE NOT NULL.                                                  |
+| ORDER.MaOrder; MaBan; NguoiTao  | BIGINT PK; BIGINT FK BAN; BIGINT FK NGUOI_DUNG              | MaBan NULL chỉ với mang về; BusinessDate DATE NOT NULL.                                                  |
 | CHI_TIET_ORDER                  | MaChiTietOrder BIGINT PK; MaOrder BIGINT FK           | FK món, giá, công thức phải cùng món; SoLuong INT \> 0; DonGia và ThanhTien DECIMAL(18,2).               |
-| GIU_CHO_MON                     | MaGiuCho BIGINT PK; MaOrder BIGINT FK NULL            | ThoiDiemHetHan DATETIME(6); UNIQUE (MaYeuCauGui, MaDongYeuCau); MaChiTietOrder FK UNIQUE khi có giá trị. |
+| GIU_CHO_MON                     | MaGiuCho BIGINT PK; MaOrder BIGINT FK NULL            | ThoiDiemHetHan DATETIME(3); UNIQUE (MaYeuCauGui, MaDongYeuCau); MaChiTietOrder FK UNIQUE khi có giá trị. |
 | CHI_TIET_GIU_CHO                | PK (MaGiuCho, MaLoNguyenLieu); cả hai BIGINT FK       | SoLuongGiu DECIMAL(18,6) \> 0; không cấp vượt lượng khả dụng.                                            |
 | LO_NGUYEN_LIEU                  | MaLoNguyenLieu BIGINT PK; MaNguyenLieu INT FK         | SoLuongConLai DECIMAL(18,6) ≥ 0; HanSuDung cho phép NULL; lô điều chỉnh không bắt buộc MaChiTietNhap.    |
 | GIAO_DICH_THANH_TOAN và HOA_DON | MaGiaoDichTT / MaHoaDon BIGINT PK; MaOrder BIGINT FK  | HOA_DON.MaOrder UNIQUE; mã giao dịch cổng có giá trị phải chống lặp; số tiền DECIMAL(18,2).              |
@@ -1055,7 +1041,7 @@ Hóa đơn và giao dịch thanh toán kế thừa Business Date của order đ�
 
 Bảng 11. Ràng buộc vật lý của các bảng trọng yếu
 
-Các kiểu và ràng buộc trên là hợp đồng thiết kế để đối chiếu migration. Từ điển vật lý thiết kế và lược đồ khóa đủ 31 bảng nằm trong tài liệu [04_Mo_hinh_va_dac_ta_lop.md](Tai_lieu/04_Mo_hinh_va_dac_ta_lop.md) và các trang CSDL của [ClassDiagram_HeThongQuanLyNhaHang.drawio](So_do/ClassDiagram_HeThongQuanLyNhaHang.drawio). Những thuộc tính dẫn xuất không tự động trở thành cột lưu vật lý.
+Các kiểu và ràng buộc trên xác định thiết kế dữ liệu. Từ điển vật lý gồm 37 bảng và ánh xạ từ 31 lớp nghiệp vụ được trình bày trong tài liệu [04_Mo_hinh_va_dac_ta_lop.md](Tai_lieu/04_Mo_hinh_va_dac_ta_lop.md) và các trang CSDL của [ClassDiagram_HeThongQuanLyNhaHang.drawio](So_do/ClassDiagram_HeThongQuanLyNhaHang.drawio). Thuộc tính dẫn xuất được xác định riêng với các cột lưu trữ.
 
 ### 4.2.3. Thiết kế chỉ mục
 
@@ -1197,27 +1183,23 @@ Các nguyên tắc áp dụng: (1) quyền được kiểm tra ở tầng backen
 
 Bảng 13 tổng hợp phương thức, quyền truy cập và hợp đồng dữ liệu của các luồng trọng yếu. Mỗi thao tác chịu sự kiểm soát của backend theo trạng thái đối tượng, điều kiện nghiệp vụ và ranh giới giao dịch.
 
-| **Method**    | **URL** | **Quyền**                      | **Hợp đồng và lỗi chính**                           |
-|---------------|---------|--------------------------------|-----------------------------------------------------|
-| POST          |         | Mọi tài khoản                  | Tên đăng nhập, mật khẩu → phiên; 401                |
-| POST          |         | Đã đăng nhập                   | Thu hồi phiên; 401                                  |
-| POST          |         | Quản lý                        | Tạo người dùng → 201 và dữ liệu đã lưu; 403/409/422 |
-| GET, POST     |         | GET: người dùng; POST: Quản lý | Tra cứu/tạo món; 403/409/422                        |
-| POST          |         | Thu ngân; Quản lý              | Giữ món, phiên bản và hạn giữ; 403/409/422          |
-| PATCH, DELETE |         | Chủ lượt chọn hợp lệ           | Tăng/giảm/giải phóng; 403/404/409                   |
-| POST          |         | Thu ngân; Quản lý              | Mã chống lặp → order/phiếu bếp; 409/422             |
-| PATCH         |         | Thu ngân; Quản lý              | Giảm/hủy Chờ làm + hoàn kho/audit; 409              |
-| GET           |         | Thu ngân; Quản lý              | Toàn bộ lịch sử thử thu và đối soát; 403/404        |
-| POST          |         | Thu ngân; Quản lý              | Lần thanh toán, mã QR, hạn; 409/502                 |
-| POST          |         | Adapter cổng đã xác thực       | Mã cổng, order, tiền, xác nhận; 401/409             |
-| POST          |         | Bếp; Quản lý                   | Mở phiên theo điều kiện; 409                        |
-| POST          |         | Bếp; Quản lý                   | Tồn thực tế, lý do → điều chỉnh một lần; 409/422    |
-| GET           |         | Quản lý                        | Bộ lọc kỳ và dữ liệu đối chiếu; 403/422             |
-| POST          |         | Chủ phiên; theo vai trò        | Câu hỏi → trả lời/làm rõ/từ chối; 403/429/504       |
+| **Phương thức** | **Đường dẫn** | **Quyền và nội dung** |
+|---|---|---|
+| POST | `/api/v1/settings/auth/login` | Tài khoản hợp lệ; cấp JWT, sai thông tin trả 401. |
+| GET | `/api/v1/settings/auth/me` | Đã đăng nhập; thông tin tài khoản hiện hành. |
+| POST | `/api/v1/settings/users` | Quản lý; tạo tài khoản, trả 201 khi thành công. |
+| GET, POST | `/api/v1/catalog/dishes` | Tra cứu theo quyền; Quản lý tạo món. |
+| POST | `/api/v1/sales/holds` | Thu ngân/Quản lý; tạo giữ món. |
+| PATCH, DELETE | `/api/v1/sales/holds/{hold_id}` | Người có quyền trên lượt chọn; điều chỉnh hoặc giải phóng. |
+| POST | `/api/v1/sales/orders` | Thu ngân/Quản lý; gửi lượt chọn đầu tiên, tạo order. |
+| PATCH | `/api/v1/sales/orders/{order_id}/lines/{line_id}` | Thu ngân/Quản lý; giảm dòng Chờ làm theo điều kiện nghiệp vụ. |
+| GET | `/api/v1/sales/orders/{order_id}` | Thu ngân/Quản lý; chi tiết order và dữ liệu thanh toán. |
+| POST | `/api/v1/inventory/stocktakes` | Bếp/Quản lý; mở phiên kiểm kê theo điều kiện nghiệp vụ. |
+| GET | `/api/v1/reports/revenue` | Quản lý; báo cáo doanh thu theo bộ lọc. |
 
-Bảng 13. Hợp đồng API cho các luồng trọng yếu
+Bảng 13. Một số endpoint của backend
 
-Lỗi thống nhất có các trường code, message, request_id và details đã loại dữ liệu nhạy cảm. 401: thiếu/không còn phiên hợp lệ; 403: không đủ quyền; 404: đối tượng không có trong phạm vi; 409: xung đột trạng thái; 422: dữ liệu không hợp lệ; 429: vượt hạn mức; 502/504: lỗi hoặc hết thời gian dịch vụ ngoài. Các lỗi từ chối đúng nghiệp vụ được tách khỏi lỗi kỹ thuật 5xx.
+Backend trả lỗi theo cấu trúc `{error: {code, message}}`; lỗi nội bộ có thêm `error_id` phục vụ tra cứu. Mã 401 biểu thị thông tin xác thực không hợp lệ; 403 biểu thị không đủ quyền; 404 biểu thị không tìm thấy đối tượng; 422 được dùng cho dữ liệu hoặc điều kiện nghiệp vụ không hợp lệ. Xung đột cấu hình có thể trả 409. Hạn mức AI được phản hồi bằng thông báo trong kết quả hỏi đáp, không mặc định là HTTP 429. Cơ chế đăng xuất được trình bày tại mục 4.6. Hợp đồng giao thức không thay thế điều kiện nghiệp vụ tại tài liệu 03.
 
 <img src="images/bao_cao/media/image40.png" width="567" />
 
@@ -1229,11 +1211,11 @@ Tên lớp mô tả trách nhiệm thiết kế; có thể được hiện thự
 
 Server xác định người dùng từ thông tin xác thực và kiểm tra trạng thái tài khoản, vai trò hiện hành ở mỗi yêu cầu. Phiên truy cập bị vô hiệu khi tài khoản bị khóa hoặc không còn đáp ứng điều kiện truy cập. Thông tin xác thực không được ghi vào nhật ký.
 
-Cơ chế xác thực sử dụng:
+Cơ chế xác thực sử dụng JWT có thời hạn. Backend kiểm tra chữ ký, hạn token, trạng thái tài khoản và phiên bản xác thực theo cấu hình triển khai. Khi đăng xuất, trình duyệt xóa thông tin đăng nhập và trở về màn hình đăng nhập; thao tác này không thu hồi token đã cấp ở máy chủ. Khóa tài khoản và thay đổi thông tin bảo mật được kiểm soát qua phiên bản token.
 
 Mật khẩu chỉ lưu dạng băm thích hợp; thông báo đăng nhập không làm lộ tài khoản có tồn tại hay không. Backend kiểm tra RBAC và quyền sở hữu từng đối tượng, không dựa vào nút giao diện bị ẩn. Dữ liệu đầu vào được kiểm tra kiểu, phạm vi và trạng thái; truy vấn nghiệp vụ dùng tham số; dữ liệu hiển thị được escape, không render HTML tùy ý từ câu hỏi hoặc kết quả AI.
 
-HTTPS bảo vệ đường truyền ở môi trường triển khai. Tách tài khoản CSDL nghiệp vụ và tài khoản AI chỉ đọc; bí mật nằm ở cấu hình server, không đưa vào frontend, repository hoặc log. Webhook phải xác thực theo cơ chế của cổng thực tế, kiểm tra mã và số tiền, chống phát lại bằng mã sự kiện/giao dịch và cập nhật trong transaction. Bản mô phỏng kiểm được quy tắc nghiệp vụ, chưa chứng minh đã đáp ứng xác thực của một cổng thật.
+HTTPS bảo vệ đường truyền ở môi trường triển khai. Tách tài khoản CSDL nghiệp vụ và tài khoản AI chỉ đọc; bí mật nằm ở cấu hình server, không đưa vào frontend, repository hoặc log. Webhook phải xác thực theo cơ chế của cổng thực tế, kiểm tra mã và số tiền, chống phát lại bằng mã sự kiện/giao dịch và cập nhật trong transaction. Backend có adapter mô phỏng và adapter SePay, lựa chọn bằng cấu hình server. Kết quả thực nghiệm trong Chương 6 sử dụng mô phỏng; phạm vi này chưa xác nhận vận hành tiền thật qua SePay.
 
 Nhật ký ghi người thực hiện, thời điểm, mã yêu cầu, đối tượng, dữ liệu thay đổi và kết quả; không lưu mật khẩu, token hoặc khóa API. Nhật ký chỉ cho phép ghi thêm. Chính sách sao lưu quy định sao lưu CSDL hằng ngày, giới hạn quyền đọc bản sao và kiểm tra phục hồi vào CSDL trống theo NFR-11. Phạm vi kiểm thử bảo mật gồm SQL injection, XSS, API trái vai trò, khóa tài khoản, hết hạn phiên, quyền sở hữu và kiểm soát AI.
 
@@ -1271,6 +1253,16 @@ Với bán hàng/kho, xử lý lõi là khóa nguyên liệu và lô, kiểm tra
 
 Cấu trúc thư mục dự án:
 
+| **Thư mục** | **Nội dung** |
+|---|---|
+| `apps/web/src/` | Giao diện web, màn hình nghiệp vụ và trạng thái phiên trên trình duyệt. |
+| `apps/api/src/app/` | API, xử lý nghiệp vụ, xác thực và dịch vụ AI. |
+| `apps/api/migrations/` | Migration cơ sở dữ liệu. |
+| `db/views/` | Định nghĩa view chỉ đọc cho AI theo vai trò. |
+| `scripts/seed/` | Khởi tạo dữ liệu mô phỏng phục vụ thử nghiệm. |
+| `data/eval/` | Bộ câu hỏi và dữ liệu đáp án đánh giá AI. |
+| `docs/` | Báo cáo, đặc tả, sơ đồ và hồ sơ kiểm thử. |
+
 ## 5.3. Thiết lập môi trường và chạy thử
 
 Môi trường frontend và backend sử dụng các phiên bản runtime, thư viện theo tệp khai báo phụ thuộc. CSDL của bản thử được tách khỏi dữ liệu vận hành.
@@ -1289,17 +1281,14 @@ Kho mã nguồn: https://github.com/nminhzzz/restaurant-management-ai
 
 ## 5.4. Kết quả cài đặt
 
-Gọi món và quản lý order
-
-Thanh toán QR
-
-Quản lý tồn kho theo lô
-
-Báo cáo thống kê
-
-AI Assistant
-
-Quản lý tài khoản
+| **Chức năng** | **Ảnh giao diện thực tế** |
+|---|---|
+| Gọi món và quản lý order | |
+| Thanh toán QR | |
+| Quản lý tồn kho theo lô | |
+| Báo cáo thống kê | |
+| AI Assistant | |
+| Quản lý tài khoản | |
 
 # 6. KIỂM THỬ VÀ ĐÁNH GIÁ
 
@@ -1439,7 +1428,7 @@ Phân vị thời gian phản hồi trong Bảng 16 được tính trên toàn b
 | B            |                        |                |                |
 | C            |                        |                |                |
 
-Phần diễn giải được ba agent Claude Sonnet 5.5 chấm mù, tức là không biết mẫu thuộc cấu hình nào. Trong nhóm các lượt có SQL đúng khắt khe, 427/458 câu trả lời đạt (93,23%). Các lỗi ghi nhận gồm 2 lượt sai số liệu và 27 lượt sai nhận xét, chẳng hạn kết luận xu hướng không phù hợp hoặc bỏ sót cực trị đồng hạng. Tính trên toàn bộ lượt hỏi, độ đúng câu trả lời của A, B, C lần lượt là 61,67%, 66,67% và 49,58%. Việc chấm do agent AI thực hiện, chưa có người chấm độc lập xác nhận.
+Phần diễn giải được chấm bằng Claude Sonnet 5.5; hồ sơ chấm ghi nhãn người đánh giá là agent AI chấm mù cấu hình. Trong nhóm các lượt có SQL đúng khắt khe, 427/458 câu trả lời đạt (93,23%). Có 31 lượt không đạt, gồm 27 lượt mang nhãn lỗi nhận xét, 4 lượt lỗi kỳ hoặc phạm vi và 2 lượt lỗi số liệu. Một lượt có thể mang nhiều nhãn nên tổng số nhãn lỗi lớn hơn số lượt không đạt. Tính trên toàn bộ lượt hỏi, độ đúng câu trả lời của A, B, C lần lượt là 61,67%, 66,67% và 49,58%. Việc chấm do agent AI thực hiện, chưa có người chấm độc lập xác nhận.
 
 Về chi phí, trong 720 lượt, tổng chi phí ghi nhận theo usage và đơn giá cấu hình là 3,4731 USD; bình quân trên toàn bộ lượt là 0,00490 USD/câu ở A, 0,00507 USD/câu ở B và 0,00451 USD/câu ở C. Do usage chưa đầy đủ ở một số lượt, nhất là các lượt timeout, các con số này có thể thấp hơn chi phí thực và chưa phải tổng chi phí thanh toán đã đối soát. Nếu chỉ xét các lượt có usage đầy đủ, bình quân của A và B khoảng 0,0059 USD/câu, của C khoảng 0,0071 USD/câu. Mức xấp xỉ 0,006 USD/câu tương đương khoảng 18 USD cho 3.000 câu; đây là ước lượng ngoại suy từ nhóm lượt có usage đầy đủ, chưa gồm chi phí bị thiếu và các chi phí ngoài API.
 
@@ -1478,15 +1467,15 @@ Mỗi ca có tiêu chí đối chiếu phản hồi ứng dụng với nhật k�
 
 ## 6.6. Kiểm thử nghiệp vụ
 
-Mỗi ca kiểm thử nghiệp vụ truy vết được về yêu cầu chức năng (FR) và ghi rõ dữ liệu đầu vào, điều kiện, kết quả mong đợi và bằng chứng thực thi. Các nhóm ca trọng yếu gồm: giữ món và gửi món; hủy món và hoàn kho; thanh toán và webhook bị gọi lặp; kiểm kê; hiệu lực của giá và công thức; phân quyền; tính doanh thu. Điều kiện nghiệm thu là mọi ca trọng yếu đều đạt; các ca không đạt còn lại được liệt kê kèm mức ảnh hưởng. Mẫu test case, danh sách ca và ma trận truy vết nằm trong tài liệu 06; kết quả chạy ở phần sau của mục này.
+Mỗi ca kiểm thử nghiệp vụ truy vết được về yêu cầu chức năng (FR) và ghi rõ dữ liệu đầu vào, điều kiện, kết quả mong đợi và bằng chứng thực thi. Các nhóm ca trọng yếu gồm: giữ món và gửi món; hủy món và hoàn kho; thanh toán và webhook bị gọi lặp; kiểm kê; hiệu lực của giá và công thức; phân quyền; tính doanh thu. Điều kiện nghiệm thu là mọi ca trọng yếu đều đạt; các ca không đạt còn lại được liệt kê kèm mức ảnh hưởng. Mẫu test case, danh sách ca và ma trận truy vết nằm trong tài liệu 06; kết quả lịch sử được trình bày dưới đây.
 
 Các tình huống tranh chấp khi giữ món được chạy lặp ít nhất 100 lần cho mỗi tình huống: hai bàn cùng giữ phần nguyên liệu cuối cùng; hai món dùng chung một nguyên liệu; gửi món đúng lúc giữ món hết hạn; gửi món lặp lại sau khi bị timeout. Sau mỗi lần chạy, kết quả được đối chiếu giữa sổ cái kho, lượng lô, lượng đang giữ và dòng order. Không được có trường hợp cấp trùng nguyên liệu, tồn âm hoặc trừ kho hai lần.
 
-Lần kiểm thử ngày 28/10/2026 sử dụng MySQL 8.4.13. Bộ nghiệp vụ gồm 209 ca, trong đó 195 ca đã chạy và 14 ca chưa chạy. Trong các ca đã chạy, 188 ca đạt và 7 ca không đạt. Kết quả theo module: Danh mục 46/48, Bán hàng 92/95, Kho 50/51 và Cài đặt 0/1. Phạm vi này chưa bao gồm kiểm thử chức năng của module Báo cáo với 13 yêu cầu. Phiên bản và danh mục ca được tổng hợp tại Phụ lục B.
+Lần kiểm thử ngày 28/10/2026 sử dụng MySQL 8.4.13. Bộ nghiệp vụ gồm 209 ca, trong đó 195 ca đã chạy và 14 ca chưa chạy. Trong các ca đã chạy, 188 ca đạt và 7 ca không đạt. Kết quả theo module: Danh mục 46/48, Bán hàng 92/95, Kho 50/51 và Cài đặt 0/1. Phạm vi thực thi này chưa bao gồm kiểm thử chức năng của module Báo cáo với 13 yêu cầu; bộ ca thiết kế được trình bày tại phần K.2 của tài liệu 06. Phiên bản và danh mục ca được tổng hợp tại Phụ lục B.
 
 Các bộ kiểm thử tự động được thống kê riêng: backend mặc định đạt 720/720; tích hợp MySQL đạt 15/15; bộ dữ liệu khởi tạo mở rộng đạt 8/8; frontend Vitest đạt 199/199. Bộ MySQL mở rộng đạt 307/320, với 13 test không đạt: 5 phản ánh sai lệch nghiệp vụ và 8 gặp lỗi tạo tài khoản. Lỗi tạo tài khoản trả HTTP 500 dù bản ghi đã lưu, phát sinh khi đọc thời điểm tạo bản ghi. Các bộ có kịch bản trùng nhau nên không cộng kết quả vào tổng số ca nghiệm thu.
 
-Các ca API và service chạy trên schema cô lập tạo từ mô hình ORM; bộ tích hợp và các ca giao diện chạy trên CSDL đã áp dụng migration. Giao diện được kiểm tra bằng Chromium 153, kết nối bản build production của Next.js và FastAPI. Các nhóm ca đối chiếu được 30 Use Case nhưng không bao phủ mọi nhánh và không thay thế kiểm thử chấp nhận của người dùng. Thông tin truy vết được tổng hợp tại Phụ lục B.
+Các ca API và service chạy trên schema cô lập tạo từ mô hình ORM; bộ tích hợp và các ca giao diện chạy trên CSDL đã áp dụng migration. Giao diện được kiểm tra bằng Chromium 153, kết nối bản build production của Next.js và FastAPI. Các nhóm ca được đối chiếu với 30 Use Case nhưng không bao phủ mọi nhánh và không thay thế kiểm thử chấp nhận của người dùng. Thông tin truy vết được tổng hợp tại Phụ lục B.
 
 Ba ca trọng yếu về nhật ký giảm món, lịch sử thanh toán và điều kiện mở kiểm kê chưa đạt, nên chưa thỏa điều kiện nghiệm thu mọi ca trọng yếu đều đạt. Bảng 18 tổng hợp các sai lệch; mã ca tương ứng nằm tại Phụ lục B.
 
@@ -1545,7 +1534,7 @@ Kiểm thử chấp nhận (UAT) sử dụng các kịch bản phục vụ, kho 
 
 MT1 – Đạt. Nhóm đã khảo sát 51 người, đặc tả 30 Use Case và 107 yêu cầu chức năng, mô hình hóa 31 lớp đối tượng và thiết kế cơ sở dữ liệu quan hệ.
 
-MT2 – Đạt một phần. Sáu module đã được triển khai; module Báo cáo thống kê (13 yêu cầu chức năng) chưa có ca kiểm thử nên chưa đủ căn cứ để kết luận.
+MT2 – Đạt một phần. Sáu module đã được triển khai; module Báo cáo thống kê có 13 yêu cầu chức năng và bộ ca thiết kế trong tài liệu 06, nhưng chưa có kết quả thực thi để kết luận.
 
 MT3 – Đạt một phần. Trong 195 ca nghiệp vụ đã chạy có 188 ca đạt và 7 ca chưa đạt, trong đó có ba ca trọng yếu (nhật ký thao tác, lịch sử thanh toán và kiểm kê); 14 ca còn lại chưa chạy.
 
@@ -1623,7 +1612,7 @@ Hướng phát triển gồm kết nối cổng thanh toán QR, máy in nhiệt 
 
 [05_Bo_so_do_Sequence_Diagram.md](Tai_lieu/05_Bo_so_do_Sequence_Diagram.md) — Sơ đồ tương tác tuần tự.
 
-[06_Tai_lieu_kiem_thu_va_ket_qua.md](Tai_lieu/06_Tai_lieu_kiem_thu_va_ket_qua.md) — Thiết kế kiểm thử, kết quả lịch sử và các ca bổ sung.
+[06_Tai_lieu_kiem_thu_va_ket_qua.md](Tai_lieu/06_Tai_lieu_kiem_thu_va_ket_qua.md) — Thiết kế kiểm thử, kết quả lịch sử và các ca đánh giá mở rộng.
 
 Bốn tệp drawio trong thư mục So_do cung cấp nguồn chỉnh sửa sơ đồ. Phụ lục A tóm tắt các quy định cơ sở dữ liệu; đặc tả chi tiết nằm trong tài liệu 04. Phụ lục B tập hợp thông tin truy vết bằng chứng.
 
@@ -1637,19 +1626,19 @@ Giá và công thức được quản lý theo phiên bản; dòng món tham chi
 
 Giữ món, tiêu hao, hoàn kho và cập nhật tổng tồn chạy trong transaction; khóa nguyên liệu theo mã tăng dần rồi khóa lô/lượt giữ. Khả dụng chỉ tính lô còn hạn trừ lượt giữ đang có hiệu lực theo giờ server, không phụ thuộc tác vụ dọn. Hết hạn không tự gia hạn; đổi giá/công thức phải xác nhận lại.
 
-FIFO theo NgayNhap rồi MaLoNguyenLieu; hoàn về lô gốc kể cả lô đã hết hạn. Kiểm kê âm phân bổ FIFO trên lô còn lượng, gồm lô hết hạn; dương cộng lô mới nhất còn hiệu lực hoặc tạo lô điều chỉnh. Một phiên kiểm kê duy nhất; chặn biến động kho đến khi xác nhận/hủy. Phiếu xuất hủy do kiểm kê không trừ kho lần nữa.
+FIFO theo NgayNhap rồi MaLoNguyenLieu; hoàn về lô gốc kể cả lô đã hết hạn. Sửa ngày nhập hợp lệ cập nhật dữ liệu lô, hạn dùng và thứ tự FIFO; các kỳ giá vốn bị ảnh hưởng được tính lại tự động. Kiểm kê âm phân bổ FIFO trên lô còn lượng, gồm lô hết hạn; dương cộng lô mới nhất còn hiệu lực hoặc tạo lô điều chỉnh. Một phiên kiểm kê duy nhất; chặn biến động kho đến khi xác nhận/hủy. Phiếu xuất hủy do kiểm kê không trừ kho lần nữa.
 
-GIAO_DICH_KHO dùng đúng một trong bốn FK chứng từ nguồn theo loại nghiệp vụ; tham chiếu lô khi có biến động theo lô. Phiếu hủy món đã chế biến dựa trên tiêu hao gốc, không dùng công thức hiện tại và không ghi tiêu hao lần hai.
+GIAO_DICH_KHO xác định chứng từ nguồn theo loại nghiệp vụ: nhập, tiêu hao/hoàn món, xuất nguyên liệu hoặc điều chỉnh kiểm kê. Liên kết bổ sung phục vụ truy vết không được tạo thêm lần ghi nhận số lượng; mỗi biến động có một nguồn nghiệp vụ chính và tham chiếu lô liên quan. Phiếu hủy món đã chế biến dựa trên tiêu hao gốc, không dùng công thức hiện tại và không ghi tiêu hao lần hai.
 
-Doanh thu và giá vốn order theo ORDER.BusinessDate; thời điểm biến động kho giữ ngày phát sinh thực tế. Đổi cutoff không tính lại lịch sử. Giá vốn tạm tính chưa chốt phải được nhận diện và cập nhật sau khi chốt bình quân tháng; báo cáo không được coi giá trị 0 tạm thời là không phát sinh chi phí.
+Doanh thu và giá vốn order theo ORDER.BusinessDate; biến động kho giữ dấu vết thời điểm phát sinh và đính chính. Đổi cutoff không tính lại ngày kinh doanh lịch sử. Đơn giá bình quân, giá vốn và lợi nhuận tự cập nhật khi phiếu nhập thay đổi hợp lệ, gồm tháng cũ, tháng mới và các kỳ sau bị ảnh hưởng. Kiểm kê chỉ điều chỉnh số lượng, không yêu cầu nhập giá hoặc tạo chi phí mua mới. Giá trị thiếu căn cứ định giá được để chưa xác định, phân biệt với chi phí thực bằng 0.
 
-Chi tiết từng khóa ngoại, điều kiện CHECK, chứng từ nguồn của giao dịch xuất hủy và quy tắc giá vốn được trình bày tại các phần E–G của tài liệu 04. Từ điển dữ liệu thiết kế bao quát 31 bảng.
+Chi tiết từng khóa ngoại, điều kiện CHECK, chứng từ nguồn của giao dịch xuất hủy và quy tắc giá vốn được trình bày tại các phần E–G của tài liệu 04. Mô hình phân tích gồm 31 lớp nghiệp vụ; thiết kế vật lý gồm 37 bảng, trong đó có 6 bảng phụ trợ cho lịch ngày kinh doanh, cấp mã, ngoại lệ thanh toán, hạn mức và cache AI.
 
 ### A.2. Chỉ mục và mở rộng
 
 Chỉ mục bán hàng/thanh toán: ORDER(BusinessDate, MaBan); CHI_TIET_ORDER(MaMon, MaOrder); GIAO_DICH_THANH_TOAN(MaOrder, TrangThai); HOA_DON(BusinessDate).
 
-Chỉ mục kho/giữ món: GIAO_DICH_KHO(MaNguyenLieu, ThoiDiem); LO_NGUYEN_LIEU(MaNguyenLieu, TrangThai, NgayNhap); GIU_CHO_MON(MaLuotChon, TrangThai), GIU_CHO_MON(TrangThai, ThoiDiemHetHan); CHI_TIET_GIU_CHO(MaLoNguyenLieu, MaGiuCho).
+Chỉ mục kho/giữ món: GIAO_DICH_KHO(MaNguyenLieu, ThoiDiem); LO_NGUYEN_LIEU(MaNguyenLieu, NgayNhap, MaLoNguyenLieu); GIU_CHO_MON(MaLuotChon, TrangThai), GIU_CHO_MON(TrangThai, ThoiDiemHetHan); CHI_TIET_GIU_CHO(MaLoNguyenLieu, MaGiuCho).
 
 Chỉ mục quản trị và AI gồm NGUOI_DUNG(MaVaiTro), NHAT_KY_HE_THONG(ThoiDiem) và TRUY_VAN_AI(MaPhien, ThoiDiem). Phân vùng theo tháng là phương án mở rộng cho dữ liệu tích lũy nhiều năm; quy mô thử nghiệm là 20.000 order mỗi năm.
 
@@ -1662,7 +1651,7 @@ Bảng 19. Thông tin truy vết bằng chứng
 | **Nhóm bằng chứng**         | **Phiên bản hoặc mã truy vết**                                                 | **Nội dung và nơi lưu**                                              |
 |-----------------------------|--------------------------------------------------------------------------------|----------------------------------------------------------------------|
 | Dự toán API                 | 27/10/2026; 9edce21                                                            | Đơn giá cấu hình dùng trong dự toán API.                             |
-| Kiểm thử nghiệp vụ          | 28/10/2026; 68505dc; MySQL 8.4.13                                              | Bang_chung_kiem_thu_68505dc_2026-10-28                               |
+| Kiểm thử nghiệp vụ | 28/10/2026; MySQL 8.4.13; phiên bản: | Bảng kết quả lịch sử trong tài liệu 06; gói log gốc: |
 | Kiểm thử tải                | 27/10/2026; a5dbec1; MySQL 8.4.11                                              | docs/testing/performance-2026-10-27.md và thư mục artifacts          |
 | Ca nghiệp vụ không đạt      | TC-CAT-09; TC-CAT-41; TC-SALE-19; TC-SALE-32; TC-SALE-70; TC-INV-33; TC-SET-01 | Tương ứng bảy chức năng trong Bảng 18, theo đúng thứ tự.             |
 | Ca chưa chạy                | TC-SALE-96–101; TC-SET-02–09                                                   | 14 ca trong bộ nghiệp vụ.                                            |
