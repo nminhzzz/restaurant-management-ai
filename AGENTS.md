@@ -74,13 +74,13 @@ Chạy riêng: `cd apps/api && uv run pytest`, `cd apps/web && pnpm test`.
 - DBMS đã chốt là **MySQL 8.4** và báo cáo cũng ghi MySQL — giữ nhất quán khi thêm nội dung CSDL,
   đừng đưa vào cú pháp PostgreSQL. Định danh giữ tiếng Việt theo lược đồ quan hệ (`NGUYEN_LIEU`,
   `MaNguyenLieu`, `DaXoa`).
-- §3.2.1 của báo cáo cố ý dùng **kiểu của ngôn ngữ lập trình** (`String`, `int`, `Long`, `double`,
-  `boolean`, `LocalDate`, `LocalDateTime`, `LocalTime`), không dùng kiểu vật lý của MySQL. Quy ước
-  vật lý (NOT NULL, `ON DELETE`/`ON UPDATE`, CHECK, cột GENERATED, `BusinessDate` denormalize) nằm ở
-  §3.2.2 — đọc kỹ trước khi viết DDL, đừng suy ra kiểu cột từ bảng ở §3.2.1.
+- Đặc tả lớp tại phần D của tài liệu 04 dùng **kiểu của ngôn ngữ lập trình** (`String`, `int`, `Long`, `double`,
+  `boolean`, `LocalDate`, `LocalDateTime`, `LocalTime`), không dùng kiểu vật lý của MySQL. Ánh xạ
+  kiểu MySQL nằm tại §4.2.2 của báo cáo; quy định triển khai nằm tại Phụ lục A và các phần F, G
+  của tài liệu 04 — đọc kỹ trước khi viết DDL, đừng suy ra kiểu cột từ đặc tả lớp ở phần D.
 - `next-env.d.ts` bị gitignore; `pnpm typecheck` trên bản clone mới không có file này vẫn phải xanh —
   đừng dùng `LayoutProps`/`PageProps` sinh tự động trong code.
 - `apps/web/AGENTS.md` do chính `next dev` sinh và ghi lại; không sửa file đó.
 - Báo cáo dùng **Class Diagram** (`docs/So_do/ClassDiagram_*.drawio`) và ánh xạ sang lược đồ quan hệ ở
-  §3.2.2; BFD/DFD đã bị bỏ khỏi báo cáo nên đừng viện dẫn lại.
+  §4.2.2; BFD/DFD đã bị bỏ khỏi báo cáo nên đừng viện dẫn lại.
 - Đường dẫn ảnh trong báo cáo là `images/` (chữ thường) — Linux phân biệt hoa/thường, đổi lại là vỡ ảnh.
