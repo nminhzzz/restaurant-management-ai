@@ -23,7 +23,7 @@ export interface ModuleDescriptor {
   path: string;
   title: string;
   icon: LucideIcon;
-  allowedRoles: string[]; // UI only; API still enforces NFR-05
+  allowedRoles: string[]; // UI only; API still enforces NFR-04
 }
 
 export const MODULE_LIST: readonly ModuleDescriptor[] = [
@@ -32,7 +32,7 @@ export const MODULE_LIST: readonly ModuleDescriptor[] = [
     path: "/catalog",
     title: "Danh mục",
     icon: BookOpen,
-    // Cashier reads dishes and table status (report §3.4.2, Bảng 33).
+    // Cashier reads dishes and table status (report §4.4.2, Bảng 12).
     allowedRoles: ["MANAGER", "CASHIER", "WAREHOUSE"],
   },
   {

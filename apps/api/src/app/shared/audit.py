@@ -1,4 +1,4 @@
-"""Audit log for high-risk operations (FR-SET-08, FR-SET-09, NFR-07).
+"""Audit log for high-risk operations (FR-SET-06, FR-SET-07, NFR-06).
 
 Append-only: the table is never updated or deleted by application code.
 """

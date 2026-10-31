@@ -1,6 +1,6 @@
 SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- Warehouse scope (NFR-12, FR-AI-04/10): current stock, ingredients, minimum-stock
+-- Warehouse scope (NFR-05, FR-AI-04/10): current stock, ingredients, minimum-stock
 -- warnings, held/available quantities, lot/expiry tracking, and stock-movement
 -- (receipt/issue) history. No revenue, invoice totals, payments, purchase prices,
 -- cost, or password hashes.

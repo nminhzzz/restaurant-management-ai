@@ -132,4 +132,4 @@ có độ đúng câu trả lời tổng thể; không loại những lượt ch
 
 `cd apps/api && uv run pytest tests/eval` chạy với LLM/engine giả và không đo độ đúng
 của model thật. Các kết quả, SUS, UAT và số đo hiệu năng chưa chạy không được ghi
-nhận là đã đạt. Công cụ phát tải Phụ lục J có hướng dẫn riêng trong `docs/performance.md`.
+nhận là đã đạt. Công cụ phát tải Phụ lục J có hướng dẫn riêng trong `docs/testing/performance-2026-10-27.md`.

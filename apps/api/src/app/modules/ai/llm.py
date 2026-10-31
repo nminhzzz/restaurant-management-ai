@@ -30,7 +30,7 @@ from app.modules.ai.usage import attempt_context, finish_attempt, start_attempt
 logger = logging.getLogger(__name__)
 
 # Thinking counts toward max_tokens; a low-effort SQL answer needs far less, and the cap
-# bounds the cost of a runaway reply (NFR-16).
+# bounds the cost of a runaway reply (NFR-08).
 MAX_OUTPUT_TOKENS = 8192
 REFUSAL_FALLBACK_BETA = "server-side-fallback-2026-07-01"
 # Ends the per-role stable prefix (instructions, schema, examples) of a prompt. The

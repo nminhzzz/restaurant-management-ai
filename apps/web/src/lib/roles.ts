@@ -1,7 +1,7 @@
 const ROLE_LABELS: Record<string, string> = {
   MANAGER: "Quản lý",
   CASHIER: "Thu ngân",
-  WAREHOUSE: "Thủ kho",
+  WAREHOUSE: "Bếp",
 };
 
 export function roleLabel(role: string): string {

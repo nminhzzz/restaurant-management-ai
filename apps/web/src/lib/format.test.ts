@@ -39,7 +39,7 @@ describe("roleLabel", () => {
   it("shows the Vietnamese name of each role", () => {
     expect(roleLabel("MANAGER")).toBe("Quản lý");
     expect(roleLabel("CASHIER")).toBe("Thu ngân");
-    expect(roleLabel("WAREHOUSE")).toBe("Thủ kho");
+    expect(roleLabel("WAREHOUSE")).toBe("Bếp");
   });
 
   it("falls back to the raw value for an unknown role", () => {

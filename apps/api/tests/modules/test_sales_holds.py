@@ -268,6 +268,47 @@ async def test_decreasing_a_hold_frees_capacity(session):
 
 
 @pytest.mark.anyio
+async def test_decreasing_a_hold_does_not_extend_its_deadline(session):
+    """FR-SALE-08: only an increase refreshes the hold; a decrease must not."""
+    dish, _, table = await _setup(session, stock=5)
+    client = await _make_client(session)
+    headers, _ = await _headers(session)
+    first = (await _hold(client, headers, dish, table, quantity=3)).json()
+    hold = await session.get(Reservation, first["MaGiuCho"])
+    short_deadline = business_date.now().replace(tzinfo=None) + timedelta(minutes=1)
+    hold.expires_at = short_deadline
+    await session.commit()
+
+    decreased = await client.patch(
+        f"/api/v1/sales/holds/{first['MaGiuCho']}", json={"quantity": 1}, headers=headers
+    )
+
+    assert decreased.status_code == 200
+    await session.refresh(hold)
+    assert hold.expires_at == short_deadline
+
+
+@pytest.mark.anyio
+async def test_increasing_a_hold_refreshes_its_deadline(session):
+    dish, _, table = await _setup(session, stock=5)
+    client = await _make_client(session)
+    headers, _ = await _headers(session)
+    first = (await _hold(client, headers, dish, table, quantity=1)).json()
+    hold = await session.get(Reservation, first["MaGiuCho"])
+    short_deadline = business_date.now().replace(tzinfo=None) + timedelta(minutes=1)
+    hold.expires_at = short_deadline
+    await session.commit()
+
+    increased = await client.patch(
+        f"/api/v1/sales/holds/{first['MaGiuCho']}", json={"quantity": 3}, headers=headers
+    )
+
+    assert increased.status_code == 200
+    await session.refresh(hold)
+    assert hold.expires_at > short_deadline
+
+
+@pytest.mark.anyio
 async def test_an_open_order_can_hold_and_send_an_extra_line(session):
     dish, ingredient, table = await _setup(session, stock=5)
     client = await _make_client(session)

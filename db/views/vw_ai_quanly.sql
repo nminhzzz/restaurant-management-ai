@@ -1,6 +1,6 @@
 SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- Manager scope (NFR-12, FR-AI-02): the full scope of Cashier + Warehouse, plus
+-- Manager scope (NFR-05, FR-AI-02): the full scope of Cashier + Warehouse, plus
 -- cancel reasons, dish-level sales, monthly average ingredient cost and receipt
 -- purchase prices needed for gross margin, cost, and cancelled-order reporting.
 -- Never a password hash.

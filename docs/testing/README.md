@@ -15,14 +15,14 @@ UAT xác nhận toàn bộ luồng nghiệp vụ đầu-cuối vận hành đư�
 | Phương pháp | Trả lời câu hỏi gì | Ai thực hiện | Tài liệu |
 | --- | --- | --- | --- |
 | Test case chức năng (bao gồm phân quyền/bảo mật dữ liệu) | Từng FR/NFR có được cài đúng không, kể cả đường lỗi và giới hạn quyền theo vai trò? | Nhóm phát triển (tự động qua CI + thủ công cho phần chưa có test) | `test-cases.md` |
-| Khảo sát SUS | Người dùng chưa quen hệ thống cảm thấy dễ dùng đến mức nào? | 3–5 người đóng vai Chủ/Quản lý, sau khi hoàn thành một chuỗi thao tác chuẩn | `sus.md` |
+| Khảo sát SUS | Người dùng chưa quen hệ thống cảm thấy dễ dùng đến mức nào? | ít nhất 5 người từng làm quản lý hoặc thu ngân, sau khi hoàn thành một chuỗi thao tác chuẩn | `sus.md` |
 | UAT | Người có kinh nghiệm vận hành nhà hàng thật có chấp nhận hệ thống thay thế quy trình hiện tại không? | Người tham gia phỏng vấn ở Phụ lục 3 (hoặc tương đương), theo kịch bản ca làm việc thật | `uat.md` |
 
 Thứ tự khuyến nghị: chạy xanh toàn bộ test case tự động → hoàn tất test case thủ công còn lại (đặc biệt
 nhóm phân quyền và AI data-scope) → mới mời người tham gia SUS/UAT, để không tốn thời gian người ngoài
 nhóm vào lỗi mà test tự động lẽ ra đã bắt được.
 
-Checklist tương thích thiết bị/trình duyệt (NFR-13, NFR-17) là điều kiện tiên quyết trước khi mời người
+Checklist tương thích thiết bị/trình duyệt (NFR-10) là điều kiện tiên quyết trước khi mời người
 tham gia UAT trên tablet thật — xem `compatibility-checklist.md`.
 
 ## Chạy bộ kiểm thử tự động

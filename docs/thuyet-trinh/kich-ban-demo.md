@@ -38,7 +38,7 @@ MySQL 8.4  ◀── view vw_ai_* theo vai trò ◀┘  Claude Opus 5.5 (sinh SQ
 ```
 
 **Nói:**
-- Ba vai trò: Quản lý, Thu ngân, Thủ kho. Quyền được kiểm tra ở API cho mọi thao tác ghi. Ẩn nút trên
+- Ba vai trò: Quản lý, Thu ngân, Bếp. Quyền được kiểm tra ở API cho mọi thao tác ghi. Ẩn nút trên
   giao diện chỉ để dễ dùng, không phải cơ chế phân quyền.
 - Mỗi module là một gói riêng; logic nghiệp vụ nằm ở tầng service, không nằm trong handler.
 - Có 720 test API và 199 test giao diện. Mọi thay đổi phải qua `make gate`: format, lint, type-check,
@@ -90,7 +90,7 @@ cùng chọn món dùng chung nguyên liệu sẽ không bán vượt tồn."
 
 ---
 
-## 3. Thủ kho: nhập kho theo lô, kiểm kê — 1,5 phút
+## 3. Bếp: nhập kho theo lô, kiểm kê — 1,5 phút
 
 **Làm:** tab `seed_warehouse` → Kho → tạo phiếu nhập (nhà cung cấp, nguyên liệu, số lượng, đơn giá,
 hạn sử dụng) → xem bảng tồn: mỗi nguyên liệu có nhiều lô, cột "khả dụng" và "đang giữ". ⏩ Mở kiểm kê.
@@ -136,14 +136,14 @@ hạn sử dụng) → xem bảng tồn: mỗi nguyên liệu có nhiều lô, c
 |---|---|---|
 | Quản lý | "Doanh thu 7 ngày gần nhất theo từng ngày?" | SQL đúng, câu trả lời tiếng Việt và biểu đồ đường tự chọn |
 | Quản lý | "Ba món có doanh thu cao nhất tháng này là món nào?" | Xếp hạng, có nhận xét |
-| Thủ kho | "Doanh thu hôm nay là bao nhiêu?" | **Bị từ chối**, vì thủ kho không có quyền xem doanh thu |
+| Bếp | "Doanh thu hôm nay là bao nhiêu?" | **Bị từ chối**, vì Bếp không có quyền xem doanh thu |
 
 **Làm:** sau câu đầu, mở phần "Chi tiết kỹ thuật" để hội đồng xem SQL đã chạy.
 
 Ghi chú chạy thử 27/10:
 - Đừng hỏi "tuần này" nếu buổi bảo vệ rơi vào đầu tuần. Thứ Ba chỉ có 2 điểm dữ liệu nên biểu đồ rất nghèo.
   "7 ngày gần nhất" luôn có 7 điểm.
-- Với Thủ kho, trợ lý không chạy truy vấn mà báo "Cần làm rõ câu hỏi": vai trò kho không có dữ liệu doanh
+- Với Bếp, trợ lý không chạy truy vấn mà báo "Cần làm rõ câu hỏi": vai trò kho không có dữ liệu doanh
   thu, kèm 3 câu gợi ý **về kho**. Đó chính là điểm cần cho thấy: model không nhìn thấy view doanh thu.
 
 ### 5.2 Nói — luồng xử lý một câu hỏi (vẽ thành slide)

@@ -87,7 +87,7 @@ LINE_FORWARD = {LINE_WAITING: LINE_CONFIRMED, LINE_CONFIRMED: LINE_SERVED}
 
 
 def ensure_order_is_open(order: Order) -> None:
-    """The single choke point for FR-SALE-20/25: settled orders reject every mutation."""
+    """The single choke point for FR-SALE-22: settled orders reject every mutation."""
     if order.status not in OPEN_ORDER_STATUSES:
         raise BusinessRuleError("Order đã đóng.")
 
@@ -351,7 +351,7 @@ async def submit_order(
         if table.status != "Trống" or table.current_order_id is not None:
             raise BusinessRuleError("Bàn đang phục vụ. Hãy giải phóng bàn trước khi mở order mới.")
 
-    # Validate the whole submission before writing anything (FR-SALE-03/NFR-10).
+    # Validate the whole submission before writing anything (FR-SALE-03/NFR-07).
     # Every line goes through a hold. A client that does not create one gets a hold
     # created here, bound to this selection, so no send can skip stock reservation
     # or the expired-hold re-check.
@@ -648,8 +648,19 @@ async def update_line(
     if line.status != LINE_WAITING:
         raise BusinessRuleError("Chỉ sửa món ở trạng thái Chờ.")
     if delta < 0:
+        previous_quantity = int(line.quantity)
         await _return_line_stock(session, line, Decimal(-delta), actor_id=actor_id)
         line.quantity = quantity
+        session.add(
+            SystemAuditLog(
+                user_id=actor_id,
+                action="REDUCE_ORDER_LINE",
+                target_entity="CHI_TIET_ORDER",
+                target_id=str(line.id),
+                before={"SoLuong": previous_quantity},
+                after={"SoLuong": quantity},
+            )
+        )
     line.total = Decimal(str(line.unit_price)) * int(line.quantity)
     await session.flush()
     return line

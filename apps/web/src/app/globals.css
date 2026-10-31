@@ -69,7 +69,7 @@
   }
 }
 
-/* NFR-13: compact desktop controls still need usable targets on touch devices. */
+/* NFR-10: compact desktop controls still need usable targets on touch devices. */
 @media (any-pointer: coarse) {
   button,
   [role="tab"],

@@ -2,6 +2,7 @@
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import select
 
 from app.core.database import get_session
 from app.core.security import create_access_token, hash_password
@@ -19,6 +20,7 @@ from app.modules.inventory.models import GoodsReceipt, GoodsReceiptLine, Ingredi
 from app.modules.settings.models import User
 from app.modules.settings.service import seed_reference_data
 from app.shared import business_date
+from app.shared.audit import SystemAuditLog
 from app.shared.enums import VersionStatus
 from tests.helpers import ingredient_total, line_status, order_status, table_status
 
@@ -421,3 +423,67 @@ async def test_increase_without_idempotency_key_directs_to_add_flow(session):
     )
     assert result.status_code == 422
     assert "gọi thêm" in result.text.lower()
+
+
+@pytest.mark.anyio
+async def test_reducing_a_line_is_recorded_in_the_audit_log(session):
+    """FR-SALE-10: a reduction is a partial cancel, so who/when/how many must be traceable."""
+    d, _ = await _setup_dish_with_stock(session, qty=10)
+    t = await _table(session)
+    client = await _make_client(session)
+    h, actor = await _headers(session)
+    created = await client.post(
+        "/api/v1/sales/orders",
+        json={"MaBan": t.id, "lines": [{"MaMon": d.id, "SoLuong": 3}]},
+        headers=h,
+    )
+    oid, lid = created.json()["MaOrder"], created.json()["lines"][0]["MaChiTietOrder"]
+
+    reduced = await client.patch(
+        f"/api/v1/sales/orders/{oid}/lines/{lid}", json={"SoLuong": 1}, headers=h
+    )
+
+    assert reduced.status_code == 200
+    rows = (
+        (
+            await session.execute(
+                select(SystemAuditLog).where(
+                    SystemAuditLog.action == "REDUCE_ORDER_LINE",
+                    SystemAuditLog.target_id == str(lid),
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert len(rows) == 1
+    assert rows[0].user_id == actor.id
+    assert rows[0].before == {"SoLuong": 3}
+    assert rows[0].after == {"SoLuong": 1}
+
+
+@pytest.mark.anyio
+async def test_patching_the_same_quantity_writes_no_audit_row(session):
+    d, _ = await _setup_dish_with_stock(session, qty=10)
+    t = await _table(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    created = await client.post(
+        "/api/v1/sales/orders",
+        json={"MaBan": t.id, "lines": [{"MaMon": d.id, "SoLuong": 2}]},
+        headers=h,
+    )
+    oid, lid = created.json()["MaOrder"], created.json()["lines"][0]["MaChiTietOrder"]
+
+    await client.patch(f"/api/v1/sales/orders/{oid}/lines/{lid}", json={"SoLuong": 2}, headers=h)
+
+    count = (
+        (
+            await session.execute(
+                select(SystemAuditLog).where(SystemAuditLog.action == "REDUCE_ORDER_LINE")
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert count == []

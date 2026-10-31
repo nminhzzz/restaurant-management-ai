@@ -19,12 +19,12 @@ ROLE_SEEDS = (
     (
         Role.MANAGER,
         "Qu\u1ea3n l\u00fd",
-        "To\u00e0n quy\u1ec1n, k\u1ebf th\u1eeba quy\u1ec1n Thu ng\u00e2n v\u00e0 Nh\u00e2n vi\u00ean kho",
+        "To\u00e0n quy\u1ec1n, k\u1ebf th\u1eeba quy\u1ec1n Thu ng\u00e2n v\u00e0 B\u1ebfp",
     ),
     (Role.CASHIER, "Thu ng\u00e2n", "B\u00e1n h\u00e0ng, thanh to\u00e1n, tra c\u1ee9u order"),
     (
         Role.WAREHOUSE,
-        "Nh\u00e2n vi\u00ean kho",
+        "B\u1ebfp",
         "Nh\u1eadp, xu\u1ea5t, ki\u1ec3m k\u00ea, xem t\u1ed3n",
     ),
 )
@@ -453,7 +453,7 @@ REDACTED_BACKUP_COLUMNS = {"NGUOI_DUNG": {"MatKhauHash"}}
 async def export_backup(
     session: AsyncSession, actor_id: int, *, include_credentials: bool = False
 ) -> dict:
-    """Dump every table and audit the export in the same transaction (NFR-10).
+    """Dump every table and audit the export in the same transaction (NFR-11).
 
     Rows use the physical Vietnamese column names so they can be restored table by
     table. Password hashes stay out by default; a manager may request them with

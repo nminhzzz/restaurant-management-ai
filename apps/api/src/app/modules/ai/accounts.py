@@ -1,4 +1,4 @@
-"""Role → read-only database account (NFR-06).
+"""Role → read-only database account (NFR-05).
 
 The assistant executes SQL on a dedicated account per role, each granted
 `SELECT` on that role's view only. Sharing one read-only account across the

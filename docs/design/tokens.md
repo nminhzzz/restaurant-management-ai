@@ -170,8 +170,8 @@ theo §2.3 qua `lib/status.ts`). Tải dữ liệu qua hook `lib/use-resource.ts
 
 ## 8. Nội dung hiển thị
 
-- Tiếng Việt toàn bộ (NFR-14). Vai trò hiển thị: `MANAGER` → **Quản lý**, `CASHIER` → **Thu ngân**,
-  `WAREHOUSE` → **Thủ kho**.
+- Tiếng Việt toàn bộ (NFR-09). Vai trò hiển thị: `MANAGER` → **Quản lý**, `CASHIER` → **Thu ngân**,
+  `WAREHOUSE` → **Bếp**.
 - Không hiển thị mã yêu cầu (`FR-CAT-01…`), tên người phụ trách hay chữ "chưa triển khai" cho người dùng cuối.
   Thông tin đó thuộc tài liệu, không thuộc giao diện.
 

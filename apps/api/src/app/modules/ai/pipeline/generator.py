@@ -76,7 +76,7 @@ async def generate_sql(
     store = runtime.get_runtime_store()
     # Store naive UTC in MySQL DATETIME; BusinessDate itself uses restaurant time.
     cache_now = now.astimezone(UTC).replace(tzinfo=None)
-    # NFR-16 counts questions, not provider calls: a cache hit is still a question
+    # NFR-08 counts questions, not provider calls: a cache hit is still a question
     # answered, and a retry inside one question must not burn a second slot.
     call_day = business_date.business_date_of(business_date.now())
     await store.reserve_call(call_day, quota, user_id or 0)
