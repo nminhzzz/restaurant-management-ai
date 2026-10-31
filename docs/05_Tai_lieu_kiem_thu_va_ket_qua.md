@@ -20,7 +20,7 @@ Mỗi ca kiểm thử có tám trường tại Bảng 45. Mã ca được đánh
 | Bước thực hiện       | Các thao tác theo thứ tự; chỉ rõ UI/API và cách giả lập lỗi nếu có.                                                                             | 1\. Gửi món. 2. Đối chiếu order, kho, bàn, phiếu bếp.    |
 | Kết quả mong đợi     | Kết quả kiểm chứng được, gồm trạng thái và số liệu sau thao tác.                                                                                | Trừ L1 200 g, L2 100 g; tạo order một lần.               |
 | Ưu tiên              | Trọng yếu hoặc Thường.                                                                                                                          | Trọng yếu                                                |
-| Kết quả thực tế      | Ghi kết quả quan sát, ngày/người chạy, phiên bản phần mềm, mã lỗi và mã/đường dẫn bằng chứng. Để trống trước khi chạy.                          |                                                          |
+| Kết quả thực tế      | Ghi kết quả quan sát, mã lỗi và mã/đường dẫn bằng chứng. Để trống trước khi chạy.                                                               |                                                          |
 | Trạng thái           | Chưa chạy: chưa thực thi; Đạt: khớp mọi kết quả mong đợi; Không đạt: có sai lệch; Bị chặn: chưa thể chạy do thiếu điều kiện hoặc lỗi phụ thuộc. | Chưa chạy                                                |
 
 Bảng 45. Cấu trúc bản ghi test case
@@ -41,13 +41,13 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 
 <table>
 <colgroup>
-<col style="width: 8%" />
+<col style="width: 9%" />
 <col style="width: 9%" />
 <col style="width: 14%" />
 <col style="width: 14%" />
 <col style="width: 17%" />
-<col style="width: 6%" />
-<col style="width: 19%" />
+<col style="width: 7%" />
+<col style="width: 17%" />
 <col style="width: 8%" />
 </colgroup>
 <thead>
@@ -72,7 +72,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Nhóm được lưu và hiển thị đúng tên.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Nhóm Món nướng được lưu và trả lại trong danh sách.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-CAT-02</td>
@@ -83,7 +83,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Tên mới được lưu; mã nhóm và các món thuộc nhóm không đổi.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Tên đổi thành Món nướng than; mã nhóm và liên kết món giữ nguyên.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-CAT-03</td>
@@ -94,7 +94,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Thứ tự hiển thị là C, A, B.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Thứ tự sau tải lại: C, A, B.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-CAT-04</td>
@@ -105,7 +105,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Món lưu đúng thuộc tính, thuộc một nhóm; ở trạng thái Nháp, chưa hiện khi gọi món.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Lưu đúng tên, nhóm, ảnh, giá 120000; món Nháp. Giao diện gọi món kiểm tra riêng.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-CAT-05</td>
@@ -116,7 +116,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Lưu đúng dữ liệu mới; món chỉ thuộc nhóm Món chính.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Tên, ảnh, nhóm mới được lưu; món chỉ thuộc nhóm Món chính.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-CAT-06</td>
@@ -126,7 +126,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Kết quả có Bò nướng, không có Gà nướng.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Tìm Bò trả Bò nướng, không trả Gà nướng.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-CAT-07</td>
@@ -137,7 +137,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Từ chối; nhóm và món không đổi.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Nhóm còn món chưa xóa: HTTP 422, dữ liệu giữ nguyên.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-CAT-08</td>
@@ -148,7 +148,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Xóa mềm nhóm; không cho chọn khi tạo món mới; lịch sử vẫn tham chiếu được; có audit log.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Nhóm có mọi món đã xóa mềm: nhóm được xóa mềm, có audit, tham chiếu món còn nguyên.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-CAT-09</td>
@@ -159,7 +159,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Xóa vĩnh viễn nhóm; có audit log.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Nhóm chưa từng có món vẫn được xóa mềm; bản ghi còn trong CSDL, khác yêu cầu xóa vĩnh viễn.</td>
-<td>Không đạt (API/MySQL)</td>
+<td>Không đạt</td>
 </tr>
 <tr class="even">
 <td>TC-CAT-10</td>
@@ -170,7 +170,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Món bị xóa mềm, không còn trên màn hình gọi món; quản trị và order cũ vẫn tra cứu được; có audit log; không có thao tác xóa vĩnh viễn.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Món xóa mềm, ẩn khỏi danh sách hoạt động; quản trị include_deleted và order cũ còn dữ liệu; có audit. Kiểm tra giao diện được ghi riêng.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-CAT-11</td>
@@ -181,7 +181,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Công thức có hiệu lực ngay; món rời Nháp, được gọi khi đủ nguyên liệu.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Gán 150 g/suất lần đầu có hiệu lực ngay; món rời Nháp và giữ được 1 suất.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-CAT-12</td>
@@ -192,7 +192,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Lưu đúng tên, đơn vị và ngưỡng riêng.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Bếp thêm Thịt bò, đơn vị g, ngưỡng riêng 500 g.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-CAT-13</td>
@@ -202,7 +202,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Nguyên liệu dùng ngưỡng mặc định 300 g.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Nguyên liệu không đặt ngưỡng riêng nhận ngưỡng mặc định 300 g.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-CAT-14</td>
@@ -213,7 +213,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Lưu tên mới và tìm được đúng nguyên liệu.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Tên Hành lá được lưu và tìm kiếm trả đúng nguyên liệu.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-CAT-15</td>
@@ -224,7 +224,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Nhà cung cấp và thông tin liên hệ được lưu.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Bếp tạo nhà cung cấp A, lưu đúng số điện thoại và người liên hệ.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-CAT-16</td>
@@ -235,7 +235,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Thông tin mới được lưu; lịch sử vẫn hiển thị đúng phiếu nhập của A.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Thông tin liên hệ mới được lưu; lịch sử vẫn trả đúng phiếu nhập của A.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-CAT-17</td>
@@ -245,7 +245,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Từ chối đổi đơn vị; dữ liệu cũ giữ nguyên.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Nguyên liệu có phiếu nhập: từ chối đổi đơn vị, giữ g.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-CAT-18</td>
@@ -255,7 +255,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Từ chối đổi đơn vị; dữ liệu cũ giữ nguyên.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Nguyên liệu đã dùng trong công thức: từ chối đổi g sang kg, giữ đơn vị g.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-CAT-19</td>
@@ -265,7 +265,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Chỉ xóa mềm; dữ liệu tham chiếu lịch sử còn nguyên; có audit log.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Nguyên liệu có trong công thức được xóa mềm; công thức còn tham chiếu, có audit.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-CAT-20</td>
@@ -275,7 +275,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Chỉ xóa mềm; dữ liệu tham chiếu lịch sử còn nguyên; có audit log.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Nguyên liệu có phiếu nhập được xóa mềm; phiếu cũ giữ tham chiếu, có audit.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-CAT-21</td>
@@ -285,7 +285,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Chỉ xóa mềm; phiếu nhập cũ vẫn tham chiếu được; có audit log.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Nhà cung cấp có phiếu nhập được xóa mềm, giữ lịch sử và ghi audit.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-CAT-22</td>
@@ -296,7 +296,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Dòng trước mốc dùng 100.000 đ; dòng từ mốc dùng 110.000 đ; dòng cũ không đổi; lưu phiên bản.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Gửi trước/sau mốc 06:00 dùng đúng phiên bản 100000/110000 hoặc 150/180 g; dòng trước mốc giữ nguyên.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-CAT-23</td>
@@ -306,7 +306,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Từ chối lưu lịch; không thay đổi phiên bản đang áp dụng.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Lịch ngày đã bắt đầu/kết thúc: HTTP 422; phiên bản hiện tại giữ nguyên.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-CAT-24</td>
@@ -316,7 +316,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Từ chối lưu lịch; không thay đổi phiên bản đang áp dụng.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Lịch ngày đã bắt đầu/kết thúc: HTTP 422; phiên bản hiện tại giữ nguyên.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-CAT-25</td>
@@ -327,7 +327,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Lịch được lưu đúng ngày tương lai; chưa áp dụng trước mốc đã chọn.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Lịch sau 5 ngày được lưu Chờ áp dụng; chưa thay thế phiên bản hiện tại.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-CAT-26</td>
@@ -338,7 +338,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>B thay A; chỉ còn một lịch chờ của loại đó; có audit log ghi đè.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Lịch B thay A; còn một lịch chờ; nhật ký lưu lịch bị ghi đè.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-CAT-27</td>
@@ -349,7 +349,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Lịch chờ bị hủy; phiên bản đang áp dụng không đổi; có audit log.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Hủy lịch thành công; phiên bản hiện tại giữ nguyên; có audit.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-CAT-28</td>
@@ -360,7 +360,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Giá mới có hiệu lực ngay, tạo phiên bản và audit log; dòng cũ giữ nguyên; lịch chờ không đổi.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Sửa trực tiếp tạo phiên bản/audit mới; dòng mới dùng phiên bản mới, dòng cũ và lịch chờ giữ nguyên.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-CAT-29</td>
@@ -370,7 +370,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Lịch chờ tương ứng bị hủy.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Xóa mềm món đồng thời loại bỏ lịch chờ tương ứng.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-CAT-30</td>
@@ -381,7 +381,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Dòng trước mốc dùng 150 g; dòng từ mốc dùng 180 g; dòng cũ không đổi; lưu phiên bản.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Gửi trước/sau mốc 06:00 dùng đúng phiên bản 100000/110000 hoặc 150/180 g; dòng trước mốc giữ nguyên.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-CAT-31</td>
@@ -391,7 +391,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Từ chối lưu lịch; không thay đổi phiên bản đang áp dụng.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Lịch ngày đã bắt đầu/kết thúc: HTTP 422; phiên bản hiện tại giữ nguyên.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-CAT-32</td>
@@ -401,7 +401,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Từ chối lưu lịch; không thay đổi phiên bản đang áp dụng.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Lịch ngày đã bắt đầu/kết thúc: HTTP 422; phiên bản hiện tại giữ nguyên.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-CAT-33</td>
@@ -412,7 +412,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Lịch được lưu đúng ngày tương lai; chưa áp dụng trước mốc đã chọn.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Lịch sau 5 ngày được lưu Chờ áp dụng; chưa thay thế phiên bản hiện tại.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-CAT-34</td>
@@ -423,7 +423,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>B thay A; chỉ còn một lịch chờ của loại đó; có audit log ghi đè.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Lịch B thay A; còn một lịch chờ; nhật ký lưu lịch bị ghi đè.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-CAT-35</td>
@@ -434,7 +434,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Lịch chờ bị hủy; phiên bản đang áp dụng không đổi; có audit log.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Hủy lịch thành công; phiên bản hiện tại giữ nguyên; có audit.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-CAT-36</td>
@@ -445,7 +445,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Công thức mới có hiệu lực ngay, tạo phiên bản và audit log; dòng cũ giữ nguyên; lịch chờ không đổi.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Sửa trực tiếp tạo phiên bản/audit mới; dòng mới dùng phiên bản mới, dòng cũ và lịch chờ giữ nguyên.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-CAT-37</td>
@@ -455,7 +455,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Lịch chờ tương ứng bị hủy.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Xóa mềm món đồng thời loại bỏ lịch chờ tương ứng.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-CAT-38</td>
@@ -465,7 +465,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Hiển thị Tạm dừng phục vụ; không cho thêm món.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Trạng thái và thao tác giữ đúng theo điều kiện; thuộc tính hết nguyên liệu được suy ra.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-CAT-39</td>
@@ -475,7 +475,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Món được mở lại và cho thêm vào lượt chọn.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Trạng thái và thao tác giữ đúng theo điều kiện; thuộc tính hết nguyên liệu được suy ra.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-CAT-40</td>
@@ -486,7 +486,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Trước khi tắt hiển thị đủ hai lý do; sau khi tắt vẫn Hết nguyên liệu và không cho gọi.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: API chặn/mở đúng theo tạm dừng thủ công và nguyên liệu; khi cùng hai lý do, lỗi trả đủ cả hai; thiếu nguyên liệu vẫn chặn sau khi bỏ tạm dừng.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-CAT-41</td>
@@ -496,7 +496,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Hiển thị Hết nguyên liệu, chặn thêm; thuộc tính này được suy ra, không lưu trong MON_AN.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: CSDL vẫn lưu cột HetNguyenLieu thay vì chỉ suy ra trạng thái từ dữ liệu nguyên liệu.</td>
-<td>Không đạt (API/MySQL)</td>
+<td>Không đạt</td>
 </tr>
 <tr class="even">
 <td>TC-CAT-42</td>
@@ -507,7 +507,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Bàn được lưu, hiển thị Trống, chưa gắn order.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Bàn B1 mới: Trống, chưa gắn order.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-CAT-43</td>
@@ -518,7 +518,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Tên mới được lưu; mã bàn và trạng thái không đổi.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Tên thành B01; mã bàn và trạng thái Trống giữ nguyên.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-CAT-44</td>
@@ -528,7 +528,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Từ chối; bàn vẫn gắn O1.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Từ chối xóa bàn đang phục vụ; liên kết order giữ nguyên.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-CAT-45</td>
@@ -538,7 +538,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Chỉ xóa mềm; giữ tham chiếu lịch sử và ghi audit log.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Bàn Trống có lịch sử được xóa mềm; order giữ tham chiếu; có audit.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-CAT-46</td>
@@ -549,7 +549,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Từ chối giá trị âm; ngưỡng cũ giữ nguyên.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Ngưỡng -1 bị từ chối; ngưỡng cũ 500 g giữ nguyên.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-CAT-47</td>
@@ -559,7 +559,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Backend từ chối quyền; dữ liệu không thay đổi.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Bếp sửa giá: HTTP 403; giá không thay đổi.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-CAT-48</td>
@@ -569,7 +569,7 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 <td>Backend từ chối quyền; dữ liệu không thay đổi.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Thu ngân thêm bàn: HTTP 403, không lưu bàn.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 </tbody>
 </table>
@@ -580,13 +580,13 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 
 <table>
 <colgroup>
-<col style="width: 8%" />
+<col style="width: 9%" />
 <col style="width: 9%" />
 <col style="width: 14%" />
 <col style="width: 14%" />
 <col style="width: 17%" />
-<col style="width: 6%" />
-<col style="width: 19%" />
+<col style="width: 7%" />
+<col style="width: 17%" />
 <col style="width: 8%" />
 </colgroup>
 <thead>
@@ -610,7 +610,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Giữ 300 g, khả dụng còn 700 g; lưu người/lượt chọn, phiên bản và hạn giữ; chưa tạo order, phiếu bếp hay chiếm bàn.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Giữ ban đầu HTTP 201.; Giữ 300 g; khả dụng 700 g; tồn 1000 g; chưa có order/phiếu bếp, bàn Trống.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-02</td>
@@ -620,7 +620,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Từ chối, không tạo lượng giữ.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Giữ ban đầu HTTP 422.; 149 g không đủ 1 suất 150 g; không tạo giữ.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-03</td>
@@ -630,7 +630,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Giữ thành công 150 g; khả dụng còn 0 g, tồn sổ sách không đổi.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Giữ ban đầu HTTP 201.; Giữ 150 g; khả dụng 0 g; tồn 150 g; chưa có order/phiếu bếp, bàn Trống.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-04</td>
@@ -642,7 +642,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Ghi chú in đúng dòng món. Công thức và lượng trừ kho theo định lượng chuẩn.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Phiếu bếp lưu ghi chú không hành; trừ đúng 150 g.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-05</td>
@@ -654,7 +654,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Gửi được khi không có ghi chú. Công thức và lượng trừ kho theo định lượng chuẩn.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Phiếu bếp lưu ghi chú trống; trừ đúng 150 g.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-06</td>
@@ -665,7 +665,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Một transaction tạo order/dòng món; trừ L1 200 g, L2 100 g; ghi giao dịch từng lô; kết thúc giữ; tạo dữ liệu phiếu bếp; B1 gắn order và Đang phục vụ. In sau commit.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Gửi 2 suất: trừ L1 200 g/L2 100 g, giao dịch từng lô; kết thúc giữ; bàn gắn order; phiếu bếp chưa in trước commit.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-07</td>
@@ -675,7 +675,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Trả kết quả cũ; chỉ một order, không trừ kho hoặc tạo dòng món lần hai.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Phiếu bếp lưu ghi chú trống; trừ đúng 150 g. Gửi lại cùng mã trả cùng order, không trừ thêm hoặc tạo phiếu mới.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-08</td>
@@ -686,7 +686,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Rollback toàn bộ; không có order mới; tồn và lượng giữ về đúng trạng thái trước gửi.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Tiêm lỗi sau trừ kho trước commit: rollback order/dòng/phiếu/giao dịch; tồn 1000 g, giữ 150 g như trước.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-09</td>
@@ -696,7 +696,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Mã ORD-ddMMyy-001 và 002 theo Business Date; mã khác nhau.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Mã order duy nhất, bộ đếm tăng từ 001 lên 002 trong cùng ngày.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-10</td>
@@ -706,7 +706,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Không dùng lại số đã cấp; mã mới duy nhất.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Transaction lỗi đã cấp số 001; order sau dùng 002 trên MySQL, không tái sử dụng số.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-11</td>
@@ -717,7 +717,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Phần ngày theo Business Date mới, số bắt đầu 001; mã không trùng ngày trước.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Mã order duy nhất, bộ đếm đặt về 001 ở Business Date mới.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-12</td>
@@ -728,7 +728,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Dòng báo hết thời gian giữ; backend kiểm tra lại và gửi thành công; không tự gia hạn trước gửi.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Gửi sau xác nhận thành công; tồn 850.0000 g; giá 100000.0000; chỉ tiêu hao một lần.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-13</td>
@@ -738,7 +738,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Từ chối, nêu món và số lượng thiếu; giữ danh sách chọn; không ghi tiêu hao.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: HTTP 422; order, dòng món, phiếu bếp và giao dịch kho không tăng.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-14</td>
@@ -748,7 +748,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Yêu cầu xác nhận nội dung mới; chưa tạo dòng order hay tiêu hao.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: HTTP 422; order, dòng món, phiếu bếp và giao dịch kho không tăng.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-15</td>
@@ -759,7 +759,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Gửi thành công với phiên bản mới; trừ đúng công thức mới áp dụng; không trừ lặp.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Gửi sau xác nhận thành công; tồn 850.0000 g; giá 110000.0000; chỉ tiêu hao một lần.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-16</td>
@@ -769,7 +769,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Yêu cầu xác nhận nội dung mới; chưa tạo dòng order hay tiêu hao.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: HTTP 422; order, dòng món, phiếu bếp và giao dịch kho không tăng.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-17</td>
@@ -780,7 +780,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Gửi thành công với phiên bản mới; trừ đúng công thức mới áp dụng; không trừ lặp.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Gửi sau xác nhận thành công; tồn 820.0000 g; giá 100000.0000; chỉ tiêu hao một lần.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-18</td>
@@ -791,7 +791,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Tạo dòng và phiếu bếp phần mới; trừ đúng phần thêm; dòng cũ không đổi.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Gửi phần gọi thêm vào cùng order: 2 dòng, 2 phiếu bếp; trừ phần mới 150 g, kết thúc giữ; dòng cũ giữ nguyên.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-19</td>
@@ -801,7 +801,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Từ chối gọi thêm theo phạm vi FR-SALE-06; không giữ hoặc trừ nguyên liệu.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Order đã rời bàn vẫn tạo được lượt giữ, API trả HTTP 201 thay vì từ chối HTTP 422.</td>
-<td>Không đạt (API/MySQL)</td>
+<td>Không đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-20</td>
@@ -811,7 +811,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Bổ sung dòng món và phiếu bếp vào cùng order; giữ rồi trừ đúng nguyên liệu phần thêm; dòng cũ giữ nguyên giá/công thức; không gắn bàn.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Gửi phần gọi thêm vào cùng order: 2 dòng, 2 phiếu bếp; trừ phần mới 150 g, kết thúc giữ; dòng cũ giữ nguyên.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-21</td>
@@ -821,7 +821,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Giữ thêm 150 g, số lượng 3; làm mới thời hạn.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Giữ ban đầu HTTP 201.; Số lượng 3, lượng giữ 450 g, tồn sổ sách không đổi.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-22</td>
@@ -831,7 +831,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Từ chối; số lượng, lượng giữ và hạn giữ cũ không đổi.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Giữ ban đầu HTTP 201.; Tăng lên 3 bị từ chối; vẫn giữ 300 g cho 2 suất, hạn giữ không đổi.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-23</td>
@@ -841,7 +841,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Giải phóng 150 g; còn giữ 150 g; tồn sổ sách không đổi.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Giữ ban đầu HTTP 201.; Số lượng 1, lượng giữ 150 g, tồn sổ sách không đổi.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-24</td>
@@ -851,7 +851,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Giải phóng đủ 300 g; không có giao dịch hoàn tồn.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Giữ ban đầu HTTP 201.; Giải phóng 300 g; không có giao dịch hoàn kho.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-25</td>
@@ -861,7 +861,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Giải phóng toàn bộ lượng giữ của lượt chọn.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Hủy toàn bộ lượt chọn: giữ 0 g, tồn 3000 g; không có order/phiếu bếp, bàn Trống.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-26</td>
@@ -871,7 +871,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Ghi chú cập nhật; hạn giữ không đổi.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Nhập ghi chú trên giao diện thành công; hạn giữ trên server không đổi. Ghi chú được giữ trong state giao diện trước khi gửi.</td>
-<td>Đạt (Giao diện)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-27</td>
@@ -881,7 +881,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Hạn giữ không đổi.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Reload và khôi phục lượt chọn trên Chromium; hạn giữ server giữ nguyên.</td>
-<td>Đạt (Giao diện)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-28</td>
@@ -891,7 +891,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Hạn giữ dòng A không đổi.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Sửa ghi chú dòng B trên Chromium; hạn giữ dòng A không đổi.</td>
-<td>Đạt (Giao diện)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-29</td>
@@ -901,7 +901,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Giữ hết hiệu lực theo giờ server; khả dụng được giải phóng dù trình duyệt đã đóng.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Đóng hẳn Chromium; tiến giờ server qua hạn, mở cửa sổ mới bằng phiên đăng nhập còn hiệu lực: giữ 0 g, khả dụng 1000 g; hạn cũ không gia hạn. Tab mới không khôi phục sessionStorage của tab đã đóng.</td>
-<td>Đạt (Giao diện)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-30</td>
@@ -912,7 +912,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Tạo order, trừ kho, tạo phiếu bếp; không gắn hay đổi trạng thái bàn.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Order mang về không gắn bàn; tạo phiếu bếp, trừ đúng 150 g; bàn giữ Trống.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-31</td>
@@ -922,7 +922,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Hoàn L1 200 g và L2 100 g; ghi người, thời gian, số lượng, lý do; không yêu cầu bản ghi xác nhận bếp trong hệ thống.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Đã phát phiếu qua transport thử nghiệm; hủy hoàn L1 200 g/L2 100 g; audit có người, thời gian, số lượng 2 và lý do.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-32</td>
@@ -932,7 +932,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Còn 1 suất; hoàn đúng 150 g vào lô gốc; có audit log.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Giảm từ 2 xuống 1 suất hoàn đúng 150 g nguyên liệu; chưa ghi audit cho thao tác giảm số lượng.</td>
-<td>Không đạt (API/MySQL)</td>
+<td>Không đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-33</td>
@@ -942,7 +942,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Từ chối; dòng món và tồn kho không đổi.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: HTTP 422; trạng thái Đã xác nhận xong; tồn giữ nguyên 700.0000 g.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-34</td>
@@ -952,7 +952,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Từ chối; dòng món và tồn kho không đổi.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: HTTP 422; trạng thái Đã xác nhận xong; tồn giữ nguyên 700.0000 g.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-35</td>
@@ -962,7 +962,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Từ chối; dòng món và tồn kho không đổi.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: HTTP 422; trạng thái Đã phục vụ; tồn giữ nguyên 700.0000 g.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-36</td>
@@ -972,7 +972,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Từ chối; dòng món và tồn kho không đổi.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: HTTP 422; trạng thái Đã phục vụ; tồn giữ nguyên 700.0000 g.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-37</td>
@@ -982,7 +982,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Lưu đúng trạng thái mới; không trừ hoặc hoàn kho thêm.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: HTTP 200; trạng thái Đã xác nhận xong; tồn giữ nguyên 700.0000 g.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-38</td>
@@ -992,7 +992,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Lưu đúng trạng thái mới; không trừ hoặc hoàn kho thêm.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: HTTP 200; trạng thái Đã phục vụ; tồn giữ nguyên 700.0000 g.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-39</td>
@@ -1002,7 +1002,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Từ chối chuyển bỏ qua bước; trạng thái giữ nguyên.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: HTTP 422; trạng thái Chờ; tồn giữ nguyên 700.0000 g.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-40</td>
@@ -1012,7 +1012,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Từ chối chuyển ngược; trạng thái giữ nguyên.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: HTTP 422; trạng thái Đã phục vụ; tồn giữ nguyên 700.0000 g.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-41</td>
@@ -1023,7 +1023,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Giỏ trống; kết thúc mọi dòng giữ của đúng lượt chọn và giải phóng lượng giữ ngay; tồn sổ sách không đổi; không tạo order, phiếu bếp hoặc hóa đơn; bàn vẫn Trống.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Hủy toàn bộ lượt chọn: giữ 0 g, tồn 3000 g; không có order/phiếu bếp, bàn Trống.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-42</td>
@@ -1034,7 +1034,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Còn 1 suất và giữ 150 g; giải phóng 150 g để lượt khác sử dụng ngay; tồn sổ sách không đổi; chưa tạo order hoặc tiêu hao.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Giữ ban đầu HTTP 201.; Số lượng 1, lượng giữ 150 g, tồn sổ sách không đổi.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-43</td>
@@ -1044,7 +1044,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Cùng transaction: B1 Trống/bỏ liên kết; B2 Đang phục vụ/gắn O1; có audit log.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Đổi bàn thành công: nguồn Trống, đích gắn đúng order, có audit.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-44</td>
@@ -1054,7 +1054,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Từ chối; cả hai bàn và order không đổi.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Từ chối đổi bàn; không ghi đè liên kết bàn.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-45</td>
@@ -1064,7 +1064,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Từ chối; không gắn lại bàn.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Từ chối đổi bàn; không ghi đè liên kết bàn.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-46</td>
@@ -1074,7 +1074,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>B1 Trống/bỏ liên kết O1; kết thúc lượt chọn, giải phóng lượng giữ; có audit log.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Giải phóng đúng bàn và lượt giữ gọi thêm; món đã gửi và tiêu hao giữ nguyên.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-47</td>
@@ -1084,7 +1084,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Order vẫn được commit, tồn trừ đúng; hiển thị lỗi in.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Chromium hiển thị Thất bại và Không kết nối được máy in sau lỗi kết nối TCP thật đến cổng thử nghiệm; order commit và tồn 850 g. Không dùng máy in vật lý.</td>
-<td>Đạt (Giao diện)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-48</td>
@@ -1094,7 +1094,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>In lại cùng nội dung; không tạo thêm order/dòng món hoặc trừ kho thêm.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Bấm In lại hai lần trên Chromium; bộ nhận TCP thử nghiệm nhận cùng dữ liệu ESC/POS; dòng order và tồn không đổi. Chưa kiểm tra giấy in thực.</td>
-<td>Đạt (Giao diện)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-49</td>
@@ -1104,7 +1104,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Chỉ một order được gắn B1; yêu cầu còn lại bị từ chối, không tiêu hao cho lượt thất bại.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Hai transaction gửi cùng bàn: một thành công, một bị từ chối; một order/dòng, chỉ tiêu hao 150 g.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-50</td>
@@ -1114,7 +1114,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Backend từ chối; không tạo order hoặc tiêu hao.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Bếp gửi món: HTTP 403; không tạo order hoặc tiêu hao.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-51</td>
@@ -1124,7 +1124,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Từ chối truy cập; lượt chọn và lượng giữ của A không đổi.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Người khác sửa lượt chọn: HTTP 404; lượng giữ 150 g không đổi.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-52</td>
@@ -1135,7 +1135,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>QR cũ Đã hủy; chỉ có một QR mới còn hiệu lực; chưa phát hành hóa đơn và không chuyển Chờ xác minh.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Hủy QR rồi tạo lại: QR cũ Đã hủy; duy nhất một QR mới chờ thanh toán; chưa có hóa đơn, không chuyển Chờ xác minh thanh toán.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-53</td>
@@ -1145,7 +1145,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Từ chối gọi thêm; không tạo dòng món, không giữ hoặc trừ thêm nguyên liệu; giữ nguyên trạng thái order.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Order Chờ xác nhận thanh toán: từ chối giữ/gọi thêm HTTP 422; dòng cũ và tồn không đổi.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-54</td>
@@ -1155,7 +1155,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Từ chối gọi thêm; không tạo dòng món, không giữ hoặc trừ thêm nguyên liệu; giữ nguyên trạng thái order.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Order Chờ xác minh thanh toán: từ chối giữ/gọi thêm HTTP 422; dòng cũ và tồn không đổi.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-55</td>
@@ -1165,7 +1165,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Order cũ từ chối gọi thêm, hóa đơn giữ nguyên; món mua thêm tạo order mới với mã riêng và trừ kho đúng một lần khi gửi.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Order mang về đã trả từ chối gọi thêm; hóa đơn cũ giữ nguyên; order mới mã riêng và tiêu hao đúng 150 g.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-56</td>
@@ -1175,7 +1175,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Từ chối gọi thêm; không tạo dòng món, không giữ hoặc trừ thêm nguyên liệu; giữ nguyên trạng thái order.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Order Đã hủy: từ chối giữ/gọi thêm HTTP 422; dòng cũ và tồn không đổi.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-57</td>
@@ -1185,7 +1185,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Từ chối gọi thêm; không tạo dòng món, không giữ hoặc trừ thêm nguyên liệu; giữ nguyên trạng thái order.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Order Đóng – chưa thu được tiền: từ chối giữ/gọi thêm HTTP 422; dòng cũ và tồn không đổi.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-58</td>
@@ -1196,7 +1196,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Chỉ giải phóng lượt chọn bị hủy; món đã gửi giữ nguyên. Lượt chọn mới được giữ và gửi vào cùng order theo điều kiện gọi thêm; không tạo order mới.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Gửi phần gọi thêm vào cùng order: 2 dòng, 2 phiếu bếp; trừ phần mới 150 g, kết thúc giữ; dòng cũ giữ nguyên.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-59</td>
@@ -1207,7 +1207,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Tạo lượt giữ khi chọn; khi gửi thành công, kết thúc giữ, tạo dòng và phiếu bếp phần mới, trừ FIFO đúng một lần; dòng cũ giữ nguyên giá/công thức.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Gửi phần gọi thêm vào cùng order: 2 dòng, 2 phiếu bếp; trừ phần mới 150 g, kết thúc giữ; dòng cũ giữ nguyên.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-60</td>
@@ -1218,7 +1218,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Giữ nguyên liệu rồi chuyển thành tiêu hao đúng một lần; bổ sung món và phiếu bếp vào cùng order; không gắn bàn.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Gửi phần gọi thêm vào cùng order: 2 dòng, 2 phiếu bếp; trừ phần mới 150 g, kết thúc giữ; dòng cũ giữ nguyên.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-61</td>
@@ -1228,7 +1228,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Từ chối toàn bộ lượt gửi, chỉ rõ dòng cần kiểm tra lại; không thêm dòng hoặc phiếu bếp, không trừ kho một phần.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: HTTP 422; order, dòng món, phiếu bếp và giao dịch kho không tăng; lượt gửi nhiều dòng được rollback toàn bộ.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-62</td>
@@ -1239,7 +1239,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Giải phóng toàn bộ lượng giữ của phần gọi thêm chưa gửi; dòng đã gửi và tiêu hao gốc giữ nguyên; order tiếp tục Đang mở, bàn vẫn Đang phục vụ; không tạo phiếu bếp mới.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Cancel phần gọi thêm: giữ về 0; món đã gửi, trạng thái order/bàn và tiêu hao không đổi.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-63</td>
@@ -1250,7 +1250,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Lượng giữ hết hiệu lực, khả dụng được giải phóng; order tiếp tục Đang mở; không hóa đơn, không hoàn kho lặp.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Hủy hết món rồi hết hạn giữ: order vẫn Đang mở; giữ 0, tồn 3000 g, không hoàn lặp.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-64</td>
@@ -1260,7 +1260,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Ghi món thay thế và phiếu bếp vào cùng order; chuyển lượng giữ thành tiêu hao đúng một lần; order tiếp tục Đang mở.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Gửi phần gọi thêm vào cùng order: 2 dòng, 2 phiếu bếp; trừ phần mới 150 g, kết thúc giữ; dòng cũ giữ nguyên.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-65</td>
@@ -1270,7 +1270,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Từ chối giữ do chỉ còn 100 g khả dụng; lượt giữ của người khác và tồn sổ sách không đổi; không thêm dòng món vào order.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Giữ ban đầu HTTP 201.; Lượt khác giữ 200/300 g; yêu cầu 150 g bị từ chối, giữ cũ và tồn không đổi.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-66</td>
@@ -1280,7 +1280,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Trả kết quả đã ghi nhận; không tạo thêm dòng, phiếu bếp hoặc tiêu hao.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Gửi phần gọi thêm vào cùng order: 2 dòng, 2 phiếu bếp; trừ phần mới 150 g, kết thúc giữ; dòng cũ giữ nguyên. Gửi lặp không tạo thêm dữ liệu.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-67</td>
@@ -1291,7 +1291,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Bỏ toàn bộ lượt chọn; chỉ giải phóng phần giữ còn hiệu lực đúng một lần; dòng hết hạn không làm tăng khả dụng thêm; không tạo order, phiếu bếp hoặc giao dịch kho.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Hủy toàn bộ lượt chọn: giữ 0 g, tồn 3000 g; không có order/phiếu bếp, bàn Trống. Gửi lại yêu cầu không giải phóng thêm.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-68</td>
@@ -1301,7 +1301,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Có mục điều hướng riêng; danh sách hiển thị mã, loại đơn, bàn nếu có, ngày kinh doanh, người lập, trạng thái và tổng tiền.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Quản lý mở mục riêng /orders; thấy hai loại đơn, các trạng thái và đủ bảy cột, đối chiếu API/MySQL.</td>
-<td>Đạt (Giao diện)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-69</td>
@@ -1311,7 +1311,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Chỉ trả order thỏa toàn bộ tiêu chí; xóa lọc khôi phục danh sách theo quyền; tập rỗng hiển thị thông báo, cho thay đổi bộ lọc.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Bốn bộ lọc kết hợp trả đúng một đơn; tiêu chí không tồn tại trả tập rỗng; xóa lọc khôi phục danh sách.</td>
-<td>Đạt (Giao diện)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-70</td>
@@ -1321,7 +1321,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Chi tiết đúng order đã chọn; xem dữ liệu không làm đổi trạng thái, tồn kho hoặc doanh thu; có đường quay lại danh sách.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Chi tiết hiển thị đúng món, tổng tiền và hóa đơn; xem rồi quay lại không làm đổi dữ liệu. API có giao dịch QR đã hủy và tiền mặt thành công, nhưng giao diện chưa hiển thị đầy đủ lịch sử thanh toán.</td>
-<td>Không đạt (Giao diện)</td>
+<td>Không đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-71</td>
@@ -1331,7 +1331,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Quản lý truy cập được; Bếp không có mục điều hướng và bị từ chối ở cả giao diện và API, không lộ dữ liệu order.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Bếp không có mục điều hướng; truy cập trực tiếp bị chặn, API danh sách và chi tiết đều HTTP 403.</td>
-<td>Đạt (Giao diện)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-72</td>
@@ -1341,7 +1341,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Giao dịch tiền mặt thành công; order Đã thanh toán; có một hóa đơn.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Các kiểm tra dữ liệu và phản hồi của kịch bản thực thi đạt; xem XML/log.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-73</td>
@@ -1351,7 +1351,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Có dữ liệu phiếu tạm tính; không tạo hóa đơn đã thanh toán.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Các kiểm tra dữ liệu và phản hồi của kịch bản thực thi đạt; xem XML/log.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-74</td>
@@ -1361,7 +1361,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>QR chứa thông tin VietQR, ngân hàng, tài khoản và số tiền của giao dịch.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Các kiểm tra dữ liệu và phản hồi của kịch bản thực thi đạt; xem XML/log.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-75</td>
@@ -1371,7 +1371,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Từ chối tạo thêm QR khi giao dịch trước còn hiệu lực.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Các kiểm tra dữ liệu và phản hồi của kịch bản thực thi đạt; xem XML/log.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-76</td>
@@ -1381,7 +1381,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Order Đã thanh toán; phát hành một hóa đơn.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Các kiểm tra dữ liệu và phản hồi của kịch bản thực thi đạt; xem XML/log.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-77</td>
@@ -1391,7 +1391,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Webhook bị từ chối; giao dịch không được xác nhận.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Các kiểm tra dữ liệu và phản hồi của kịch bản thực thi đạt; xem XML/log.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-78</td>
@@ -1401,7 +1401,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Không thu tiền hoặc phát hành hóa đơn lần hai.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Các kiểm tra dữ liệu và phản hồi của kịch bản thực thi đạt; xem XML/log.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-79</td>
@@ -1411,7 +1411,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Chuyển sang xử lý xác minh/ngoại lệ; không coi khoản sai là thanh toán đủ.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Các kiểm tra dữ liệu và phản hồi của kịch bản thực thi đạt; xem XML/log.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-80</td>
@@ -1421,7 +1421,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Hạn QR là 10 phút kể từ thời điểm tạo.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Các kiểm tra dữ liệu và phản hồi của kịch bản thực thi đạt; xem XML/log.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-81</td>
@@ -1431,7 +1431,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Hệ thống vẫn đối chiếu giao dịch ngân hàng sau hạn QR và ghi nhận khoản phù hợp.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Các kiểm tra dữ liệu và phản hồi của kịch bản thực thi đạt; xem XML/log.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-82</td>
@@ -1441,7 +1441,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Order Chờ xác minh thanh toán; yêu cầu thêm món bị từ chối.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Các kiểm tra dữ liệu và phản hồi của kịch bản thực thi đạt; xem XML/log.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-83</td>
@@ -1451,7 +1451,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Giữ mã tham chiếu, bằng chứng và ghi chú để đối chiếu.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Các kiểm tra dữ liệu và phản hồi của kịch bản thực thi đạt; xem XML/log.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-84</td>
@@ -1461,7 +1461,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Giao dịch Thành công, order Đã thanh toán và có một hóa đơn.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Các kiểm tra dữ liệu và phản hồi của kịch bản thực thi đạt; xem XML/log.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-85</td>
@@ -1471,7 +1471,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Thu ngân bị từ chối; Quản lý mở lại được; giao dịch cũ Đã hủy, order Đang mở và cho phép QR mới.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Các kiểm tra dữ liệu và phản hồi của kịch bản thực thi đạt; xem XML/log.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-86</td>
@@ -1481,7 +1481,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Order ở trạng thái kết thúc Đóng – chưa thu được tiền; không phát hành hóa đơn.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Các kiểm tra dữ liệu và phản hồi của kịch bản thực thi đạt; xem XML/log.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-87</td>
@@ -1491,7 +1491,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Chỉ áp dụng một lần và phát hành một hóa đơn.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Các kiểm tra dữ liệu và phản hồi của kịch bản thực thi đạt; xem XML/log.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-88</td>
@@ -1501,7 +1501,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Khoản trùng không được áp dụng lại; đi qua xử lý hoàn tiền.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Các kiểm tra dữ liệu và phản hồi của kịch bản thực thi đạt; xem XML/log.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-89</td>
@@ -1511,7 +1511,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Thiếu mã bị từ chối; kết quả hợp lệ lưu mã tham chiếu và số tiền hoàn.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Các kiểm tra dữ liệu và phản hồi của kịch bản thực thi đạt; xem XML/log.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-90</td>
@@ -1521,7 +1521,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Từ chối số tiền hoàn vượt số tiền đã nhận.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Các kiểm tra dữ liệu và phản hồi của kịch bản thực thi đạt; xem XML/log.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-91</td>
@@ -1531,7 +1531,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Ngoại lệ tiếp tục mở cho số tiền còn lại.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Các kiểm tra dữ liệu và phản hồi của kịch bản thực thi đạt; xem XML/log.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-92</td>
@@ -1541,7 +1541,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Order giữ Đã thanh toán; không phát hành thêm hóa đơn cho cùng order.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Các kiểm tra dữ liệu và phản hồi của kịch bản thực thi đạt; xem XML/log.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-93</td>
@@ -1551,7 +1551,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>HTTP 422; order vẫn Chờ xác nhận thanh toán.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Các kiểm tra dữ liệu và phản hồi của kịch bản thực thi đạt; xem XML/log.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-94</td>
@@ -1561,7 +1561,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Đọc đủ các trang, không mất giao dịch cũ nhất.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Các kiểm tra dữ liệu và phản hồi của kịch bản thực thi đạt; xem XML/log.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-SALE-95</td>
@@ -1571,7 +1571,7 @@ Các ca Bán hàng kiểm tra thao tác trên lượt chọn và order, trạng 
 <td>Báo lỗi thay vì bỏ qua các khoản tiền cũ chưa đọc.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Các kiểm tra dữ liệu và phản hồi của kịch bản thực thi đạt; xem XML/log.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-SALE-96</td>
@@ -1642,13 +1642,13 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 
 <table>
 <colgroup>
-<col style="width: 8%" />
+<col style="width: 9%" />
 <col style="width: 9%" />
 <col style="width: 14%" />
 <col style="width: 14%" />
 <col style="width: 17%" />
-<col style="width: 6%" />
-<col style="width: 19%" />
+<col style="width: 7%" />
+<col style="width: 17%" />
 <col style="width: 8%" />
 </colgroup>
 <thead>
@@ -1673,7 +1673,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Tạo lô từ dòng nhập; tồn tăng 1.000 g; ghi giao dịch đúng lô.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Nhập 1000 g: lô và tồn tăng 1000 g; giao dịch tham chiếu đúng lô.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-INV-02</td>
@@ -1683,7 +1683,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Cho phép; tồn và lô cập nhật đúng 1.200 g; có audit log.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Sửa phiếu chưa dùng từ 1000 lên 1200 g: tồn và lô 1200 g, có audit.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-INV-03</td>
@@ -1693,7 +1693,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Từ chối; phiếu, lô và tồn giữ nguyên.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Phiếu đã có xuất: HTTP 422; tồn không đổi 900.0000 g.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-INV-04</td>
@@ -1703,7 +1703,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Từ chối; phiếu, lô và tồn giữ nguyên.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Phiếu đã có giữ: HTTP 422; tồn không đổi 1000.0000 g.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-INV-05</td>
@@ -1713,7 +1713,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Cho phép; tồn và lô cập nhật đúng lượng bị hủy; có audit log.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Hủy phiếu chưa dùng: tồn và lô về 0 g, có audit.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-INV-06</td>
@@ -1723,7 +1723,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Từ chối; phiếu, lô và tồn giữ nguyên.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Phiếu đã có xuất: HTTP 422; tồn không đổi 900.0000 g.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-INV-07</td>
@@ -1733,7 +1733,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Từ chối; phiếu, lô và tồn giữ nguyên.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Phiếu đã có giữ: HTTP 422; tồn không đổi 1000.0000 g.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-INV-08</td>
@@ -1743,7 +1743,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Sổ sách 1.000 g; đủ điều kiện bán 600 g; khả dụng 400 g; không tính giữ hết hạn.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Chưa dọn giữ hết hạn: sổ sách 1000 g, đủ điều kiện 600 g, giữ hiệu lực 200 g, khả dụng 400 g; bỏ qua giữ hết hạn 100 g.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-INV-09</td>
@@ -1753,7 +1753,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Gửi được; tiêu hao 150 g đúng lô; kết thúc giữ, không tự từ chối do khả dụng chung bằng 0.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Chính lượt giữ 150 g gửi thành công dù khả dụng chung 0; trừ 150 g, kết thúc giữ.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-INV-10</td>
@@ -1763,7 +1763,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Trừ 150 g từ lô còn hạn; lô hết hạn giữ nguyên trong tồn sổ sách.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Lô hết hạn 300 g giữ nguyên; trừ 150 g từ lô còn hạn, còn 550 g.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-INV-11</td>
@@ -1773,7 +1773,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Trạng thái Sắp hết hạn; cảnh báo hạn dùng tách khỏi cảnh báo tồn.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: lô có hạn sử dụng 2026-09-26 được trả với trạng thái Sắp hết hạn; dữ liệu gồm tên nguyên liệu, đơn vị và lượng tồn.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-INV-12</td>
@@ -1783,7 +1783,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Trạng thái Sắp hết hạn; cảnh báo hạn dùng tách khỏi cảnh báo tồn.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: lô có hạn sử dụng 2026-09-27 được trả với trạng thái Sắp hết hạn; dữ liệu gồm tên nguyên liệu, đơn vị và lượng tồn.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-INV-13</td>
@@ -1793,7 +1793,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Trạng thái Còn hạn; cảnh báo hạn dùng tách khỏi cảnh báo tồn.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: lô có hạn sử dụng 2026-09-28 được trả với trạng thái Còn hạn; dữ liệu gồm tên nguyên liệu, đơn vị và lượng tồn.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-INV-14</td>
@@ -1803,7 +1803,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Trạng thái Hết hạn; cảnh báo hạn dùng tách khỏi cảnh báo tồn.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: lô có hạn sử dụng 2026-09-23 được trả với trạng thái Hết hạn; dữ liệu gồm tên nguyên liệu, đơn vị và lượng tồn.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-INV-15</td>
@@ -1813,7 +1813,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Có cảnh báo tồn tối thiểu.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Khả dụng 499.0; ngưỡng 500.0; cảnh báo True.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-INV-16</td>
@@ -1823,7 +1823,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Không cảnh báo tồn tối thiểu.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Khả dụng 500.0; ngưỡng 500.0; cảnh báo False.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-INV-17</td>
@@ -1833,7 +1833,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Không cảnh báo tồn tối thiểu.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Khả dụng 501.0; ngưỡng 500.0; cảnh báo False.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-INV-18</td>
@@ -1843,7 +1843,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Áp dụng ngưỡng 300 g, hiển thị cảnh báo.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Khả dụng 299.0; ngưỡng 300.0; cảnh báo True.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-INV-19</td>
@@ -1853,7 +1853,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Trừ đúng 100 g từ lô; ghi nguồn, người, thời gian, lý do và audit log.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Xuất hủy 100 g; tồn và lô còn 400 g; ghi đúng giao dịch.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-INV-20</td>
@@ -1863,7 +1863,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Từ chối; không có giao dịch xuất, tồn giữ nguyên.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Xuất hủy 101 g trên lô 100 g bị từ chối; tồn 100 g.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-INV-21</td>
@@ -1873,7 +1873,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Lô còn 0 g; ghi một giao dịch xuất 100 g.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Xuất hủy 100 g; tồn và lô còn 0 g; ghi đúng giao dịch.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-INV-22</td>
@@ -1883,7 +1883,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Trong transaction: giải phóng toàn bộ lượng giữ của dòng bị ảnh hưởng, xuất đúng lượng hỏng; thông báo nhân viên kiểm tra lại.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Xuất hủy 200 g; tồn và lô còn 800 g; ghi đúng giao dịch. Lượt giữ 900 g bị ảnh hưởng được giải phóng toàn bộ.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-INV-23</td>
@@ -1895,7 +1895,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Hệ thống tự xác định nguyên liệu và 150 g từ tiêu hao gốc, hiển thị chỉ đọc; ghi 1 suất và liên kết giao dịch gốc; tồn không giảm lần hai.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Phiếu ghi {1: 150.0}; số suất hủy 1; tham chiếu đúng dòng món, tồn không giảm lần hai.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-INV-24</td>
@@ -1905,7 +1905,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Từ chối vì chỉ còn 1 suất chưa ghi nhận; không tạo thêm chứng từ hay giao dịch kho.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Đã hủy 1/2 suất; yêu cầu thêm 2 bị từ chối, không tạo thêm phiếu.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-INV-25</td>
@@ -1916,7 +1916,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Mỗi lượt đúng một yêu cầu thành công; tổng giữ 150 g, khả dụng 0; không tồn âm.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Các kiểm tra dữ liệu và phản hồi của kịch bản thực thi đạt; xem XML/log.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-INV-26</td>
@@ -1927,7 +1927,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Chỉ một lượt giữ thành công; lượt kia báo thiếu; không cấp trùng hoặc khóa chết.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Các kiểm tra dữ liệu và phản hồi của kịch bản thực thi đạt; xem XML/log.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-INV-27</td>
@@ -1938,7 +1938,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Giữ cũ không còn hiệu lực; kiểm tra lại và ghi tiêu hao 150 g đúng một lần.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: 100 lượt tại expires_at == giờ server: xác nhận và kiểm tra lại, mỗi lượt tiêu hao đúng 150 g.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-INV-28</td>
@@ -1949,7 +1949,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Từ chối gửi; không tạo dòng order hoặc tiêu hao; danh sách chọn còn nguyên.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: 100 lượt tại expires_at == giờ server và chỉ còn 100 g: từ chối toàn bộ; giữ danh sách; không tạo order/giao dịch kho.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-INV-29</td>
@@ -1960,7 +1960,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Chỉ một kết quả nghiệp vụ; không trừ tồn lặp hoặc tạo thêm dòng món.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Các kiểm tra dữ liệu và phản hồi của kịch bản thực thi đạt; xem XML/log.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-INV-30</td>
@@ -1970,7 +1970,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Đủ tên, đơn vị, sổ sách, đủ điều kiện bán, đang giữ, khả dụng, ngưỡng, cảnh báo và thời điểm cập nhật.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Bảng kho trên Chromium có tên, đơn vị, sổ sách 1000 g, đủ điều kiện 1000 g, giữ 300 g, khả dụng 700 g, ngưỡng, trạng thái và giờ dữ liệu.</td>
-<td>Đạt (Giao diện)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-INV-31</td>
@@ -1980,7 +1980,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Chỉ trả nguyên liệu phù hợp tên tìm.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Tìm Thịt bò chỉ trả nguyên liệu phù hợp tên.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-INV-32</td>
@@ -1990,7 +1990,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Chỉ hiển thị nguyên liệu đang có cảnh báo tồn.</td>
 <td>Thường</td>
 <td>28/10/2026, 68505dc: Bộ lọc cảnh báo chỉ trả các dòng CanhBaoTonThap=true.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-INV-33</td>
@@ -2000,7 +2000,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Từ chối và yêu cầu xử lý hết lượt chọn/giữ trước khi mở.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Khi còn lượt chọn đã hết hạn nhưng chưa xử lý, API vẫn mở kiểm kê và trả HTTP 201 thay vì từ chối HTTP 422.</td>
-<td>Không đạt (API/MySQL)</td>
+<td>Không đạt</td>
 </tr>
 <tr class="even">
 <td>TC-INV-34</td>
@@ -2010,7 +2010,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Từ chối và yêu cầu xử lý hết lượt chọn/giữ trước khi mở.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Còn giữ hiệu lực: mở kiểm kê HTTP 422, không tạo phiên.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-INV-35</td>
@@ -2020,7 +2020,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Tạo phiên trên server, chốt dữ liệu đối chiếu và khóa nghiệp vụ kho.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Phiên kiểm kê mở trên server; nghiệp vụ kho bị chặn HTTP 422, tồn và giữ không đổi.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-INV-36</td>
@@ -2030,7 +2030,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Backend chặn trong transaction; tồn và lượng giữ không thay đổi.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Phiên kiểm kê mở trên server; nghiệp vụ kho bị chặn HTTP 422, tồn và giữ không đổi.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-INV-37</td>
@@ -2040,7 +2040,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Backend chặn trong transaction; tồn và lượng giữ không thay đổi.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Phiên kiểm kê mở trên server; nghiệp vụ kho bị chặn HTTP 422, tồn và giữ không đổi.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-INV-38</td>
@@ -2050,7 +2050,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Backend chặn trong transaction; tồn và lượng giữ không thay đổi.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Phiên kiểm kê mở trên server; nghiệp vụ kho bị chặn HTTP 422, tồn và giữ không đổi.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-INV-39</td>
@@ -2060,7 +2060,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Backend chặn trong transaction; tồn và lượng giữ không thay đổi.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Phiên kiểm kê mở trên server; nghiệp vụ kho bị chặn HTTP 422, tồn và giữ không đổi.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-INV-40</td>
@@ -2070,7 +2070,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Backend chặn trong transaction; tồn và lượng giữ không thay đổi.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Gọi hủy/hoàn món trong phiên kiểm kê: HTTP 422; không hoàn kho hoặc tạo giao dịch. Phiên mở được thiết lập làm điều kiện thử.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-INV-41</td>
@@ -2081,7 +2081,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Phiên kết thúc, không điều chỉnh tồn do kiểm kê; nhập kho được thực hiện bình thường.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Hủy kiểm kê không đổi tồn; nhập 100 g sau đó thành công, tồn 600 g.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-INV-42</td>
@@ -2092,7 +2092,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Điều chỉnh giảm 50 g từ lô nhập trước; sinh một phiếu xuất hủy nguồn Kiểm kê; phiếu không trừ kho thêm; có audit log.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Chốt kiểm kê: tồn và tổng lô 450 g; 1 phiếu xuất hủy; có audit.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-INV-43</td>
@@ -2103,7 +2103,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Điều chỉnh tăng 20 g, phân bổ theo BR-LOT-02; không có phiếu xuất hủy cho phần tăng; có audit log.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Chốt kiểm kê: tồn và tổng lô 120 g; 0 phiếu xuất hủy; có audit.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-INV-44</td>
@@ -2113,7 +2113,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Chênh lệch 0; tồn không đổi, không tạo chứng từ hao hụt; phiên kết thúc.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Chốt kiểm kê: tồn và tổng lô 500 g; 0 phiếu xuất hủy; có audit.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-INV-45</td>
@@ -2123,7 +2123,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Không điều chỉnh tồn lần hai, không tạo thêm phiếu xuất hủy nguồn Kiểm kê.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Chốt kiểm kê: tồn và tổng lô 450 g; 1 phiếu xuất hủy; có audit. Xác nhận lặp không điều chỉnh lần hai.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-INV-46</td>
@@ -2134,7 +2134,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Nếu nhập commit trước chốt thì số chốt gồm lượng nhập; nếu khóa kiểm kê có trước thì nhập bị chặn. Tồn không đổi giữa chốt và xác nhận do giao dịch cạnh tranh.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Các kiểm tra dữ liệu và phản hồi của kịch bản thực thi đạt; xem XML/log.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-INV-47</td>
@@ -2144,7 +2144,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Hoàn 150 g đúng lô gốc; tăng tồn sổ sách nhưng không tăng tồn đủ điều kiện bán.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Hoàn 150 g về lô gốc đã hết hạn: sổ sách tăng 150 g, đủ điều kiện bán và khả dụng vẫn 0.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-INV-48</td>
@@ -2154,7 +2154,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Backend từ chối quyền; không tạo lô hoặc tăng tồn.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Thu ngân nhập kho: HTTP 403; không tạo lô hoặc tăng tồn.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-INV-49</td>
@@ -2165,7 +2165,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Tự xác định 150 g bò và 50 g hành theo tiêu hao gốc, hiển thị chỉ đọc; lưu một suất hủy, không đếm thành hai suất; không trừ kho lần hai.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Phiếu ghi {1: 150.0, 2: 50.0}; số suất hủy 1; tham chiếu đúng dòng món, tồn không giảm lần hai.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="even">
 <td>TC-INV-50</td>
@@ -2175,7 +2175,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Phiếu ghi nhận 150 g nguyên liệu theo tiêu hao gốc, liên kết đúng dòng món; tồn kho không thay đổi.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Phiếu ghi {1: 150.0}; số suất hủy 1; tham chiếu đúng dòng món, tồn không giảm lần hai.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 <tr class="odd">
 <td>TC-INV-51</td>
@@ -2185,7 +2185,7 @@ Các ca Kho đối chiếu tồn sổ sách, lượng lô, lượng giữ và s�
 <td>Chứng từ dùng 150 g theo tiêu hao gốc, không dùng 200 g của công thức hiện hành; không trừ kho lần hai.</td>
 <td>Trọng yếu</td>
 <td>28/10/2026, 68505dc: Phiếu ghi {1: 150.0}; số suất hủy 1; tham chiếu đúng dòng món, tồn không giảm lần hai.</td>
-<td>Đạt (API/MySQL)</td>
+<td>Đạt</td>
 </tr>
 </tbody>
 </table>
@@ -2194,17 +2194,17 @@ Bảng 48. Ca kiểm thử module Quản lý kho
 
 Lỗi tạo tài khoản ở UC 5.1 được phát hiện qua bộ MySQL mở rộng và ghi nhận thành ca TC-SET-01. Các ca TC-SET-02–09 bổ sung ngày 29/10/2026 cho FR-SET-02, 03, 04, 06 và 07 (phân quyền, thay đổi cấu hình, audit log) chưa chạy. Bảng 49 chưa bao phủ FR-SET-05 ngoài các ca ngưỡng tồn kho đã nêu tại ma trận F.3.
 
-| **Mã ca** | **FR/NFR**                   | **Điều kiện và dữ liệu**                                                          | **Bước thực hiện**                                                                                                           | **Kết quả mong đợi**                                                                                                                     | **Ưu tiên** | **Kết quả thực tế**                                                                                                                                   | **Trạng thái**        |
-|-----------|------------------------------|-----------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------|-------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------|
-| TC-SET-01 | FR-SET-01                    | Đăng nhập Quản lý; thông tin tài khoản mới hợp lệ, tên đăng nhập chưa tồn tại.    | 1\. Gửi yêu cầu tạo tài khoản mới.                                                                                           | Tạo thành công; phản hồi trả về thông tin tài khoản và bản ghi được lưu.                                                                 | Thường      | 28/10/2026, 68505dc: Tạo tài khoản trả HTTP 500 dù bản ghi đã lưu; log có MissingGreenlet khi đọc NgayTao. 8 test MySQL mở rộng không đạt vì lỗi này. | Không đạt (API/MySQL) |
-| TC-SET-02 | FR-SET-02                    | Tài khoản Thu ngân đang hoạt động; biết mật khẩu hiện tại.                        | 1\. Đăng nhập. 2. Tự đổi mật khẩu với mật khẩu hiện tại đúng. 3. Đăng xuất, đăng nhập lại bằng mật khẩu cũ rồi mật khẩu mới. | Đổi thành công; mật khẩu cũ bị từ chối, mật khẩu mới đăng nhập được; không phát sinh bản ghi audit log (ngoài phạm vi theo FR-SET-02).   | Thường      | Chưa chạy (ca bổ sung 29/10/2026).                                                                                                                    | Chưa chạy             |
-| TC-SET-03 | FR-SET-02                    | Tài khoản Thu ngân đang hoạt động.                                                | 1\. Gửi yêu cầu tự đổi mật khẩu với mật khẩu hiện tại sai.                                                                   | Bị từ chối kèm thông báo tiếng Việt; mật khẩu không đổi; đăng nhập bằng mật khẩu cũ vẫn thành công.                                      | Thường      | Chưa chạy (ca bổ sung 29/10/2026).                                                                                                                    | Chưa chạy             |
-| TC-SET-04 | FR-SET-02; FR-SET-06         | Đăng nhập Quản lý; có người dùng quên mật khẩu.                                   | 1\. Quản lý đặt lại mật khẩu hộ người dùng. 2. Người dùng đăng nhập bằng mật khẩu mới. 3. Quản lý mở nhật ký.                | Đặt lại thành công; người dùng đăng nhập được; có bản ghi audit log gồm người thực hiện, thời điểm, loại thao tác.                       | Trọng yếu   | Chưa chạy (ca bổ sung 29/10/2026).                                                                                                                    | Chưa chạy             |
-| TC-SET-05 | FR-SET-02; FR-SET-03; NFR-04 | Có tài khoản Thu ngân và Bếp; một người dùng khác làm đối tượng.                  | 1\. Thu ngân gọi trực tiếp API đặt lại mật khẩu của người dùng khác. 2. Bếp làm tương tự.                                    | Cả hai bị từ chối (HTTP 403); mật khẩu không đổi; không có bản ghi audit log mới.                                                        | Trọng yếu   | Chưa chạy (ca bổ sung 29/10/2026).                                                                                                                    | Chưa chạy             |
-| TC-SET-06 | FR-SET-03; NFR-04            | Đăng nhập Thu ngân.                                                               | 1\. Kiểm tra mục điều hướng. 2. Truy cập trực tiếp màn hình và API Cài đặt, Báo cáo.                                         | Không có mục điều hướng Cài đặt và Báo cáo; truy cập trực tiếp bị chặn ở cả giao diện và API (HTTP 403), không lộ dữ liệu.               | Trọng yếu   | Chưa chạy (ca bổ sung 29/10/2026).                                                                                                                    | Chưa chạy             |
-| TC-SET-07 | FR-SET-03; NFR-04            | Có tài khoản Bếp và Quản lý.                                                      | 1\. Bếp truy cập trực tiếp API Cài đặt và API thanh toán. 2. Quản lý dùng chức năng của Thu ngân và của Bếp.                 | Bếp bị từ chối (HTTP 403) với chức năng ngoài phạm vi; Quản lý truy cập được cả hai nhóm chức năng (kế thừa quyền).                      | Trọng yếu   | Chưa chạy (ca bổ sung 29/10/2026).                                                                                                                    | Chưa chạy             |
-| TC-SET-08 | FR-SET-04; FR-SET-06         | Đăng nhập Quản lý; thời hạn giữ món hiện là 5 phút.                               | 1\. Đổi thời hạn giữ món thành 10 phút. 2. Thử nhập 0 và giá trị âm. 3. Mở nhật ký.                                          | 10 phút được lưu và áp dụng cho lượt giữ món mới; 0 và giá trị âm bị từ chối; audit log ghi dữ liệu trước (5) và sau (10).               | Trọng yếu   | Chưa chạy (ca bổ sung 29/10/2026).                                                                                                                    | Chưa chạy             |
-| TC-SET-09 | FR-SET-07; NFR-04            | Nhật ký có bản ghi từ nhiều loại thao tác; có tài khoản Quản lý, Thu ngân và Bếp. | 1\. Quản lý mở nhật ký. 2. Thu ngân và Bếp truy cập trực tiếp màn hình và API nhật ký.                                       | Quản lý xem toàn bộ; mỗi bản ghi có người thực hiện, thời điểm, loại thao tác, dữ liệu trước/sau; Thu ngân và Bếp bị từ chối (HTTP 403). | Trọng yếu   | Chưa chạy (ca bổ sung 29/10/2026).                                                                                                                    | Chưa chạy             |
+| **Mã ca** | **FR/NFR**                   | **Điều kiện và dữ liệu**                                                          | **Bước thực hiện**                                                                                                           | **Kết quả mong đợi**                                                                                                                     | **Ưu tiên** | **Kết quả thực tế**                                                                                                                                   | **Trạng thái** |
+|-----------|------------------------------|-----------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------|-------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|----------------|
+| TC-SET-01 | FR-SET-01                    | Đăng nhập Quản lý; thông tin tài khoản mới hợp lệ, tên đăng nhập chưa tồn tại.    | 1\. Gửi yêu cầu tạo tài khoản mới.                                                                                           | Tạo thành công; phản hồi trả về thông tin tài khoản và bản ghi được lưu.                                                                 | Thường      | 28/10/2026, 68505dc: Tạo tài khoản trả HTTP 500 dù bản ghi đã lưu; log có MissingGreenlet khi đọc NgayTao. 8 test MySQL mở rộng không đạt vì lỗi này. | Không đạt      |
+| TC-SET-02 | FR-SET-02                    | Tài khoản Thu ngân đang hoạt động; biết mật khẩu hiện tại.                        | 1\. Đăng nhập. 2. Tự đổi mật khẩu với mật khẩu hiện tại đúng. 3. Đăng xuất, đăng nhập lại bằng mật khẩu cũ rồi mật khẩu mới. | Đổi thành công; mật khẩu cũ bị từ chối, mật khẩu mới đăng nhập được; không phát sinh bản ghi audit log (ngoài phạm vi theo FR-SET-02).   | Thường      | Chưa chạy (ca bổ sung 29/10/2026).                                                                                                                    | Chưa chạy      |
+| TC-SET-03 | FR-SET-02                    | Tài khoản Thu ngân đang hoạt động.                                                | 1\. Gửi yêu cầu tự đổi mật khẩu với mật khẩu hiện tại sai.                                                                   | Bị từ chối kèm thông báo tiếng Việt; mật khẩu không đổi; đăng nhập bằng mật khẩu cũ vẫn thành công.                                      | Thường      | Chưa chạy (ca bổ sung 29/10/2026).                                                                                                                    | Chưa chạy      |
+| TC-SET-04 | FR-SET-02; FR-SET-06         | Đăng nhập Quản lý; có người dùng quên mật khẩu.                                   | 1\. Quản lý đặt lại mật khẩu hộ người dùng. 2. Người dùng đăng nhập bằng mật khẩu mới. 3. Quản lý mở nhật ký.                | Đặt lại thành công; người dùng đăng nhập được; có bản ghi audit log gồm người thực hiện, thời điểm, loại thao tác.                       | Trọng yếu   | Chưa chạy (ca bổ sung 29/10/2026).                                                                                                                    | Chưa chạy      |
+| TC-SET-05 | FR-SET-02; FR-SET-03; NFR-04 | Có tài khoản Thu ngân và Bếp; một người dùng khác làm đối tượng.                  | 1\. Thu ngân gọi trực tiếp API đặt lại mật khẩu của người dùng khác. 2. Bếp làm tương tự.                                    | Cả hai bị từ chối (HTTP 403); mật khẩu không đổi; không có bản ghi audit log mới.                                                        | Trọng yếu   | Chưa chạy (ca bổ sung 29/10/2026).                                                                                                                    | Chưa chạy      |
+| TC-SET-06 | FR-SET-03; NFR-04            | Đăng nhập Thu ngân.                                                               | 1\. Kiểm tra mục điều hướng. 2. Truy cập trực tiếp màn hình và API Cài đặt, Báo cáo.                                         | Không có mục điều hướng Cài đặt và Báo cáo; truy cập trực tiếp bị chặn ở cả giao diện và API (HTTP 403), không lộ dữ liệu.               | Trọng yếu   | Chưa chạy (ca bổ sung 29/10/2026).                                                                                                                    | Chưa chạy      |
+| TC-SET-07 | FR-SET-03; NFR-04            | Có tài khoản Bếp và Quản lý.                                                      | 1\. Bếp truy cập trực tiếp API Cài đặt và API thanh toán. 2. Quản lý dùng chức năng của Thu ngân và của Bếp.                 | Bếp bị từ chối (HTTP 403) với chức năng ngoài phạm vi; Quản lý truy cập được cả hai nhóm chức năng (kế thừa quyền).                      | Trọng yếu   | Chưa chạy (ca bổ sung 29/10/2026).                                                                                                                    | Chưa chạy      |
+| TC-SET-08 | FR-SET-04; FR-SET-06         | Đăng nhập Quản lý; thời hạn giữ món hiện là 5 phút.                               | 1\. Đổi thời hạn giữ món thành 10 phút. 2. Thử nhập 0 và giá trị âm. 3. Mở nhật ký.                                          | 10 phút được lưu và áp dụng cho lượt giữ món mới; 0 và giá trị âm bị từ chối; audit log ghi dữ liệu trước (5) và sau (10).               | Trọng yếu   | Chưa chạy (ca bổ sung 29/10/2026).                                                                                                                    | Chưa chạy      |
+| TC-SET-09 | FR-SET-07; NFR-04            | Nhật ký có bản ghi từ nhiều loại thao tác; có tài khoản Quản lý, Thu ngân và Bếp. | 1\. Quản lý mở nhật ký. 2. Thu ngân và Bếp truy cập trực tiếp màn hình và API nhật ký.                                       | Quản lý xem toàn bộ; mỗi bản ghi có người thực hiện, thời điểm, loại thao tác, dữ liệu trước/sau; Thu ngân và Bếp bị từ chối (HTTP 403). | Trọng yếu   | Chưa chạy (ca bổ sung 29/10/2026).                                                                                                                    | Chưa chạy      |
 
 Bảng 49. Ca kiểm thử module Cài đặt hệ thống
 
