@@ -1,0 +1,7 @@
+{
+  "requested_orders": 20000,
+  "completed_orders": 5500,
+  "lines": 16696,
+  "complete": false,
+  "reason": "600-second seed timeout; exploratory load only, not NFR acceptance"
+}

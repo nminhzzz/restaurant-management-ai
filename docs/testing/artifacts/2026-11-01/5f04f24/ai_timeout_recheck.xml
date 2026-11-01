@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="2" time="0.701" timestamp="2026-11-01T23:47:01.762300+08:00" hostname="d581c7c430cd"><testcase classname="tests.modules.test_ai_llm" name="test_async_provider_deadline_reaches_fallback_even_when_primary_thread_stalls[asyncio]" time="0.211"><failure message="ImportError: Using SOCKS proxy, but the 'socksio' package is not installed. Make sure to install httpx using `pip install httpx[socks]`.">tests/modules/test_ai_llm.py:232: in test_async_provider_deadline_reaches_fallback_even_when_primary_thread_stalls
+    client = CommercialClient(
+src/app/modules/ai/llm.py:147: in __init__
+    self._sdk = anthropic.Anthropic(
+.venv/lib/python3.12/site-packages/anthropic/_client.py:300: in __init__
+    super().__init__(
+.venv/lib/python3.12/site-packages/anthropic/_base_client.py:1132: in __init__
+    self._client = http_client or SyncHttpxClientWrapper(
+.venv/lib/python3.12/site-packages/anthropic/_base_client.py:1031: in __init__
+    key: None if proxy is None else HTTPTransport(proxy=proxy, **transport_kwargs)
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/httpx2/_transports/default.py:187: in __init__
+    raise ImportError(
+E   ImportError: Using SOCKS proxy, but the 'socksio' package is not installed. Make sure to install httpx using `pip install httpx[socks]`.</failure></testcase><testcase classname="tests.modules.test_ai_parity" name="test_timeout_attempt_is_counted_before_dispatch_and_fallback[asyncio]" time="0.170"><failure message="ImportError: Using SOCKS proxy, but the 'socksio' package is not installed. Make sure to install httpx using `pip install httpx[socks]`.">tests/modules/test_ai_parity.py:298: in test_timeout_attempt_is_counted_before_dispatch_and_fallback
+    client = llm.CommercialClient(
+src/app/modules/ai/llm.py:147: in __init__
+    self._sdk = anthropic.Anthropic(
+.venv/lib/python3.12/site-packages/anthropic/_client.py:300: in __init__
+    super().__init__(
+.venv/lib/python3.12/site-packages/anthropic/_base_client.py:1132: in __init__
+    self._client = http_client or SyncHttpxClientWrapper(
+.venv/lib/python3.12/site-packages/anthropic/_base_client.py:1031: in __init__
+    key: None if proxy is None else HTTPTransport(proxy=proxy, **transport_kwargs)
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/httpx2/_transports/default.py:187: in __init__
+    raise ImportError(
+E   ImportError: Using SOCKS proxy, but the 'socksio' package is not installed. Make sure to install httpx using `pip install httpx[socks]`.</failure></testcase></testsuite></testsuites>

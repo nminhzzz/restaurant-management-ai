@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="8" time="330.439" timestamp="2026-11-01T23:43:59.972103+08:00" hostname="d581c7c430cd"><testcase classname="tests.seed.test_orders" name="test_the_day_has_two_peaks" time="0.001" /><testcase classname="tests.seed.test_orders" name="test_weekends_are_busier_than_weekdays" time="0.001" /><testcase classname="tests.seed.test_orders" name="test_the_monthly_volume_reaches_the_nfr_03_floor" time="0.001" /><testcase classname="tests.seed.test_orders" name="test_a_few_dishes_take_most_of_the_orders" time="0.001" /><testcase classname="tests.seed.test_orders" name="test_generated_orders_respect_business_invariants" time="81.690" /><testcase classname="tests.seed.test_orders" name="test_the_three_tiers_agree_after_a_full_year" time="82.390" /><testcase classname="tests.seed.test_orders" name="test_every_order_has_a_plausible_final_state" time="81.628"><failure message="AssertionError: assert {'Chờ xác min...hu được tiền'} &lt;= {'Chờ đối soá...ã thanh toán'}&#10;  &#10;  Extra items in the left set:&#10;  'Chờ xác minh thanh toán'&#10;  'Đóng – chưa thu được tiền'">session = &lt;sqlalchemy.ext.asyncio.session.AsyncSession object at 0x7f41499e0260&gt;
+seeded_year = SeedSummary(orders=365, receipts=183, issues=30, order_attempts=444, order_rejected=79, issue_attempts=30, issue_rejec...hông đủ tồn kho khả dụng.': 2, 'order: Món đang hết nguyên liệu.': 77}, pending_verification=5, closed_unpaid_orders=5)
+
+    async def test_every_order_has_a_plausible_final_state(session, seeded_year):
+        statuses = await order_status_counts(session)
+    
+        assert statuses
+&gt;       assert set(statuses) &lt;= {
+            "Đã thanh toán",
+            "Chờ đối soát",
+            "Tranh chấp",
+            "Đã hủy",
+        }
+E       AssertionError: assert {'Chờ xác min...hu được tiền'} &lt;= {'Chờ đối soá...ã thanh toán'}
+E         
+E         Extra items in the left set:
+E         'Chờ xác minh thanh toán'
+E         'Đóng – chưa thu được tiền'
+
+tests/seed/test_orders.py:100: AssertionError</failure></testcase><testcase classname="tests.seed.test_orders" name="test_orders_land_on_both_sides_of_the_0600_boundary" time="84.118" /></testsuite></testsuites>

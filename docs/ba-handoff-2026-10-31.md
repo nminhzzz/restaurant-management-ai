@@ -1,10 +1,10 @@
 # Đối chiếu nghiệp vụ, thiết kế và mã nguồn
 
-Phạm vi đối chiếu: báo cáo, tài liệu 01–06, bốn nguồn drawio và mã nguồn tại commit `d0d0fe0`. Nghiệp vụ lấy từ bản đầy đủ tại `f789de7`, các yêu cầu hiện hành và quyết định của chủ đề tài: đúng ba vai trò với vai trò thứ ba là Bếp; giữ quy tắc xóa nhóm món. Khác biệt kỹ thuật không mặc định là lỗi yêu cầu. Kết quả kiểm thử ngày 27–28/10 là kết quả lịch sử, không chứng minh bản code hiện tại đã nghiệm thu.
+Phạm vi đối chiếu: báo cáo, tài liệu 01–06, bốn nguồn drawio và mã nguồn tại commit `5f04f24`. Nghiệp vụ lấy từ bản đầy đủ tại `f789de7`, các yêu cầu hiện hành và quyết định của chủ đề tài: đúng ba vai trò với vai trò thứ ba là Bếp; giữ quy tắc xóa nhóm món. Khác biệt kỹ thuật không mặc định là lỗi yêu cầu. Kết quả kiểm thử ngày 27–28/10 là kết quả lịch sử, không chứng minh bản code hiện tại đã nghiệm thu.
 
 Tài liệu 03, M.5 quy định các nhánh quyết định trọng yếu; tài liệu 02–03 quy định hành vi; phần D tài liệu 04 quy định mô hình khái niệm; phần F/G quy định thiết kế vật lý. Mã `WAREHOUSE` tương ứng Bếp. Thiết kế vật lý dùng 37 bảng để ánh xạ 31 lớp nghiệp vụ; sáu bảng phụ trợ không tạo thêm vai trò hoặc chức năng kinh doanh. Các mục bên dưới phân biệt yêu cầu, hiện trạng đã đọc trong mã nguồn và bằng chứng nghiệm thu; có code không đồng nghĩa kiểm thử đã đạt.
 
-Bảng dưới giữ mã và nội dung đối chiếu ban đầu để truy vết; các yêu cầu trong cột cuối vẫn áp dụng, còn tình trạng triển khai tại d0d0fe0 được ghi ở mục kế tiếp. Những câu yêu cầu dev thực hiện không đồng nghĩa phần việc đó vẫn chưa có code.
+Bảng dưới giữ mã và nội dung đối chiếu ban đầu để truy vết; các yêu cầu trong cột cuối vẫn áp dụng, còn tình trạng triển khai tại 5f04f24 được ghi ở mục kế tiếp. Những câu yêu cầu dev thực hiện không đồng nghĩa phần việc đó vẫn chưa có code.
 
 | **Mục** | **Điểm đối chiếu** | **Yêu cầu và nội dung đối chiếu** |
 |---|---|---|
@@ -41,17 +41,18 @@ Bảng dưới giữ mã và nội dung đối chiếu ban đầu để truy v�
 | 31 | Ảnh không dùng | Chỉ ảnh còn được tài liệu dẫn được đưa vào gói tài liệu bàn giao. Dọn tài nguyên lịch sử trong repo là thao tác riêng, không làm điều kiện nghiệp vụ. |
 | 32 | Biên bản kỹ thuật cũ | Giữ biên bản có ngày theo phạm vi lịch sử; số NFR cũ không thay thế mã trong báo cáo và tài liệu 06 hiện hành. |
 
-## Trạng thái triển khai tại d0d0fe0
+## Trạng thái triển khai và kiểm thử tại 5f04f24
 
-So với 555baef, commit d0d0fe0 thay đổi code, migration, view, seed và test; không thay đổi docs/. Đã đọc các nhánh hủy phiếu nhập, đổi ngày nhập, tự tính giá vốn và router thanh toán. Lần biên tập này không chạy lại kiểm thử phần mềm.
-
-- Dev báo đã xử lý mục 04, 05, 08, 09, 10, 12, 13, 15, 20, 21, 22 và QĐ-01/02, có bảy migration và test trên MySQL 8.4. Đây là thông tin triển khai; kết quả nghiệm thu chỉ cập nhật khi có log và phiên bản chạy tương ứng.
-- LO_NGUYEN_LIEU.TrangThai được giữ trong thiết kế. Đã hủy phát sinh khi hủy phiếu nhập nguồn; không đồng nghĩa xuất hủy một phần. Dev kiểm chứng đồng bộ trạng thái và loại lô đã hủy khỏi giữ món, FIFO và phân bổ kiểm kê.
-- costing.py làm tròn đơn giá bình quân đến 0,01 bằng ROUND_HALF_UP, rồi làm tròn giá trị dòng xuất đến 0,01. Tài liệu 04 và TC-BR-22/23 mô tả thứ tự này; chưa có kết quả chạy mới trong tài liệu 06.
-- Đổi ngày phiếu nhập cập nhật ngày lô, hạn dùng và tính lại từ tháng sớm nhất bị ảnh hưởng. Điều kiện chưa xuất và không còn giữ hiệu lực vẫn áp dụng.
-- Router giữ POST /payments/{payment_id}/reference cho Quản lý/Thu ngân và POST /payments/{payment_id}/resolve cho Quản lý. Bảng 13 là danh sách một số endpoint; không cần xóa hai endpoint phục vụ FR-SALE-19/20. Endpoint /orders/{id}/reconcile không còn nằm trong Bảng 13.
-- Prompt và view đã thay đổi; kết quả AI ngày 27–28/10 vẫn là kết quả lịch sử. Cần chạy lại đánh giá trên phiên bản mới trước khi kết luận cho bản hiện hành.
-- Các mục 23–32 cần xử lý theo nội dung tài liệu/bằng chứng; NFR-01 và NFR-11 chưa có kết quả chạy mới được xác minh trong lần biên tập này. AGENTS.md và README do dev quản lý, không nằm trong gói cập nhật.
+- Đã thực thi make gate: 751 backend, 200 frontend đạt; format/lint/typecheck/build hoàn tất. Nhóm MySQL 8.4.7 integration đạt 16/16, không skip. Không sửa nguồn hoặc test để đạt kết quả.
+- Nhóm slow đạt 7/8. Dev cập nhật kỳ vọng ở apps/api/tests/seed/test_orders.py:100: bỏ “Chờ đối soát/Tranh chấp”, dùng “Chờ xác minh thanh toán/Đóng – chưa thu được tiền” theo vòng đời hiện hành rồi chạy lại nhóm slow. Không đổi nghiệp vụ để khớp tên trạng thái cũ.
+- Biến Bars chưa dùng tại apps/web/src/features/reports/closed-unpaid-panel.tsx:12 là warning nhỏ, có thể dọn sau.
+- Cột TrangThai của lô và các nhánh loại lô Đã hủy đã có code/test tại 5f04f24. Test cùng mã TC-BR-19–23 đều chạy đạt, nhưng mức bao phủ toàn bộ ca tài liệu khác nhau; xem bảng truy vết. TC-BR-19/22/23 còn đầu ra hoặc nhánh chưa kiểm chứng đầy đủ; không ghi cả năm ca đều nghiệm thu trọn vẹn.
+- Tải đọc báo cáo trên 5.500 order: 300 request, concurrency 20, không lỗi; p95 lớn nhất 215,9 ms. Bộ 20.000 order chưa tạo đủ trong 600 giây; còn phải chạy kịch bản tải hỗn hợp đầy đủ trước khi chốt NFR-01/NFR-03.
+- Sao lưu API và khôi phục CSDL riêng: 37 bảng, 94.184 dòng khớp checksum; 15,701 giây. Chưa kiểm chứng lịch sao lưu/RPO liên tục nên không gán toàn bộ NFR-11 là Đạt.
+- Đánh giá AI thật A/B/C và AT chưa chạy lại do không có khóa API. Kết quả lịch sử giữ nguyên theo phiên bản và ngày chạy.
+- [Bảng truy vết đủ 267 mã](testing/traceability-2026-11-01.md) ghi test nguồn, kết quả theo ca và phần còn thiếu. Mục N tài liệu 06 và Chương 6 đã cập nhật theo bằng chứng. Những ca có đối chiếu một phần cần bổ sung đúng assertion/dữ liệu/UI hoặc lượt chạy tương ứng; không lấy số test xanh thay số ca nghiệm thu.
+- Mẫu/chữ ký, tỷ lệ đóng góp, demo, ảnh giao diện thật và SUS/UAT vẫn cần chủ đề tài bổ sung khi có dữ liệu; không tạo nội dung giả. AGENTS.md và README tiếp tục do dev quản lý.
+- Biên bản, log và checksum tại [testing/artifacts/2026-11-01/5f04f24](testing/artifacts/2026-11-01/5f04f24/Bien_ban_kiem_thu_day_du.md). Không push Git hoặc sửa code trong lần cập nhật tài liệu này.
 
 ## Điều kiện nghiệm thu
 

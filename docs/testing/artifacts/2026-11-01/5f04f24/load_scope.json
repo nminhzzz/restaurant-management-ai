@@ -1,0 +1,7 @@
+{
+  "month": "2026-01",
+  "orders_in_month": 1762,
+  "requests_per_endpoint": 60,
+  "concurrency": 20,
+  "dataset_complete": false
+}

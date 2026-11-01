@@ -1,0 +1,15 @@
+{
+  "commit": "5f04f240f96c37289282209cf499f726ceaa1536",
+  "mysql": "8.4.7",
+  "mysql_transport": "TCP only; Unix socket disabled",
+  "python": "3.12.14",
+  "pnpm": "9.15.0 (repository pin via Corepack)",
+  "extra_test_environment_packages": [
+    "pytest-timeout==2.4.0",
+    "socksio"
+  ],
+  "live_ai_key_available": false,
+  "source_modified": false,
+  "initial_frontend_blocker": "runtime fallback pnpm 11 generated an incompatible temporary workspace file; corrected by removing that generated file and using the pinned pnpm 9.15.0",
+  "ai_failure_resolution": "SDK could not construct a client under the runtime SOCKS proxy until socksio was installed; both failing cases then passed"
+}

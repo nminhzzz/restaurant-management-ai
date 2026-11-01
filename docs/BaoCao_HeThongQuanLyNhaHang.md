@@ -1499,6 +1499,12 @@ Bảng 18. Các sai lệch ghi nhận trong kiểm thử nghiệp vụ ngày 28/
 
 Các tình huống tranh chấp và ranh giới hết hạn được lặp 100 lượt cho mỗi ca. Thanh toán QR và webhook dùng dữ liệu mô phỏng; việc in chứng từ được kiểm tra qua một bộ nhận TCP thay cho máy in thật.
 
+Đợt hồi quy ngày 01/11/2026 tại commit `5f04f240f96c37289282209cf499f726ceaa1536` hoàn tất cổng kiểm tra `make gate`: 751 test backend và 200 test frontend đạt; bộ tích hợp MySQL 8.4.7 đạt 16/16. Backend thường dùng fixture SQLite, còn bộ tích hợp chạy trên schema MySQL đã migrate. Nhóm dữ liệu theo năm đạt 7/8; ca còn lại giữ kỳ vọng trạng thái cũ và cần cập nhật theo đặc tả hiện hành. Các bước định dạng, lint, kiểm tra kiểu và build hoàn tất; frontend có một cảnh báo biến chưa sử dụng.
+
+Bảng đối chiếu của đợt này bao gồm 267 mã test case: 209 ca nghiệp vụ, 15 ca Báo cáo, 23 ca ranh giới và 20 ca an toàn AI. Có 2 ca được xác nhận đầy đủ trong phạm vi API/service SQLite; 215 ca có bằng chứng một phần; 30 ca chưa có ánh xạ đủ; 20 ca an toàn chưa chạy bằng mô hình thật. Số test tự động đạt không thay thế kết luận của từng ca. Mức bao phủ, assertion còn thiếu và bằng chứng được trình bày tại [bảng truy vết ngày 01/11/2026](testing/traceability-2026-11-01.md) và mục N tài liệu 06.
+
+Sao lưu qua API và khôi phục vào CSDL riêng đã migrate cho kết quả khớp checksum của 37 bảng, 94.184 dòng trong 15,701 giây trên dữ liệu mô phỏng. Phép thử dùng tùy chọn bao gồm mật khẩu băm và xác nhận tính toàn vẹn của lần khôi phục; lịch sao lưu định kỳ, RPO liên tục và các tình huống sự cố hạ tầng chưa được kiểm chứng. Biên bản và log của đợt hồi quy nằm tại [gói bằng chứng ngày 01/11/2026](testing/artifacts/2026-11-01/5f04f24/Bien_ban_kiem_thu_day_du.md).
+
 ## 6.7. Kiểm thử hiệu năng
 
 Phép đo hiệu năng ngày 27/10/2026 sử dụng một máy Apple M4 Pro 12 lõi, RAM 24 GiB, MySQL 8.4.11 trong OrbStack và backend FastAPI một tiến trình. Công cụ tạo tải, API và CSDL chạy chung trên máy; máy đồng thời được dùng cho các công việc khác. Dữ liệu gồm 20.000 order trong 12 tháng. Phiên bản mã nguồn và đường dẫn bằng chứng được trình bày tại Phụ lục B.
@@ -1516,6 +1522,8 @@ Lỗi kỹ thuật và yêu cầu bị từ chối đúng nghiệp vụ được
 Với các thao tác nghiệp vụ, p95 gộp lớn nhất là 272 ms; p95 lớn nhất trong một lần lặp riêng lẻ là 604 ms. Ba loại báo cáo có p95 gộp lần lượt là 24, 33 và 41 ms. Cả 13 lần kiểm tra tính nhất quán sau khi chạy đều không phát hiện sai lệch.
 
 Tuy nhiên, ở mức 20 người dùng ảo có hai lần lặp xuất hiện đợt chờ khoảng 30 giây do hết kết nối trong pool; lần lặp 1 có 20 lỗi kỹ thuật trong cửa sổ đo. p95 chỉ tính trên các yêu cầu thành công, còn lỗi được thống kê riêng. Vì vậy kết quả cho thấy độ trễ đạt ngưỡng, nhưng chưa chứng minh hệ thống chạy không lỗi ở 20 người dùng. Chi tiết trong tài liệu 06.
+
+Phép đo thăm dò ngày 01/11/2026 dùng MySQL 8.4.7 với 5.500 order và 16.696 dòng món đã commit; bộ tạo dữ liệu dừng ở giới hạn 600 giây, chưa đạt quy mô 20.000 order. Trong tháng 01/2026 có 1.762 order, năm endpoint báo cáo nhận tổng cộng 300 request với concurrency 20 và không có lỗi HTTP. p95 lớn nhất là 215,9 ms. Phép đo ngắn này chỉ phản ánh tải đọc báo cáo trong môi trường thử, không thay thế thời lượng, tải hỗn hợp hoặc kiểm tra INP đã quy định; NFR-01/NFR-03 chưa được nghiệm thu lại trên cấu hình mới.
 
 ## 6.8. Đánh giá khả năng sử dụng
 

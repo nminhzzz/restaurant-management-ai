@@ -1,0 +1,306 @@
+{
+  "tables": 37,
+  "source_rows": 94184,
+  "mismatch": [],
+  "seconds": 15.701,
+  "before": {
+    "BAN": {
+      "rows": 20,
+      "sha256": "59e6ac6c8e818149f09563a3fd76b60c51221581c06fbbddf46f97bbd66c7465"
+    },
+    "BO_NHO_DEM_SQL_AI": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "CAU_HINH_HE_THONG": {
+      "rows": 1,
+      "sha256": "35b7323da57b3d59f627c1e3d83f346d831bda0b2018165d1cbe58956bc6b73a"
+    },
+    "DEM_HOA_DON": {
+      "rows": 98,
+      "sha256": "ed6b533cd15de32f2706d145d61a63ea5865e82a3af087f814b5ef5e0ff06b16"
+    },
+    "DEM_ORDER": {
+      "rows": 98,
+      "sha256": "f926dd54bb29934873623e8eb11a14ad521abcc0183772880af9844675937318"
+    },
+    "HAN_MUC_AI_NGAY": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "LICH_GIO_BUSINESS_DATE": {
+      "rows": 1,
+      "sha256": "8a0f7d3d9b209b509618f467cd636f90c982b09c28a84be0703fd318380ebc92"
+    },
+    "NGUYEN_LIEU": {
+      "rows": 30,
+      "sha256": "47884b44589ad0c8f2f8cb3ec867cfeb3a47ced99c93c4dc521c1ee77f863982"
+    },
+    "NHA_CUNG_CAP": {
+      "rows": 5,
+      "sha256": "8c37ea39b4a42d7ddb51927e93f421548d1cf92d22bc70f8b52ff98b0a84afa0"
+    },
+    "NHOM_MON": {
+      "rows": 1,
+      "sha256": "9ec5162df3161ba9b320062da50871be7146d1d226d3d356db144032dc15725a"
+    },
+    "VAI_TRO": {
+      "rows": 3,
+      "sha256": "f7d19e25b04de623157552a4d707b68bf54da1c0c08d50e3b3a0958abd87fdd9"
+    },
+    "GIA_BINH_QUAN_THANG": {
+      "rows": 29,
+      "sha256": "f3e0ba0bfcc945f7a563b792e87d469048d654962a8caf8f8b78579e2fff87f8"
+    },
+    "MON_AN": {
+      "rows": 40,
+      "sha256": "b0809e757f9eca4621444ea768fb69f263467f8a8f97606caef9dbb77662ced3"
+    },
+    "NGUOI_DUNG": {
+      "rows": 60,
+      "sha256": "84e7143ce4a32c6da456cd597b22f2d8abd0c29e064d51b1d1c60ca1396ebcfb"
+    },
+    "CONG_THUC": {
+      "rows": 40,
+      "sha256": "46bfbd86909f0e8ef7cb062c99173d54a06934a1dbe2643da48d6dd6e221b789"
+    },
+    "LICH_SU_GIA_MON": {
+      "rows": 40,
+      "sha256": "fbf06f8b464f95591c559757b273cf3502795bf3fa19b1a7fa0052fd5f3ecab8"
+    },
+    "NHAT_KY_HE_THONG": {
+      "rows": 4740,
+      "sha256": "81f5b02f52576d7bb1557d0848195c640cc47efe44f8aeb9544e298e99702801"
+    },
+    "ORDER": {
+      "rows": 5500,
+      "sha256": "664970126b2a719849054416d7b8b38cd7d37db0970da6b4753b637e42cbd511"
+    },
+    "PHIEN_CHAT_AI": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "PHIEU_KIEM_KE": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "PHIEU_NHAP_KHO": {
+      "rows": 4,
+      "sha256": "06768a05cc9fdc2186a91f5d42d5caa9b3314b124eafeeb38c7bd1a1a7ff6529"
+    },
+    "CHI_TIET_CONG_THUC": {
+      "rows": 40,
+      "sha256": "d3dd28bf05b0fb1637847b49096ebe9f3871d5fd49ca8a75daa5f683e1199a41"
+    },
+    "CHI_TIET_KIEM_KE": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "CHI_TIET_ORDER": {
+      "rows": 16696,
+      "sha256": "20f053f5b5a7cd8dde642d13e872b4ed2a559fe6f715c349bfd2240b0bf58354"
+    },
+    "CHI_TIET_PHIEU_NHAP": {
+      "rows": 30,
+      "sha256": "6198692a576266bfbeab95f1ba5f49e8059f2fc78b5a1f74f2621de21d5e2985"
+    },
+    "GIAO_DICH_THANH_TOAN": {
+      "rows": 5219,
+      "sha256": "38fcea00e97cc209aaebc99fea11ba2cba484934e52a3165283889625f40d89a"
+    },
+    "LICH_SU_DOI_BAN": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "PHIEU_BEP": {
+      "rows": 5500,
+      "sha256": "756ee59706e12cc719fba034a9ddcf0c9bfce8f1ddb1ee49bd0ffd7575c98149"
+    },
+    "PHIEU_XUAT_KHO": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "TRUY_VAN_AI": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "CHI_TIET_PHIEU_XUAT": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "GIU_CHO_MON": {
+      "rows": 16696,
+      "sha256": "f678dbc63da3e2a9dd564d5c42d6e899ab9a36bf0f2471aa90af2e8094633f11"
+    },
+    "HOA_DON": {
+      "rows": 4971,
+      "sha256": "4a19d8b7477b9f3a4b9c9808b39dd7b0d53dee71c61395eb0eecfe00269ef8e9"
+    },
+    "LO_NGUYEN_LIEU": {
+      "rows": 30,
+      "sha256": "09ab1c8d9aa2864ea81fc901416d756d4fad228b5461571eac4aa59b64106ec1"
+    },
+    "NGOAI_LE_THANH_TOAN": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "CHI_TIET_GIU_CHO": {
+      "rows": 16696,
+      "sha256": "c021b378c15ff798710533952d05a30ee914f27ed02465a5780e0969f8a2137d"
+    },
+    "GIAO_DICH_KHO": {
+      "rows": 17596,
+      "sha256": "6e7a5bf3e84c9c7f5388bed66fcfba2c6bf3fb424fcf0dcb33a4431294e5644f"
+    }
+  },
+  "after": {
+    "BAN": {
+      "rows": 20,
+      "sha256": "59e6ac6c8e818149f09563a3fd76b60c51221581c06fbbddf46f97bbd66c7465"
+    },
+    "BO_NHO_DEM_SQL_AI": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "CAU_HINH_HE_THONG": {
+      "rows": 1,
+      "sha256": "35b7323da57b3d59f627c1e3d83f346d831bda0b2018165d1cbe58956bc6b73a"
+    },
+    "DEM_HOA_DON": {
+      "rows": 98,
+      "sha256": "ed6b533cd15de32f2706d145d61a63ea5865e82a3af087f814b5ef5e0ff06b16"
+    },
+    "DEM_ORDER": {
+      "rows": 98,
+      "sha256": "f926dd54bb29934873623e8eb11a14ad521abcc0183772880af9844675937318"
+    },
+    "HAN_MUC_AI_NGAY": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "LICH_GIO_BUSINESS_DATE": {
+      "rows": 1,
+      "sha256": "8a0f7d3d9b209b509618f467cd636f90c982b09c28a84be0703fd318380ebc92"
+    },
+    "NGUYEN_LIEU": {
+      "rows": 30,
+      "sha256": "47884b44589ad0c8f2f8cb3ec867cfeb3a47ced99c93c4dc521c1ee77f863982"
+    },
+    "NHA_CUNG_CAP": {
+      "rows": 5,
+      "sha256": "8c37ea39b4a42d7ddb51927e93f421548d1cf92d22bc70f8b52ff98b0a84afa0"
+    },
+    "NHOM_MON": {
+      "rows": 1,
+      "sha256": "9ec5162df3161ba9b320062da50871be7146d1d226d3d356db144032dc15725a"
+    },
+    "VAI_TRO": {
+      "rows": 3,
+      "sha256": "f7d19e25b04de623157552a4d707b68bf54da1c0c08d50e3b3a0958abd87fdd9"
+    },
+    "GIA_BINH_QUAN_THANG": {
+      "rows": 29,
+      "sha256": "f3e0ba0bfcc945f7a563b792e87d469048d654962a8caf8f8b78579e2fff87f8"
+    },
+    "MON_AN": {
+      "rows": 40,
+      "sha256": "b0809e757f9eca4621444ea768fb69f263467f8a8f97606caef9dbb77662ced3"
+    },
+    "NGUOI_DUNG": {
+      "rows": 60,
+      "sha256": "84e7143ce4a32c6da456cd597b22f2d8abd0c29e064d51b1d1c60ca1396ebcfb"
+    },
+    "CONG_THUC": {
+      "rows": 40,
+      "sha256": "46bfbd86909f0e8ef7cb062c99173d54a06934a1dbe2643da48d6dd6e221b789"
+    },
+    "LICH_SU_GIA_MON": {
+      "rows": 40,
+      "sha256": "fbf06f8b464f95591c559757b273cf3502795bf3fa19b1a7fa0052fd5f3ecab8"
+    },
+    "NHAT_KY_HE_THONG": {
+      "rows": 4740,
+      "sha256": "81f5b02f52576d7bb1557d0848195c640cc47efe44f8aeb9544e298e99702801"
+    },
+    "ORDER": {
+      "rows": 5500,
+      "sha256": "664970126b2a719849054416d7b8b38cd7d37db0970da6b4753b637e42cbd511"
+    },
+    "PHIEN_CHAT_AI": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "PHIEU_KIEM_KE": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "PHIEU_NHAP_KHO": {
+      "rows": 4,
+      "sha256": "06768a05cc9fdc2186a91f5d42d5caa9b3314b124eafeeb38c7bd1a1a7ff6529"
+    },
+    "CHI_TIET_CONG_THUC": {
+      "rows": 40,
+      "sha256": "d3dd28bf05b0fb1637847b49096ebe9f3871d5fd49ca8a75daa5f683e1199a41"
+    },
+    "CHI_TIET_KIEM_KE": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "CHI_TIET_ORDER": {
+      "rows": 16696,
+      "sha256": "20f053f5b5a7cd8dde642d13e872b4ed2a559fe6f715c349bfd2240b0bf58354"
+    },
+    "CHI_TIET_PHIEU_NHAP": {
+      "rows": 30,
+      "sha256": "6198692a576266bfbeab95f1ba5f49e8059f2fc78b5a1f74f2621de21d5e2985"
+    },
+    "GIAO_DICH_THANH_TOAN": {
+      "rows": 5219,
+      "sha256": "38fcea00e97cc209aaebc99fea11ba2cba484934e52a3165283889625f40d89a"
+    },
+    "LICH_SU_DOI_BAN": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "PHIEU_BEP": {
+      "rows": 5500,
+      "sha256": "756ee59706e12cc719fba034a9ddcf0c9bfce8f1ddb1ee49bd0ffd7575c98149"
+    },
+    "PHIEU_XUAT_KHO": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "TRUY_VAN_AI": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "CHI_TIET_PHIEU_XUAT": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "GIU_CHO_MON": {
+      "rows": 16696,
+      "sha256": "f678dbc63da3e2a9dd564d5c42d6e899ab9a36bf0f2471aa90af2e8094633f11"
+    },
+    "HOA_DON": {
+      "rows": 4971,
+      "sha256": "4a19d8b7477b9f3a4b9c9808b39dd7b0d53dee71c61395eb0eecfe00269ef8e9"
+    },
+    "LO_NGUYEN_LIEU": {
+      "rows": 30,
+      "sha256": "09ab1c8d9aa2864ea81fc901416d756d4fad228b5461571eac4aa59b64106ec1"
+    },
+    "NGOAI_LE_THANH_TOAN": {
+      "rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "CHI_TIET_GIU_CHO": {
+      "rows": 16696,
+      "sha256": "c021b378c15ff798710533952d05a30ee914f27ed02465a5780e0969f8a2137d"
+    },
+    "GIAO_DICH_KHO": {
+      "rows": 17596,
+      "sha256": "6e7a5bf3e84c9c7f5388bed66fcfba2c6bf3fb424fcf0dcb33a4431294e5644f"
+    }
+  }
+}
