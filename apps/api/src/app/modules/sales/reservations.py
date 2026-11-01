@@ -15,6 +15,7 @@ from app.core.errors import BusinessRuleError, NotFoundError
 from app.modules.catalog.models import DiningTable, Ingredient, Recipe, RecipeItem
 from app.modules.catalog.service import ensure_dish_sellable
 from app.modules.catalog.versions import active_price_version, active_recipe, recipe_items
+from app.modules.inventory.lot_status import sync_lot_status
 from app.modules.inventory.models import IngredientLot, StockMovement
 from app.modules.inventory.stock import ensure_no_open_stocktake, lock_stock_operations
 from app.modules.sales.models import Order, Reservation, ReservationDetail
@@ -93,7 +94,7 @@ async def _eligible_lots(
         .where(
             IngredientLot.ingredient_id == ingredient_id,
             IngredientLot.quantity_remaining > 0,
-            IngredientLot.status != LotStatus.HET_HAN.value,
+            IngredientLot.status.not_in((LotStatus.HET_HAN.value, LotStatus.DA_HUY.value)),
             or_(
                 IngredientLot.expiry_date.is_(None),
                 IngredientLot.expiry_date >= today,
@@ -581,6 +582,7 @@ async def consume_hold(
             raise BusinessRuleError("Nguyên liệu không tồn tại.")
         quantity = Decimal(str(detail.quantity))
         lot.quantity_remaining = Decimal(str(lot.quantity_remaining)) - quantity
+        await sync_lot_status(session, lot)
         ingredient.stock_qty = Decimal(str(ingredient.stock_qty)) - quantity
         session.add(
             StockMovement(
@@ -669,7 +671,7 @@ async def available_portions_for_dishes(
                 select(IngredientLot).where(
                     IngredientLot.ingredient_id.in_(list(ingredient_ids)),
                     IngredientLot.quantity_remaining > 0,
-                    IngredientLot.status != LotStatus.HET_HAN.value,
+                    IngredientLot.status.not_in((LotStatus.HET_HAN.value, LotStatus.DA_HUY.value)),
                     or_(
                         IngredientLot.expiry_date.is_(None),
                         IngredientLot.expiry_date >= today,
