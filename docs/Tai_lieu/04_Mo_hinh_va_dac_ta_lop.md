@@ -462,7 +462,7 @@ Từng lô nguyên liệu, tạo tự động khi ghi nhận một dòng nhập;
 | SoLuongNhap       | double           | Phải lớn hơn 0                                                                                               | Số lượng ban đầu của lô                                                                                                                       |
 | SoLuongConLai     | double           | Không nhỏ hơn 0                                                                                              | Số lượng còn lại chưa xuất dùng của lô                                                                                                        |
 | DonGia            | double           | Cho phép NULL với lô điều chỉnh thiếu giá | Giá nhập của lô mua; giá trị lô điều chỉnh do hệ thống xác định từ bình quân, không yêu cầu người kiểm kê nhập giá |
-| TrangThai         | String           | –                                                                                                            | Còn hạn / Sắp hết hạn (còn không quá SoNgayCanhBaoHetHan ngày) / Hết hạn / Đã dùng hết                                                        |
+| TrangThai         | String           | –                                                                                                            | Còn hạn / Sắp hết hạn (còn không quá SoNgayCanhBaoHetHan ngày) / Hết hạn / Đã dùng hết / Đã hủy (phiếu nhập nguồn đã hủy)                                                        |
 
 Bảng 34. Thuộc tính và phương thức của lớp LO_NGUYEN_LIEU
 
@@ -974,7 +974,7 @@ Phiếu nhập có trạng thái nghiệp vụ Hiệu lực hoặc Đã hủy. N
 
 ### F.21. LO_NGUYEN_LIEU
 
-TrangThai hiển thị được suy ra từ hạn sử dụng và số lượng còn lại. SoLuongNhap dương; SoLuongConLai không âm. Lô điều chỉnh kiểm kê có MaChiTietNhap NULL và LoDieuChinhKiemKe=true.
+TrangThai được lưu và cập nhật trong cùng transaction với nghiệp vụ kho. Khi phiếu nhập nguồn bị hủy hợp lệ, lô chuyển Đã hủy và không được chuyển lại sang trạng thái khác. Với lô không bị hủy, hệ thống xác định trạng thái theo thứ tự: SoLuongConLai = 0 → Đã dùng hết; còn hàng và đã qua hạn dùng → Hết hạn; còn hàng, còn hạn và nằm trong ngưỡng cảnh báo → Sắp hết hạn; còn lại → Còn hạn. Lô không quản lý hạn dùng không chuyển Sắp hết hạn hoặc Hết hạn. SoLuongNhap dương; SoLuongConLai không âm. Lô điều chỉnh kiểm kê có MaChiTietNhap NULL và LoDieuChinhKiemKe=true.
 
 | **Cột** | **Kiểu MySQL** | **Khóa và NULL** | **Ý nghĩa và điều kiện** |
 |---|---|---|---|
@@ -987,6 +987,7 @@ TrangThai hiển thị được suy ra từ hạn sử dụng và số lượng 
 | SoLuongNhap | DECIMAL(18,6) | NOT NULL | Phải lớn hơn 0; Số lượng ban đầu của lô |
 | SoLuongConLai | DECIMAL(18,6) | NOT NULL | Không nhỏ hơn 0; Số lượng còn lại chưa xuất dùng của lô |
 | DonGia | DECIMAL(18,2) | NULL theo điều kiện | Đơn giá nhập của lô mua; lô điều chỉnh dùng giá bình quân tham chiếu khi đủ căn cứ, NULL nếu chưa xác định |
+| TrangThai | VARCHAR(20) | NOT NULL | Còn hạn / Sắp hết hạn / Hết hạn / Đã dùng hết / Đã hủy; Đã hủy chỉ khi hủy phiếu nhập nguồn; các trạng thái còn lại cập nhật theo lượng và hạn dùng |
 
 ### F.22. PHIEU_XUAT_KHO
 
@@ -1245,13 +1246,15 @@ HOA_DON và GIAO_DICH_THANH_TOAN kế thừa BusinessDate của ORDER, kể cả
 
 **Liên quan lớp LO_NGUYEN_LIEU (tài liệu 04, phần D, a21):**
 
-**BR-LOT-01 - Nhập, xuất và hoàn nguyên liệu theo lô:** Mỗi dòng CHI_TIET_PHIEU_NHAP sinh một LO_NGUYEN_LIEU. NgayNhap lấy từ phiếu nhập; HanSuDung bằng NgayNhap + SoNgayBaoQuan, để trống nếu nguyên liệu không quản lý hạn dùng. Bán hàng trừ theo FIFO trên các lô còn số lượng và chưa hết hạn. Lô hết hạn còn hàng vẫn nằm trong tồn sổ sách nhưng không được tự động chọn để trừ bán hàng, chỉ xử lý qua phiếu xuất hủy, nơi Bếp chọn trực tiếp lô cần hủy. Mỗi lô bị ảnh hưởng được ghi một giao dịch kho riêng. Khi hủy/giảm món “Chờ làm”, hệ thống hoàn đúng lượng vào các lô đã bị trừ theo MaLoNguyenLieu của giao dịch gốc, kể cả lô đã hết hạn tại thời điểm hoàn. Trạng thái lô được cập nhật theo hạn sử dụng và số lượng còn lại. Thứ tự FIFO xác định bằng NgayNhap tăng dần, sau đó MaLoNguyenLieu tăng dần khi trùng ngày; một nhu cầu được phân bổ qua nhiều lô nếu lô trước không đủ, mỗi phần có giao dịch kho riêng.
+**BR-LOT-01 - Nhập, xuất và hoàn nguyên liệu theo lô:** Mỗi dòng CHI_TIET_PHIEU_NHAP sinh một LO_NGUYEN_LIEU. NgayNhap lấy từ phiếu nhập; HanSuDung bằng NgayNhap + SoNgayBaoQuan, để trống nếu nguyên liệu không quản lý hạn dùng. Bán hàng trừ theo FIFO trên các lô còn số lượng và chưa hết hạn. Lô hết hạn còn hàng vẫn nằm trong tồn sổ sách nhưng không được tự động chọn để trừ bán hàng, chỉ xử lý qua phiếu xuất hủy, nơi Bếp chọn trực tiếp lô cần hủy. Mỗi lô bị ảnh hưởng được ghi một giao dịch kho riêng. Khi hủy/giảm món “Chờ làm”, hệ thống hoàn đúng lượng vào các lô đã bị trừ theo MaLoNguyenLieu của giao dịch gốc, kể cả lô đã hết hạn tại thời điểm hoàn. Trạng thái lô tuân theo thứ tự và điều kiện tại F.21; Đã hủy chỉ dùng khi hủy phiếu nhập nguồn. Xuất hủy một phần chỉ giảm lượng được chọn, không vô hiệu toàn lô. Thứ tự FIFO xác định bằng NgayNhap tăng dần, sau đó MaLoNguyenLieu tăng dần khi trùng ngày; một nhu cầu được phân bổ qua nhiều lô nếu lô trước không đủ, mỗi phần có giao dịch kho riêng.
 
 Hạn sử dụng là ngày lịch theo múi giờ nhà hàng, độc lập Business Date. HanSuDung được tính từ phần ngày của NgayNhap cộng SoNgayBaoQuan. Lô có hạn ngày d còn đủ điều kiện về hạn dùng trong ngày d, hết hạn từ 00:00 ngày d+1. HanSuDung NULL biểu thị không quản lý hạn dùng. Thời hạn giữ không vượt mốc hết hạn của lô sớm nhất; tại đúng mốc đó lượt giữ không còn hiệu lực.
 
+Hủy phiếu nhập chỉ được thực hiện khi tất cả lô liên quan chưa phát sinh giao dịch xuất và không có giữ món còn hiệu lực. Khi hủy, hệ thống đảo lượng nhập, đưa số lượng còn lại của các lô sinh từ phiếu về 0 và chuyển các lô này sang Đã hủy; giữ phiếu, lô và lịch sử giao dịch để truy vết. Lô Đã hủy không được phân bổ FIFO, giữ món hoặc nhận điều chỉnh tăng tồn. Thao tác đồng thời loại phiếu khỏi dữ liệu nhập hiệu lực và tính lại giá vốn các kỳ bị ảnh hưởng. Xuất hủy nguyên liệu là nghiệp vụ riêng: chỉ trừ lượng được chọn trong lô, phần còn lại tiếp tục được sử dụng nếu đủ điều kiện; không chuyển cả lô sang Đã hủy.
+
 **BR-LOT-02 - Phân bổ chênh lệch kiểm kê xuống từng lô:** CHI_TIET_KIEM_KE ghi ChenhLech ở mức nguyên liệu so với tồn sổ sách, gồm cả lô hết hạn. Khi xác nhận, chênh lệch âm được trừ theo FIFO vào các lô còn SoLuongConLai \> 0, kể cả lô hết hạn.
 
-Chênh lệch dương được cộng vào lô có NgayNhap gần nhất còn hiệu lực. Nếu không có lô còn hiệu lực, hệ thống tạo lô điều chỉnh với NgayNhap = NgayKiemKe, HanSuDung để trống, LoDieuChinhKiemKe = true và MaChiTietNhap = NULL. Lô nhập thông thường có LoDieuChinhKiemKe = false và bắt buộc có MaChiTietNhap.
+Chênh lệch dương được cộng vào lô có NgayNhap gần nhất còn hiệu lực; không chọn lô Đã hủy do hủy phiếu nhập. Nếu không có lô còn hiệu lực, hệ thống tạo lô điều chỉnh với NgayNhap = NgayKiemKe, HanSuDung để trống, LoDieuChinhKiemKe = true và MaChiTietNhap = NULL. Lô nhập thông thường có LoDieuChinhKiemKe = false và bắt buộc có MaChiTietNhap.
 
 Mỗi lô bị điều chỉnh sinh một GIAO_DICH_KHO loại “Điều chỉnh kiểm kê”, gắn MaLoNguyenLieu và MaChiTietKiemKe; đây là giao dịch kho duy nhất phát sinh từ chênh lệch kiểm kê. Chênh lệch âm sinh thêm phiếu xuất hủy tham chiếu PHIEU_XUAT_KHO.MaPhieuKiemKe; phiếu này chỉ là chứng từ ghi nhận giá trị hao hụt và không sinh thêm giao dịch trừ kho. Giá trị hao hụt được tổng hợp trong báo cáo chi phí và lợi nhuận gộp (UC 4.2).
 
@@ -1264,6 +1267,8 @@ Trong MVP, Bếp kiểm kê theo nguyên liệu và hệ thống tự phân bổ
 GIA_BINH_QUAN_THANG lưu kết quả đơn giá bình quân được hệ thống tính tự động theo dữ liệu hiệu lực của từng nguyên liệu và tháng; ThoiDiemTinh là thời điểm tính gần nhất. Đơn giá được tính từ giá trị và số lượng tồn đầu kỳ cùng các phiếu nhập hợp lệ trong tháng. Kiểm kê thừa không được đưa vào tổng nhập mua; phần tăng số lượng được định giá theo đơn giá bình quân của nguyên liệu khi có đủ căn cứ, không tạo thêm chi phí mua hàng.
 
 Thêm, sửa hoặc hủy phiếu nhập hợp lệ tự tính lại đơn giá, GiaVonUocTinh và các chỉ tiêu giá vốn/lợi nhuận liên quan. Sửa ngày nhập từ tháng A sang tháng B cập nhật dữ liệu lô, hạn dùng và thứ tự FIFO tương ứng, tính lại cả hai tháng và lan truyền theo thứ tự thời gian sang các kỳ sau có tồn đầu kỳ hoặc đơn giá kế thừa bị thay đổi. Không sửa phiếu đã có xuất hoặc giữ còn hiệu lực, không thay đổi hóa đơn hoặc doanh thu và không tính lại công thức đã lưu trên dòng món. Việc sửa phiếu và cập nhật kết quả phụ thuộc được công bố nhất quán khi transaction hoàn tất; gọi tính lại cùng dữ liệu thay giá trị cũ, không cộng thêm chi phí hay tạo giao dịch kho mới chỉ để định giá.
+
+Đơn giá bình quân được tính bằng số thập phân, sau đó làm tròn đến hai chữ số thập phân theo ROUND_HALF_UP trước khi lưu vào GIA_BINH_QUAN_THANG.DonGiaBinhQuan. GiaVonUocTinh của từng dòng xuất bằng đơn giá bình quân đã làm tròn nhân số lượng theo đơn vị chuẩn, rồi làm tròn đến hai chữ số thập phân theo cùng quy tắc. Không làm tròn số lượng nguyên liệu thành hai chữ số; lượng và hệ số được lưu với sáu chữ số thập phân. Ví dụ, bình quân chưa làm tròn là 10/3 thì đơn giá lưu là 3,33; xuất 3 đơn vị có giá vốn 9,99. Với đơn giá 1,01 và lượng 0,5 đơn vị, giá trị 0,505 được làm tròn thành 0,51.
 
 Các phiếu nhập hiệu lực, ngày nhập đã sửa hợp lệ và số liệu tồn đã điều chỉnh là nguồn cho phép tính. Sổ cái và audit giữ được dấu vết dữ liệu trước/sau, người thực hiện và thời điểm sửa; kỳ định giá không bị xác định nhầm theo thời điểm kỹ thuật chạy lại phép tính. Đổi mốc Business Date không tính lại ngày kinh doanh của các chứng từ cũ.
 

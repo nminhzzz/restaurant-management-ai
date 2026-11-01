@@ -2580,3 +2580,11 @@ Bảng này tổng hợp các đợt đo ngày 27–28/10/2026. Trạng thái l�
 | Nghiệp vụ 28/10/2026 | | | 195 ca đã chạy: 188 đạt, 7 không đạt; 14 ca chưa chạy. |
 
 Các kết quả lịch sử mô tả đợt thực thi đã ghi nhận; thay đổi mã nguồn sau đợt này không tự cập nhật trạng thái đạt của từng ca. Kết quả nghiệm thu được xác định trên cùng phiên bản, môi trường và bộ ca.
+
+| **Mã ca** | **Truy vết** | **Tình huống** | **Kết quả mong đợi** | **Kết quả thực tế** |
+|---|---|---|---|---|
+| TC-BR-19 | FR-INV-02; tài liệu 04 F.21 | Phiếu có hai dòng tạo hai lô chưa xuất, không còn giữ hiệu lực; hủy phiếu | Đảo đúng lượng nhập của cả hai lô, lượng còn lại bằng 0, trạng thái Đã hủy; phiếu/lô/lịch sử còn truy vết; tự tính lại kỳ bị ảnh hưởng | |
+| TC-BR-20 | FR-INV-05; BR-LOT-01 | Lô còn hạn có 10 đơn vị; xuất hủy 3 đơn vị nguyên liệu | Lô còn 7 đơn vị, không mang trạng thái Đã hủy; 7 đơn vị tiếp tục đủ điều kiện phân bổ nếu không bị giữ; hao hụt ghi đúng một lần | |
+| TC-BR-21 | FR-INV-02, FR-INV-09; F.21 | Thử giữ món, xuất FIFO hoặc cộng chênh lệch kiểm kê vào lô Đã hủy | Không chọn lô Đã hủy; kiểm kê thừa dùng lô hợp lệ khác hoặc tạo lô điều chỉnh theo BR-LOT-02, không khôi phục lô đã hủy | |
+| TC-BR-22 | FR-REP-11; tài liệu 04 G.1 | Bình quân trước làm tròn bằng 10/3; xuất 3 đơn vị chuẩn | Lưu đơn giá 3,33; giá vốn dòng xuất 9,99 theo ROUND_HALF_UP; lượng vẫn theo độ chính xác sáu chữ số | |
+| TC-BR-23 | FR-REP-11; tài liệu 04 G.1 | Đơn giá bình quân 1,01; xuất 0,5 đơn vị; giá trị trước làm tròn 0,505 | GiaVonUocTinh bằng 0,51; tính lại cùng dữ liệu giữ nguyên kết quả và không tạo thêm biến động kho | |

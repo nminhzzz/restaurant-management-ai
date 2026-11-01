@@ -1043,6 +1043,12 @@ Bảng 11. Ràng buộc vật lý của các bảng trọng yếu
 
 Các kiểu và ràng buộc trên xác định thiết kế dữ liệu. Từ điển vật lý gồm 37 bảng và ánh xạ từ 31 lớp nghiệp vụ được trình bày trong tài liệu [04_Mo_hinh_va_dac_ta_lop.md](Tai_lieu/04_Mo_hinh_va_dac_ta_lop.md) và các trang CSDL của [ClassDiagram_HeThongQuanLyNhaHang.drawio](So_do/ClassDiagram_HeThongQuanLyNhaHang.drawio). Thuộc tính dẫn xuất được xác định riêng với các cột lưu trữ.
 
+Hủy phiếu nhập chỉ được thực hiện khi tất cả lô liên quan chưa phát sinh giao dịch xuất và không có giữ món còn hiệu lực. Khi hủy, hệ thống đảo lượng nhập, đưa số lượng còn lại của các lô sinh từ phiếu về 0 và chuyển các lô này sang Đã hủy; giữ phiếu, lô và lịch sử giao dịch để truy vết. Lô Đã hủy không được phân bổ FIFO, giữ món hoặc nhận điều chỉnh tăng tồn. Thao tác đồng thời loại phiếu khỏi dữ liệu nhập hiệu lực và tính lại giá vốn các kỳ bị ảnh hưởng. Xuất hủy nguyên liệu là nghiệp vụ riêng: chỉ trừ lượng được chọn trong lô, phần còn lại tiếp tục được sử dụng nếu đủ điều kiện; không chuyển cả lô sang Đã hủy.
+
+LO_NGUYEN_LIEU.TrangThai được lưu để phân biệt lô Đã hủy do hủy phiếu nhập với lô Đã dùng hết. Trạng thái Đã hủy được ưu tiên; với lô không bị hủy, hệ thống xét lượng còn lại bằng 0 trước, sau đó xét hết hạn, sắp hết hạn và còn hạn. Việc cập nhật trạng thái được thực hiện cùng giao dịch thay đổi kho.
+
+Đơn giá bình quân được tính bằng số thập phân, sau đó làm tròn đến hai chữ số thập phân theo ROUND_HALF_UP trước khi lưu vào GIA_BINH_QUAN_THANG.DonGiaBinhQuan. GiaVonUocTinh của từng dòng xuất bằng đơn giá bình quân đã làm tròn nhân số lượng theo đơn vị chuẩn, rồi làm tròn đến hai chữ số thập phân theo cùng quy tắc. Không làm tròn số lượng nguyên liệu thành hai chữ số; lượng và hệ số được lưu với sáu chữ số thập phân. Ví dụ, bình quân chưa làm tròn là 10/3 thì đơn giá lưu là 3,33; xuất 3 đơn vị có giá vốn 9,99. Với đơn giá 1,01 và lượng 0,5 đơn vị, giá trị 0,505 được làm tròn thành 0,51.
+
 ### 4.2.3. Thiết kế chỉ mục
 
 Chỉ mục được lựa chọn theo các truy vấn vận hành chính: tra cứu order theo Business Date và bàn, tổng hợp món bán, đọc biến động kho theo nguyên liệu và thời gian, phân bổ lô FIFO, kiểm tra giữ món còn hiệu lực, và tải lịch sử hội thoại. Danh sách cột cùng mục đích của từng chỉ mục được trình bày tại Phụ lục A.2. Phân vùng theo tháng là phương án mở rộng khi dữ liệu tích lũy nhiều năm; hiệu quả thực tế được kiểm tra qua kế hoạch đánh giá hiệu năng ở Chương 6.

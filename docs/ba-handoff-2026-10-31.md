@@ -1,10 +1,12 @@
 # Đối chiếu nghiệp vụ, thiết kế và mã nguồn
 
-Phạm vi đối chiếu: báo cáo, tài liệu 01–06, bốn nguồn drawio và mã nguồn tại commit `8423b3f`. Nghiệp vụ lấy từ bản đầy đủ tại `f789de7`, các yêu cầu hiện hành và quyết định của chủ đề tài: đúng ba vai trò với vai trò thứ ba là Bếp; giữ quy tắc xóa nhóm món. Khác biệt kỹ thuật không mặc định là lỗi yêu cầu. Kết quả kiểm thử ngày 27–28/10 là kết quả lịch sử, không chứng minh bản code hiện tại đã nghiệm thu.
+Phạm vi đối chiếu: báo cáo, tài liệu 01–06, bốn nguồn drawio và mã nguồn tại commit `d0d0fe0`. Nghiệp vụ lấy từ bản đầy đủ tại `f789de7`, các yêu cầu hiện hành và quyết định của chủ đề tài: đúng ba vai trò với vai trò thứ ba là Bếp; giữ quy tắc xóa nhóm món. Khác biệt kỹ thuật không mặc định là lỗi yêu cầu. Kết quả kiểm thử ngày 27–28/10 là kết quả lịch sử, không chứng minh bản code hiện tại đã nghiệm thu.
 
-Tài liệu 03, M.5 quy định các nhánh quyết định trọng yếu; tài liệu 02–03 quy định hành vi; phần D tài liệu 04 quy định mô hình khái niệm; phần F/G quy định thiết kế vật lý. Mã `WAREHOUSE` tương ứng Bếp. Thiết kế vật lý dùng 37 bảng để ánh xạ 31 lớp nghiệp vụ; sáu bảng phụ trợ không tạo thêm vai trò hoặc chức năng kinh doanh. Những dòng “dev” bên dưới là công việc chưa được xác nhận hoàn tất trong lần biên tập tài liệu này.
+Tài liệu 03, M.5 quy định các nhánh quyết định trọng yếu; tài liệu 02–03 quy định hành vi; phần D tài liệu 04 quy định mô hình khái niệm; phần F/G quy định thiết kế vật lý. Mã `WAREHOUSE` tương ứng Bếp. Thiết kế vật lý dùng 37 bảng để ánh xạ 31 lớp nghiệp vụ; sáu bảng phụ trợ không tạo thêm vai trò hoặc chức năng kinh doanh. Các mục bên dưới phân biệt yêu cầu, hiện trạng đã đọc trong mã nguồn và bằng chứng nghiệm thu; có code không đồng nghĩa kiểm thử đã đạt.
 
-| **Mục** | **Điểm đối chiếu** | **Kết luận và trách nhiệm** |
+Bảng dưới giữ mã và nội dung đối chiếu ban đầu để truy vết; các yêu cầu trong cột cuối vẫn áp dụng, còn tình trạng triển khai tại d0d0fe0 được ghi ở mục kế tiếp. Những câu yêu cầu dev thực hiện không đồng nghĩa phần việc đó vẫn chưa có code.
+
+| **Mục** | **Điểm đối chiếu** | **Yêu cầu và nội dung đối chiếu** |
 |---|---|---|
 | 01 | 31/37 bảng | Tài liệu đã phân biệt 31 lớp nghiệp vụ và 37 bảng vật lý; bổ sung sáu bảng phụ trợ trong phần F và sơ đồ khóa theo nhóm. Không xóa bảng kỹ thuật để ép số lượng về 31. |
 | 02 | Ngoại lệ thanh toán | Thuộc tính khái niệm được ánh xạ sang NGOAI_LE_THANH_TOAN; một giao dịch có thể có nhiều khoản ngoại lệ. Giữ FR-SALE-16–17, duy nhất mã khoản nhận và ghi doanh thu một lần. Dev kiểm chứng luồng áp dụng/hoàn ngoài hệ thống, không chỉ sự tồn tại của bảng. |
@@ -13,14 +15,14 @@ Tài liệu 03, M.5 quy định các nhánh quyết định trọng yếu; tài 
 | 05 | PHIEU_XUAT_KHO.NguonXuat | Giữ phân biệt ba nguồn Nguyên liệu / Món đã chế biến / Kiểm kê theo FR-INV-05. Dev bổ sung hoặc chứng minh ánh xạ lưu trữ bảo toàn được nguồn, truy vết và tính chi phí đúng một lần; hằng trong service chưa đủ bằng chứng. |
 | 06 | Tên cột | Thiết kế dùng ORDER.NgayTao, PHIEU_NHAP_KHO.NguoiTao và CHI_TIET_KIEM_KE.MaChiTietKiemKe. Đây là thống nhất kỹ thuật, không đổi điều kiện nghiệp vụ. |
 | 07 | Cột kỹ thuật chưa mô tả | Bổ sung phiên bản token, mốc đồng bộ, khu vực bàn, mã chống lặp, bản chụp hóa đơn, thông tin thử in, lý do kiểm kê, usage và phản hồi AI ở phần F. Dev kiểm chứng ý nghĩa và ràng buộc; không suy từ tên cột rằng tính năng đã đạt. |
-| 08 | Kiểu dữ liệu | Mã vai trò VARCHAR(20); định danh thay thế BIGINT. Thiết kế tiền DECIMAL(18,2), lượng/hệ số DECIMAL(18,6), chi phí API DECIMAL(18,10), thời điểm DATETIME(3). Code hiện dùng DECIMAL(18,4) rộng rãi và độ chính xác thời gian khác; dev lập migration và kiểm tra làm tròn, dữ liệu hiện có, so sánh, tổng hợp. Không đổi hàng loạt mà bỏ kiểm tra mất độ chính xác. |
+| 08 | Kiểu dữ liệu | Mã vai trò VARCHAR(20); định danh thay thế BIGINT. Thiết kế tiền DECIMAL(18,2), lượng/hệ số DECIMAL(18,6), chi phí API DECIMAL(18,10), thời điểm DATETIME(3). Code ở mốc đối chiếu ban đầu dùng DECIMAL(18,4) rộng rãi và độ chính xác thời gian khác; dev lập migration và kiểm tra làm tròn, dữ liệu hiện có, so sánh, tổng hợp. Không đổi hàng loạt mà bỏ kiểm tra mất độ chính xác. |
 | 09 | Ngưỡng tồn riêng | NULL nghĩa là dùng mặc định; 0 là ngưỡng riêng hợp lệ theo yêu cầu không âm. Dev sửa quy ước 0=dùng mặc định nếu còn tồn tại; kiểm thử cả NULL, 0 và giá trị dương. |
 | 10 | Trạng thái nghiệp vụ | Giữ vòng đời gốc của order và thanh toán. Phiếu nhập Hiệu lực/Đã hủy; kiểm kê Đang kiểm kê/Đã xác nhận/Đã hủy. Dev sửa hoặc ánh xạ giá trị nội bộ rõ ràng, không đưa thêm “Chờ đối soát”/“Tranh chấp” thành trạng thái nghiệp vụ mới. Trạng thái thử in chi tiết được mô tả riêng, không đồng nghĩa món đã chế biến. |
 | 11 | Chi tiết giữ món | Thiết kế cho ON DELETE CASCADE từ chi tiết tới lượt giữ; các tham chiếu nghiệp vụ/lịch sử còn lại RESTRICT. Không xóa lượt giữ đã gửi để mất dấu chống gửi lặp. |
 | 12 | Ràng buộc toàn vẹn | Giữ điều kiện số lượng dương, tồn không âm, phiên bản giá/công thức thuộc đúng món, điều kiện lô điều chỉnh và chống xử lý trùng khoản nhận. Giao dịch kho có một nguồn nghiệp vụ chính; liên kết bổ sung để truy vết không ghi lượng hai lần. PhamViDuLieu lưu danh sách view thực dùng. Dev đối chiếu và thêm ràng buộc còn thiếu bằng migration, kèm test MySQL. |
 | 13 | FK nhật ký | Thiết kế quy định RESTRICT tường minh tới người dùng, định danh không đổi và nhật ký chỉ ghi thêm. Dev đối chiếu migration thực tế. |
 | 14 | Đăng xuất | Bản nghiệp vụ gốc chỉ yêu cầu đăng xuất, chưa chốt thu hồi từng token ở máy chủ. Tài liệu mô tả đúng hiện trạng xóa thông tin đăng nhập trên trình duyệt. Không có endpoint logout trong Bảng 13; không tuyên bố đã thu hồi JWT. Nâng cấp thu hồi tức thời là quyết định bảo mật riêng, chưa mặc định nằm trong phạm vi đã chốt. |
-| 15 | Xóa nhóm món | Dev giữ ba trường hợp: chưa từng có món → xóa vĩnh viễn; còn món chưa xóa mềm → từ chối; chỉ còn món xóa mềm → xóa mềm nhóm. Mọi thao tác xóa có audit. Code tại bản đối chiếu vẫn xóa mềm nhóm chưa từng có món. |
+| 15 | Xóa nhóm món | Dev giữ ba trường hợp: chưa từng có món → xóa vĩnh viễn; còn món chưa xóa mềm → từ chối; chỉ còn món xóa mềm → xóa mềm nhóm. Mọi thao tác xóa có audit. Code tại d0d0fe0 đã bổ sung nhánh xóa vĩnh viễn nhóm chưa từng có món; cần đối chiếu kết quả hồi quy. |
 | 16 | Hợp đồng lỗi | Báo cáo mô tả cấu trúc error.code/message, error_id cho lỗi nội bộ, mã 422 cho vi phạm nghiệp vụ và thông báo hạn mức AI trong phản hồi. Không ép nghiệp vụ đổi chỉ vì lựa chọn mã HTTP. |
 | 17 | Endpoint | Bảng 13 ghi một số endpoint có trong router; không trình bày URL chưa kiểm chứng là chức năng đã triển khai. |
 | 18 | Dẫn chiếu phân quyền | Tài liệu 02 dẫn đúng Bảng 12 của báo cáo. |
@@ -35,15 +37,21 @@ Tài liệu 03, M.5 quy định các nhánh quyết định trọng yếu; tài 
 | 27 | Người chấm | Hồ sơ ghi nhãn agent Claude Sonnet 5.5 chấm mù cấu hình; không đủ bằng chứng khẳng định ba người/agent độc lập. Không nhầm với ba agent kiểm tra chéo 20 SQL ở biên bản riêng. |
 | 28 | Gói bằng chứng | Bỏ gán commit 68505dc cho đợt nghiệp vụ khi chưa chứng minh được nguồn chạy. Giữ số liệu lịch sử và để trống phiên bản/gói log ở bảng truy vết; cần chủ sở hữu bổ sung bằng chứng gốc. |
 | 29 | Bộ test cũ | docs/testing/test-cases.md được đánh dấu bộ kỹ thuật lịch sử. Danh mục nghiệm thu hiện hành là tài liệu 06; không ánh xạ cùng mã TC sang hai nội dung khác nhau. |
-| 30 | AGENTS.md | Dẫn yêu cầu hiện hành, nguồn nghiệp vụ gốc, đúng vai trò Bếp và quy tắc biên tập. Không dùng ngày báo cáo cũ làm nguồn chuẩn. |
+| 30 | AGENTS.md / README | Do dev quản lý theo quyết định của chủ đề tài; không chỉnh sửa hoặc đưa vào gói tài liệu cập nhật. |
 | 31 | Ảnh không dùng | Chỉ ảnh còn được tài liệu dẫn được đưa vào gói tài liệu bàn giao. Dọn tài nguyên lịch sử trong repo là thao tác riêng, không làm điều kiện nghiệp vụ. |
 | 32 | Biên bản kỹ thuật cũ | Giữ biên bản có ngày theo phạm vi lịch sử; số NFR cũ không thay thế mã trong báo cáo và tài liệu 06 hiện hành. |
 
-## Trạng thái các thay đổi code đã đọc
+## Trạng thái triển khai tại d0d0fe0
 
-- Nhãn giao diện Bếp đã đổi tại `8423b3f`; dữ liệu VAI_TRO đã tồn tại có thể còn tên cũ vì seed không cập nhật dòng cũ.
-- Đã có code ghi audit khi giảm món và giữ nguyên/rút ngắn hạn giữ khi giảm số lượng; có test tương ứng trong repository. Lần biên tập tài liệu này không chạy lại các test đó.
-- Xóa nhóm chưa từng có món, các ràng buộc/schema và các sai lệch khác không được tự đánh dấu đã sửa hoặc đã đạt.
+So với 555baef, commit d0d0fe0 thay đổi code, migration, view, seed và test; không thay đổi docs/. Đã đọc các nhánh hủy phiếu nhập, đổi ngày nhập, tự tính giá vốn và router thanh toán. Lần biên tập này không chạy lại kiểm thử phần mềm.
+
+- Dev báo đã xử lý mục 04, 05, 08, 09, 10, 12, 13, 15, 20, 21, 22 và QĐ-01/02, có bảy migration và test trên MySQL 8.4. Đây là thông tin triển khai; kết quả nghiệm thu chỉ cập nhật khi có log và phiên bản chạy tương ứng.
+- LO_NGUYEN_LIEU.TrangThai được giữ trong thiết kế. Đã hủy phát sinh khi hủy phiếu nhập nguồn; không đồng nghĩa xuất hủy một phần. Dev kiểm chứng đồng bộ trạng thái và loại lô đã hủy khỏi giữ món, FIFO và phân bổ kiểm kê.
+- costing.py làm tròn đơn giá bình quân đến 0,01 bằng ROUND_HALF_UP, rồi làm tròn giá trị dòng xuất đến 0,01. Tài liệu 04 và TC-BR-22/23 mô tả thứ tự này; chưa có kết quả chạy mới trong tài liệu 06.
+- Đổi ngày phiếu nhập cập nhật ngày lô, hạn dùng và tính lại từ tháng sớm nhất bị ảnh hưởng. Điều kiện chưa xuất và không còn giữ hiệu lực vẫn áp dụng.
+- Router giữ POST /payments/{payment_id}/reference cho Quản lý/Thu ngân và POST /payments/{payment_id}/resolve cho Quản lý. Bảng 13 là danh sách một số endpoint; không cần xóa hai endpoint phục vụ FR-SALE-19/20. Endpoint /orders/{id}/reconcile không còn nằm trong Bảng 13.
+- Prompt và view đã thay đổi; kết quả AI ngày 27–28/10 vẫn là kết quả lịch sử. Cần chạy lại đánh giá trên phiên bản mới trước khi kết luận cho bản hiện hành.
+- Các mục 23–32 cần xử lý theo nội dung tài liệu/bằng chứng; NFR-01 và NFR-11 chưa có kết quả chạy mới được xác minh trong lần biên tập này. AGENTS.md và README do dev quản lý, không nằm trong gói cập nhật.
 
 ## Điều kiện nghiệm thu
 
@@ -51,7 +59,7 @@ Dev thực hiện theo tài liệu nghiệp vụ đã chốt, ghi rõ migration 
 
 ## Phụ lục đối chiếu cột và kiểu dữ liệu
 
-Bảng dưới so sánh thiết kế phần F với khai báo ORM tại bản code đối chiếu, bao gồm các cột kế thừa từ mixin. Mũi tên chỉ từ code sang thiết kế. Đây là danh sách tĩnh để lập migration và kiểm thử, chưa phải kết quả kiểm tra CSDL đã triển khai. Ràng buộc, chỉ mục, giá trị trạng thái và dữ liệu đang có còn được kiểm tra riêng theo các mục 04–13.
+Bảng dưới lưu danh sách sai khác tại mốc 8423b3f trước các migration của d0d0fe0, bao gồm các cột kế thừa từ mixin. Mũi tên chỉ từ code cũ sang thiết kế; không dùng bảng này làm danh sách lỗi còn tồn tại của bản mới. Trạng thái triển khai hiện hành nằm ở mục trên, còn CSDL thực tế cần được kiểm chứng sau migration. Ràng buộc, chỉ mục, giá trị trạng thái và dữ liệu đang có còn được kiểm tra riêng theo các mục 04–13.
 
 | **Bảng** | **Sai khác cần dev xử lý/kiểm chứng** |
 |---|---|
@@ -72,7 +80,7 @@ Bảng dưới so sánh thiết kế phần F với khai báo ORM tại bản co
 | PHIEU_BEP | DATETIME → DATETIME(3): HanKhoaIn, LanThuTiepTheo, NgayTao, ThoiDiemIn |
 | PHIEU_NHAP_KHO | DATETIME → DATETIME(3): NgayNhap; DECIMAL(18,4) → DECIMAL(18,2): TongTien |
 | CHI_TIET_PHIEU_NHAP | DECIMAL(18,4) → DECIMAL(18,6): HeSoQuyDoi, SoLuong; DECIMAL(18,4) → DECIMAL(18,2): DonGia, ThanhTien |
-| LO_NGUYEN_LIEU | Cột lưu trong code nhưng thiết kế suy ra: TrangThai; DATETIME → DATETIME(3): NgayNhap; DECIMAL(18,4) → DECIMAL(18,2): DonGia; DECIMAL(18,4) → DECIMAL(18,6): SoLuongConLai, SoLuongNhap; Điều kiện rỗng: DonGia → NULL |
+| LO_NGUYEN_LIEU | Giữ TrangThai VARCHAR(20) theo F.21; DATETIME → DATETIME(3): NgayNhap; DECIMAL(18,4) → DECIMAL(18,2): DonGia; DECIMAL(18,4) → DECIMAL(18,6): SoLuongConLai, SoLuongNhap; Điều kiện rỗng: DonGia → NULL |
 | PHIEU_XUAT_KHO | Cột chỉ có trong thiết kế: NguonXuat; DATETIME → DATETIME(3): NgayTao, NgayXuat |
 | CHI_TIET_PHIEU_XUAT | DECIMAL(18,4) → DECIMAL(18,6): SoLuong; DECIMAL(18,4) → DECIMAL(18,2): GiaVonUocTinh; Điều kiện rỗng: GiaVonUocTinh → NULL |
 | PHIEU_KIEM_KE | DATETIME → DATETIME(3): NgayKiemKe |
