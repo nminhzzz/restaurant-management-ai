@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.errors import BusinessRuleError, NotFoundError
 from app.modules.catalog.models import Ingredient, RecipeItem
 from app.modules.inventory.costing import latest_average_cost, month_key_of, refresh_costing
+from app.modules.inventory.lot_status import sync_lot_status
 from app.modules.inventory.models import (
     GoodsReceipt,
     GoodsReceiptLine,
@@ -29,7 +30,7 @@ from app.modules.inventory.stock import (
 from app.modules.sales.models import OrderLine
 from app.shared import business_date
 from app.shared.audit import SystemAuditLog
-from app.shared.enums import StocktakeStatus
+from app.shared.enums import LotStatus, StocktakeStatus
 
 
 def _bd():
@@ -104,7 +105,7 @@ async def create_receipt(
             ingredient_id=ingredient_id,
             receipt_line_id=gl.id,
             quantity_remaining=qty_std,
-            status="Còn hạn",
+            status=LotStatus.CON_HAN.value,
             received_at=receipt.receipt_date,
             is_adjustment=False,
             received_quantity=qty_std,
@@ -115,6 +116,7 @@ async def create_receipt(
         )
         session.add(lot)
         await session.flush()
+        await sync_lot_status(session, lot)
         # ledger
         movements = await apply_stock_movement(
             session,
@@ -238,7 +240,7 @@ async def cancel_receipt(session: AsyncSession, actor_id: int, receipt_id: int) 
                 performed_by=actor_id,
             )
             session.add(m)
-        lot.status = "Đã hủy"
+        lot.status = LotStatus.DA_HUY.value
     receipt.status = "Đã hủy"
     session.add(
         SystemAuditLog(
@@ -306,6 +308,7 @@ async def update_receipt(
         # opening-stock valuation falls back to these fields (FR-REP-05a).
         lot.quantity_remaining = new_qty
         lot.received_quantity = new_qty
+        await sync_lot_status(session, lot)
         lot.unit_price = new_price
         if ing is not None:
             ing.stock_qty = ing.stock_qty + delta
@@ -899,6 +902,7 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
                 avail = Decimal(str(_lot.quantity_remaining))
                 take = min(avail, rem)
                 _lot.quantity_remaining = avail - take
+                await sync_lot_status(session, _lot)
                 from app.modules.inventory.models import StockMovement as SM2
 
                 m2 = SM2(
@@ -927,7 +931,9 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
                     select(IngredientLot)
                     .where(
                         IngredientLot.ingredient_id == line.ingredient_id,
-                        IngredientLot.status != "Hết hạn",
+                        IngredientLot.status.not_in(
+                            (LotStatus.HET_HAN.value, LotStatus.DA_HUY.value)
+                        ),
                         (IngredientLot.expiry_date.is_(None))
                         | (IngredientLot.expiry_date >= today),
                     )
@@ -953,7 +959,7 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
                 session.add(lot)
             else:
                 lot.quantity_remaining = Decimal(str(lot.quantity_remaining)) + diff
-                lot.status = "Còn hạn"
+                await sync_lot_status(session, lot)
             await session.flush()
             from app.modules.inventory.models import StockMovement as SM3
 

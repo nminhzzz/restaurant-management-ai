@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.errors import BusinessRuleError, NotFoundError
 from app.modules.catalog.models import DiningTable, Dish, DishPriceVersion
 from app.modules.catalog.versions import recipe_items
+from app.modules.inventory.lot_status import sync_lot_status
 from app.modules.inventory.models import IngredientLot, StockMovement
 from app.modules.inventory.stock import (
     ensure_no_open_stocktake,
@@ -258,6 +259,7 @@ async def _return_line_stock(
             )
             if lot is not None:
                 lot.quantity_remaining = Decimal(str(lot.quantity_remaining)) + take
+                await sync_lot_status(session, lot)
             ingredient = locked_ingredients[ingredient_id]
             if ingredient is not None:
                 ingredient.stock_qty = Decimal(str(ingredient.stock_qty)) + take

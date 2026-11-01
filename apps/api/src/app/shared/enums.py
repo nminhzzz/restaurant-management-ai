@@ -68,6 +68,7 @@ class LotStatus(StrEnum):
     SAP_HET_HAN = "Sắp hết hạn"
     HET_HAN = "Hết hạn"
     DA_DUNG_HET = "Đã dùng hết"
+    DA_HUY = "Đã hủy"
 
 
 class StocktakeStatus(StrEnum):

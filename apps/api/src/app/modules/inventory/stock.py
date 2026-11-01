@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import BusinessRuleError
 from app.modules.catalog.models import Ingredient
+from app.modules.inventory.lot_status import sync_lot_status
 from app.modules.inventory.models import IngredientLot, StockMovement
 from app.shared import business_date
 from app.shared.enums import LotStatus, StockMovementType
@@ -54,6 +55,7 @@ async def lots_for_fifo(
     conds = [
         IngredientLot.ingredient_id == ingredient_id,
         IngredientLot.quantity_remaining > 0,
+        IngredientLot.status != LotStatus.DA_HUY.value,
     ]
     if not allow_expired:
         today = business_date.business_date_of(business_date.now())
@@ -273,7 +275,7 @@ async def apply_stock_movement(
         # Only the drawn quantity leaves the lot; held quantities stay physically
         # present until the hold is consumed or released (FR-INV-11).
         lot.quantity_remaining = Decimal(str(lot.quantity_remaining)) - take
-        # keep status as is (simplified)
+        await sync_lot_status(session, lot)
         m = StockMovement(
             ingredient_id=change.ingredient_id,
             lot_id=lot.id,
@@ -306,6 +308,7 @@ async def reverse_movement(
         lot = await session.get(IngredientLot, movement.lot_id)
         if lot is not None:
             lot.quantity_remaining = lot.quantity_remaining - movement.qty
+            await sync_lot_status(session, lot)
             await session.flush()
     ing = await lock_ingredient(session, movement.ingredient_id)
     # movement.qty is negative for draw, so -qty is positive
