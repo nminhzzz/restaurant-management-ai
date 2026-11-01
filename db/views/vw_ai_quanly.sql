@@ -89,7 +89,7 @@ SELECT
     NULL, NULL, NULL, NULL, NULL, NULL,
     NULL, NULL, NULL, NULL, NULL,
     n.MaNguyenLieu, n.TenNguyenLieu, n.DonViTinh, n.SoLuongTon,
-    CASE WHEN n.MucTonToiThieu > 0 THEN n.MucTonToiThieu
+    CASE WHEN n.MucTonToiThieu IS NOT NULL THEN n.MucTonToiThieu
          ELSE (SELECT cfg.NguongTonMacDinh FROM CAU_HINH_HE_THONG cfg ORDER BY cfg.MaCauHinh LIMIT 1)
     END,
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
