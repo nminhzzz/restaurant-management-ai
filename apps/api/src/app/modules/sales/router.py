@@ -690,23 +690,6 @@ async def apply_late_payment(
     }
 
 
-@router.post("/orders/{order_id}/reconcile")
-async def flag_reconcile(
-    order_id: int,
-    payload: dict,
-    session: AsyncSession = Depends(get_session),
-    user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
-):
-    payment_id = payload.get("payment_id") or payload.get("MaGiaoDich")
-    if payment_id is None:
-        raise HTTPException(status_code=422, detail="Thiếu MaGiaoDich")
-    payment = await payments.mark_for_reconciliation(
-        session, int(payment_id), actor_id=user.user_id
-    )
-    await session.commit()
-    return {"MaGiaoDich": payment.id, "TrangThai": payment.status}
-
-
 @router.post("/payments/{payment_id}/reference")
 async def bank_reference(
     payment_id: int,

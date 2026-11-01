@@ -83,7 +83,7 @@ async def _setup(session):
     session.add(rc)
     await session.flush()
     session.add(RecipeItem(recipe_id=rc.id, ingredient_id=ing.id, quantity=1))
-    gr = GoodsReceipt(supplier_id=None, status="Nháp", receipt_date=business_date.now())
+    gr = GoodsReceipt(supplier_id=None, status="Hiệu lực", receipt_date=business_date.now())
     session.add(gr)
     await session.flush()
     gl = GoodsReceiptLine(receipt_id=gr.id, ingredient_id=ing.id, quantity=20, unit_price=1000)
@@ -269,8 +269,8 @@ async def test_new_qr_allowed_after_expiry(session, monkeypatch):
 
 
 @pytest.mark.anyio
-async def test_expired_qr_can_move_order_to_reconciliation(session, monkeypatch):
-    """FR-SALE-17: an order with an expired QR can be flagged for reconciliation."""
+async def test_expired_qr_can_move_order_to_verification(session, monkeypatch):
+    """FR-SALE-19: an order with an expired QR can be sent for payment verification."""
     d, t = await _setup(session)
     client = await _make_client(session)
     h, _ = await _headers(session)
@@ -280,12 +280,10 @@ async def test_expired_qr_can_move_order_to_reconciliation(session, monkeypatch)
     created = datetime.fromisoformat(r.json()["ThoiDiemTaoQR"])
 
     monkeypatch.setattr(business_date, "now", lambda: created + timedelta(minutes=11))
-    r2 = await client.post(
-        f"/api/v1/sales/orders/{oid}/reconcile", json={"payment_id": pid}, headers=h
-    )
-    assert r2.status_code == 200
-    assert r2.json()["TrangThai"] == "Chờ đối soát"
-    assert await order_status(session, oid) == "Chờ đối soát"
+    r2 = await client.post(f"/api/v1/sales/payments/{pid}/request-verification", json={}, headers=h)
+    assert r2.status_code == 200, r2.text
+    assert r2.json()["TrangThai"] == "Chờ xác minh thanh toán"
+    assert await order_status(session, oid) == "Chờ xác minh thanh toán"
 
 
 @pytest.mark.anyio
@@ -396,12 +394,12 @@ async def test_expire_does_not_clobber_a_confirmation_landing_mid_expire(session
 
 
 @pytest.mark.anyio
-async def test_mark_for_reconciliation_refuses_when_order_already_settled(session):
-    """Lost-update guard (review #1): a settled order can't be pushed back to reconciliation."""
+async def test_request_verification_refuses_when_order_already_settled(session):
+    """Lost-update guard (review #1): a settled order can't be pushed back to verification."""
     from sqlalchemy import text as sql_text
 
     from app.core.errors import BusinessRuleError
-    from app.modules.sales.payments import mark_for_reconciliation
+    from app.modules.sales.payments import request_verification
 
     d, t = await _setup(session)
     client = await _make_client(session)
@@ -420,7 +418,7 @@ async def test_mark_for_reconciliation_refuses_when_order_already_settled(sessio
     await session.commit()
 
     with pytest.raises(BusinessRuleError):
-        await mark_for_reconciliation(session, pid)
+        await request_verification(session, pid)
     await session.commit()
 
     assert await order_status(session, oid) == "Đã thanh toán"

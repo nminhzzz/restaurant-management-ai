@@ -7,7 +7,6 @@ from typing import Any
 from sqlalchemy import (
     JSON,
     CheckConstraint,
-    DateTime,
     ForeignKey,
     Index,
     Integer,
@@ -19,7 +18,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.modules.ai.runtime_models import AiDailyUsage, AiSqlCache  # noqa: F401
-from app.shared.base import Base, BigInteger
+from app.shared.base import Base, BigInteger, DateTime3
 
 
 class ChatSession(Base):
@@ -31,7 +30,7 @@ class ChatSession(Base):
         nullable=False,
     )
     created_at: Mapped[datetime] = mapped_column(
-        "ThoiDiemBatDau", DateTime, server_default=func.now(), nullable=False
+        "ThoiDiemBatDau", DateTime3, server_default=func.now(), nullable=False
     )
     role_id: Mapped[str | None] = mapped_column(
         "MaVaiTro",
@@ -39,7 +38,7 @@ class ChatSession(Base):
         ForeignKey("VAI_TRO.MaVaiTro", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=True,
     )
-    ended_at: Mapped[datetime | None] = mapped_column("ThoiDiemKetThuc", DateTime, nullable=True)
+    ended_at: Mapped[datetime | None] = mapped_column("ThoiDiemKetThuc", DateTime3, nullable=True)
 
 
 class AssistantQuery(Base):
@@ -50,7 +49,7 @@ class AssistantQuery(Base):
         ForeignKey("PHIEN_CHAT_AI.MaPhien", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=False,
     )
-    scope: Mapped[str | None] = mapped_column("PhamViDuLieu", String(50), nullable=True)
+    scope: Mapped[list[str] | None] = mapped_column("PhamViDuLieu", JSON, nullable=True)
     question: Mapped[str] = mapped_column("CauHoi", Text, nullable=False)
     sql_text: Mapped[str | None] = mapped_column("CauSQLSinhRa", Text, nullable=True)
     status: Mapped[str] = mapped_column(
@@ -59,7 +58,7 @@ class AssistantQuery(Base):
     summary: Mapped[str | None] = mapped_column("KetQuaTomTat", Text, nullable=True)
     latency_ms: Mapped[int | None] = mapped_column("ThoiGianPhanHoi", Integer, nullable=True)
     occurred_at: Mapped[datetime] = mapped_column(
-        "ThoiDiem", DateTime, server_default=func.now(), nullable=False
+        "ThoiDiem", DateTime3, server_default=func.now(), nullable=False
     )
     model_version: Mapped[str | None] = mapped_column("ModelPhienBan", Text, nullable=True)
     input_tokens: Mapped[int] = mapped_column(

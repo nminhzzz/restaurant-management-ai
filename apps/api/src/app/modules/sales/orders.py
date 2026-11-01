@@ -29,7 +29,7 @@ from app.shared.audit import SystemAuditLog
 from app.shared.enums import StockMovementType
 
 OPEN_ORDER_STATUSES: frozenset[str] = frozenset({"Đang mở"})
-LINE_WAITING = "Chờ"
+LINE_WAITING = "Chờ làm"
 LINE_CONFIRMED = "Đã xác nhận xong"
 LINE_SERVED = "Đã phục vụ"
 LINE_CANCELLED = "Đã hủy"
@@ -771,8 +771,6 @@ async def cancel_order(
 
     await expire_stale_qr(session)
     order = await _lock_order(session, order_id)
-    if order.status == "Chờ đối soát":
-        raise BusinessRuleError("Order đang chờ đối soát QR, không thể hủy.")
     ensure_order_is_open(order)
     live_qr = (
         await session.execute(

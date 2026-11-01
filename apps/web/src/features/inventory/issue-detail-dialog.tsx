@@ -34,7 +34,7 @@ type IssueDetail = {
     TenNguyenLieu: string;
     DonViTinh: string;
     SoLuong: number;
-    GiaVonUocTinh: number;
+    GiaVonUocTinh: number | null;
     MaLoNguyenLieu: number | null;
     MaChiTietOrder: number | null;
     SoSuat: number | null;
@@ -108,7 +108,9 @@ export function IssueDetailDialog({
                       {formatNumber(line.SoLuong)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {formatVnd(line.GiaVonUocTinh)}
+                      {line.GiaVonUocTinh === null
+                        ? "Chưa xác định"
+                        : formatVnd(line.GiaVonUocTinh)}
                     </TableCell>
                     <TableCell>
                       {line.MaLoNguyenLieu === null

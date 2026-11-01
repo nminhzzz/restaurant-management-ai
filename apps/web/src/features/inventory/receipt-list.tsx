@@ -44,7 +44,7 @@ import type { IngredientOption, Receipt, SupplierOption } from "./types";
 const PAGE_SIZE = 20;
 
 const RECEIPT_STATUSES = [
-  { value: "Nháp", label: "Nháp" },
+  { value: "Hiệu lực", label: "Hiệu lực" },
   { value: "Đã hủy", label: "Đã hủy" },
 ];
 
@@ -223,7 +223,7 @@ export function ReceiptList({
                     <StatusBadge status={r.TrangThai} />
                   </TableCell>
                   <TableCell className="text-right">
-                    {r.TrangThai === "Nháp" ? (
+                    {r.TrangThai === "Hiệu lực" ? (
                       <div className="flex justify-end gap-2">
                         <Button
                           variant="secondary"

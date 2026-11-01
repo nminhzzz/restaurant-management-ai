@@ -70,7 +70,7 @@ async def _setup(session):
     recipe = await session.scalar(select(Recipe).where(Recipe.dish_id == dish.id))
     assert recipe is not None
     session.add(RecipeItem(recipe_id=recipe.id, ingredient_id=ingredient.id, quantity=1))
-    receipt = GoodsReceipt(supplier_id=None, status="Nháp", receipt_date=business_date.now())
+    receipt = GoodsReceipt(supplier_id=None, status="Hiệu lực", receipt_date=business_date.now())
     session.add(receipt)
     await session.flush()
     line = GoodsReceiptLine(

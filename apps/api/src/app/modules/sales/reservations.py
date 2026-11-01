@@ -561,7 +561,6 @@ async def consume_hold(
         if reservation.recipe_id is not None
         else [],
     )
-    affected: list[int] = []
     for detail in details:
         lot = (
             await session.execute(
@@ -594,14 +593,9 @@ async def consume_hold(
                 performed_by=actor_id,
             )
         )
-        affected.append(ingredient.id)
     reservation.status = HOLD_SENT
     reservation.order_line_id = order_line_id
     await session.flush()
-    if affected:
-        from app.modules.inventory.service import recompute_automatic_out_of_stock
-
-        await recompute_automatic_out_of_stock(session, affected)
 
 
 async def available_quantity(

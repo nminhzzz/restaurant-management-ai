@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import BusinessRuleError, NotFoundError
 from app.modules.catalog.models import Ingredient, RecipeItem
+from app.modules.inventory.costing import latest_average_cost, month_key_of, refresh_costing
 from app.modules.inventory.models import (
     GoodsReceipt,
     GoodsReceiptLine,
@@ -53,7 +54,7 @@ async def create_receipt(
     receipt = GoodsReceipt(
         supplier_id=supplier_id,
         receipt_date=receipt_date or business_date.now(),
-        status="Nháp",
+        status="Hiệu lực",
         created_by=actor_id,
     )
     session.add(receipt)
@@ -141,6 +142,7 @@ async def create_receipt(
         )
     )
     await session.flush()
+    await refresh_costing(session, month_key_of(receipt.receipt_date))
     return receipt
 
 
@@ -188,8 +190,8 @@ async def cancel_receipt(session: AsyncSession, actor_id: int, receipt_id: int) 
         raise NotFoundError("Không tìm thấy phiếu nhập.")
     if receipt.status == "Đã hủy":
         raise BusinessRuleError("Phiếu đã được hủy trước đó.")
-    if receipt.status != "Nháp":
-        raise BusinessRuleError("Chỉ được hủy phiếu ở trạng thái Nháp.")
+    if receipt.status != "Hiệu lực":
+        raise BusinessRuleError("Chỉ được hủy phiếu ở trạng thái Hiệu lực.")
     await _ensure_receipt_untouched(session, receipt_id)
     lines = (
         (
@@ -200,7 +202,6 @@ async def cancel_receipt(session: AsyncSession, actor_id: int, receipt_id: int) 
         .scalars()
         .all()
     )
-    affected_ingredient_ids: list[int] = []
     for gl in lines:
         lot = (
             await session.execute(
@@ -237,7 +238,6 @@ async def cancel_receipt(session: AsyncSession, actor_id: int, receipt_id: int) 
                 performed_by=actor_id,
             )
             session.add(m)
-            affected_ingredient_ids.append(gl.ingredient_id)
         lot.status = "Đã hủy"
     receipt.status = "Đã hủy"
     session.add(
@@ -249,16 +249,19 @@ async def cancel_receipt(session: AsyncSession, actor_id: int, receipt_id: int) 
         )
     )
     await session.flush()
-    if affected_ingredient_ids:
-        await recompute_automatic_out_of_stock(session, affected_ingredient_ids)
+    await refresh_costing(session, month_key_of(receipt.receipt_date))
 
 
 async def update_receipt(
-    session: AsyncSession, actor_id: int, receipt_id: int, lines: list[dict]
+    session: AsyncSession,
+    actor_id: int,
+    receipt_id: int,
+    lines: list[dict],
+    receipt_date: datetime | None = None,
 ) -> None:
     """FR-INV-02: correct quantity/unit price on lines that have not been drawn yet.
 
-    Editing is only allowed while the receipt is still "Nháp" and its lot has not
+    Editing is only allowed while the receipt is still "Hiệu lực" and its lot has not
     been touched by any later issue/order/stocktake (quantity_remaining == the
     line's original quantity). There is no migration adding a separate purchase
     unit/conversion column to CHI_TIET_PHIEU_NHAP, so the edited quantity is the
@@ -268,9 +271,10 @@ async def update_receipt(
     receipt = await session.get(GoodsReceipt, receipt_id)
     if receipt is None:
         raise NotFoundError("Không tìm thấy phiếu nhập.")
-    if receipt.status != "Nháp":
-        raise BusinessRuleError("Chỉ được sửa phiếu ở trạng thái Nháp.")
+    if receipt.status != "Hiệu lực":
+        raise BusinessRuleError("Chỉ được sửa phiếu ở trạng thái Hiệu lực.")
     await _ensure_receipt_untouched(session, receipt_id)
+    old_month = month_key_of(receipt.receipt_date)
     for ln in lines:
         line_id = ln["line_id"]
         new_qty = Decimal(str(ln["quantity"]))
@@ -318,7 +322,6 @@ async def update_receipt(
                 )
             )
         await session.flush()
-        await recompute_automatic_out_of_stock(session, [gl.ingredient_id])
     session.add(
         SystemAuditLog(
             user_id=actor_id,
@@ -327,6 +330,48 @@ async def update_receipt(
             target_id=str(receipt_id),
         )
     )
+    await session.flush()
+    if receipt_date is not None and receipt_date != receipt.receipt_date:
+        await _move_receipt_date(session, receipt, receipt_date)
+    await refresh_costing(session, min(old_month, month_key_of(receipt.receipt_date)))
+
+
+async def _move_receipt_date(
+    session: AsyncSession, receipt: GoodsReceipt, new_date: datetime
+) -> None:
+    """QD-01: moving a receipt re-dates its lots (FIFO order, expiry) and its ledger entries."""
+    from app.modules.catalog.models import Ingredient
+    from app.modules.inventory.models import StockMovement
+
+    receipt.receipt_date = new_date
+    line_ids = select(GoodsReceiptLine.id).where(GoodsReceiptLine.receipt_id == receipt.id)
+    lots = (
+        (
+            await session.execute(
+                select(IngredientLot).where(IngredientLot.receipt_line_id.in_(line_ids))
+            )
+        )
+        .scalars()
+        .all()
+    )
+    for lot in lots:
+        lot.received_at = new_date
+        ing = await session.get(Ingredient, lot.ingredient_id)
+        shelf = ing.shelf_days if ing else None
+        lot.expiry_date = (new_date.date() + timedelta(days=shelf)) if shelf else None
+    movements = (
+        (
+            await session.execute(
+                select(StockMovement).where(
+                    StockMovement.receipt_line_id.in_(line_ids), StockMovement.kind == "Nhập"
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    for movement in movements:
+        movement.business_date = business_date.business_date_of(new_date)
     await session.flush()
 
 
@@ -513,8 +558,8 @@ async def create_issue(
         stocktake = await session.get(Stocktake, stocktake_id)
         if stocktake is None:
             raise NotFoundError("Không tìm thấy phiếu kiểm kê.")
-        if stocktake.status != "Đã chốt":
-            raise BusinessRuleError("Chỉ ghi nhận hủy cho phiếu kiểm kê đã chốt.")
+        if stocktake.status != "Đã xác nhận":
+            raise BusinessRuleError("Chỉ ghi nhận hủy cho phiếu kiểm kê đã xác nhận.")
 
     # The prepared-dish source is expanded server-side: the client sends the order
     # line and the number of servings, never the ingredient quantities.
@@ -557,7 +602,7 @@ async def create_issue(
         issue_date=moment,
         created_by=actor_id,
         stocktake_id=stocktake_id if source == "Kiểm kê" else None,
-        note=source,
+        source=source,
     )
     session.add(issue)
     await session.flush()
@@ -568,7 +613,7 @@ async def create_issue(
             issue_id=issue.id,
             ingredient_id=iid,
             quantity=qty,
-            estimated_cost=Decimal("0"),
+            estimated_cost=None,
             order_line_id=ln.get("order_line_id"),
             servings=ln.get("servings"),
         )
@@ -601,6 +646,7 @@ async def create_issue(
         )
     )
     await session.flush()
+    await refresh_costing(session, month_key_of(issue.created_at))
     return issue
 
 
@@ -637,7 +683,10 @@ async def create_stocktake(session: AsyncSession, actor_id: int) -> Stocktake:
     # NFR-07: one open counting session at a time; the session blocks stock changes.
     existing = (
         await session.execute(
-            select(Stocktake.id).where(Stocktake.status == "Nháp").limit(1).with_for_update()
+            select(Stocktake.id)
+            .where(Stocktake.status == "Đang kiểm kê")
+            .limit(1)
+            .with_for_update()
         )
     ).scalar_one_or_none()
     if existing is not None:
@@ -658,12 +707,12 @@ async def create_stocktake(session: AsyncSession, actor_id: int) -> Stocktake:
         raise BusinessRuleError("Còn lượt giữ chỗ chưa gửi, hãy xử lý trước khi kiểm kê.")
     pending = (
         await session.execute(
-            select(OrderLine.id).where(OrderLine.status == "Chờ").limit(1).with_for_update()
+            select(OrderLine.id).where(OrderLine.status == "Chờ làm").limit(1).with_for_update()
         )
     ).scalar_one_or_none()
     if pending is not None:
         raise BusinessRuleError("Còn món Chờ làm, hãy xử lý trước khi kiểm kê.")
-    st = Stocktake(status="Nháp", stocktake_date=business_date.now(), performed_by=actor_id)
+    st = Stocktake(status="Đang kiểm kê", stocktake_date=business_date.now(), performed_by=actor_id)
     session.add(st)
     await session.flush()
     return st
@@ -713,7 +762,7 @@ async def cancel_stocktake(session: AsyncSession, actor_id: int, stocktake_id: i
     ).scalar_one_or_none()
     if st is None:
         raise NotFoundError("Không tìm thấy phiếu kiểm kê.")
-    if st.status != "Nháp":
+    if st.status != "Đang kiểm kê":
         raise BusinessRuleError("Chỉ hủy được phiên kiểm kê đang mở.")
     st.status = "Đã hủy"
     st.note = "Hủy phiên kiểm kê"
@@ -745,8 +794,8 @@ async def record_counts(
     ).scalar_one_or_none()
     if st is None:
         raise NotFoundError("Không tìm thấy phiếu kiểm kê.")
-    if st.status != "Nháp":
-        raise BusinessRuleError("Phiếu kiểm kê đã chốt, không thể ghi nhận thêm.")
+    if st.status != "Đang kiểm kê":
+        raise BusinessRuleError("Phiếu kiểm kê đã xác nhận, không thể ghi nhận thêm.")
     existing = {
         line.ingredient_id: line
         for line in (
@@ -800,7 +849,7 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
     ).scalar_one_or_none()
     if st is None:
         raise NotFoundError("Không tìm thấy phiếu kiểm kê.")
-    if st.status != "Nháp":
+    if st.status != "Đang kiểm kê":
         raise BusinessRuleError("Phiếu kiểm kê đã được xác nhận trước đó.")
     lines = (
         (
@@ -825,10 +874,8 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
     counted = len({line.ingredient_id for line in lines})
     if counted < active_count:
         raise BusinessRuleError("Chưa kiểm đủ nguyên liệu đang hoạt động.")
-    affected_ingredient_ids: list[int] = []
     write_off: list[tuple[int, Decimal]] = []
     for line in lines:
-        affected_ingredient_ids.append(line.ingredient_id)
         diff = Decimal(str(line.actual_qty)) - Decimal(str(line.system_qty))
         if diff == 0:
             continue
@@ -894,10 +941,14 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
                     ingredient_id=line.ingredient_id,
                     receipt_line_id=None,
                     quantity_remaining=diff,
+                    received_quantity=diff,
                     status="Còn hạn",
                     received_at=st.stocktake_date,
                     expiry_date=None,
                     is_adjustment=True,
+                    unit_price=await latest_average_cost(
+                        session, line.ingredient_id, month_key_of(st.stocktake_date)
+                    ),
                 )
                 session.add(lot)
             else:
@@ -932,6 +983,7 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
             created_by=actor_id,
             note=f"Tự sinh từ phiếu kiểm kê #{st.id}",
             stocktake_id=st.id,
+            source="Kiểm kê",
         )
         session.add(issue)
         await session.flush()
@@ -941,12 +993,12 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
                     issue_id=issue.id,
                     ingredient_id=ingredient_id,
                     quantity=quantity,
-                    estimated_cost=Decimal("0"),
+                    estimated_cost=None,
                 )
             )
         await session.flush()
 
-    st.status = StocktakeStatus.DA_CHOT.value
+    st.status = StocktakeStatus.DA_XAC_NHAN.value
     await session.flush()
     session.add(
         SystemAuditLog(
@@ -957,8 +1009,7 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
         )
     )
     await session.flush()
-    if affected_ingredient_ids:
-        await recompute_automatic_out_of_stock(session, affected_ingredient_ids)
+    await refresh_costing(session, month_key_of(st.stocktake_date))
 
 
 async def list_stock(
@@ -973,72 +1024,3 @@ async def list_stock(
     return await query_stock(
         session, search=search, alerting=alerting, page=page, page_size=page_size
     )
-
-
-async def recompute_automatic_out_of_stock(session, ingredient_ids: list[int]) -> list[int]:
-    from app.modules.catalog.models import Dish, Recipe, RecipeItem
-    from app.modules.catalog.models import Ingredient as Ing
-    from app.shared.enums import VersionStatus
-
-    if not ingredient_ids:
-        return []
-    # batch: find all recipe items that use any of these ingredients
-    affected_items = (
-        (
-            await session.execute(
-                select(RecipeItem).where(RecipeItem.ingredient_id.in_(ingredient_ids))
-            )
-        )
-        .scalars()
-        .all()
-    )
-    affected_recipe_ids = {it.recipe_id for it in affected_items}
-    if not affected_recipe_ids:
-        return []
-    if not affected_recipe_ids:
-        return []
-    recipes = (
-        (
-            await session.execute(
-                select(Recipe).where(
-                    Recipe.id.in_(affected_recipe_ids),
-                    Recipe.status == VersionStatus.HIEU_LUC.value,
-                )
-            )
-        )
-        .scalars()
-        .all()
-    )
-    if not recipes:
-        return []
-    # batch load all items for those recipes
-    all_items = (
-        (
-            await session.execute(
-                select(RecipeItem).where(RecipeItem.recipe_id.in_([r.id for r in recipes]))
-            )
-        )
-        .scalars()
-        .all()
-    )
-    items_by_recipe: dict[int, list] = {}
-    for it in all_items:
-        items_by_recipe.setdefault(it.recipe_id, []).append(it)
-    ing_ids_needed = {it.ingredient_id for it in all_items}
-    ings = (await session.execute(select(Ing).where(Ing.id.in_(ing_ids_needed)))).scalars().all()
-    ing_map = {i.id: i for i in ings}
-    hidden: list[int] = []
-    for r in recipes:
-        items = items_by_recipe.get(r.id, [])
-        ok = all(
-            float(ing_map[it.ingredient_id].stock_qty) >= float(it.quantity)
-            for it in items
-            if it.ingredient_id in ing_map
-        )
-        dish = await session.get(Dish, r.dish_id)
-        if dish and not dish.is_deleted:
-            dish.out_of_stock = not ok
-            if not ok:
-                hidden.append(dish.id)
-    await session.flush()
-    return hidden

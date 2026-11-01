@@ -82,7 +82,7 @@ async def _setup_dish_with_stock(session, qty=10, need=1, dish_name="Món"):
     session.add(rc)
     await session.flush()
     session.add(RecipeItem(recipe_id=rc.id, ingredient_id=ing.id, quantity=need))
-    gr = GoodsReceipt(supplier_id=None, status="Nháp", receipt_date=business_date.now())
+    gr = GoodsReceipt(supplier_id=None, status="Hiệu lực", receipt_date=business_date.now())
     session.add(gr)
     await session.flush()
     gl = GoodsReceiptLine(receipt_id=gr.id, ingredient_id=ing.id, quantity=qty, unit_price=1000)
@@ -137,7 +137,7 @@ async def test_status_only_moves_forward(session):
     assert r.status_code == 200
     assert await line_status(session, lid) == "Đã phục vụ"
     r = await client.patch(
-        f"/api/v1/sales/orders/{oid}/lines/{lid}/status", json={"to": "Chờ"}, headers=h
+        f"/api/v1/sales/orders/{oid}/lines/{lid}/status", json={"to": "Chờ làm"}, headers=h
     )
     assert r.status_code == 422
 

@@ -69,6 +69,32 @@ describe("IngredientList", () => {
     expect(await screen.findByText("Thịt bò")).toBeInTheDocument();
   });
 
+  it("shows the system default for a null threshold and 0 for an own zero", async () => {
+    mockFetch.mockResolvedValue({
+      items: [
+        {
+          MaNguyenLieu: 1,
+          TenNguyenLieu: "Muối",
+          DonViTinh: "kg",
+          MucTonToiThieu: null,
+        },
+        {
+          MaNguyenLieu: 2,
+          TenNguyenLieu: "Đường",
+          DonViTinh: "kg",
+          MucTonToiThieu: 0,
+        },
+      ],
+    });
+    render(<IngredientList />);
+
+    const salt = (await screen.findByText("Muối")).closest("tr")!;
+    const sugar = screen.getByText("Đường").closest("tr")!;
+    expect(salt).toHaveTextContent("Mặc định");
+    expect(sugar).not.toHaveTextContent("Mặc định");
+    expect(sugar).toHaveTextContent("0");
+  });
+
   it("sends the shelf life when creating an ingredient", async () => {
     mockFetch.mockResolvedValue({ items: [] });
     render(<IngredientList />);

@@ -227,10 +227,10 @@ export function IngredientList() {
     setEditPending(true);
     const body: Record<string, unknown> = {
       TenNguyenLieu: values.TenNguyenLieu.trim(),
-      // Blank means "use the system default", which the API stores as 0.
+      // Blank sends null: the API clears the own threshold and the system default applies.
       MucTonToiThieu: values.MucTonToiThieu.trim()
         ? Number(values.MucTonToiThieu)
-        : 0,
+        : null,
       SoNgayBaoQuan: values.SoNgayBaoQuan.trim()
         ? Number(values.SoNgayBaoQuan)
         : null,
@@ -332,7 +332,9 @@ export function IngredientList() {
                   </TableCell>
                   <TableCell className="text-muted">{i.DonViTinh}</TableCell>
                   <TableCell className="text-right tabular-nums">
-                    {formatNumber(i.MucTonToiThieu)}
+                    {i.MucTonToiThieu == null
+                      ? "Mặc định"
+                      : formatNumber(i.MucTonToiThieu)}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {formatNumber(i.SoNgayBaoQuan)}
@@ -407,9 +409,10 @@ export function IngredientList() {
           initial={{
             TenNguyenLieu: editIngredient.TenNguyenLieu,
             DonViTinh: editIngredient.DonViTinh,
-            MucTonToiThieu: editIngredient.MucTonToiThieu
-              ? String(editIngredient.MucTonToiThieu)
-              : "",
+            MucTonToiThieu:
+              editIngredient.MucTonToiThieu != null
+                ? String(editIngredient.MucTonToiThieu)
+                : "",
             SoNgayBaoQuan:
               editIngredient.SoNgayBaoQuan != null
                 ? String(editIngredient.SoNgayBaoQuan)

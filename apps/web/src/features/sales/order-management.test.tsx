@@ -133,16 +133,17 @@ describe("OrderManagement", () => {
   });
 });
 
-it("can filter the QR orders that need reconciliation or are disputed", async () => {
+it("can filter the QR orders waiting for payment verification", async () => {
   render(<OrderManagement />);
   await screen.findByText("ORD-20261023-0041");
 
   fireEvent.change(screen.getByLabelText("Trạng thái"), {
-    target: { value: "Tranh chấp" },
+    target: { value: "Chờ xác minh thanh toán" },
   });
 
   await waitFor(() =>
-    expect(lastOrderQuery().get("status")).toBe("Tranh chấp"),
+    expect(lastOrderQuery().get("status")).toBe("Chờ xác minh thanh toán"),
   );
-  expect(screen.getByRole("option", { name: "Chờ đối soát" })).toBeTruthy();
+  expect(screen.queryByRole("option", { name: "Tranh chấp" })).toBeNull();
+  expect(screen.queryByRole("option", { name: "Chờ đối soát" })).toBeNull();
 });

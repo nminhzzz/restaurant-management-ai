@@ -19,7 +19,7 @@ describe("ReceiptEditDialog", () => {
         MaPhieuNhap: 3,
         MaNhaCungCap: null,
         NgayNhap: "2026-10-20T00:00:00",
-        TrangThai: "Nháp",
+        TrangThai: "Hiệu lực",
         TongTien: 5000,
         lines: [
           {

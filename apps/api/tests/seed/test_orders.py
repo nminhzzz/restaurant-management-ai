@@ -102,7 +102,6 @@ async def test_every_order_has_a_plausible_final_state(session, seeded_year):
         "Chờ đối soát",
         "Tranh chấp",
         "Đã hủy",
-        "Tự động đóng",
     }
 
 

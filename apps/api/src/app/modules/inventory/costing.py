@@ -1,5 +1,17 @@
-"""Monthly weighted average costing."""
+"""Monthly weighted average costing.
 
+QD-01: averages, costs and profit follow the ledger automatically. Every change to a receipt
+(create, edit, cancel, move to another month) or to stock refreshes the affected month and every
+later one through `refresh_costing`; there is no manual month close.
+
+QD-02: a cost that cannot be determined is NULL, never 0, so a total is not reported as complete
+when some part of it is unpriced.
+"""
+
+from collections.abc import Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
+from datetime import datetime
 from decimal import ROUND_HALF_UP, Decimal
 
 from sqlalchemy import func, or_, select
@@ -14,6 +26,30 @@ from app.modules.inventory.models import (
     StockMovement,
 )
 from app.shared import business_date as _bd
+
+_deferred: ContextVar[bool] = ContextVar("costing_deferred", default=False)
+
+
+@contextmanager
+def deferred_costing() -> Iterator[None]:
+    """Skip the automatic refresh while a bulk job (the seed) loads many documents.
+
+    The caller must call `refresh_costing` itself when it is done.
+    """
+    token = _deferred.set(True)
+    try:
+        yield
+    finally:
+        _deferred.reset(token)
+
+
+def month_key_of(moment: datetime) -> int:
+    day = _bd.business_date_of(moment)
+    return day.year * 100 + day.month
+
+
+def _following(month: int) -> int:
+    return month + 89 if month % 100 == 12 else month + 1
 
 
 async def _previous_costs(session: AsyncSession, month: int) -> dict[int, Decimal]:
@@ -67,7 +103,7 @@ async def _opening_state(
                 func.sum(IngredientLot.received_quantity),
                 func.sum(IngredientLot.received_quantity * IngredientLot.unit_price),
             )
-            .where(IngredientLot.received_at < start)
+            .where(IngredientLot.received_at < start, IngredientLot.unit_price.is_not(None))
             .group_by(IngredientLot.ingredient_id)
         )
     ).all()
@@ -83,7 +119,7 @@ async def _opening_state(
     return quantities, values
 
 
-async def close_month(session: AsyncSession, month: int) -> list[MonthlyAverageCost]:
+async def recompute_month(session: AsyncSession, month: int) -> list[MonthlyAverageCost]:
     start, end = _bd.business_month_range(month)
     previous = await _previous_costs(session, month)
     opening_qty, opening_value = await _opening_state(session, month, previous)
@@ -112,6 +148,7 @@ async def close_month(session: AsyncSession, month: int) -> list[MonthlyAverageC
 
     ingredient_ids = sorted(set(opening_qty) | set(purchases))
     out: list[MonthlyAverageCost] = []
+    computed: set[int] = set()
     for ing_id in ingredient_ids:
         buy_qty, buy_total = purchases.get(ing_id, (Decimal(0), Decimal(0)))
         open_qty = opening_qty.get(ing_id, Decimal(0))
@@ -124,7 +161,7 @@ async def close_month(session: AsyncSession, month: int) -> list[MonthlyAverageC
             avg = previous[ing_id]
         else:
             continue
-        avg = avg.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
+        avg = avg.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
         existing = await session.get(MonthlyAverageCost, {"ingredient_id": ing_id, "month": month})
         if existing:
             existing.avg_cost = avg
@@ -140,6 +177,15 @@ async def close_month(session: AsyncSession, month: int) -> list[MonthlyAverageC
             )
             session.add(existing)
         out.append(existing)
+        computed.add(ing_id)
+    # A cancelled or re-dated receipt can leave a month with no basis at all: drop its stale row.
+    for stale in (
+        (await session.execute(select(MonthlyAverageCost).where(MonthlyAverageCost.month == month)))
+        .scalars()
+        .all()
+    ):
+        if stale.ingredient_id not in computed:
+            await session.delete(stale)
     await session.flush()
     return out
 
@@ -165,7 +211,7 @@ async def backfill_issue_costs(session: AsyncSession, month: int) -> int:
         select(StockIssueLine)
         .join(StockIssue, StockIssueLine.issue_id == StockIssue.id)
         .where(
-            StockIssueLine.estimated_cost == 0,
+            StockIssueLine.estimated_cost.is_(None),
             StockIssue.created_at >= start,
             StockIssue.created_at < end,
         )
@@ -176,8 +222,43 @@ async def backfill_issue_costs(session: AsyncSession, month: int) -> int:
         avg = costs.get(ln.ingredient_id)
         if avg is not None:
             ln.estimated_cost = (avg * ln.quantity).quantize(
-                Decimal("0.0001"), rounding=ROUND_HALF_UP
+                Decimal("0.01"), rounding=ROUND_HALF_UP
             )
             updated += 1
     await session.flush()
     return updated
+
+
+async def latest_average_cost(
+    session: AsyncSession, ingredient_id: int, month: int
+) -> Decimal | None:
+    """Most recent known average up to `month`, or None when nothing gives a basis."""
+    value = await session.scalar(
+        select(MonthlyAverageCost.avg_cost)
+        .where(
+            MonthlyAverageCost.ingredient_id == ingredient_id,
+            MonthlyAverageCost.month <= month,
+        )
+        .order_by(MonthlyAverageCost.month.desc())
+        .limit(1)
+    )
+    return None if value is None else Decimal(str(value))
+
+
+async def refresh_costing(session: AsyncSession, from_month: int) -> None:
+    """Recompute `from_month` and every later month, then price unpriced write-offs.
+
+    A change in one month shifts the opening value of the next, so the whole tail is redone.
+    """
+    if _deferred.get():
+        return
+    latest = month_key_of(_bd.now())
+    receipt_last = await session.scalar(select(func.max(GoodsReceipt.receipt_date)))
+    if receipt_last is not None:
+        latest = max(latest, month_key_of(receipt_last))
+    month = from_month
+    last = max(latest, from_month)
+    while month <= last:
+        await recompute_month(session, month)
+        await backfill_issue_costs(session, month)
+        month = _following(month)

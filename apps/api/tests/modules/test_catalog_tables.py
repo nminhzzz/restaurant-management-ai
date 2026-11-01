@@ -117,7 +117,6 @@ async def test_the_manager_can_toggle_the_single_stock_flag(session, dish_with_r
     app.dependency_overrides.clear()
     row = await get_dish(session, dish.id)
     assert response.status_code == 200
-    assert row.out_of_stock is False
     assert row.manual_paused is True
     assert await display_status(session, row) == "Tạm dừng phục vụ"
     h2 = await _headers(session, "MANAGER")
@@ -138,7 +137,6 @@ async def test_the_removed_manual_hiding_field_is_rejected(session, dish):
     row = await get_dish(session, dish.id)
     assert response.status_code == 422
     assert row.missing_recipe is True
-    assert row.out_of_stock is False
 
 
 @pytest.mark.asyncio
@@ -209,37 +207,38 @@ async def test_a_table_can_be_created_and_edited_with_area_and_capacity(session)
 
 
 @pytest.mark.asyncio
-async def test_manual_pause_survives_stock_recompute(session, dish_with_recipe):
-    """R19: the derived shortage flag must never turn a manual pause off."""
-    from app.modules.catalog.models import Recipe, RecipeItem
-    from app.modules.inventory.service import recompute_automatic_out_of_stock
+async def test_manual_pause_is_independent_of_the_derived_shortage(session, dish_with_recipe):
+    """R19: running out of stock must not turn the manual pause off, nor the reverse."""
+    from app.modules.catalog.models import Ingredient, Recipe, RecipeItem
+    from app.modules.inventory.models import IngredientLot
 
     dish = dish_with_recipe
     dish.manual_paused = True
-    dish.out_of_stock = False
     await session.commit()
-    ingredient_ids = list(
+    # Stocked and paused: the pause is what the dish shows.
+    assert await display_status(session, dish) == "Tạm dừng phục vụ"
+
+    ingredient_id = (
+        await session.execute(
+            select(RecipeItem.ingredient_id)
+            .join(Recipe, Recipe.id == RecipeItem.recipe_id)
+            .where(Recipe.dish_id == dish.id)
+        )
+    ).scalar_one()
+    for lot in (
         (
             await session.execute(
-                select(RecipeItem.ingredient_id)
-                .join(Recipe, Recipe.id == RecipeItem.recipe_id)
-                .where(Recipe.dish_id == dish.id)
+                select(IngredientLot).where(IngredientLot.ingredient_id == ingredient_id)
             )
         )
         .scalars()
         .all()
-    )
-
-    await recompute_automatic_out_of_stock(session, ingredient_ids)
+    ):
+        lot.quantity_remaining = 0
+    (await session.get(Ingredient, ingredient_id)).stock_qty = 0
     await session.commit()
-    await session.refresh(dish)
 
-    # The pause survives even when the shortage flag was recomputed.
+    # Out of stock while paused: the shortage label wins, but the pause flag is untouched.
+    await session.refresh(dish)
     assert dish.manual_paused is True
     assert await display_status(session, dish) == "Hết nguyên liệu"
-
-    # With enough stock the label must be the manual pause, not "Hoạt động".
-    dish.out_of_stock = False
-    await session.commit()
-    await session.refresh(dish)
-    assert await display_status(session, dish) == "Tạm dừng phục vụ"

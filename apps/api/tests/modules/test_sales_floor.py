@@ -58,17 +58,21 @@ async def test_the_floor_lists_tables_open_orders_and_takeaway(session):
         table_id=busy.id,
         kind="Tại chỗ",
         code="ORD-1",
-        lines=[(dish.id, 2, "65000", "Chờ"), (dish.id, 1, "65000", "Đã hủy")],
+        lines=[(dish.id, 2, "65000", "Chờ làm"), (dish.id, 1, "65000", "Đã hủy")],
     )
     await _order(
-        session, table_id=None, kind="Mang về", code="ORD-2", lines=[(dish.id, 1, "45000", "Chờ")]
+        session,
+        table_id=None,
+        kind="Mang về",
+        code="ORD-2",
+        lines=[(dish.id, 1, "45000", "Chờ làm")],
     )
     await _order(
         session,
         table_id=None,
         kind="Mang về",
         code="ORD-3",
-        lines=[(dish.id, 1, "45000", "Chờ")],
+        lines=[(dish.id, 1, "45000", "Chờ làm")],
         status="Đã thanh toán",
     )
     await session.commit()

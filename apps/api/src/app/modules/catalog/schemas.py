@@ -168,7 +168,7 @@ class IngredientOut(BaseModel):
     MaNguyenLieu: int = Field(validation_alias="id")
     TenNguyenLieu: str = Field(validation_alias="name")
     DonViTinh: str = Field(validation_alias="unit")
-    MucTonToiThieu: float = Field(validation_alias="min_stock")
+    MucTonToiThieu: float | None = Field(default=None, validation_alias="min_stock")
     SoNgayBaoQuan: int | None = Field(default=None, validation_alias="shelf_days")
     DaXoa: bool = Field(validation_alias="is_deleted")
     KhoaDonViTinh: bool = Field(default=False, validation_alias="unit_locked")

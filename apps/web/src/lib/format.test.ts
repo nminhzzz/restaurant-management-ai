@@ -50,7 +50,7 @@ describe("roleLabel", () => {
 describe("statusTone", () => {
   it("maps stored statuses onto the semantic tones", () => {
     expect(statusTone("Hoạt động")).toBe("success");
-    expect(statusTone("Chờ đối soát")).toBe("warning");
+    expect(statusTone("Chờ xác minh thanh toán")).toBe("warning");
     expect(statusTone("Hết nguyên liệu")).toBe("danger");
     expect(statusTone("Đang mở")).toBe("primary");
     expect(statusTone("Nháp")).toBe("muted");

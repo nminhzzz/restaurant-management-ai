@@ -9,13 +9,13 @@ const TONES: Record<string, StatusTone> = {
   "Đang áp dụng": "success",
   "Chờ áp dụng": "muted",
   Trống: "success",
-  "Chờ đối soát": "warning",
+  "Chờ xác minh thanh toán": "warning",
   "Tạm tính": "warning",
   "Hết nguyên liệu": "danger",
   "Đã hủy": "danger",
   "Hết hạn": "danger",
   "Đang mở": "primary",
-  Chờ: "primary",
+  "Chờ làm": "primary",
   "Chờ in": "primary",
   "Chờ xác nhận": "primary",
   "Đang phục vụ": "primary",
@@ -24,6 +24,9 @@ const TONES: Record<string, StatusTone> = {
   "Đã phục vụ": "neutral",
   "Đã đặt": "neutral",
   Nháp: "muted",
+  "Hiệu lực": "success",
+  "Đang kiểm kê": "primary",
+  "Đã xác nhận": "success",
 };
 
 export function statusTone(status: string | null | undefined): StatusTone {

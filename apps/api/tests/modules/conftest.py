@@ -90,7 +90,6 @@ async def dish(session, group):
         name="Phở bò",
         group_id=group.id,
         missing_recipe=True,
-        out_of_stock=False,
         is_deleted=False,
     )
     session.add(d)
@@ -105,7 +104,6 @@ async def draft_dish(session, group):
         name="Món nháp",
         group_id=group.id,
         missing_recipe=True,
-        out_of_stock=False,
         is_deleted=False,
     )
     session.add(d)
@@ -122,7 +120,6 @@ async def three_dishes(session, group):
             name=name,
             group_id=group.id,
             missing_recipe=True,
-            out_of_stock=False,
             is_deleted=False,
         )
         session.add(d)
@@ -142,7 +139,6 @@ async def group_with_dish(session):
         name="Món trong nhóm",
         group_id=g.id,
         missing_recipe=True,
-        out_of_stock=False,
         is_deleted=False,
     )
     session.add(d)
@@ -288,6 +284,22 @@ async def config_with_default_threshold(session):
     return cfg
 
 
+async def _stock_lot(session, ingredient, quantity):
+    from app.modules.inventory.models import IngredientLot
+    from app.shared import business_date
+
+    session.add(
+        IngredientLot(
+            ingredient_id=ingredient.id,
+            quantity_remaining=quantity,
+            received_quantity=quantity,
+            status="Còn hạn",
+            received_at=business_date.now(),
+        )
+    )
+    ingredient.stock_qty = quantity
+
+
 @pytest_asyncio.fixture
 async def dish_with_recipe(session, dish, fresh_ingredient):
     from app.modules.catalog.models import Recipe, RecipeItem
@@ -306,6 +318,8 @@ async def dish_with_recipe(session, dish, fresh_ingredient):
     session.add(RecipeItem(recipe_id=r.id, ingredient_id=fresh_ingredient.id, quantity=0.2))
     dish.missing_recipe = False
     fresh_ingredient.unit_locked = True
+    # The shortage state is derived from available lots, so a sellable dish needs real stock.
+    await _stock_lot(session, fresh_ingredient, 100)
     await session.flush()
     await session.commit()
     return dish
@@ -372,7 +386,7 @@ async def scarce_dish(session, group):
     await session.flush()
     session.add(RecipeItem(recipe_id=r.id, ingredient_id=ing.id, quantity=1))
     # lot with 1 remaining
-    gr = GoodsReceipt(supplier_id=None, status="Nháp", receipt_date=_bd.now())
+    gr = GoodsReceipt(supplier_id=None, status="Hiệu lực", receipt_date=_bd.now())
     session.add(gr)
     await session.flush()
     gl = GoodsReceiptLine(receipt_id=gr.id, ingredient_id=ing.id, quantity=1, unit_price=5000)
@@ -453,7 +467,7 @@ async def _r_order(
     return order
 
 
-async def _r_line(session, order, dish, quantity, unit_price, *, status="Chờ", recipe_id=None):
+async def _r_line(session, order, dish, quantity, unit_price, *, status="Chờ làm", recipe_id=None):
     from app.modules.sales.models import OrderLine
 
     line = OrderLine(
@@ -548,7 +562,7 @@ async def _r_issue(session, *, bd, ingredient, quantity, cost):
         issue_id=issue.id,
         ingredient_id=ingredient.id,
         quantity=Decimal(str(quantity)),
-        estimated_cost=Decimal(str(cost)),
+        estimated_cost=None if cost is None else Decimal(str(cost)),
     )
     session.add(line)
     await session.flush()
@@ -583,20 +597,33 @@ async def invoices_in_september(session):
 
 
 @pytest_asyncio.fixture
-async def order_awaiting_reconciliation(session):
-    order = await _r_order(session, bd=_sep(11), status="Chờ đối soát", order_type="Mang về")
+async def order_awaiting_verification(session):
+    order = await _r_order(
+        session, bd=_sep(11), status="Chờ xác minh thanh toán", order_type="Mang về"
+    )
     total = Decimal("120000")
-    await _r_payment(session, order, method="QR", status="Chờ đối soát", amount=total, bd=_sep(11))
+    await _r_payment(
+        session, order, method="QR", status="Chờ xác minh thanh toán", amount=total, bd=_sep(11)
+    )
     await session.commit()
     return SimpleNamespace(total=total, order_id=order.id)
 
 
 @pytest_asyncio.fixture
-async def disputed_payment(session):
-    """A transaction the manager refused to confirm — never settled into an invoice."""
-    order = await _r_order(session, bd=_sep(12), status="Tranh chấp", order_type="Mang về")
+async def closed_unpaid_payment(session):
+    """A transaction the manager gave up on (FR-SALE-35) — never settled into an invoice."""
+    order = await _r_order(
+        session, bd=_sep(12), status="Đóng \u2013 chưa thu được tiền", order_type="Mang về"
+    )
     total = Decimal("90000")
-    await _r_payment(session, order, method="QR", status="Tranh chấp", amount=total, bd=_sep(12))
+    await _r_payment(
+        session,
+        order,
+        method="QR",
+        status="Đóng \u2013 chưa thu được tiền",
+        amount=total,
+        bd=_sep(12),
+    )
     await session.commit()
     return SimpleNamespace(total=total, order_id=order.id)
 
@@ -698,7 +725,7 @@ async def cancelled_orders(session):
     orders = []
     for day, status, reason, quantity in (
         (14, "Đã hủy", "khách bỏ về", 2),
-        (15, "Tự động đóng", "khách đổi ý", 1),
+        (15, "Đã hủy", "khách đổi ý", 1),
     ):
         order = await _r_order(
             session, bd=_sep(day), status=status, order_type="Mang về", reason=reason
@@ -721,9 +748,7 @@ async def write_off_in_september(session):
 @pytest_asyncio.fixture
 async def write_off_before_month_close(session):
     ingredient = await _r_ingredient(session, "NL chưa tính giá", Decimal("10000"))
-    await _r_issue(
-        session, bd=_sep(23), ingredient=ingredient, quantity=Decimal("2"), cost=Decimal("0")
-    )
+    await _r_issue(session, bd=_sep(23), ingredient=ingredient, quantity=Decimal("2"), cost=None)
     await session.commit()
     return SimpleNamespace(count=1)
 

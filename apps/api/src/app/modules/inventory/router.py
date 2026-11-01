@@ -12,7 +12,6 @@ from app.core.errors import NotFoundError
 from app.modules.inventory import queries
 from app.modules.inventory import service as svc
 from app.modules.inventory.schemas import CountIn, IssueCreate, ReceiptCreate, ReceiptUpdate
-from app.shared.audit import SystemAuditLog
 from app.shared.roles import Role
 
 router = APIRouter(prefix="/inventory", tags=["Inventory"])
@@ -84,7 +83,11 @@ async def update_receipt(
     session: AsyncSession = Depends(get_session),
 ):
     await svc.update_receipt(
-        session, user.user_id, receipt_id, [ln.model_dump() for ln in payload.lines]
+        session,
+        user.user_id,
+        receipt_id,
+        [ln.model_dump() for ln in payload.lines],
+        payload.receipt_date,
     )
     await session.commit()
     return {"ok": True}
@@ -212,42 +215,6 @@ async def confirm_stocktake(
     return {"ok": True}
 
 
-@router.post("/costing/{month}/close")
-async def close_month(
-    month: int,
-    user: Principal = Depends(require_roles(Role.MANAGER)),
-    session: AsyncSession = Depends(get_session),
-):
-    from app.modules.inventory.costing import backfill_issue_costs
-    from app.modules.inventory.costing import close_month as _close
-
-    items = await _close(session, month)
-    # Without the backfill, write-offs keep a cost of 0 and the report stays
-    # "tạm tính" forever (FR-REP-05b).
-    priced = await backfill_issue_costs(session, month)
-    session.add(
-        SystemAuditLog(
-            user_id=user.user_id,
-            action="CLOSE_COSTING_MONTH",
-            target_entity="GIA_BINH_QUAN_THANG",
-            target_id=str(month),
-            after={"SoNguyenLieu": len(items), "SoDongHaoHutDaTinhGia": priced},
-        )
-    )
-    await session.commit()
-    # Serialize via dict to keep precision; avoid leaking ORM directly
-    return [
-        {
-            "MaNguyenLieu": r.ingredient_id,
-            "Thang": r.month,
-            "GiaBinhQuan": float(r.avg_cost),
-            "TongSoLuongNhap": float(r.total_qty),
-            "ThoiDiemTinh": r.computed_at.isoformat() if r.computed_at else None,
-        }
-        for r in items
-    ]
-
-
 @router.get("/stock")
 async def list_stock(
     search: str | None = None,
@@ -310,6 +277,7 @@ async def list_issues(
                 "NgayTao": r.created_at.isoformat() if r.created_at else None,
                 "NguoiLap": r.created_by,
                 "MaPhieuKiemKe": r.stocktake_id,
+                "Nguon": r.source,
                 "GhiChu": r.note,
                 "TongSoLuong": totals.get(r.id, (0.0, 0))[0],
                 "SoDong": totals.get(r.id, (0.0, 0))[1],
@@ -369,15 +337,6 @@ async def get_issue(
         .scalars()
         .all()
     )
-    source = (
-        "Kiểm kê"
-        if issue.stocktake_id is not None
-        else (
-            "Món đã chế biến"
-            if any(line.order_line_id is not None for line, _, _ in rows)
-            else "Nguyên liệu"
-        )
-    )
     return {
         "MaPhieuXuat": issue.id,
         "LyDo": issue.reason,
@@ -385,7 +344,7 @@ async def get_issue(
         "NgayTao": issue.created_at.isoformat() if issue.created_at else None,
         "NguoiLap": issue.created_by,
         "MaPhieuKiemKe": issue.stocktake_id,
-        "Nguon": source,
+        "Nguon": issue.source,
         "GhiChu": issue.note,
         "lines": [
             {
@@ -394,7 +353,9 @@ async def get_issue(
                 "TenNguyenLieu": name,
                 "DonViTinh": unit,
                 "SoLuong": float(line.quantity),
-                "GiaVonUocTinh": float(line.estimated_cost),
+                "GiaVonUocTinh": None
+                if line.estimated_cost is None
+                else float(line.estimated_cost),
                 "MaLoNguyenLieu": next(
                     (
                         movement.lot_id

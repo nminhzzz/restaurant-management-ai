@@ -260,9 +260,27 @@ async def assert_servings_fresh(session):
     lot.quantity_remaining = 4
     await session.flush()
     assert await servings() == 2
+
+    # FR-CAT-27: the dish state is derived in the view, never read from a stored column.
+    async def dish_status(role: str) -> str | None:
+        mon = table(f"vw_ai_{role}_mon", column("MaMon"), column("TrangThai"))
+        return await session.scalar(select(mon.c.TrangThai).where(mon.c.MaMon == dish.id))
+
+    for role in ("quanly", "thungan"):
+        assert await dish_status(role) == "Hoạt động"
     dish.manual_paused = True
     await session.flush()
     assert await servings() is None
+    assert await dish_status("quanly") == "Tạm dừng phục vụ"
+    lot.quantity_remaining = 1
+    await session.flush()
+    assert await dish_status("quanly") == "Hết nguyên liệu"
+    dish.manual_paused = False
+    await session.flush()
+    assert await dish_status("thungan") == "Hết nguyên liệu"
+    dish.missing_recipe = True
+    await session.flush()
+    assert await dish_status("quanly") == "Nháp"
 
 
 @pytest.mark.anyio

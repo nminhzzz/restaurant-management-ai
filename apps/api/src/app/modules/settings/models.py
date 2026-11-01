@@ -2,10 +2,10 @@
 
 from datetime import date, datetime, time
 
-from sqlalchemy import DECIMAL, Date, DateTime, ForeignKey, Index, Integer, String, Time, func
+from sqlalchemy import DECIMAL, Date, ForeignKey, Index, Integer, String, Time, func
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.shared.base import Base, BigInteger
+from app.shared.base import Base, BigInteger, DateTime3
 
 
 class RoleTable(Base):
@@ -34,7 +34,7 @@ class User(Base):
         "TrangThai", String(20), nullable=False, default="Hoạt động"
     )
     created_at: Mapped[datetime] = mapped_column(
-        "NgayTao", DateTime, server_default=func.now(), nullable=False
+        "NgayTao", DateTime3, server_default=func.now(), nullable=False
     )
     # Incremented on password reset/change or a role change so old JWTs stop working.
     token_version: Mapped[int] = mapped_column("PhienBanToken", Integer, nullable=False, default=0)
@@ -52,7 +52,7 @@ class SystemConfig(Base):
     address: Mapped[str | None] = mapped_column("DiaChi", String(255), nullable=True)
     invoice_template: Mapped[str | None] = mapped_column("MauHoaDon", String(50), nullable=True)
     default_stock_threshold: Mapped[float] = mapped_column(
-        "NguongTonMacDinh", DECIMAL(18, 4), nullable=False, default=10
+        "NguongTonMacDinh", DECIMAL(18, 6), nullable=False, default=10
     )
     business_day_start: Mapped[time] = mapped_column(
         "GioBatDauBusinessDate", Time, nullable=False, default=time(hour=6)
@@ -77,4 +77,4 @@ class BusinessDateCutoff(Base):
 
     effective_date: Mapped[date] = mapped_column("NgayHieuLuc", Date, primary_key=True)
     start_time: Mapped[time] = mapped_column("GioBatDau", Time, nullable=False)
-    starts_at: Mapped[datetime] = mapped_column("ThoiDiemBatDau", DateTime, nullable=False)
+    starts_at: Mapped[datetime] = mapped_column("ThoiDiemBatDau", DateTime3, nullable=False)

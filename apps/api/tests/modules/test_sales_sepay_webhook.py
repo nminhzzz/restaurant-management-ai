@@ -115,11 +115,16 @@ async def test_a_transfer_without_our_code_is_acknowledged_but_not_applied(sessi
 
 
 @pytest.mark.anyio
-async def test_a_wrong_amount_goes_to_reconciliation(session, sepay_env):
+async def test_a_wrong_amount_is_an_exception_and_does_not_settle(session, sepay_env):
+    """FR-SALE-15: the wrong sum confirms nothing; the order keeps waiting for its QR."""
     client, _, oid, r = await _qr(session)
     await client.post(HOOK, json=_body(r.json()["MaGiaoDich"], 40000), headers=AUTH)
-    assert await order_status(session, oid) == "Chờ đối soát"
+    assert await order_status(session, oid) == "Chờ xác nhận thanh toán"
     assert await _invoices(session, oid) == 0
+    exceptions = await session.scalar(
+        text("SELECT COUNT(*) FROM NGOAI_LE_THANH_TOAN WHERE TrangThai='Chờ xử lý'")
+    )
+    assert exceptions == 1
 
 
 @pytest.mark.anyio

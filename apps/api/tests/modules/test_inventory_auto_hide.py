@@ -6,6 +6,7 @@ from httpx import ASGITransport, AsyncClient
 from app.core.database import get_session
 from app.core.security import create_access_token, hash_password
 from app.main import app
+from app.modules.catalog.availability import is_short_of_ingredients
 from app.modules.catalog.models import (
     Dish,
     DishGroup,
@@ -60,7 +61,7 @@ async def _dish_with_recipe(session, need=3, stock_qty=2):
     ing = Ingredient(name="NL hiếm", unit="kg", min_stock=0, stock_qty=0, is_deleted=False)
     session.add(ing)
     await session.flush()
-    gr = GoodsReceipt(supplier_id=None, status="Nháp", receipt_date=business_date.now())
+    gr = GoodsReceipt(supplier_id=None, status="Hiệu lực", receipt_date=business_date.now())
     session.add(gr)
     await session.flush()
     gl = GoodsReceiptLine(
@@ -111,8 +112,7 @@ async def test_manual_issue_hides_dish_when_recipe_can_no_longer_be_served(sessi
         headers=h,
     )
     assert r.status_code == 201, r.text
-    await session.refresh(d)
-    assert d.out_of_stock is True
+    assert await is_short_of_ingredients(session, d.id) is True
 
 
 @pytest.mark.anyio
@@ -127,8 +127,7 @@ async def test_receipt_restores_dish_once_recipe_can_be_served_again(session):
         headers=h,
     )
     assert r.status_code == 201, r.text
-    await session.refresh(d)
-    assert d.out_of_stock is True
+    assert await is_short_of_ingredients(session, d.id) is True
 
     r2 = await client.post(
         "/api/v1/inventory/receipts",
@@ -136,8 +135,7 @@ async def test_receipt_restores_dish_once_recipe_can_be_served_again(session):
         headers=h,
     )
     assert r2.status_code == 201, r2.text
-    await session.refresh(d)
-    assert d.out_of_stock is False
+    assert await is_short_of_ingredients(session, d.id) is False
 
 
 @pytest.mark.anyio
@@ -154,5 +152,4 @@ async def test_stocktake_confirm_recomputes_visibility(session):
     )
     r = await client.post(f"/api/v1/inventory/stocktakes/{sid}/confirm", headers=h)
     assert r.status_code == 200
-    await session.refresh(d)
-    assert d.out_of_stock is True
+    assert await is_short_of_ingredients(session, d.id) is True

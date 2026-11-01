@@ -41,3 +41,20 @@ ROLE_TOPICS: MappingProxyType[Role, tuple[str, ...]] = MappingProxyType(
 
 def views_for(role: Role) -> frozenset[str]:
     return frozenset(f"{ROLE_VIEWS[role]}_{topic}" for topic in ROLE_TOPICS[role])
+
+
+def views_used(sql: str | None, role: Role) -> list[str]:
+    """The topic views a generated query really reads (PhamViDuLieu, document 04 F.29)."""
+    if not sql:
+        return []
+    import sqlglot
+    from sqlglot import exp
+    from sqlglot.errors import SqlglotError
+
+    try:
+        tree = sqlglot.parse_one(sql, read="mysql")
+    except SqlglotError:
+        return []
+    allowed = views_for(role)
+    names = {table.name.lower() for table in tree.find_all(exp.Table)}
+    return sorted(names & allowed)

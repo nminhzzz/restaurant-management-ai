@@ -173,26 +173,27 @@ describe("PaymentPanel", () => {
     expect(screen.queryByText("Hủy toàn bộ order")).not.toBeInTheDocument();
   });
 
-  it("offers reconciliation once an order is waiting for it", async () => {
+  it("offers the manager actions once an order is waiting for verification", async () => {
     saveSession({ token: "t", role: "MANAGER", username: "quanly" });
     stubByPath({
       "/sales/orders/1/payments": {
-        items: [qr({ TrangThai: "Chờ đối soát" })],
+        items: [qr({ TrangThai: "Chờ xác minh thanh toán" })],
       },
-      "/sales/orders/1": { ...openOrder, TrangThai: "Chờ đối soát" },
+      "/sales/orders/1": { ...openOrder, TrangThai: "Chờ xác minh thanh toán" },
     });
     render(<PaymentPanel orderId={1} />);
 
     await screen.findByText("ORD-1");
+    for (const name of [
+      "Xác nhận đã nhận tiền",
+      "Mở lại thanh toán",
+      "Đóng chưa thu",
+    ]) {
+      expect(screen.getByRole("button", { name })).toBeInTheDocument();
+    }
     expect(
-      screen.getByLabelText("Mã tham chiếu ngân hàng"),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Xác nhận đã nhận tiền" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Không có giao dịch" }),
-    ).toBeInTheDocument();
+      screen.queryByRole("button", { name: "Không có giao dịch" }),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -210,7 +211,7 @@ describe("PaymentPanel cash and SePay", () => {
         MaMon: 5,
         SoLuong: 2,
         DonGia: 170000,
-        TrangThai: "Chờ",
+        TrangThai: "Chờ làm",
       },
     ],
   };
@@ -368,19 +369,19 @@ describe("PaymentPanel cash and SePay", () => {
     try {
       saveSession({ token: "t", role: "MANAGER", username: "quanly" });
       const live = qr();
-      let reconciling = false;
+      let expired = false;
       let orderCalls = 0;
       fetchMock.mockImplementation((path: string) => {
         if (path.startsWith("/sales/orders/1/payments"))
           return Promise.resolve({
-            items: [
-              reconciling ? { ...live, TrangThai: "Chờ đối soát" } : live,
-            ],
+            items: [expired ? { ...live, TrangThai: "Hết hạn" } : live],
           });
         if (path.startsWith("/sales/orders/1")) {
           orderCalls += 1;
           return Promise.resolve(
-            reconciling ? { ...priced, TrangThai: "Chờ đối soát" } : priced,
+            expired
+              ? { ...priced, TrangThai: "Chờ xác minh thanh toán" }
+              : priced,
           );
         }
         return Promise.resolve({});
@@ -388,14 +389,14 @@ describe("PaymentPanel cash and SePay", () => {
       render(<PaymentPanel orderId={1} />);
       await act(async () => {});
       const callsBeforePoll = orderCalls;
-      reconciling = true;
+      expired = true;
       await act(async () => {
         vi.advanceTimersByTime(3000);
       });
 
       expect(orderCalls).toBeGreaterThan(callsBeforePoll);
       expect(
-        screen.getByLabelText("Mã tham chiếu ngân hàng"),
+        screen.getByRole("button", { name: "Xác nhận đã nhận tiền" }),
       ).toBeInTheDocument();
     } finally {
       vi.useRealTimers();
