@@ -390,7 +390,7 @@ async def update_ingredient(
         ingredient_id,
         payload.TenNguyenLieu,
         payload.DonViTinh,
-        payload.MucTonToiThieu,
+        payload.MucTonToiThieu if "MucTonToiThieu" in payload.model_fields_set else svc.UNSET,
         payload.SoNgayBaoQuan,
     )
     await session.commit()

@@ -80,7 +80,7 @@ type Hold = {
 };
 
 const NEXT_STATUS: Record<string, string> = {
-  Chờ: "Đã xác nhận xong",
+  "Chờ làm": "Đã xác nhận xong",
   "Đã xác nhận xong": "Đã phục vụ",
 };
 
@@ -335,7 +335,7 @@ export function OrderDetail({ orderId }: { orderId: number }) {
 
       <ul className="divide-y divide-border rounded-container border border-border bg-surface">
         {lines.map((line) => {
-          const canEdit = !locked && line.TrangThai === "Chờ";
+          const canEdit = !locked && line.TrangThai === "Chờ làm";
           const nextStatus = NEXT_STATUS[line.TrangThai];
           return (
             <li

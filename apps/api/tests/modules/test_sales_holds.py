@@ -84,7 +84,7 @@ async def _setup(session, stock: int = 10):
     session.add_all([price, recipe])
     await session.flush()
     session.add(RecipeItem(recipe_id=recipe.id, ingredient_id=ingredient.id, quantity=1))
-    receipt = GoodsReceipt(supplier_id=None, status="Nháp", receipt_date=business_date.now())
+    receipt = GoodsReceipt(supplier_id=None, status="Hiệu lực", receipt_date=business_date.now())
     session.add(receipt)
     await session.flush()
     line = GoodsReceiptLine(

@@ -179,7 +179,7 @@ async def test_an_open_order_is_not_costed_as_sold(session):
             quantity=4,
             unit_price=Decimal("125000"),
             recipe_id=recipe.id,
-            status="Chờ",
+            status="Chờ làm",
         )
     )
     await session.commit()
@@ -217,7 +217,7 @@ async def test_a_negative_stocktake_adjustment_is_part_of_waste(session):
             ingredient_id=ingredient.id, month=202609, avg_cost=Decimal("10000"), total_qty=10
         )
     )
-    stocktake = Stocktake(status="Nháp")
+    stocktake = Stocktake(status="Đang kiểm kê")
     session.add(stocktake)
     await session.flush()
     line = StocktakeLine(

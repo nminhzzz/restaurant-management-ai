@@ -57,9 +57,9 @@ async def test_low_stock_uses_ingredient_threshold_when_set(session):
 
 
 @pytest.mark.anyio
-async def test_low_stock_falls_back_to_system_default_when_ingredient_threshold_is_zero(session):
+async def test_low_stock_falls_back_to_system_default_when_ingredient_threshold_is_null(session):
     # System default is seeded at 5 (see seed_reference_data).
-    ing = Ingredient(name="Đường", unit="kg", min_stock=0, stock_qty=3, is_deleted=False)
+    ing = Ingredient(name="Đường", unit="kg", min_stock=None, stock_qty=3, is_deleted=False)
     session.add(ing)
     await session.flush()
     await session.commit()
@@ -69,6 +69,20 @@ async def test_low_stock_falls_back_to_system_default_when_ingredient_threshold_
     row = next(x for x in r.json()["items"] if x["MaNguyenLieu"] == ing.id)
     assert row["MucTonToiThieuApDung"] == 5
     assert row["CanhBaoTonThap"] is True
+
+
+@pytest.mark.anyio
+async def test_an_own_threshold_of_zero_is_honoured_not_replaced_by_the_default(session):
+    ing = Ingredient(name="Muối", unit="kg", min_stock=0, stock_qty=3, is_deleted=False)
+    session.add(ing)
+    await session.flush()
+    await session.commit()
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    r = await client.get("/api/v1/inventory/stock", headers=h)
+    row = next(x for x in r.json()["items"] if x["MaNguyenLieu"] == ing.id)
+    assert row["MucTonToiThieuApDung"] == 0
+    assert row["CanhBaoTonThap"] is False
 
 
 @pytest.mark.anyio

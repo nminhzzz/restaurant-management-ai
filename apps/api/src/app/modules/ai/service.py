@@ -33,7 +33,7 @@ from app.modules.ai.schemas import (
     SessionSummary,
     TurnOut,
 )
-from app.modules.ai.scope import ROLE_VIEWS
+from app.modules.ai.scope import ROLE_VIEWS, views_used
 from app.modules.ai.usage import collect_usage, current_usage
 from app.shared.roles import Role
 
@@ -77,7 +77,7 @@ async def _record(
     usage = current_usage()
     row = AssistantQuery(
         session_id=chat_session.id,
-        scope=ROLE_VIEWS[role],
+        scope=views_used(sql_text, role),
         question=question,
         sql_text=sql_text,
         status=status,

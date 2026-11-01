@@ -21,7 +21,6 @@ from app.modules.inventory.models import IngredientLot, StockMovement
 from app.modules.sales.models import Invoice
 from app.modules.settings.models import User
 from app.modules.settings.service import seed_reference_data
-from tests.helpers import FIXED_NOW
 
 pytestmark = pytest.mark.integration
 
@@ -189,8 +188,7 @@ async def test_mysql_stock_sale_payment_costing_and_permissions(
             {"reason": "Hao hụt", "lines": [{"ingredient_id": iid, "quantity": 3}]},
             warehouse,
         )
-        month = FIXED_NOW.year * 100 + FIXED_NOW.month
-        await post(f"/inventory/costing/{month}/close", {}, manager, 200)
+        # QD-01: the costs below are available without any manual month close.
         response = await client.get(
             "/api/v1/reports/costs", params={"month": "2026-09"}, headers=manager
         )

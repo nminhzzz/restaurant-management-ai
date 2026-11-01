@@ -67,7 +67,7 @@ async def list_stock(
         .group_by(IngredientLot.ingredient_id)
         .subquery()
     )
-    threshold = case((Ingredient.min_stock > 0, Ingredient.min_stock), else_=default)
+    threshold = case((Ingredient.min_stock.is_not(None), Ingredient.min_stock), else_=default)
     available_qty = func.coalesce(lots.c.available, 0)
     statement = (
         select(

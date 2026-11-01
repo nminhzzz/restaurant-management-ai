@@ -62,7 +62,7 @@ async def test_revenue_can_be_split_by_table_and_by_payment_method(
 
 @pytest.mark.anyio
 async def test_revenue_can_be_split_by_order_type(
-    api_client, manager_token, invoices_in_september, order_awaiting_reconciliation
+    api_client, manager_token, invoices_in_september, order_awaiting_verification
 ):
     """FR-REP-01: dine-in and take-away are separate revenue lines."""
     body = (
@@ -77,17 +77,15 @@ async def test_revenue_can_be_split_by_order_type(
 
 @pytest.mark.anyio
 async def test_pending_payments_list_shows_unconfirmed_money(
-    api_client, manager_token, order_awaiting_reconciliation, disputed_payment
+    api_client, manager_token, order_awaiting_verification, closed_unpaid_payment
 ):
     """FR-REP-02: a separate list with the value and how long it has waited."""
     body = (
         await api_client.get("/api/v1/reports/pending-payments", headers=_auth(manager_token))
     ).json()
 
-    assert {row["MaOrder"] for row in body["items"]} == {
-        order_awaiting_reconciliation.order_id,
-        disputed_payment.order_id,
-    }
+    # Only money still waiting to be confirmed is listed; an order closed unpaid is not.
+    assert {row["MaOrder"] for row in body["items"]} == {order_awaiting_verification.order_id}
     assert {"ThoiGianChoPhut", "SoTien", "TrangThai", "PhuongThuc"} <= set(body["items"][0])
 
 
@@ -107,29 +105,29 @@ async def test_the_split_by_table_sums_back_to_the_total(
 
 
 @pytest.mark.anyio
-async def test_a_transaction_awaiting_reconciliation_is_provisional_revenue(
-    api_client, manager_token, order_awaiting_reconciliation
+async def test_a_transaction_awaiting_verification_is_provisional_revenue(
+    api_client, manager_token, order_awaiting_verification
 ):
     """FR-REP-02: counted for now, but flagged."""
     body = (
         await api_client.get(REVENUE, headers=_auth(manager_token), params={"granularity": "month"})
     ).json()
 
-    assert Decimal(body["provisional"]) == order_awaiting_reconciliation.total
+    assert Decimal(body["provisional"]) == order_awaiting_verification.total
     assert Decimal(body["total"]) == 0
     assert body["SoDon"] == 0
 
 
 @pytest.mark.anyio
-async def test_marking_a_dispute_subtracts_it_from_revenue(
-    api_client, manager_token, disputed_payment, invoices_in_september
+async def test_an_order_closed_unpaid_never_counts_as_revenue(
+    api_client, manager_token, closed_unpaid_payment, invoices_in_september
 ):
-    """FR-REP-02: a dispute is deducted retroactively."""
+    """FR-SALE-35: closing an order unpaid leaves the revenue total unchanged."""
     body = (
         await api_client.get(REVENUE, headers=_auth(manager_token), params={"granularity": "month"})
     ).json()
 
-    # A dispute was never revenue: marking it changes nothing in the revenue total.
+    # It never produced an invoice, so it was never revenue.
     assert Decimal(body["total"]) == invoices_in_september.total
 
 

@@ -428,7 +428,7 @@ async def test_receipt_detail_returns_the_lines_the_edit_form_needs(session):
 
     assert detail.status_code == 200, detail.text
     body = detail.json()
-    assert body["TrangThai"] == "Nháp"
+    assert body["TrangThai"] == "Hiệu lực"
     assert len(body["lines"]) == 1
     assert body["lines"][0]["MaNguyenLieu"] == ing.id
     assert body["lines"][0]["SoLuong"] == 5

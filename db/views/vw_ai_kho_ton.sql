@@ -61,7 +61,7 @@ SELECT
       )
   ) AS DECIMAL(18, 4)) AS SoLuongKhaDung,
   CASE
-    WHEN n.MucTonToiThieu > 0
+    WHEN n.MucTonToiThieu IS NOT NULL
     THEN n.MucTonToiThieu
     ELSE (
       SELECT
@@ -74,7 +74,7 @@ SELECT
   END AS MucTonToiThieu,
   CASE
     WHEN n.SoLuongTon < CASE
-      WHEN n.MucTonToiThieu > 0
+      WHEN n.MucTonToiThieu IS NOT NULL
       THEN n.MucTonToiThieu
       ELSE (
         SELECT

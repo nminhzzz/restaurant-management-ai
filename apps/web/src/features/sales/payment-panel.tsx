@@ -117,9 +117,9 @@ async function loadDetail(orderId: number) {
 }
 
 const ROUNDING = [50_000, 100_000, 500_000];
-// A QR moving to any of these while polling means the reconciliation UI (which
-// keys off the order status) needs a fresh order, not just a fresh QR object.
-const NON_SUCCESS_STATUSES = ["Chờ đối soát", "Hết hạn", "Đã hủy"];
+// A QR moving to any of these while polling means the order-status-driven UI
+// needs a fresh order, not just a fresh QR object.
+const NON_SUCCESS_STATUSES = ["Hết hạn", "Đã hủy"];
 
 /** Exact amount first, then the next round notes a customer is likely to hand over. */
 export function quickAmounts(total: number): number[] {
@@ -148,7 +148,6 @@ export function PaymentPanel({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [reason, setReason] = useState("");
-  const [bankRef, setBankRef] = useState("");
   const [verifyOpen, setVerifyOpen] = useState(false);
   const [verifyMode, setVerifyMode] = useState<"request" | "reference">(
     "request",
@@ -283,15 +282,14 @@ export function PaymentPanel({
     .reduce((sum, l) => sum + l.DonGia * l.SoLuong, 0);
   const expired = remaining === "Hết hạn" || qr?.TrangThai === "Hết hạn";
   const live = qr?.TrangThai === "Chờ xác nhận" && !expired;
-  const reconciling = order.TrangThai === "Chờ đối soát";
   const verifying = order.TrangThai === "Chờ xác minh thanh toán";
   const closedUnpaid = order.TrangThai === "Đóng – chưa thu được tiền";
   const settled = order.TrangThai === "Đã thanh toán";
   const locked = order.TrangThai !== "Đang mở";
-  // Only a QR that's still actionable (live, reconciliation or verification)
+  // Only a QR that's still actionable (live or awaiting verification)
   // should keep the cashier out of the cash tab — an expired/cancelled QR can't
   // be cancelled through the API, so locking cash on it would strand the order.
-  const qrLocksCash = live || reconciling || verifying || closedUnpaid;
+  const qrLocksCash = live || verifying || closedUnpaid;
   const activeMethod: "cash" | "qr" = qrLocksCash ? "qr" : method;
 
   async function run(action: () => Promise<void>, fallback: string) {
@@ -374,18 +372,6 @@ export function PaymentPanel({
       setMessage("Đã hủy giao dịch QR.");
       await detail.reload();
     }, "Hủy QR thất bại.");
-  };
-
-  const reportBankTransfer = () => {
-    if (!qr) return;
-    return run(async () => {
-      await apiFetch(`/sales/orders/${orderId}/reconcile`, {
-        method: "POST",
-        body: { payment_id: qr.MaGiaoDich },
-      });
-      setMessage("Đã chuyển order sang chờ đối soát.");
-      await detail.reload();
-    }, "Không đối soát được giao dịch.");
   };
 
   const requestVerification = () => {
@@ -484,17 +470,6 @@ export function PaymentPanel({
     setActionReason("");
     setActionOutcome("");
     setManagerAction("close");
-  };
-
-  const saveBankRef = () => {
-    if (!qr) return;
-    return run(async () => {
-      await apiFetch(`/sales/payments/${qr.MaGiaoDich}/reference`, {
-        method: "POST",
-        body: { reference: bankRef },
-      });
-      setMessage("Đã lưu mã tham chiếu ngân hàng.");
-    }, "Không lưu được mã tham chiếu.");
   };
 
   const resolve = (outcome: "received" | "not_received", note?: string) => {
@@ -778,7 +753,7 @@ export function PaymentPanel({
             size="pos"
             className="w-full"
             onClick={createQr}
-            disabled={locked || reconciling}
+            disabled={locked}
           >
             <QrCode />
             Tạo mã QR
@@ -885,8 +860,8 @@ export function PaymentPanel({
                   <TimerReset />
                   Tạo mã QR mới
                 </Button>
-                {expired && !reconciling && !verifying && (
-                  <Button size="sm" onClick={reportBankTransfer}>
+                {expired && !verifying && (
+                  <Button size="sm" onClick={requestVerification}>
                     Khách báo đã chuyển khoản
                   </Button>
                 )}
@@ -978,50 +953,6 @@ export function PaymentPanel({
                     <Button size="sm" onClick={applyLatePayment}>
                       Áp dụng khoản đến muộn
                     </Button>
-                  )}
-                </div>
-              )}
-
-              {reconciling && (
-                <div className="space-y-3 border-t border-border pt-3">
-                  <div>
-                    <Label htmlFor={`bank-ref-${orderId}`}>
-                      Mã tham chiếu ngân hàng
-                    </Label>
-                    <div className="mt-1.5 flex gap-2">
-                      <Input
-                        id={`bank-ref-${orderId}`}
-                        className="h-10 flex-1"
-                        placeholder="Ví dụ: FT2609xxxxx"
-                        value={bankRef}
-                        onChange={(e) => setBankRef(e.target.value)}
-                      />
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={saveBankRef}
-                        disabled={bankRef.trim() === ""}
-                      >
-                        Lưu
-                      </Button>
-                    </div>
-                  </div>
-                  <Button size="sm" variant="secondary" onClick={addEvidence}>
-                    Bổ sung bằng chứng
-                  </Button>
-                  {isManager && (
-                    <div className="flex flex-wrap gap-2">
-                      <Button size="sm" onClick={() => resolve("received")}>
-                        Xác nhận đã nhận tiền
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outlineDanger"
-                        onClick={() => resolve("not_received")}
-                      >
-                        Không có giao dịch
-                      </Button>
-                    </div>
                   )}
                 </div>
               )}

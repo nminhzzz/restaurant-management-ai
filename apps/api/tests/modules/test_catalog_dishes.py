@@ -7,6 +7,7 @@ from sqlalchemy import select
 from app.core.database import get_session
 from app.core.security import create_access_token, hash_password
 from app.main import app
+from app.modules.catalog.models import DishGroup
 from app.modules.settings.models import User
 from app.modules.settings.service import seed_reference_data
 from tests.helpers import latest_audit, pending_price_versions, today
@@ -115,6 +116,34 @@ async def test_a_group_can_be_deleted_once_every_dish_is_soft_deleted(session, g
         resp = await delete_group(client, headers, group_with_dish.id)
     app.dependency_overrides.clear()
     assert resp.status_code == 204
+    row = await session.get(DishGroup, group_with_dish.id)
+    assert row is not None
+    assert row.is_deleted is True
+
+
+@pytest.mark.asyncio
+async def test_a_group_that_never_held_a_dish_is_deleted_for_good(session):
+    headers = await _auth_headers(session)
+    async with await _make_client(session) as client:
+        created = await create_group(client, headers, "Nhóm trống")
+        gid = created.json()["MaNhomMon"]
+        resp = await delete_group(client, headers, gid)
+    app.dependency_overrides.clear()
+    assert resp.status_code == 204
+    session.expire_all()
+    assert await session.get(DishGroup, gid) is None
+    audit = await latest_audit(session)
+    assert audit["LoaiThaoTac"] == "DELETE_GROUP"
+    assert audit["MaDoiTuong"] == str(gid)
+
+
+@pytest.mark.asyncio
+async def test_a_missing_group_is_not_found(session):
+    headers = await _auth_headers(session)
+    async with await _make_client(session) as client:
+        resp = await delete_group(client, headers, 999999)
+    app.dependency_overrides.clear()
+    assert resp.status_code == 404
 
 
 @pytest.mark.asyncio
@@ -162,7 +191,6 @@ async def test_a_new_dish_starts_as_draft(session, group):
     row = await session.get(Dish, dish_id)
     assert row is not None
     assert row.missing_recipe is True
-    assert row.out_of_stock is False
     assert await active_recipe(session, dish_id, today()) is None
 
 

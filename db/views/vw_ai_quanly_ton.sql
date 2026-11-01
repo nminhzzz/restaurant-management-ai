@@ -11,7 +11,7 @@ SELECT
    WHERE l.MaNguyenLieu=n.MaNguyenLieu AND l.SoLuongConLai>0 AND l.TrangThai<>'Hết hạn'
    AND (l.HanSuDung IS NULL OR DATE_ADD(l.HanSuDung, INTERVAL 1 DAY)>CURRENT_TIMESTAMP)) AS SoLuongDuDieuKien,
   CASE
-    WHEN n.MucTonToiThieu > 0
+    WHEN n.MucTonToiThieu IS NOT NULL
     THEN n.MucTonToiThieu
     ELSE (
       SELECT

@@ -130,7 +130,7 @@ async def test_refund_cannot_exceed_the_received_amount(session):
 
 
 @pytest.mark.anyio
-async def test_refunding_a_wrong_amount_frees_the_order_to_pay_again(session, monkeypatch):
+async def test_refunding_a_wrong_amount_leaves_the_qr_payable(session, monkeypatch):
     monkeypatch.setenv("PAYMENT_GATEWAY", "sepay")
     monkeypatch.setenv("SEPAY_BANK_ACCOUNT", "0123499999")
     monkeypatch.setenv("SEPAY_BANK_CODE", "MBBank")
@@ -145,7 +145,7 @@ async def test_refunding_a_wrong_amount_frees_the_order_to_pay_again(session, mo
     started = await client.post(f"/api/v1/sales/orders/{order_id}/pay/qr", headers=headers)
     payment_id = started.json()["MaGiaoDich"]
 
-    # Guest transfers 1.000đ short: the money is kept, the order waits for a human.
+    # Guest transfers 1.000đ short: it confirms nothing and is listed for the manager.
     outcome = await payments.handle_sepay_transfer(
         session,
         {
@@ -156,10 +156,10 @@ async def test_refunding_a_wrong_amount_frees_the_order_to_pay_again(session, mo
             "content": f"TT{payment_id}",
         },
     )
-    assert outcome == "reconciling"
+    assert outcome == "unmatched"
     order = await session.get(payments.Order, order_id)
     await session.refresh(order)
-    assert order.status == payments.QR_RECONCILING
+    assert order.status == payments.QR_PENDING_ORDER
 
     exception = (
         await session.execute(
@@ -177,9 +177,11 @@ async def test_refunding_a_wrong_amount_frees_the_order_to_pay_again(session, mo
     await session.refresh(order)
     refreshed = await session.get(PaymentTransaction, payment_id)
     await session.refresh(refreshed)
-    assert order.status == "Đang mở"
-    assert refreshed.status == payments.QR_CANCELLED
+    # Refunding the short transfer does not touch the order: its QR is still payable.
+    assert order.status == payments.QR_PENDING_ORDER
+    assert refreshed.status == payments.QR_PENDING
     assert exception.refund_ref == "REF-9300"
+    assert exception.status == payments.EXCEPTION_REFUNDED
 
     get_settings.cache_clear()
 

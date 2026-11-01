@@ -30,16 +30,14 @@ from app.shared import business_date
 from app.shared.audit import SystemAuditLog
 from app.shared.business_date import business_month_range
 
-STATUS_PENDING = "Chờ đối soát"
-STATUS_DISPUTED = "Tranh chấp"
 STATUS_VERIFYING = "Chờ xác minh thanh toán"
 STATUS_UNCONFIRMED = "Chờ xác nhận"
-PROVISIONAL_STATUSES = (STATUS_PENDING, STATUS_VERIFYING)
+PROVISIONAL_STATUSES = (STATUS_VERIFYING,)
 STATUS_PAID = "Thành công"
 STATUS_CLOSED_UNPAID = "Đóng \u2013 chưa thu được tiền"
 UNKNOWN_METHOD = "Chưa xác định"
 GROUP_BY_VALUES = ("period", "table", "payment_method", "order_type")
-CANCELLED_ORDER_STATUSES = ("Đã hủy", "Tự động đóng")
+CANCELLED_ORDER_STATUSES = ("Đã hủy",)
 LINE_CANCELLED = "Đã hủy"
 
 
@@ -450,7 +448,7 @@ async def exceptional_order_costs(
 ) -> dict[int, Decimal]:
     """FR-REP-05c: net ingredient cost actually consumed by cancelled/closed orders.
 
-    The ledger is authoritative: a "Chờ" line that was cancelled has its draw reversed
+    The ledger is authoritative: a "Chờ làm" line that was cancelled has its draw reversed
     by a Hoàn kho movement, so its net is zero; a prepared line that was not returned
     keeps a positive net even though the line now reads "Đã hủy".
     """
@@ -534,7 +532,7 @@ async def waste_cost(session: AsyncSession, month: int) -> tuple[Decimal, int]:
             *window,
             StockIssue.stocktake_id.is_(None),
             StockIssueLine.order_line_id.is_(None),
-            StockIssueLine.estimated_cost == 0,
+            StockIssueLine.estimated_cost.is_(None),
         ),
     )
 
@@ -705,7 +703,7 @@ async def compare_periods(
 
 
 async def cancelled_orders(session: AsyncSession, period: BusinessPeriod) -> CancelledReport:
-    """FR-REP-10: both `Đã hủy` and `Tự động đóng` never produced an invoice."""
+    """FR-REP-10: a cancelled (`Đã hủy`) order never produced an invoice."""
     stmt = (
         select(
             Order.id,
@@ -817,11 +815,7 @@ async def pending_payments(
     session: AsyncSession, period: BusinessPeriod | None = None
 ) -> list[PendingPayment]:
     """FR-REP-02: money not yet confirmed, with how long the guest has waited."""
-    conditions: list[Any] = [
-        PaymentTransaction.status.in_(
-            (STATUS_UNCONFIRMED, STATUS_VERIFYING, STATUS_PENDING, STATUS_DISPUTED)
-        )
-    ]
+    conditions: list[Any] = [PaymentTransaction.status.in_((STATUS_UNCONFIRMED, STATUS_VERIFYING))]
     if period is not None:
         conditions += [
             PaymentTransaction.business_date >= period.start,

@@ -8,7 +8,6 @@ from sqlalchemy import (
     CheckConstraint,
     Computed,
     Date,
-    DateTime,
     ForeignKey,
     Integer,
     String,
@@ -16,7 +15,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.shared.base import Base, BigInteger
+from app.shared.base import Base, BigInteger, DateTime3
 
 
 class DishGroup(Base):
@@ -25,7 +24,7 @@ class DishGroup(Base):
     name: Mapped[str] = mapped_column("TenNhomMon", String(100), nullable=False)
     display_order: Mapped[int] = mapped_column("ThuTuHienThi", Integer, nullable=False, default=0)
     is_deleted: Mapped[bool] = mapped_column("DaXoa", default=False, nullable=False)
-    deleted_at: Mapped[datetime | None] = mapped_column("NgayXoa", DateTime, nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column("NgayXoa", DateTime3, nullable=True)
 
 
 class Ingredient(Base):
@@ -36,18 +35,20 @@ class Ingredient(Base):
     name: Mapped[str] = mapped_column("TenNguyenLieu", String(100), nullable=False)
     unit: Mapped[str] = mapped_column("DonViTinh", String(20), nullable=False, default="kg")
     stock_qty: Mapped[Decimal] = mapped_column(
-        "SoLuongTon", DECIMAL(18, 4), nullable=False, default=Decimal("0")
+        "SoLuongTon", DECIMAL(18, 6), nullable=False, default=Decimal("0")
     )
     version: Mapped[int] = mapped_column("Version", Integer, nullable=False, default=1)
     unit_locked: Mapped[bool] = mapped_column("DaKhoaDonVi", default=False, nullable=False)
-    min_stock: Mapped[Decimal] = mapped_column(
-        "MucTonToiThieu", DECIMAL(18, 4), nullable=False, default=Decimal("0")
+    min_stock: Mapped[Decimal | None] = mapped_column(
+        "MucTonToiThieu", DECIMAL(18, 6), nullable=True
     )
     shelf_days: Mapped[int | None] = mapped_column("SoNgayBaoQuan", Integer, nullable=True)
     is_deleted: Mapped[bool] = mapped_column("DaXoa", default=False, nullable=False)
     __table_args__ = (
         CheckConstraint("SoLuongTon >= 0", name="stock_non_negative"),
-        CheckConstraint("MucTonToiThieu >= 0", name="min_stock_non_negative"),
+        CheckConstraint(
+            "MucTonToiThieu IS NULL OR MucTonToiThieu >= 0", name="min_stock_non_negative"
+        ),
     )
 
 
@@ -106,22 +107,8 @@ class Dish(Base):
     )
     image_url: Mapped[str | None] = mapped_column("HinhAnh", String(500), nullable=True)
     missing_recipe: Mapped[bool] = mapped_column("ChuaCoCongThuc", default=True, nullable=False)
-    out_of_stock: Mapped[bool] = mapped_column("HetNguyenLieu", default=False, nullable=False)
-    # FR-CAT-26: the manager's pause is independent of the derived shortage flag.
+    # FR-CAT-26: the manager's pause is independent of the derived shortage state.
     manual_paused: Mapped[bool] = mapped_column("TamDungThuCong", default=False, nullable=False)
-    status: Mapped[str | None] = mapped_column(
-        "TrangThai",
-        String(20),
-        Computed(
-            (
-                "CASE WHEN ChuaCoCongThuc=1 THEN 'Nháp' WHEN HetNguyenLieu=1 "
-                "THEN 'Hết nguyên liệu' WHEN TamDungThuCong=1 "
-                "THEN 'Tạm dừng phục vụ' ELSE 'Hoạt động' END"
-            ),
-            persisted=True,
-        ),
-        nullable=True,
-    )
     is_deleted: Mapped[bool] = mapped_column("DaXoa", default=False, nullable=False)
 
 
@@ -136,16 +123,16 @@ class DishPriceVersion(Base):
         ForeignKey("MON_AN.MaMon", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=False,
     )
-    price: Mapped[Decimal] = mapped_column("GiaBan", DECIMAL(18, 4), nullable=False)
+    price: Mapped[Decimal] = mapped_column("GiaBan", DECIMAL(18, 2), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        "ThoiDiemTao", DateTime, server_default=func.now(), nullable=False
+        "ThoiDiemTao", DateTime3, server_default=func.now(), nullable=False
     )
     business_date: Mapped[date] = mapped_column("BusinessDateApDung", Date, nullable=False)
     effective_from: Mapped[datetime | None] = mapped_column(
-        "ThoiDiemHieuLuc", DateTime, nullable=True
+        "ThoiDiemHieuLuc", DateTime3, nullable=True
     )
     effective_to: Mapped[datetime | None] = mapped_column(
-        "ThoiDiemHetHieuLuc", DateTime, nullable=True
+        "ThoiDiemHetHieuLuc", DateTime3, nullable=True
     )
     change_type: Mapped[str] = mapped_column(
         "LoaiThayDoi", String(20), nullable=False, default="Tạo mới"
@@ -159,6 +146,7 @@ class DishPriceVersion(Base):
         ForeignKey("NGUOI_DUNG.MaNguoiDung", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=True,
     )
+    __table_args__ = (CheckConstraint("GiaBan > 0", name="price_positive"),)
 
 
 class Recipe(Base):
@@ -172,10 +160,10 @@ class Recipe(Base):
     )
     business_date: Mapped[date] = mapped_column("BusinessDateApDung", Date, nullable=False)
     effective_from: Mapped[datetime | None] = mapped_column(
-        "ThoiDiemHieuLuc", DateTime, nullable=True
+        "ThoiDiemHieuLuc", DateTime3, nullable=True
     )
     effective_to: Mapped[datetime | None] = mapped_column(
-        "ThoiDiemHetHieuLuc", DateTime, nullable=True
+        "ThoiDiemHetHieuLuc", DateTime3, nullable=True
     )
     change_type: Mapped[str] = mapped_column(
         "LoaiThayDoi", String(20), nullable=False, default="Tạo mới"
@@ -191,7 +179,7 @@ class Recipe(Base):
     )
     version_number: Mapped[int] = mapped_column("SoPhienBan", Integer, nullable=False, default=1)
     created_at: Mapped[datetime] = mapped_column(
-        "ThoiDiemTao", DateTime, server_default=func.now(), nullable=False
+        "ThoiDiemTao", DateTime3, server_default=func.now(), nullable=False
     )
 
 
@@ -209,4 +197,5 @@ class RecipeItem(Base):
         ForeignKey("NGUYEN_LIEU.MaNguyenLieu", ondelete="RESTRICT", onupdate="RESTRICT"),
         primary_key=True,
     )
-    quantity: Mapped[Decimal] = mapped_column("DinhLuong", DECIMAL(18, 4), nullable=False)
+    quantity: Mapped[Decimal] = mapped_column("DinhLuong", DECIMAL(18, 6), nullable=False)
+    __table_args__ = (CheckConstraint("DinhLuong > 0", name="quantity_positive"),)

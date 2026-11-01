@@ -30,6 +30,7 @@ class ReceiptLineUpdateIn(BaseModel):
 
 
 class ReceiptUpdate(BaseModel):
+    receipt_date: datetime | None = None
     lines: list[ReceiptLineUpdateIn] = Field(min_length=1, max_length=100)
 
 

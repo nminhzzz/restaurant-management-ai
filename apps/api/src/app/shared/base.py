@@ -8,6 +8,7 @@ from datetime import date, datetime
 
 from sqlalchemy import BigInteger as _BigInteger
 from sqlalchemy import Date, DateTime, MetaData, func
+from sqlalchemy.dialects import mysql
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -36,6 +37,9 @@ def _compile_cross_bigint_sqlite(element, compiler, **kw):
 # Alias used by models: keep name BigInteger so imports don't change
 BigInteger = CrossBigInteger
 
+# Timestamps keep millisecond precision (DATETIME(3), report §4.2.2); SQLite ignores the fraction.
+DateTime3 = DateTime().with_variant(mysql.DATETIME(fsp=3), "mysql")
+
 
 class Base(DeclarativeBase):
     metadata = MetaData(naming_convention=NAMING_CONVENTION)
@@ -43,7 +47,7 @@ class Base(DeclarativeBase):
 
 class CreatedAtMixin:
     created_at: Mapped[datetime] = mapped_column(
-        "NgayTao", DateTime, server_default=func.now(), nullable=False
+        "NgayTao", DateTime3, server_default=func.now(), nullable=False
     )
 
 
@@ -51,7 +55,7 @@ class SoftDeleteMixin:
     """Soft delete flag shared by every catalogue entity (business rule 20)."""
 
     is_deleted: Mapped[bool] = mapped_column("DaXoa", default=False, nullable=False)
-    deleted_at: Mapped[datetime | None] = mapped_column("NgayXoa", DateTime, nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column("NgayXoa", DateTime3, nullable=True)
 
 
 class BusinessDateMixin:

@@ -44,8 +44,8 @@ type StockRow = {
 const HISTORY_PAGE_SIZE = 20;
 
 const STOCKTAKE_STATUSES = [
-  { value: "Nháp", label: "Nháp" },
-  { value: "Đã chốt", label: "Đã chốt" },
+  { value: "Đang kiểm kê", label: "Đang kiểm kê" },
+  { value: "Đã xác nhận", label: "Đã xác nhận" },
   { value: "Đã hủy", label: "Đã hủy" },
 ];
 
@@ -142,7 +142,7 @@ function DraftStocktake({
         apiFetch(`/inventory/stocktakes/${stocktakeId}/confirm`, {
           method: "POST",
         }),
-      "Đã chốt kiểm kê, cập nhật tồn kho.",
+      "Đã xác nhận kiểm kê, cập nhật tồn kho.",
     );
     if (confirmed !== undefined) onDone();
   }
@@ -311,7 +311,8 @@ export function StocktakePanel() {
   // counting sheet is gone. Offer a way to resume or abandon it.
   const openDraft =
     stocktakes.status === "ready"
-      ? (stocktakes.data.items.find((s) => s.TrangThai === "Nháp") ?? null)
+      ? (stocktakes.data.items.find((s) => s.TrangThai === "Đang kiểm kê") ??
+        null)
       : null;
 
   const pastStocktakes =

@@ -75,7 +75,7 @@ async def _setup(session):
     session.add(rc)
     await session.flush()
     session.add(RecipeItem(recipe_id=rc.id, ingredient_id=ing.id, quantity=1))
-    gr = GoodsReceipt(supplier_id=None, status="Nháp", receipt_date=business_date.now())
+    gr = GoodsReceipt(supplier_id=None, status="Hiệu lực", receipt_date=business_date.now())
     session.add(gr)
     await session.flush()
     gl = GoodsReceiptLine(receipt_id=gr.id, ingredient_id=ing.id, quantity=20, unit_price=1000)
@@ -107,7 +107,7 @@ async def _submit(session, client, h, d, t):
 
 
 @pytest.mark.anyio
-async def test_expire_to_reconcile(session):
+async def test_an_expired_qr_moves_to_verification(session):
     d, t = await _setup(session)
     client = await _make_client(session)
     h, _ = await _headers(session)
@@ -121,11 +121,9 @@ async def test_expire_to_reconcile(session):
     pay.status = "Hết hạn"
     await session.flush()
     await session.commit()
-    r2 = await client.post(
-        f"/api/v1/sales/orders/{oid}/reconcile", json={"payment_id": pid}, headers=h
-    )
-    assert r2.status_code == 200
-    assert r2.json()["TrangThai"] == "Chờ đối soát"
+    r2 = await client.post(f"/api/v1/sales/payments/{pid}/request-verification", json={}, headers=h)
+    assert r2.status_code == 200, r2.text
+    assert r2.json()["TrangThai"] == "Chờ xác minh thanh toán"
 
 
 @pytest.mark.anyio
@@ -143,7 +141,7 @@ async def test_only_manager_resolve(session):
     pay.status = "Hết hạn"
     await session.flush()
     await session.commit()
-    await client.post(f"/api/v1/sales/orders/{oid}/reconcile", json={"payment_id": pid}, headers=h)
+    await client.post(f"/api/v1/sales/payments/{pid}/request-verification", json={}, headers=h)
     r2 = await client.post(
         f"/api/v1/sales/payments/{pid}/resolve", json={"outcome": "received"}, headers=h
     )
@@ -157,7 +155,7 @@ async def test_only_manager_resolve(session):
 
 
 @pytest.mark.anyio
-async def test_new_qr_refused_when_reconcile_pending(session):
+async def test_new_qr_refused_while_verification_is_pending(session):
     d, t = await _setup(session)
     client = await _make_client(session)
     h, _ = await _headers(session)
@@ -170,6 +168,6 @@ async def test_new_qr_refused_when_reconcile_pending(session):
     pay.status = "Hết hạn"
     await session.flush()
     await session.commit()
-    await client.post(f"/api/v1/sales/orders/{oid}/reconcile", json={"payment_id": pid}, headers=h)
+    await client.post(f"/api/v1/sales/payments/{pid}/request-verification", json={}, headers=h)
     r2 = await client.post(f"/api/v1/sales/orders/{oid}/pay/qr", headers=h)
     assert r2.status_code == 422

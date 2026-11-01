@@ -1,5 +1,7 @@
 """Phase 6 Task 5 — the six-step pipeline and its query log (SD-05, FR-AI-01…09)."""
 
+import json
+
 import pytest
 
 from app.modules.ai.service import TIMEOUT_ANSWER, answer
@@ -34,17 +36,31 @@ async def test_one_turn_records_the_question_sql_timing_and_status(
     assert row["CauHoi"] == "hôm nay có bao nhiêu đơn?"
     assert row["TrangThai"] == "Thành công"
     assert row["ThoiGianPhanHoi"] >= 0
-    assert row["PhamViDuLieu"] == "vw_ai_thungan"
+    assert json.loads(row["PhamViDuLieu"]) == ["vw_ai_thungan_order"]
 
 
 @pytest.mark.anyio
-async def test_the_scope_recorded_is_the_view_actually_used(
+async def test_the_scope_recorded_lists_only_the_views_actually_read(
     api_client, cashier_token, seed_views, fake_llm, ai_engine, session
 ):
-    """FR-AI-05: the audit trail must show what the assistant was allowed to read."""
+    """FR-AI-05 / F.29: the audit trail shows what the query read, not what was allowed."""
+    fake_llm.reply(
+        "SELECT o.MaOrder FROM vw_ai_thungan_order o JOIN vw_ai_thungan_hoadon h "
+        "ON h.MaOrder = o.MaOrder"
+    )
     await _chat(api_client, cashier_token, "hỏi")
 
-    assert (await latest_query(session))["PhamViDuLieu"] == "vw_ai_thungan"
+    scope = json.loads((await latest_query(session))["PhamViDuLieu"])
+    assert scope == ["vw_ai_thungan_hoadon", "vw_ai_thungan_order"]
+
+
+@pytest.mark.anyio
+async def test_a_turn_without_a_query_records_an_empty_scope(
+    api_client, cashier_token, seed_views, fake_llm, ai_engine, session
+):
+    await _chat(api_client, cashier_token, "hỏi")
+
+    assert json.loads((await latest_query(session))["PhamViDuLieu"]) == []
 
 
 @pytest.mark.anyio
@@ -249,7 +265,9 @@ async def test_each_role_talks_to_its_own_view(
     fake_llm.reply("SELECT 1 AS n FROM vw_ai_thungan_order")
     await _chat(api_client, cashier_token, "hỏi")
 
-    assert (await latest_query(session))["PhamViDuLieu"] == "vw_ai_thungan"
+    scope = json.loads((await latest_query(session))["PhamViDuLieu"])
+    assert scope == ["vw_ai_thungan_order"]
+    assert all(view.startswith("vw_ai_thungan_") for view in scope)
 
 
 @pytest.mark.anyio

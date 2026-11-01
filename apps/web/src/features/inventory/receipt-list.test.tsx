@@ -15,7 +15,7 @@ const receipts = [
     MaPhieuNhap: 1,
     MaNhaCungCap: 9,
     NgayNhap: "2026-09-25T08:00:00",
-    TrangThai: "Nháp",
+    TrangThai: "Hiệu lực",
   },
 ];
 const suppliers = [{ MaNhaCungCap: 9, TenNhaCungCap: "NCC A" }];
@@ -75,11 +75,11 @@ describe("ReceiptList", () => {
     );
 
     fireEvent.change(screen.getByLabelText("Trạng thái"), {
-      target: { value: "Nháp" },
+      target: { value: "Hiệu lực" },
     });
     await vi.waitFor(() =>
       expect(fetchMock).toHaveBeenLastCalledWith(
-        "/inventory/receipts?supplier_id=9&status=Nh%C3%A1p&page=1&page_size=20",
+        "/inventory/receipts?supplier_id=9&status=Hi%E1%BB%87u+l%E1%BB%B1c&page=1&page_size=20",
       ),
     );
 
@@ -91,7 +91,7 @@ describe("ReceiptList", () => {
     });
     await vi.waitFor(() =>
       expect(fetchMock).toHaveBeenLastCalledWith(
-        "/inventory/receipts?supplier_id=9&status=Nh%C3%A1p&date_from=2026-09-01&date_to=2026-09-25&page=1&page_size=20",
+        "/inventory/receipts?supplier_id=9&status=Hi%E1%BB%87u+l%E1%BB%B1c&date_from=2026-09-01&date_to=2026-09-25&page=1&page_size=20",
       ),
     );
   });

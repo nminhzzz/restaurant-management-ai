@@ -3,14 +3,22 @@
 from datetime import date as _date
 from decimal import Decimal as _Decimal
 
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import BusinessRuleError, NotFoundError
+from app.modules.catalog.availability import is_short_of_ingredients
 from app.modules.catalog.models import Dish, DishGroup, DishPriceVersion, Recipe
 from app.shared import business_date as _bd
 from app.shared.audit import SystemAuditLog
 from app.shared.enums import VersionStatus
+
+
+class _Unset:
+    """Marks a PATCH field the client did not send, as opposed to one sent as null."""
+
+
+UNSET = _Unset()
 
 
 async def _has_active_recipe(session: AsyncSession, dish_id: int) -> bool:
@@ -33,7 +41,7 @@ async def display_status_for(session: AsyncSession, dish: Dish) -> str:
     await session.refresh(dish)
     if dish.missing_recipe:
         return "Nháp"
-    if dish.out_of_stock:
+    if await is_short_of_ingredients(session, dish.id):
         return "Hết nguyên liệu"
     if dish.manual_paused:
         return "Tạm dừng phục vụ"
@@ -90,20 +98,34 @@ async def delete_group(session: AsyncSession, actor_id: int, group_id: int) -> N
     g = await session.get(DishGroup, group_id)
     if g is None or g.is_deleted:
         raise NotFoundError("Không tìm thấy nhóm món.")
-    cnt = (
+    total, live = (
         await session.execute(
-            select(func.count())
+            select(
+                func.count(),
+                func.coalesce(func.sum(case((Dish.is_deleted == False, 1), else_=0)), 0),
+            )
             .select_from(Dish)
-            .where(Dish.group_id == group_id, Dish.is_deleted == False)
+            .where(Dish.group_id == group_id)
         )
-    ).scalar_one()
-    if cnt > 0:
+    ).one()
+    if live > 0:
         raise BusinessRuleError("Không thể xóa nhóm còn món đang hoạt động.")
-    g.is_deleted = True
+    # FR-CAT-03: a group that never held a dish is removed for good; one whose dishes
+    # are all soft-deleted must stay as a soft-deleted row so their history keeps its group.
+    hard = total == 0
+    target_id = str(g.id)
+    if hard:
+        await session.delete(g)
+    else:
+        g.is_deleted = True
     await session.flush()
     session.add(
         SystemAuditLog(
-            user_id=actor_id, action="DELETE_GROUP", target_entity="NHOM_MON", target_id=str(g.id)
+            user_id=actor_id,
+            action="DELETE_GROUP",
+            target_entity="NHOM_MON",
+            target_id=target_id,
+            after={"KieuXoa": "Vĩnh viễn" if hard else "Xóa mềm"},
         )
     )
     await session.flush()
@@ -149,7 +171,6 @@ async def create_dish(
         group_id=group_id,
         image_url=image,
         missing_recipe=True,
-        out_of_stock=False,
         is_deleted=False,
     )
     session.add(d)
@@ -650,15 +671,11 @@ async def create_ingredient(
     shelf_days: int | None = None,
 ):
     from app.modules.catalog.models import Ingredient as _Ing
-    from app.modules.settings.models import SystemConfig
 
-    if min_stock is None:
-        cfg = (await session.execute(select(SystemConfig))).scalar_one_or_none()
-        min_stock = float(cfg.default_stock_threshold) if cfg else 5
     ing = _Ing(
         name=name,
         unit=unit,
-        min_stock=float(min_stock),
+        min_stock=None if min_stock is None else float(min_stock),
         stock_qty=0,
         is_deleted=False,
         unit_locked=False,
@@ -684,7 +701,7 @@ async def update_ingredient(
     ing_id: int,
     name: str | None = None,
     unit: str | None = None,
-    min_stock: float | None = None,
+    min_stock: float | _Unset | None = UNSET,
     shelf_days: int | None = None,
 ):
     from app.modules.catalog.models import Ingredient as _Ing
@@ -698,8 +715,9 @@ async def update_ingredient(
         ing.unit = unit
     if name is not None:
         ing.name = name
-    if min_stock is not None:
-        ing.min_stock = float(min_stock)
+    # None is meaningful here: it clears the per-ingredient threshold so the system default applies.
+    if not isinstance(min_stock, _Unset):
+        ing.min_stock = None if min_stock is None else _Decimal(str(min_stock))
     if shelf_days is not None:
         ing.shelf_days = shelf_days
     await session.flush()
@@ -783,7 +801,7 @@ async def list_ingredients(session, search: str | None = None):
 
 
 async def effective_min_stock(session, ingredient) -> float:
-    if ingredient.min_stock and float(ingredient.min_stock) > 0:
+    if ingredient.min_stock is not None:
         return float(ingredient.min_stock)
     from app.modules.settings.models import SystemConfig
 
@@ -1010,7 +1028,7 @@ async def ensure_dish_sellable(session, dish_id: int):
     if dish is None or dish.is_deleted:
         raise BusinessRuleError("Món không tồn tại hoặc đã bị xóa.")
     reasons = []
-    if dish.out_of_stock:
+    if await is_short_of_ingredients(session, dish.id):
         reasons.append("hết nguyên liệu")
     if dish.manual_paused:
         reasons.append("tạm dừng phục vụ")
@@ -1020,7 +1038,7 @@ async def ensure_dish_sellable(session, dish_id: int):
 
 
 async def set_manual_paused(session, actor_id: int, dish_id: int, value: bool):
-    """FR-CAT-26: pause a dish by hand without touching the derived shortage flag."""
+    """FR-CAT-26: pause a dish by hand; the derived shortage state is independent of it."""
     d = await session.get(Dish, dish_id)
     if d is None or d.is_deleted:
         raise NotFoundError("Không tìm thấy món ăn.")

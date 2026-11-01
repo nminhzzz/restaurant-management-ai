@@ -47,10 +47,10 @@ SELECT
           AND l.TrangThai <> 'Hết hạn'
           AND (l.HanSuDung IS NULL OR DATE_ADD(l.HanSuDung, INTERVAL 1 DAY) > CURRENT_TIMESTAMP)
     ) AS DECIMAL(18, 4)) AS SoLuongKhaDung,
-    CASE WHEN n.MucTonToiThieu > 0 THEN n.MucTonToiThieu
+    CASE WHEN n.MucTonToiThieu IS NOT NULL THEN n.MucTonToiThieu
          ELSE (SELECT cfg.NguongTonMacDinh FROM CAU_HINH_HE_THONG cfg ORDER BY cfg.MaCauHinh LIMIT 1)
     END AS MucTonToiThieu,
-    CASE WHEN n.SoLuongTon < CASE WHEN n.MucTonToiThieu > 0 THEN n.MucTonToiThieu
+    CASE WHEN n.SoLuongTon < CASE WHEN n.MucTonToiThieu IS NOT NULL THEN n.MucTonToiThieu
               ELSE (SELECT cfg.NguongTonMacDinh FROM CAU_HINH_HE_THONG cfg ORDER BY cfg.MaCauHinh LIMIT 1)
          END THEN 1 ELSE 0 END AS CanhBaoTonThap,
     CAST(NULL AS SIGNED) AS MaGiaoDichKho,

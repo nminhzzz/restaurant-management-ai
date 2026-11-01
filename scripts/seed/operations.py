@@ -36,7 +36,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.errors import BusinessRuleError
 from app.modules.catalog.models import Ingredient
 from app.modules.inventory import service as inventory_service
-from app.modules.inventory.costing import backfill_issue_costs, close_month
+from app.modules.inventory.costing import backfill_issue_costs, deferred_costing, recompute_month
 from app.modules.inventory.models import IngredientLot, StockMovement
 from app.modules.sales import orders as orders_service
 from app.modules.sales import payments as payments_service
@@ -58,8 +58,8 @@ class SeedSummary:
     issue_attempts: int
     issue_rejected: int
     rejection_reasons: dict[str, int]
-    pending_reconciliation: int
-    disputed_orders: int
+    pending_verification: int
+    closed_unpaid_orders: int
 
 
 @dataclass(frozen=True)
@@ -177,10 +177,11 @@ async def _settle_qr(session: AsyncSession, order_id: int, rng: random.Random) -
 
     payment.status = "Hết hạn"
     await session.flush()
-    await payments_service.mark_for_reconciliation(session, payment.id, actor_id=None)
+    await payments_service.request_verification(session, payment.id, actor_id=None)
     if roll >= 1 - DISPUTE_RATIO:
-        await payments_service.resolve_reconciliation(
-            session, payment.id, "not_received", actor_id=None
+        # The manager gave up chasing the money (FR-SALE-35): the order closes unpaid.
+        await payments_service.close_unpaid_order(
+            session, order_id, reason="Không thu được tiền sau tra soát", actor_id=None
         )
 
 
@@ -281,7 +282,12 @@ async def validate_seed_integrity(session: AsyncSession) -> dict[str, int]:
             select(Order.status, func.count()).group_by(Order.status)
         )
     }
-    allowed = {"Đã thanh toán", "Chờ đối soát", "Tranh chấp", "Đã hủy", "Tự động đóng"}
+    allowed = {
+        "Đã thanh toán",
+        "Chờ xác minh thanh toán",
+        "Đóng \u2013 chưa thu được tiền",
+        "Đã hủy",
+    }
     unexpected = set(statuses) - allowed
     if unexpected:
         raise RuntimeError(f"Seed has unintended open orders: {sorted(unexpected)}")
@@ -289,21 +295,30 @@ async def validate_seed_integrity(session: AsyncSession) -> dict[str, int]:
         select(func.count())
         .select_from(Order)
         .where(
-            Order.status == "Chờ đối soát",
+            Order.status == "Chờ xác minh thanh toán",
             ~select(PaymentTransaction.id)
             .where(
                 PaymentTransaction.order_id == Order.id,
-                PaymentTransaction.status == "Chờ đối soát",
+                PaymentTransaction.status == "Chờ xác minh thanh toán",
             )
             .exists(),
         )
     )
     if pending_without_payment:
-        raise RuntimeError("Seed pending reconciliation has no matching payment")
+        raise RuntimeError("Seed pending verification has no matching payment")
     return statuses
 
 
 async def seed_operations(
+    session: AsyncSession, config: SeedConfig, ids: CatalogIds
+) -> SeedSummary:
+    # Loading a year of documents one by one must not refresh the costing tail each time;
+    # the month boundary below recomputes each closed month once.
+    with deferred_costing():
+        return await _seed_operations(session, config, ids)
+
+
+async def _seed_operations(
     session: AsyncSession, config: SeedConfig, ids: CatalogIds
 ) -> SeedSummary:
     """Generate the exact requested volume with a bounded, visible rejection budget."""
@@ -355,7 +370,7 @@ async def seed_operations(
         if day.day == 1 and day > start:
             previous = day - timedelta(days=1)
             month = previous.year * 100 + previous.month
-            await close_month(session, month)
+            await recompute_month(session, month)
             await backfill_issue_costs(session, month)
         await session.commit()
     session.expire_all()
@@ -369,6 +384,6 @@ async def seed_operations(
         issue_attempts=issue_attempts,
         issue_rejected=issue_rejected,
         rejection_reasons=dict(sorted(reasons.items())),
-        pending_reconciliation=statuses.get("Chờ đối soát", 0),
-        disputed_orders=statuses.get("Tranh chấp", 0),
+        pending_verification=statuses.get("Chờ xác minh thanh toán", 0),
+        closed_unpaid_orders=statuses.get("Đóng \u2013 chưa thu được tiền", 0),
     )

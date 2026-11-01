@@ -1,10 +1,12 @@
 from app.modules.catalog.models import DiningTable, Dish, RecipeItem
 
 
-def test_dish_status_is_a_generated_column() -> None:
-    column = Dish.__table__.c.TrangThai
-    assert column.computed is not None
-    assert column.computed.persisted is True
+def test_dish_stores_neither_the_shortage_flag_nor_the_display_status() -> None:
+    """FR-CAT-27: HetNguyenLieu and TrangThai are derived, never columns of MON_AN."""
+    names = {c.name for c in Dish.__table__.columns}
+    assert "HetNguyenLieu" not in names
+    assert "TrangThai" not in names
+    assert {"ChuaCoCongThuc", "TamDungThuCong", "DaXoa"} <= names
 
 
 def test_table_active_name_frees_the_name_of_a_soft_deleted_table() -> None:

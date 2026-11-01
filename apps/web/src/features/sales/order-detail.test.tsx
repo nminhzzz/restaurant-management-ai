@@ -42,7 +42,7 @@ function openOrder(overrides: Record<string, unknown> = {}) {
         SoLuong: 2,
         DonGia: 65000,
         GhiChu: null,
-        TrangThai: "Chờ",
+        TrangThai: "Chờ làm",
       },
     ],
     ...overrides,

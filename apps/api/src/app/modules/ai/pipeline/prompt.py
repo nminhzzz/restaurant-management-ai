@@ -53,8 +53,8 @@ COLUMN_NOTES: dict[str, str] = {
     "BusinessDate": "ngày kinh doanh theo lịch mốc giờ hiệu lực của hệ thống",
     "MaOrder": "mã đơn hàng; có ở các nhánh ORDER, DONG_MON, HOA_DON và THANH_TOAN",
     "TrangThaiOrder": (
-        "trạng thái order: Đang mở, Chờ xác nhận, Chờ xác minh thanh toán, Chờ đối soát, "
-        "Tranh chấp, Đã thanh toán, Đã hủy, Tự động đóng, Đóng \u2013 chưa thu được tiền"
+        "trạng thái order: Đang mở, Chờ xác nhận, Chờ xác minh thanh toán, "
+        "Đã thanh toán, Đã hủy, Đóng \u2013 chưa thu được tiền"
     ),
     "LyDoHuyOrder": "lý do hủy order, chỉ có ở LoaiBanGhi = 'ORDER'",
     "MaHoaDon": (

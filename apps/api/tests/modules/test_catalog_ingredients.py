@@ -99,15 +99,48 @@ async def get_supplier_row(session, sid):
 
 
 @pytest.mark.asyncio
-async def test_an_ingredient_without_its_own_threshold_uses_the_default(
-    session, config_with_default_threshold
-):
+async def test_an_ingredient_without_its_own_threshold_stores_null(session):
     h = await _headers_for(session, "MANAGER")
     async with await _make_client(session) as c:
         created = await create_ingredient(c, h, name="Bột mì", MucTonToiThieu=None)
     app.dependency_overrides.clear()
     assert created.status_code == 201
-    assert float(created.json()["MucTonToiThieu"]) == 7
+    assert created.json()["MucTonToiThieu"] is None
+
+
+@pytest.mark.asyncio
+async def test_zero_is_a_valid_own_threshold(session):
+    h = await _headers_for(session, "MANAGER")
+    async with await _make_client(session) as c:
+        created = await create_ingredient(c, h, name="Muối", MucTonToiThieu=0)
+    app.dependency_overrides.clear()
+    assert created.status_code == 201
+    assert created.json()["MucTonToiThieu"] == 0
+
+
+@pytest.mark.asyncio
+async def test_patching_the_threshold_to_null_clears_it_but_omitting_it_keeps_it(session):
+    h = await _headers_for(session, "MANAGER")
+    async with await _make_client(session) as c:
+        iid = (await create_ingredient(c, h, name="Đường", MucTonToiThieu=4)).json()["MaNguyenLieu"]
+        renamed = await update_ingredient(c, h, iid, name="Đường cát")
+        cleared = await update_ingredient(c, h, iid, MucTonToiThieu=None)
+    app.dependency_overrides.clear()
+    assert renamed.json()["MucTonToiThieu"] == 4
+    assert cleared.json()["MucTonToiThieu"] is None
+
+
+@pytest.mark.asyncio
+async def test_effective_min_stock_uses_the_default_only_when_null(
+    session, config_with_default_threshold
+):
+    from app.modules.catalog.models import Ingredient
+    from app.modules.catalog.service import effective_min_stock
+
+    own_zero = Ingredient(name="A", unit="kg", min_stock=0, stock_qty=0, is_deleted=False)
+    unset = Ingredient(name="B", unit="kg", min_stock=None, stock_qty=0, is_deleted=False)
+    assert await effective_min_stock(session, own_zero) == 0
+    assert await effective_min_stock(session, unset) == 7
 
 
 @pytest.mark.asyncio

@@ -56,7 +56,7 @@ async def _ingredient(session, name, stock_qty):
     session.add(ing)
     await session.flush()
     if stock_qty:
-        gr = GoodsReceipt(supplier_id=None, status="Nháp", receipt_date=business_date.now())
+        gr = GoodsReceipt(supplier_id=None, status="Hiệu lực", receipt_date=business_date.now())
         session.add(gr)
         await session.flush()
         gl = GoodsReceiptLine(
@@ -186,7 +186,8 @@ async def test_cannot_record_counts_after_confirm(session):
         await session.execute(select(StockIssueLine).where(StockIssueLine.issue_id == issue.id))
     ).scalar_one()
     assert issue_line.quantity == 2
-    assert issue_line.estimated_cost == 0
+    # Priced from the month average (2 kg at 1.000) as soon as the stocktake is confirmed.
+    assert issue_line.estimated_cost == 2000
     r = await client.post(
         f"/api/v1/inventory/stocktakes/{sid}/counts",
         json=[{"ingredient_id": ing.id, "actual_qty": 8}],
@@ -251,7 +252,7 @@ async def test_list_stocktakes(session):
     body = r.json()
     assert body["total"] == 1
     assert len(body["items"]) == 1
-    assert body["items"][0]["TrangThai"] == "Nháp"
+    assert body["items"][0]["TrangThai"] == "Đang kiểm kê"
 
 
 @pytest.mark.anyio
@@ -263,12 +264,12 @@ async def test_list_stocktakes_filters_by_status_and_date_range(session):
     st = await client.post("/api/v1/inventory/stocktakes", headers=h)
     sid = st.json()["MaPhieuKiemKe"]
 
-    by_status = await client.get("/api/v1/inventory/stocktakes?status=Nháp", headers=h)
+    by_status = await client.get("/api/v1/inventory/stocktakes?status=Đang kiểm kê", headers=h)
     assert by_status.status_code == 200
     assert by_status.json()["total"] == 1
     assert by_status.json()["items"][0]["MaPhieuKiemKe"] == sid
 
-    confirmed = await client.get("/api/v1/inventory/stocktakes?status=Đã chốt", headers=h)
+    confirmed = await client.get("/api/v1/inventory/stocktakes?status=Đã xác nhận", headers=h)
     assert confirmed.json()["total"] == 0
 
     today = business_date.now().date()
@@ -297,7 +298,7 @@ async def test_list_stocktakes_total_reflects_all_rows_across_pages(session):
     created = await client.post("/api/v1/inventory/stocktakes", headers=h)
     assert created.status_code == 201
     for _ in range(2):
-        session.add(Stocktake(status="Đã chốt", stocktake_date=business_date.now()))
+        session.add(Stocktake(status="Đã xác nhận", stocktake_date=business_date.now()))
     await session.commit()
     r = await client.get("/api/v1/inventory/stocktakes?page=1&page_size=2", headers=h)
     body = r.json()
@@ -363,6 +364,7 @@ async def test_stocktake_surplus_uses_latest_valid_lot_without_receipt(session):
         receipt_line_id=None,
         is_adjustment=True,
         quantity_remaining=0,
+        received_quantity=1,  # an emptied lot once held stock, so its received quantity is positive
         status="Còn hạn",
         received_at=business_date.now() + timedelta(hours=1),
     )
@@ -441,7 +443,7 @@ async def test_stocktake_refuses_waiting_kitchen_line_even_after_payment(session
             quantity=1,
             unit_price=50000,
             total=50000,
-            status="Chờ",
+            status="Chờ làm",
         )
     )
     await session.commit()

@@ -24,7 +24,7 @@ class OrderStatus(StrEnum):
 
 
 class OrderLineStatus(StrEnum):
-    CHO = "Chờ"
+    CHO = "Chờ làm"
     DA_XAC_NHAN = "Đã xác nhận"
     DANG_LAM = "Đang làm"
     DA_PHUC_VU = "Đã phục vụ"
@@ -71,8 +71,8 @@ class LotStatus(StrEnum):
 
 
 class StocktakeStatus(StrEnum):
-    NHAP = "Nháp"
-    DA_CHOT = "Đã chốt"
+    DANG_KIEM_KE = "Đang kiểm kê"
+    DA_XAC_NHAN = "Đã xác nhận"
     DA_HUY = "Đã hủy"
 
 

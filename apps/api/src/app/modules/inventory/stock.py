@@ -168,7 +168,10 @@ async def ensure_no_open_stocktake(session: AsyncSession) -> None:
     await lock_stock_operations(session)
     open_id = (
         await session.execute(
-            select(Stocktake.id).where(Stocktake.status == "Nháp").limit(1).with_for_update()
+            select(Stocktake.id)
+            .where(Stocktake.status == "Đang kiểm kê")
+            .limit(1)
+            .with_for_update()
         )
     ).scalar_one_or_none()
     if open_id is not None:
@@ -217,12 +220,6 @@ async def apply_stock_movement(
         session.add(m)
         await session.flush()
         movements.append(m)
-        try:
-            from app.modules.inventory.service import recompute_automatic_out_of_stock
-
-            await recompute_automatic_out_of_stock(session, [change.ingredient_id])
-        except Exception:
-            pass
         return movements
 
     # delta < 0: FIFO draw, limited to what is neither held nor expired.
@@ -296,15 +293,6 @@ async def apply_stock_movement(
     # update ingredient total
     ing.stock_qty = ing.stock_qty - need
     await session.flush()
-    # Task 6: auto-hide dishes whose recipe can no longer be fulfilled
-    try:
-        from app.modules.inventory.service import (
-            recompute_automatic_out_of_stock,
-        )  # lazy to avoid cycle
-
-        await recompute_automatic_out_of_stock(session, [change.ingredient_id])
-    except Exception:
-        pass
     return movements
 
 

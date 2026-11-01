@@ -27,11 +27,15 @@ async def _order(session, quantity=1):
 
 @pytest.mark.anyio
 async def test_receiving_an_exception_settles_it_with_the_invoice(session):
+    """FR-SALE-17(a): money for a reopened payment is applied by the manager, once."""
     result, _, user = await _order(session)
     payment = await payments.start_qr(session, result["order"].id)
     payment.deadline = business_date.now() - timedelta(minutes=1)
     await session.flush()
-    await payments.mark_for_reconciliation(session, payment.id, actor_id=user.id)
+    await payments.request_verification(session, payment.id, actor_id=user.id)
+    await payments.reopen_payment(
+        session, payment.id, reason="Khách thu lại", outcome="Đã thống nhất", actor_id=user.id
+    )
     await payments.handle_sepay_transfer(
         session,
         {

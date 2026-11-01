@@ -8,7 +8,6 @@ from sqlalchemy import (
     CheckConstraint,
     Computed,
     Date,
-    DateTime,
     ForeignKey,
     Index,
     Integer,
@@ -17,14 +16,18 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.shared.base import Base, BigInteger
+from app.shared.base import Base, BigInteger, DateTime3
+
+
+def _initial_quantity(context) -> Decimal:
+    return context.get_current_parameters()["SoLuongConLai"]
 
 
 class GoodsReceipt(Base):
     __tablename__ = "PHIEU_NHAP_KHO"
     id: Mapped[int] = mapped_column("MaPhieuNhap", BigInteger, primary_key=True, autoincrement=True)
     receipt_date: Mapped[datetime] = mapped_column(
-        "NgayNhap", DateTime, server_default=func.now(), nullable=False
+        "NgayNhap", DateTime3, server_default=func.now(), nullable=False
     )
     supplier_id: Mapped[int | None] = mapped_column(
         "MaNCC",
@@ -32,14 +35,14 @@ class GoodsReceipt(Base):
         nullable=True,
     )
     status: Mapped[str] = mapped_column(
-        "TrangThai", String(20), nullable=False, default="Nh\u00e1p"
+        "TrangThai", String(20), nullable=False, default="Hi\u1ec7u l\u1ef1c"
     )
     created_by: Mapped[int | None] = mapped_column(
         "NguoiTao",
         ForeignKey("NGUOI_DUNG.MaNguoiDung", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=True,
     )
-    total: Mapped[Decimal] = mapped_column("TongTien", DECIMAL(18, 4), nullable=False, default=0)
+    total: Mapped[Decimal] = mapped_column("TongTien", DECIMAL(18, 2), nullable=False, default=0)
     note: Mapped[str | None] = mapped_column("GhiChu", String(500), nullable=True)
 
 
@@ -58,15 +61,19 @@ class GoodsReceiptLine(Base):
         ForeignKey("NGUYEN_LIEU.MaNguyenLieu", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=False,
     )
-    quantity: Mapped[Decimal] = mapped_column("SoLuong", DECIMAL(18, 4), nullable=False)
-    unit_price: Mapped[Decimal] = mapped_column("DonGia", DECIMAL(18, 4), nullable=False)
+    quantity: Mapped[Decimal] = mapped_column("SoLuong", DECIMAL(18, 6), nullable=False)
+    unit_price: Mapped[Decimal] = mapped_column("DonGia", DECIMAL(18, 2), nullable=False)
     original_purchase_unit: Mapped[str | None] = mapped_column(
         "DonViMuaGoc", String(20), nullable=True
     )
     conversion_factor: Mapped[Decimal] = mapped_column(
-        "HeSoQuyDoi", DECIMAL(18, 4), nullable=False, default=1
+        "HeSoQuyDoi", DECIMAL(18, 6), nullable=False, default=1
     )
-    total: Mapped[Decimal] = mapped_column("ThanhTien", DECIMAL(18, 4), nullable=False, default=0)
+    total: Mapped[Decimal] = mapped_column("ThanhTien", DECIMAL(18, 2), nullable=False, default=0)
+    __table_args__ = (
+        CheckConstraint("SoLuong > 0", name="quantity_positive"),
+        CheckConstraint("HeSoQuyDoi > 0", name="conversion_factor_positive"),
+    )
 
 
 class IngredientLot(Base):
@@ -86,21 +93,28 @@ class IngredientLot(Base):
         unique=True,
     )
     quantity_remaining: Mapped[Decimal] = mapped_column(
-        "SoLuongConLai", DECIMAL(18, 4), nullable=False
+        "SoLuongConLai", DECIMAL(18, 6), nullable=False
     )
     status: Mapped[str] = mapped_column(
         "TrangThai", String(20), nullable=False, default="C\u00f2n h\u1ea1n"
     )
     received_at: Mapped[datetime] = mapped_column(
-        "NgayNhap", DateTime, server_default=func.now(), nullable=False
+        "NgayNhap", DateTime3, server_default=func.now(), nullable=False
     )
     is_adjustment: Mapped[bool] = mapped_column("LoDieuChinhKiemKe", default=False, nullable=False)
     expiry_date: Mapped[date | None] = mapped_column("HanSuDung", Date, nullable=True)
+    # A lot starts with what it holds, so a document that omits the received quantity stays valid.
     received_quantity: Mapped[Decimal] = mapped_column(
-        "SoLuongNhap", DECIMAL(18, 4), nullable=False, default=0
+        "SoLuongNhap", DECIMAL(18, 6), nullable=False, default=_initial_quantity
     )
-    unit_price: Mapped[Decimal] = mapped_column("DonGia", DECIMAL(18, 4), nullable=False, default=0)
+    # NULL for a stocktake surplus lot with no price basis (QD-02); never 0.
+    unit_price: Mapped[Decimal | None] = mapped_column("DonGia", DECIMAL(18, 2), nullable=True)
     __table_args__ = (
+        CheckConstraint("SoLuongNhap > 0", name="received_quantity_positive"),
+        CheckConstraint("SoLuongConLai >= 0", name="remaining_non_negative"),
+        CheckConstraint(
+            "LoDieuChinhKiemKe = 0 OR MaChiTietNhap IS NULL", name="adjustment_has_no_receipt_line"
+        ),
         Index(
             "ix_LO_NGUYEN_LIEU_MaNguyenLieu_TrangThai_NgayNhap",
             "MaNguyenLieu",
@@ -118,9 +132,9 @@ class StockIssue(Base):
         "TrangThai", String(20), nullable=False, default="Nh\u00e1p"
     )
     created_at: Mapped[datetime] = mapped_column(
-        "NgayTao", DateTime, server_default=func.now(), nullable=False
+        "NgayTao", DateTime3, server_default=func.now(), nullable=False
     )
-    issue_date: Mapped[datetime | None] = mapped_column("NgayXuat", DateTime, nullable=True)
+    issue_date: Mapped[datetime | None] = mapped_column("NgayXuat", DateTime3, nullable=True)
     created_by: Mapped[int | None] = mapped_column(
         "NguoiLap",
         BigInteger,
@@ -133,6 +147,16 @@ class StockIssue(Base):
         BigInteger,
         ForeignKey("PHIEU_KIEM_KE.MaPhieuKiemKe", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=True,
+    )
+    # FR-INV-05: the source decides how the voucher is recorded; stock moves only for "Nguyên liệu".
+    source: Mapped[str] = mapped_column(
+        "NguonXuat", String(255), nullable=False, default="Nguyên liệu"
+    )
+    __table_args__ = (
+        CheckConstraint(
+            "NguonXuat IN ('Nguyên liệu', 'Món đã chế biến', 'Kiểm kê')",
+            name="issue_source_valid",
+        ),
     )
 
 
@@ -151,9 +175,10 @@ class StockIssueLine(Base):
         ForeignKey("NGUYEN_LIEU.MaNguyenLieu", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=False,
     )
-    quantity: Mapped[Decimal] = mapped_column("SoLuong", DECIMAL(18, 4), nullable=False)
-    estimated_cost: Mapped[Decimal] = mapped_column(
-        "GiaVonUocTinh", DECIMAL(18, 4), nullable=False, default=0
+    quantity: Mapped[Decimal] = mapped_column("SoLuong", DECIMAL(18, 6), nullable=False)
+    # NULL means "not priced yet" (QD-02): filled from the monthly average once one exists.
+    estimated_cost: Mapped[Decimal | None] = mapped_column(
+        "GiaVonUocTinh", DECIMAL(18, 2), nullable=True
     )
     # FR-INV-05 source "Món đã chế biến": classify consumed cost, never draw again.
     order_line_id: Mapped[int | None] = mapped_column(
@@ -162,6 +187,7 @@ class StockIssueLine(Base):
         nullable=True,
     )
     servings: Mapped[int | None] = mapped_column("SoSuatHuy", Integer, nullable=True)
+    __table_args__ = (CheckConstraint("SoLuong > 0", name="quantity_positive"),)
 
 
 class Stocktake(Base):
@@ -170,10 +196,10 @@ class Stocktake(Base):
         "MaPhieuKiemKe", BigInteger, primary_key=True, autoincrement=True
     )
     stocktake_date: Mapped[datetime] = mapped_column(
-        "NgayKiemKe", DateTime, server_default=func.now(), nullable=False
+        "NgayKiemKe", DateTime3, server_default=func.now(), nullable=False
     )
     status: Mapped[str] = mapped_column(
-        "TrangThai", String(20), nullable=False, default="Nh\u00e1p"
+        "TrangThai", String(20), nullable=False, default="\u0110ang ki\u1ec3m k\u00ea"
     )
     performed_by: Mapped[int | None] = mapped_column(
         "NguoiThucHien",
@@ -199,11 +225,11 @@ class StocktakeLine(Base):
         ForeignKey("NGUYEN_LIEU.MaNguyenLieu", ondelete="RESTRICT", onupdate="RESTRICT"),
         nullable=False,
     )
-    system_qty: Mapped[Decimal] = mapped_column("TonHeThong", DECIMAL(18, 4), nullable=False)
-    actual_qty: Mapped[Decimal] = mapped_column("TonThucTe", DECIMAL(18, 4), nullable=False)
+    system_qty: Mapped[Decimal] = mapped_column("TonHeThong", DECIMAL(18, 6), nullable=False)
+    actual_qty: Mapped[Decimal] = mapped_column("TonThucTe", DECIMAL(18, 6), nullable=False)
     difference: Mapped[Decimal | None] = mapped_column(
         "ChenhLech",
-        DECIMAL(18, 4),
+        DECIMAL(18, 6),
         Computed("TonThucTe - TonHeThong", persisted=True),
         nullable=True,
     )
@@ -226,9 +252,9 @@ class StockMovement(Base):
         nullable=True,
     )
     kind: Mapped[str] = mapped_column("LoaiGiaoDich", String(30), nullable=False)
-    qty: Mapped[Decimal] = mapped_column("SoLuongThayDoi", DECIMAL(18, 4), nullable=False)
+    qty: Mapped[Decimal] = mapped_column("SoLuongThayDoi", DECIMAL(18, 6), nullable=False)
     occurred_at: Mapped[datetime] = mapped_column(
-        "ThoiDiem", DateTime, server_default=func.now(), nullable=False
+        "ThoiDiem", DateTime3, server_default=func.now(), nullable=False
     )
     business_date: Mapped[date] = mapped_column("BusinessDate", Date, nullable=False)
     receipt_line_id: Mapped[int | None] = mapped_column(
@@ -257,7 +283,7 @@ class StockMovement(Base):
         nullable=True,
     )
     balance_after: Mapped[Decimal] = mapped_column(
-        "TonSauGiaoDich", DECIMAL(18, 4), nullable=False, default=0
+        "TonSauGiaoDich", DECIMAL(18, 6), nullable=False, default=0
     )
     __table_args__ = (
         CheckConstraint(
@@ -281,10 +307,10 @@ class MonthlyAverageCost(Base):
         primary_key=True,
     )
     month: Mapped[int] = mapped_column("Thang", Integer, primary_key=True)
-    avg_cost: Mapped[Decimal] = mapped_column("DonGiaBinhQuan", DECIMAL(18, 4), nullable=False)
+    avg_cost: Mapped[Decimal] = mapped_column("DonGiaBinhQuan", DECIMAL(18, 2), nullable=False)
     total_qty: Mapped[Decimal] = mapped_column(
-        "TongSoLuongNhap", DECIMAL(18, 4), nullable=False, default=0
+        "TongSoLuongNhap", DECIMAL(18, 6), nullable=False, default=0
     )
     computed_at: Mapped[datetime] = mapped_column(
-        "ThoiDiemTinh", DateTime, server_default=func.now(), nullable=False
+        "ThoiDiemTinh", DateTime3, server_default=func.now(), nullable=False
     )

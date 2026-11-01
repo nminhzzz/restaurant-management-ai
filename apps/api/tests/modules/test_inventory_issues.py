@@ -156,6 +156,30 @@ async def test_list_issues(session):
 
 
 @pytest.mark.anyio
+async def test_the_issue_source_is_a_column_not_a_note(session):
+    """FR-INV-05: NguonXuat carries the source; GhiChu stays free for a genuine note."""
+    from app.modules.inventory.models import StockIssue
+
+    ing = await _ingredient(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    await _receipt(session, client, h, ing, 5)
+    created = await client.post(
+        "/api/v1/inventory/issues",
+        json={"reason": "Hao hụt", "lines": [{"ingredient_id": ing.id, "quantity": 1}]},
+        headers=h,
+    )
+    assert created.status_code == 201, created.text
+    issue = await session.get(StockIssue, created.json()["MaPhieuXuat"])
+    assert issue.source == "Nguyên liệu"
+    assert issue.note is None
+    listed = (await client.get("/api/v1/inventory/issues", headers=h)).json()["items"][0]
+    assert listed["Nguon"] == "Nguyên liệu"
+    detail = await client.get(f"/api/v1/inventory/issues/{issue.id}", headers=h)
+    assert detail.json()["Nguon"] == "Nguyên liệu"
+
+
+@pytest.mark.anyio
 async def test_list_issues_filters_by_reason_and_date_range(session):
     from datetime import date, timedelta
 

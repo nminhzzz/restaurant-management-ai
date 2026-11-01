@@ -130,10 +130,7 @@ async def display_status(session, dish_or_id) -> str:
         return "DRAFT"
     try:
         r = await session.execute(
-            text(
-                "SELECT DaXoa, ChuaCoCongThuc, HetNguyenLieu, TamDungThuCong "
-                "FROM MON_AN WHERE MaMon=:id"
-            ),
+            text("SELECT DaXoa, ChuaCoCongThuc, TamDungThuCong FROM MON_AN WHERE MaMon=:id"),
             {"id": dish_id},
         )
         row = r.mappings().first()
@@ -143,7 +140,9 @@ async def display_status(session, dish_or_id) -> str:
             return "Đã xóa"
         if row["ChuaCoCongThuc"]:
             return "Nháp"
-        if row["HetNguyenLieu"]:
+        from app.modules.catalog.availability import is_short_of_ingredients
+
+        if await is_short_of_ingredients(session, dish_id):
             return "Hết nguyên liệu"
         if row["TamDungThuCong"]:
             return "Tạm dừng phục vụ"

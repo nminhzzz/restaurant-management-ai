@@ -45,8 +45,8 @@ async def test_seed_reaches_requested_order_count_and_reports_attempts(session, 
     assert sum(result.rejection_reasons.values()) == result.order_rejected + result.issue_rejected
     assert await session.scalar(select(func.count()).select_from(Order)) == 40
     assert "Đang mở" not in set(await session.scalars(select(Order.status)))
-    assert result.pending_reconciliation == await session.scalar(
-        select(func.count()).select_from(Order).where(Order.status == "Chờ đối soát")
+    assert result.pending_verification == await session.scalar(
+        select(func.count()).select_from(Order).where(Order.status == "Chờ xác minh thanh toán")
     )
     await operations.validate_seed_integrity(session)
 
@@ -152,7 +152,7 @@ def test_invalid_seed_size_fails_before_database_writes(months, orders):
         SeedConfig(months=months, orders_target=orders)
 
 
-async def test_pending_reconciliation_is_reported_and_physical_table_released(
+async def test_pending_verification_is_reported_and_physical_table_released(
     session, seeded_reference, monkeypatch
 ):
     config = SeedConfig(months=1, orders_target=2)
@@ -162,9 +162,9 @@ async def test_pending_reconciliation_is_reported_and_physical_table_released(
     monkeypatch.setattr(operations, "RECONCILE_RATIO", 1)
     monkeypatch.setattr(operations, "DISPUTE_RATIO", 0)
     summary = await operations.seed_operations(session, config, ids)
-    assert summary.pending_reconciliation == 2
-    assert summary.disputed_orders == 0
-    assert set(await session.scalars(select(Order.status))) == {"Chờ đối soát"}
+    assert summary.pending_verification == 2
+    assert summary.closed_unpaid_orders == 0
+    assert set(await session.scalars(select(Order.status))) == {"Chờ xác minh thanh toán"}
     assert set(await session.scalars(select(DiningTable.status))) == {"Trống"}
     assert set(await session.scalars(select(DiningTable.current_order_id))) == {None}
 
