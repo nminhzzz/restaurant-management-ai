@@ -695,18 +695,20 @@ async def create_stocktake(session: AsyncSession, actor_id: int) -> Stocktake:
     if existing is not None:
         raise BusinessRuleError("Đang có phiên kiểm kê chưa chốt.")
     from app.modules.sales.models import OrderLine, Reservation
-    from app.modules.sales.reservations import expire_due_holds
+    from app.modules.sales.reservations import HOLD_ACTIVE, HOLD_EXPIRED, expire_due_holds
 
     await expire_due_holds(session)
-    active_holds = (
+    # FR-INV-08: a selection that was never sent or cancelled still blocks the count even when
+    # its hold has lapsed; the staff member must send or cancel it. It is never cancelled here.
+    unsent_holds = (
         await session.execute(
             select(Reservation.id)
-            .where(Reservation.status == "Đang giữ")
+            .where(Reservation.status.in_((HOLD_ACTIVE, HOLD_EXPIRED)))
             .limit(1)
             .with_for_update()
         )
     ).scalar_one_or_none()
-    if active_holds:
+    if unsent_holds:
         raise BusinessRuleError("Còn lượt giữ chỗ chưa gửi, hãy xử lý trước khi kiểm kê.")
     pending = (
         await session.execute(
