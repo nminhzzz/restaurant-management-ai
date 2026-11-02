@@ -222,3 +222,91 @@ async def test_the_status_order_prefers_cancelled_then_empty_then_expiry():
     lot.status = "Đã hủy"
     lot.quantity_remaining = Decimal(9)
     assert derive_lot_status(lot, today, 3) == "Đã hủy"  # cancelled is final
+
+
+async def test_cancelling_a_receipt_recomputes_costs_of_both_lines_and_later_months(session):
+    """TC-BR-19: every line's cost and every dependent period follow the cancellation."""
+    from app.modules.inventory.models import MonthlyAverageCost
+
+    a_ing, b_ing = await _ingredient(session, "NL kỳ A"), await _ingredient(session, "NL kỳ B")
+    a, b = a_ing.id, b_ing.id
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+
+    async def receive(lines, when):
+        r = await client.post(
+            "/api/v1/inventory/receipts",
+            json={
+                "receipt_date": when,
+                "lines": [
+                    {"ingredient_id": i, "quantity": q, "unit_price": p} for i, q, p in lines
+                ],
+            },
+            headers=h,
+        )
+        assert r.status_code == 201, r.text
+        return r.json()["MaPhieuNhap"]
+
+    await receive([(a, 10, 1000)], "2026-08-10T09:00:00")
+    september = await receive([(a, 10, 3000), (b, 5, 2000)], "2026-09-10T09:00:00")
+    await receive([(a, 10, 4500)], "2026-10-05T09:00:00")
+
+    async def average(iid, month):
+        session.expire_all()
+        row = await session.get(MonthlyAverageCost, {"ingredient_id": iid, "month": month})
+        return None if row is None else row.avg_cost
+
+    assert await average(a, 202609) == 2000  # (10x1000 + 10x3000) / 20
+    assert await average(b, 202609) == 2000
+    assert await average(a, 202610) == Decimal("2833.33")  # (20x2000 + 10x4500) / 30
+
+    cancelled = await client.delete(f"/api/v1/inventory/receipts/{september}", headers=h)
+    assert cancelled.status_code == 200, cancelled.text
+
+    assert await average(a, 202609) == 1000  # September keeps only the carried stock
+    assert await average(b, 202609) is None  # line B has no basis left
+    assert await average(a, 202610) == 2750  # (10x1000 + 10x4500) / 20 propagates forward
+
+
+async def test_quantities_keep_six_decimals_while_money_is_rounded(session):
+    """TC-BR-22: the quantity is never rounded to two decimals."""
+    ing = await _ingredient(session, "NL sáu chữ số")
+    iid = ing.id
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    await _receive(client, h, iid, 2.123456, 3)
+
+    await _issue(client, h, iid, 0.123456)
+
+    session.expire_all()
+    (lot,) = await _lots(session, iid)
+    line = (await session.execute(select(StockIssueLine))).scalars().all()[-1]
+    assert Decimal(str(line.quantity)).quantize(Decimal("0.000001")) == Decimal("0.123456")
+    assert Decimal(str(lot.quantity_remaining)).quantize(Decimal("0.000001")) == Decimal("2.000000")
+    assert line.estimated_cost == Decimal("0.37")  # 3,00 x 0,123456 = 0,370368 -> 0,37
+
+
+async def test_recomputing_the_same_data_gives_the_same_cost_and_no_new_movements(session):
+    """TC-BR-23: repeating the calculation neither changes the cost nor moves stock."""
+    from app.modules.inventory.costing import refresh_costing
+
+    ing = await _ingredient(session, "NL tính lại")
+    iid = ing.id
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    await _receive(client, h, iid, 10, 1.01)
+    await _issue(client, h, iid, 0.5)
+
+    async def snapshot():
+        session.expire_all()
+        cost = (await session.execute(select(StockIssueLine))).scalars().all()[-1].estimated_cost
+        movements = (await session.execute(select(StockMovement.id))).scalars().all()
+        return cost, len(movements)
+
+    first = await snapshot()
+    await refresh_costing(session, MONTH)
+    await refresh_costing(session, MONTH)
+    second = await snapshot()
+
+    assert first == (Decimal("0.51"), first[1])
+    assert second == first
