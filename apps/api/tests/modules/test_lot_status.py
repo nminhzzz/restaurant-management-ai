@@ -310,3 +310,39 @@ async def test_recomputing_the_same_data_gives_the_same_cost_and_no_new_movement
 
     assert first == (Decimal("0.51"), first[1])
     assert second == first
+
+
+async def test_the_sweep_moves_lots_with_the_calendar_and_is_repeatable(session):
+    """Time alone changes a lot's status; no stock transaction is needed."""
+    from datetime import timedelta
+
+    from app.modules.inventory.lot_status import refresh_all_lot_statuses
+
+    ing = await _ingredient(session, "NL quét định kỳ")
+    today = business_date.business_date_of(business_date.now())
+
+    def lot(**kw):
+        return IngredientLot(
+            ingredient_id=ing.id,
+            received_quantity=Decimal(5),
+            received_at=business_date.now(),
+            status="Còn hạn",
+            **kw,
+        )
+
+    expired = lot(quantity_remaining=Decimal(5), expiry_date=today - timedelta(days=1))
+    soon = lot(quantity_remaining=Decimal(5), expiry_date=today + timedelta(days=2))
+    fine = lot(quantity_remaining=Decimal(5), expiry_date=today + timedelta(days=30))
+    empty = lot(quantity_remaining=Decimal(0), expiry_date=None)
+    cancelled = lot(quantity_remaining=Decimal(0), expiry_date=None)
+    cancelled.status = "Đã hủy"
+    session.add_all([expired, soon, fine, empty, cancelled])
+    await session.commit()
+    ids = [x.id for x in (expired, soon, fine, empty, cancelled)]
+
+    assert await refresh_all_lot_statuses(session) == 3  # expired, soon, empty
+    assert await refresh_all_lot_statuses(session) == 0  # nothing left to change
+    await session.commit()
+    session.expire_all()
+    got = [(await session.get(IngredientLot, i)).status for i in ids]
+    assert got == ["Hết hạn", "Sắp hết hạn", "Còn hạn", "Đã dùng hết", "Đã hủy"]
