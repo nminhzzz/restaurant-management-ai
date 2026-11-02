@@ -124,7 +124,7 @@ async def create_receipt(
                 ingredient_id=ingredient_id,
                 delta=qty_std,
                 kind="Nhập",
-                business_date=_bd(),
+                business_date=business_date.business_date_of(receipt.receipt_date),
                 source_receipt_line_id=gl.id,
             ),
             actor_id=actor_id,
