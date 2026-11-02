@@ -122,3 +122,11 @@ Bảng dưới lưu danh sách sai khác tại mốc 8423b3f trước các migra
 | QD-02 | Kiểm kê chỉ nhập số lượng và lý do. Thừa không tạo nhập mua hoặc yêu cầu nhập giá. Hệ thống tự định giá theo bình quân khi đủ căn cứ; chưa có giá vẫn ghi số lượng và để giá trị chưa xác định. | DonGia lô điều chỉnh và GiaVonUocTinh cho phép NULL khi thiếu căn cứ; phân biệt NULL với 0, không bỏ phần chưa định giá khỏi tổng rồi báo như tổng đầy đủ. |
 
 Hai quyết định này được đồng bộ vào báo cáo, tài liệu 02/03/04/06 và các hình liên quan. Kiểm thử bổ sung TC-BR-13–18 mới là thiết kế, chưa có kết quả thực thi. Không đánh dấu code đã đáp ứng chỉ từ việc cập nhật tài liệu.
+
+## Đối chiếu bản 0425b9d ngày 02 tháng 11 năm 2026
+
+Đối chiếu ngày 02/11/2026 trên commit 0425b9d58aa4ec510d8a0d56fb18156abe3597b2: nhóm test trạng thái lô và ca bổ sung đạt 24/24; frontend 200/200 và build đạt; nhóm slow đạt 8/8 (365 order qua service trong fixture theo năm). Lượt make gate nguyên trạng dừng ở backend: 761 đạt, 6 lỗi; bốn lỗi cần MySQL đang không khả dụng, hai lỗi thiếu socksio đã chạy lại đạt 2/2 sau khi bổ sung thư viện môi trường, không sửa nguồn. Chưa có kết quả gate toàn bộ đạt và chưa chạy lại integration MySQL. Kết quả này là kiểm thử tự động, chưa thay thế kiểm thử giao diện.
+
+Phát hiện REV-LOT-01: tác vụ refresh_all_lot_statuses đọc danh sách lô rồi UPDATE chỉ theo mã lô. Ca tái hiện điều khiển thứ tự xen kẽ trên SQLite cho hủy lô sau SELECT và trước UPDATE: trạng thái cuối bị ghi từ Đã hủy thành Hết hạn (1 ca không đạt). Đây chưa phải phép chạy đồng thời hai transaction MySQL. Dev cần bảo vệ trạng thái cuối và dữ liệu đầu vào trước cập nhật, kiểm tra lại trên MySQL khi hủy/xuất kho đồng thời với tác vụ quét; không chỉ thêm điều kiện loại Đã hủy ở SELECT ban đầu.
+
+Danh sách còn thiếu ánh xạ gồm 13 mã: TC-SALE-08, TC-SALE-19, TC-SALE-26, TC-SALE-46, TC-SALE-49, TC-INV-46, TC-INV-47, TC-BR-07, TC-BR-08, TC-CAT-31, TC-CAT-32, TC-REP-09 và TC-REP-15. Bộ mới bổ sung ánh xạ cho 17 trong 30 mã trước đó, đồng thời bổ sung assertion cho BR-19/22/23 đã có test. Không lấy số hàm test hoặc số assertion làm số ca đã nghiệm thu.

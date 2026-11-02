@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.270" timestamp="2026-11-02T11:52:23.939359+08:00" hostname="8459f7663cfb"><testcase classname="tests.modules.qa_review_temp" name="test_sweep_preserves_cancellation_after_its_read[asyncio]" time="0.083"><failure message="AssertionError: Sweep overwrote final cancellation with 'Hết hạn'&#10;assert 'Hết hạn' == 'Đã hủy'&#10;  &#10;  - Đã hủy&#10;  + Hết hạn">session = &lt;sqlalchemy.ext.asyncio.session.AsyncSession object at 0x7fba4340acc0&gt;
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x7fba433c0c80&gt;
+
+    @pytest.mark.anyio
+    async def test_sweep_preserves_cancellation_after_its_read(session,monkeypatch):
+        await seed_reference_data(session)
+        ing=Ingredient(name='Review race',unit='g',stock_qty=Decimal(1),min_stock=0)
+        session.add(ing)
+        await session.flush()
+        lot=IngredientLot(ingredient_id=ing.id,received_quantity=Decimal(1),quantity_remaining=Decimal(1),status='Còn hạn',received_at=business_date.now(),expiry_date=business_date.business_date_of(business_date.now())-timedelta(days=1))
+        session.add(lot)
+        await session.commit()
+        lid=lot.id
+        original=session.execute
+        injected=False
+        async def interleave(statement,*args,**kwargs):
+            nonlocal injected
+            if isinstance(statement,Update) and statement.table.name=='LO_NGUYEN_LIEU' and not injected:
+                injected=True
+                await original(update(IngredientLot).where(IngredientLot.id==lid).values(status='Đã hủy',quantity_remaining=0))
+                await session.commit()
+            return await original(statement,*args,**kwargs)
+        monkeypatch.setattr(session,'execute',interleave)
+        await refresh_all_lot_statuses(session)
+        await session.commit()
+        status=await session.scalar(select(IngredientLot.status).where(IngredientLot.id==lid))
+        assert injected
+&gt;       assert status=='Đã hủy',f'Sweep overwrote final cancellation with {status!r}'
+E       AssertionError: Sweep overwrote final cancellation with 'Hết hạn'
+E       assert 'Hết hạn' == 'Đã hủy'
+E         
+E         - Đã hủy
+E         + Hết hạn
+
+tests/modules/qa_review_temp.py:37: AssertionError</failure></testcase></testsuite></testsuites>

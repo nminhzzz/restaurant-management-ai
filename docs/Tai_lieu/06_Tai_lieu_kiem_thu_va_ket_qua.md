@@ -2618,3 +2618,35 @@ Sao lưu được thực hiện qua API bằng tài khoản Quản lý với tù
 ### N.4. Bằng chứng và phạm vi còn mở
 
 Log, JUnit, checksum và biên bản nằm tại [testing/artifacts/2026-11-01/5f04f24](../testing/artifacts/2026-11-01/5f04f24/Bien_ban_kiem_thu_day_du.md). Kết quả AI ngày 27–28/10 vẫn thuộc phiên bản lịch sử; môi trường đợt này không có khóa API nên chưa thực hiện A/B/C hoặc bộ AT bằng mô hình thật. Chưa có lượt UAT/kiểm tra thủ công đầy đủ trên giao diện triển khai, thiết bị thật hoặc thanh toán tiền thật. Kết quả lịch sử tại F/J/L/M được giữ nguyên, không suy thành kết quả của commit mới.
+
+
+## O. Kết quả kiểm thử bổ sung ngày 02 tháng 11 năm 2026
+
+Đối chiếu ngày 02/11/2026 trên commit 0425b9d58aa4ec510d8a0d56fb18156abe3597b2: nhóm test trạng thái lô và ca bổ sung đạt 24/24; frontend 200/200 và build đạt; nhóm slow đạt 8/8 (365 order qua service trong fixture theo năm). Lượt make gate nguyên trạng dừng ở backend: 761 đạt, 6 lỗi; bốn lỗi cần MySQL đang không khả dụng, hai lỗi thiếu socksio đã chạy lại đạt 2/2 sau khi bổ sung thư viện môi trường, không sửa nguồn. Chưa có kết quả gate toàn bộ đạt và chưa chạy lại integration MySQL. Kết quả này là kiểm thử tự động, chưa thay thế kiểm thử giao diện.
+
+Phát hiện REV-LOT-01: tác vụ refresh_all_lot_statuses đọc danh sách lô rồi UPDATE chỉ theo mã lô. Ca tái hiện điều khiển thứ tự xen kẽ trên SQLite cho hủy lô sau SELECT và trước UPDATE: trạng thái cuối bị ghi từ Đã hủy thành Hết hạn (1 ca không đạt). Đây chưa phải phép chạy đồng thời hai transaction MySQL. Dev cần bảo vệ trạng thái cuối và dữ liệu đầu vào trước cập nhật, kiểm tra lại trên MySQL khi hủy/xuất kho đồng thời với tác vụ quét; không chỉ thêm điều kiện loại Đã hủy ở SELECT ban đầu.
+
+Danh sách còn thiếu ánh xạ gồm 13 mã: TC-SALE-08, TC-SALE-19, TC-SALE-26, TC-SALE-46, TC-SALE-49, TC-INV-46, TC-INV-47, TC-BR-07, TC-BR-08, TC-CAT-31, TC-CAT-32, TC-REP-09 và TC-REP-15. Bộ mới bổ sung ánh xạ cho 17 trong 30 mã trước đó, đồng thời bổ sung assertion cho BR-19/22/23 đã có test. Không lấy số hàm test hoặc số assertion làm số ca đã nghiệm thu.
+
+| Mã ca | Kết quả chạy lại 02/11 tại 0425b9d |
+|---|---|
+| TC-CAT-02 | Đạt phần API: đổi tên nhóm, giữ nguyên mã nhóm và liên kết món; chưa thao tác tải lại giao diện. |
+| TC-CAT-46 | Đạt phần API: giá trị -1 bị từ chối 422 và ngưỡng cũ 500 được giữ. |
+| TC-SET-02 | Đạt phần API: đổi mật khẩu thành công, mật khẩu cũ bị từ chối, mật khẩu mới đăng nhập được, không thêm audit; chưa thao tác đăng xuất trên UI. |
+| TC-SET-03 | Đạt phần API: mật khẩu hiện tại sai bị từ chối, mật khẩu cũ vẫn đăng nhập được; test chưa xác nhận nội dung thông báo tiếng Việt. |
+| TC-SET-05 | Đạt phần API: Thu ngân và Bếp đều bị từ chối 403 khi đặt lại mật khẩu người khác; mật khẩu và số audit giữ nguyên. |
+| TC-SALE-50 | Đạt phần API: Bếp bị từ chối 403, không tạo order và không giảm tồn. |
+| TC-SALE-51 | Đạt phần API: người khác không sửa được lượt giữ, số lượng lượt giữ vẫn bằng 2; chưa đối chiếu riêng từng phân bổ lô và tổng khả dụng. |
+| TC-SALE-94 | Đối chiếu một phần: đọc đủ 151 giao dịch giả lập và giữ giao dịch cũ nhất. Mock trả cả 151 dòng trong một response, chưa kiểm chứng nhiều trang và tác vụ đồng bộ đầy đủ. |
+| TC-SALE-95 | Đối chiếu một phần: adapter ném BusinessRuleError khi chạm trần danh sách; chưa kiểm tra trạng thái tác vụ và thông báo lỗi trên UI. |
+| TC-SALE-99 | Đạt phần chặn API: hai order Chờ xác minh thanh toán và Đã thanh toán bị từ chối hủy 422, trạng thái giữ nguyên. Chưa đối chiếu kho, hóa đơn và doanh thu sau từng lần từ chối. |
+| TC-INV-04 | Đạt phần chặn API: phiếu có giữ hiệu lực không sửa được, phiếu/lô/tổng tồn giữ nguyên; fixture dùng lượng 10 thay vì 1.000 g, chưa đối chiếu mọi trường của dòng phiếu. |
+| TC-INV-07 | Đạt phần API: hủy phiếu có giữ hiệu lực bị từ chối 422; phiếu hiệu lực, lượng lô và tổng tồn giữ nguyên. Fixture dùng lượng 10 thay vì 1.000 g. |
+| TC-INV-33 | Đạt phần chặn API: giữ đã hết hạn nhưng chưa xử lý vẫn chặn mở kiểm kê 422; chưa xác nhận chính xác thông báo yêu cầu xử lý trên UI. |
+| TC-INV-34 | Đạt phần chặn API: giữ còn hiệu lực chặn mở kiểm kê 422; chưa xác nhận thông báo trên UI. |
+| TC-INV-44 | Đạt phần API: sổ và đếm đều 500, xác nhận giữ tồn 500, không phát sinh phiếu xuất, trạng thái Đã xác nhận. |
+| TC-BR-02 | Đạt phần chặn API: lượt hết hạn chưa gửi/hủy vẫn chặn kiểm kê. Chưa kiểm tra riêng khả dụng của phần hết hạn trong cùng ca. |
+| TC-BR-03 | Đạt phần API: hủy lượt giữ rồi mở được một phiên; mở phiên thứ hai bị từ chối. Chưa xác nhận toàn bộ thao tác kho bị khóa và tính một lần khi hủy lặp. |
+| TC-BR-19 | Đạt các assertion API bổ sung: giá bình quân của cả hai nguyên liệu và kỳ phụ thuộc được tính lại sau hủy; kết hợp test cũ về hai lô 0/Đã hủy và lịch sử. Chưa kiểm chứng trên MySQL ở lượt này. |
+| TC-BR-22 | Đạt phần API: test cũ kiểm tra 10/3 thành 3,33, giá vốn 9,99; test mới giữ lượng 0,123456 và dư lô 2,000000, giá vốn dòng 0,37. |
+| TC-BR-23 | Đạt phần API: giá vốn 0,51; tính lại hai lần giữ nguyên chi phí và số biến động kho. |
