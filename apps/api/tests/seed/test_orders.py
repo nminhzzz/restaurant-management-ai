@@ -99,8 +99,8 @@ async def test_every_order_has_a_plausible_final_state(session, seeded_year):
     assert statuses
     assert set(statuses) <= {
         "Đã thanh toán",
-        "Chờ đối soát",
-        "Tranh chấp",
+        "Chờ xác minh thanh toán",
+        "Đóng \u2013 chưa thu được tiền",
         "Đã hủy",
     }
 
