@@ -13,6 +13,7 @@ from app.core.errors import register_error_handlers
 from app.modules.ai.pipeline import executor
 from app.modules.ai.router import router as ai_router
 from app.modules.catalog.router import router as catalog_router
+from app.modules.inventory.lot_status import lot_status_tick
 from app.modules.inventory.router import router as inventory_router
 from app.modules.reports.router import router as reports_router
 from app.modules.sales import payments
@@ -58,12 +59,26 @@ async def _sepay_sync_loop() -> None:
         await asyncio.sleep(interval)
 
 
+async def _lot_status_loop() -> None:
+    """Keep the stored lot status in step with expiry dates (document 04 F.21)."""
+    interval = get_settings().lot_status_refresh_interval_seconds
+    if interval <= 0:
+        return
+    while True:
+        try:
+            await lot_status_tick()
+        except Exception:
+            logger.exception("Could not refresh lot statuses")
+        await asyncio.sleep(interval)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     tasks = [
         asyncio.create_task(_expire_qr_loop()),
         asyncio.create_task(print_queue_loop()),
         asyncio.create_task(_sepay_sync_loop()),
+        asyncio.create_task(_lot_status_loop()),
     ]
     try:
         yield

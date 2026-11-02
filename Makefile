@@ -7,7 +7,7 @@ ENV_FILE := .env
 ENV_TEMPLATE := .env.example
 
 .PHONY: help setup env db-up db-down api web migrate revision seed bench-reports check-resources gate-integration \
-         fmt fmt-check lint typecheck test test-api test-web build gate clean ai-cache-prune
+         fmt fmt-check lint typecheck test test-api test-web build gate clean ai-cache-prune lots-refresh
 
 help: ## Liệt kê các lệnh có sẵn
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -77,6 +77,9 @@ test-web: ## Chạy kiểm thử frontend
 
 build: ## Build production bundle của web
 	cd $(WEB) && pnpm build
+
+lots-refresh: ## Tính lại trạng thái mọi lô nguyên liệu theo tồn và hạn dùng (chạy được nhiều lần)
+	cd $(API) && uv run python -m app.modules.inventory.lot_status
 
 ai-cache-prune: ## Xóa cache SQL AI hết hạn theo lô (chạy định kỳ khi vận hành)
 	cd $(API) && uv run python -m app.modules.ai.runtime

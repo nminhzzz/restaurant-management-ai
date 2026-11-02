@@ -98,6 +98,8 @@ class Settings(BaseSettings):
     # Fallback for deployments without a public webhook URL: pull the account
     # transaction list every N seconds and settle matching payments. 0 disables.
     sepay_poll_interval_seconds: int = Field(default=30, ge=0)
+    # Lots turn "Sắp hết hạn"/"Hết hạn" with the calendar, not with a stock movement.
+    lot_status_refresh_interval_seconds: int = Field(default=3600, ge=0)
 
     # NFR-05 requires one read-only account per role, each granted SELECT on that
     # role's view only — never a single account shared by all three roles.
