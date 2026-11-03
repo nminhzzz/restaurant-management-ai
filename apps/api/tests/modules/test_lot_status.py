@@ -346,3 +346,90 @@ async def test_the_sweep_moves_lots_with_the_calendar_and_is_repeatable(session)
     session.expire_all()
     got = [(await session.get(IngredientLot, i)).status for i in ids]
     assert got == ["Hết hạn", "Sắp hết hạn", "Còn hạn", "Đã dùng hết", "Đã hủy"]
+
+
+async def test_the_sweep_never_overwrites_a_cancellation_made_after_it_read(session, monkeypatch):
+    """REV-LOT-01: a lot cancelled between the sweep's read and its write stays cancelled."""
+    from datetime import timedelta
+
+    from sqlalchemy import update
+    from sqlalchemy.sql.dml import Update
+
+    from app.modules.inventory.lot_status import refresh_all_lot_statuses
+
+    ing = await _ingredient(session, "NL quét xen kẽ")
+    today = business_date.business_date_of(business_date.now())
+    lot = IngredientLot(
+        ingredient_id=ing.id,
+        received_quantity=Decimal(1),
+        quantity_remaining=Decimal(1),
+        status="Còn hạn",
+        received_at=business_date.now(),
+        expiry_date=today - timedelta(days=1),
+    )
+    session.add(lot)
+    await session.commit()
+    lot_id = lot.id
+    original = session.execute
+    injected = False
+
+    async def interleave(statement, *args, **kwargs):
+        nonlocal injected
+        if isinstance(statement, Update) and not injected:
+            injected = True
+            await original(
+                update(IngredientLot)
+                .where(IngredientLot.id == lot_id)
+                .values(status="Đã hủy", quantity_remaining=0)
+            )
+            await session.commit()
+        return await original(statement, *args, **kwargs)
+
+    monkeypatch.setattr(session, "execute", interleave)
+    changed = await refresh_all_lot_statuses(session)
+    await session.commit()
+
+    assert injected
+    assert changed == 0
+    monkeypatch.undo()
+    session.expire_all()
+    assert (await session.get(IngredientLot, lot_id)).status == "Đã hủy"
+
+
+async def test_the_sweep_skips_a_lot_whose_stock_changed_after_it_read(session, monkeypatch):
+    from datetime import timedelta
+
+    from sqlalchemy import update
+    from sqlalchemy.sql.dml import Update
+
+    from app.modules.inventory.lot_status import refresh_all_lot_statuses
+
+    ing = await _ingredient(session, "NL đổi lượng giữa chừng")
+    lot = IngredientLot(
+        ingredient_id=ing.id,
+        received_quantity=Decimal(5),
+        quantity_remaining=Decimal(5),
+        status="Còn hạn",
+        received_at=business_date.now(),
+        expiry_date=business_date.business_date_of(business_date.now()) - timedelta(days=1),
+    )
+    session.add(lot)
+    await session.commit()
+    lot_id = lot.id
+    original = session.execute
+
+    async def interleave(statement, *args, **kwargs):
+        if isinstance(statement, Update):
+            monkeypatch.setattr(session, "execute", original)
+            await original(
+                update(IngredientLot).where(IngredientLot.id == lot_id).values(quantity_remaining=4)
+            )
+            await session.commit()
+            return await original(statement, *args, **kwargs)
+        return await original(statement, *args, **kwargs)
+
+    monkeypatch.setattr(session, "execute", interleave)
+    assert await refresh_all_lot_statuses(session) == 0
+    await session.commit()
+    session.expire_all()
+    assert (await session.get(IngredientLot, lot_id)).status == "Còn hạn"  # next sweep fixes it
