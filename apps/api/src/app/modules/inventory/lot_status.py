@@ -7,7 +7,6 @@ The status is saved on the lot and refreshed in the same transaction as every st
 """
 
 import asyncio
-from collections import defaultdict
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -62,20 +61,28 @@ async def refresh_all_lot_statuses(session: AsyncSession) -> int:
             ).where(IngredientLot.status != LotStatus.DA_HUY.value)
         )
     ).all()
-    changes: dict[str, list[int]] = defaultdict(list)
+    changed = 0
     for lot_id, status, remaining, expiry in rows:
         probe = IngredientLot(status=status, quantity_remaining=remaining, expiry_date=expiry)
         wanted = derive_lot_status(probe, today, days)
-        if wanted != status:
-            changes[wanted].append(lot_id)
-    for status, ids in changes.items():
-        for start in range(0, len(ids), 500):
-            await session.execute(
-                update(IngredientLot)
-                .where(IngredientLot.id.in_(ids[start : start + 500]))
-                .values(status=status)
+        if wanted == status:
+            continue
+        # The rows were read a moment ago. Write only if the lot is still exactly as it was read:
+        # a receipt cancelled, or stock drawn or returned, in between has already stored the
+        # right status in its own transaction, and "Đã hủy" must stay final.
+        result = await session.execute(
+            update(IngredientLot)
+            .where(
+                IngredientLot.id == lot_id,
+                IngredientLot.status == status,
+                IngredientLot.status != LotStatus.DA_HUY.value,
+                IngredientLot.quantity_remaining == remaining,
             )
-    return sum(len(ids) for ids in changes.values())
+            .values(status=wanted)
+            .execution_options(synchronize_session=False)
+        )
+        changed += int(getattr(result, "rowcount", 0) or 0)
+    return changed
 
 
 async def lot_status_tick(*, factory: async_sessionmaker[AsyncSession] | None = None) -> int:
