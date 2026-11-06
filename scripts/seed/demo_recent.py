@@ -18,7 +18,7 @@ import argparse
 import asyncio
 import random
 import sys
-from datetime import timedelta
+from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -29,11 +29,13 @@ for extra in (REPO_ROOT, REPO_ROOT / "apps" / "api" / "src"):
 
 from scripts.seed.catalog import CatalogIds
 from scripts.seed.operations import _place_order, _receive
-from sqlalchemy import distinct, func, select
+from sqlalchemy import distinct, func, select, update
 
 from app.core.database import get_session_factory
 from app.modules.catalog.models import DiningTable, Dish, Recipe, RecipeItem, Supplier
-from app.modules.sales.models import Invoice
+from app.modules.inventory.costing import month_key_of, refresh_costing
+from app.modules.inventory.models import MonthlyAverageCost
+from app.modules.sales.models import Invoice, Order, OrderLine
 from app.modules.settings.models import User
 from app.shared import business_date
 from app.shared.enums import VersionStatus
@@ -45,7 +47,11 @@ async def load_ids(session) -> CatalogIds:
     dishes = (
         await session.execute(
             select(Dish.id, Dish.name)
-            .where(Dish.is_deleted.is_(False), Dish.status == "Hoạt động")
+            .where(
+                Dish.is_deleted.is_(False),
+                Dish.missing_recipe.is_(False),
+                Dish.manual_paused.is_(False),
+            )
             .order_by(Dish.id)
         )
     ).all()
@@ -102,6 +108,23 @@ async def load_ids(session) -> CatalogIds:
     )
 
 
+async def settle_past_lines(session, through: date) -> int:
+    """Mark generated past dishes as served: a waiting line would block opening a stocktake."""
+    past_orders = select(Order.id).where(Order.business_date <= through, Order.status != "Đang mở")
+    result = await session.execute(
+        update(OrderLine)
+        .where(OrderLine.status == "Chờ làm", OrderLine.order_id.in_(past_orders))
+        .values(status="Đã phục vụ")
+    )
+    return int(result.rowcount)
+
+
+async def catch_up_costing(session) -> None:
+    """The seed only prices closed months, so the months after it would report a cost of 0."""
+    latest = await session.scalar(select(func.max(MonthlyAverageCost.month)))
+    await refresh_costing(session, latest or month_key_of(business_date.now()))
+
+
 async def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--days", type=int, default=14)
@@ -147,6 +170,13 @@ async def main() -> int:
                 .limit(args.days)
             )
         ).all()
+    async with factory() as session:
+        settled = await settle_past_lines(
+            session, business_date.business_date_of(business_date.now())
+        )
+        await catch_up_costing(session)
+        await session.commit()
+    print(f"Đã chuyển {settled} dòng món cũ sang Đã phục vụ và cập nhật giá vốn.")
     print("\nDoanh thu theo ngày:")
     for day, invoices, revenue in rows:
         print(f"  {day}: {invoices} hóa đơn · {Decimal(str(revenue or 0)):,.0f} đ")
