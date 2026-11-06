@@ -1,5 +1,25 @@
 # Kịch bản thuyết trình chi tiết (15 phút)
 
+## Khung bài nói
+
+Mỗi tính năng đi theo một mạch: **vấn đề của nhà hàng → cách hệ thống xử lý → làm thử trên web**. Thời gian dưới đây là mục tiêu của bản 15 phút, nên phần chi tiết bên dưới phải cắt bớt cho vừa.
+
+| # | Phần | Thời gian | Ý chính cần truyền đạt | Làm gì |
+|---|---|---|---|---|
+| 1 | Mở đầu | 0:30 | Dữ liệu nhà hàng rời rạc; em đi theo một ngày vận hành | Slide 9 |
+| 2 | Kho | 1:00 | Ba con số tồn: sổ sách, đang giữ, khả dụng; quản lý theo lô | Mở Tồn kho, Lô |
+| 3 | Gọi món và giữ nguyên liệu | 2:00 | Giữ ngay khi chọn để không bán trùng; chưa trừ kho | Sai: chọn vượt tồn. Đúng: chọn 2 suất. Sai: kiểm kê khi còn món chưa gửi |
+| 4 | Gửi bếp, trừ kho | 1:00 | Một transaction, chống gửi lặp, trừ FIFO đúng một lần | Gửi bếp, xem lô bị trừ. Sai: hủy phiếu nhập đã dùng |
+| 5 | Thanh toán QR | 2:30 | SePay, VietQR, webhook; thu ngân không tự xác nhận; hóa đơn chỉ một lần | Tạo QR, chạy script, ra hóa đơn. Nói các ca webhook sai |
+| 6 | Khách báo đã chuyển, chưa thấy tiền | 1:00 | Không tin ảnh chụp; Quản lý đối chiếu sao kê; bốn hướng xử lý | Mở order Chờ xác minh, xác nhận |
+| 7 | Báo cáo | 0:30 | Lấy từ dữ liệu nghiệp vụ; FIFO cho số lượng, bình quân cho giá vốn | Mở Doanh thu, Lợi nhuận |
+| 8 | Trợ lý AI | 3:30 | Text-to-SQL, Opus sinh SQL, Haiku diễn giải; bốn lớp bảo vệ; không tin mô hình | Hỏi một câu đúng, một câu prompt injection |
+| 9 | Kết quả chức năng, hiệu năng | 1:30 | Cách test; 223/247; p95 đạt ngưỡng, mới đo một lần | Slide 10, 11 |
+| 10 | Kết quả AI | 1:00 | 720 lượt; B đúng 84,58%; lỗi 13,75% nên NFR-02 chưa đạt; NFR-05 chưa kết luận | Slide 12 |
+| 11 | Kế hoạch và kết | 0:30 | Đã sửa gì, còn gì, câu kết | Slide 13 |
+
+---
+
 **Mỗi tính năng nói theo bốn nhịp:** hiện trạng nhà hàng → hệ thống xử lý thế nào → tình huống thực tế → kết quả trên màn hình.
 
 **Cách đọc:** **LÀM** là thao tác, **MÀN HÌNH** là thứ cần chỉ vào. Câu có nhãn *[Cắt được]* bỏ đi khi thiếu giờ. Số tồn kho đúng với dữ liệu chưa bán; sau mỗi lượt tập, hãy đọc theo số trên màn hình.
@@ -20,14 +40,14 @@
 | 2. Kho | 1,1 | 0,8 |
 | 3. Gọi món và giữ nguyên liệu | 2,4 | 2,1 |
 | 4. Gửi bếp, trừ kho FIFO | 1,5 | 0,8 |
-| 5. Thanh toán QR | 1,8 | 1,5 |
+| 5. Thanh toán QR | 3,6 | 2,7 |
 | 6. Khách báo đã chuyển nhưng chưa nhận được tiền | 1,2 | 0,9 |
 | 7. Báo cáo và giá vốn | 1,7 | 0,6 |
-| 8. Trợ lý AI và bảo vệ dữ liệu | 4,4 | 3,3 |
+| 8. Trợ lý AI và bảo vệ dữ liệu | 6,1 | 4,4 |
 | 9. Kết quả chức năng và hiệu năng | 3,4 | 2,7 |
 | 10. Kết quả AI | 3,7 | 3,3 |
 | 11. Kế hoạch và kết | 1 | 1 |
-| **Tổng** | **22,9** | **17,8** |
+| **Tổng** | **26,3** | **20,1** |
 
 Bản đủ dài hơn nhiều so với 15 phút, nên khi lên trình bày phải bỏ các câu *[Cắt được]*; chúng vẫn dùng được để trả lời khi Hội đồng hỏi. Nếu sau khi tính cả thời gian bấm vẫn quá giờ, hãy bỏ thêm mục 7 và nói mục 9, 10 theo bảng trên slide. Phải bấm giờ thực tế.
 
@@ -163,6 +183,18 @@ Bản đủ dài hơn nhiều so với 15 phút, nên khi lên trình bày phả
 
 > Em đã thử các trường hợp sai ở cổng mô phỏng. Webhook sai chữ ký bị từ chối. Webhook sai số tiền bị từ chối, order vẫn ở trạng thái chờ. Webhook đúng gửi lại lần hai vẫn chỉ có một hóa đơn. Trong lúc chờ QR, tạo thêm QR, thu tiền mặt hay gọi thêm món đều bị từ chối, để số tiền không đổi giữa chừng.
 
+**Công nghệ và cách tích hợp**
+
+> Về tích hợp, nhóm dùng **SePay** để nhận biến động số dư và **VietQR** để tạo mã. Cổng thanh toán được tách thành adapter, chọn bằng một biến cấu hình: `simulator` khi demo, `sepay` khi chạy thật, nên phần nghiệp vụ không phải sửa.
+>
+> Luồng thật gồm bốn bước. Một, backend tạo giao dịch và ảnh VietQR chứa đúng số tài khoản, số tiền và mã `TT` kèm mã giao dịch. Hai, khách quét bằng app ngân hàng. Ba, SePay gửi webhook qua HTTPS về backend, xác thực bằng API key trong header. Bốn, backend tách mã khỏi nội dung chuyển khoản, khóa dòng giao dịch, đối chiếu số tiền rồi mới phát hành hóa đơn; màn hình thu ngân tự cập nhật sau vài giây.
+>
+> *[Cắt được]* Chống ghi nhận trùng bằng hai lớp: kiểm tra mã giao dịch của SePay trước khi xử lý, và ràng buộc duy nhất trong CSDL. Nếu webhook bị lỡ, tác vụ nền đọc API giao dịch của SePay mỗi 30 giây, và thu ngân có nút Kiểm tra lại. Tiền về sai số tiền hoặc không khớp order không bị bỏ qua mà vào danh sách ngoại lệ cho Quản lý.
+>
+> Em xin nói rõ phạm vi: adapter SePay đã có test tự động, nhưng chưa có bằng chứng về một giao dịch tiền thật, nên em chưa xem là đã kiểm chứng.
+
+*Khi đã chạy được giao dịch thật và lưu bằng chứng, hãy sửa câu cuối theo kết quả đó.*
+
 **LÀM:** **Về sơ đồ bàn** → **Bàn 01** → **Giải phóng bàn**.
 
 > *[Cắt được]* Bàn không tự trống sau thanh toán, vì khách có thể còn ngồi. Nhân viên giải phóng khi khách rời đi.
@@ -224,6 +256,14 @@ Bản đủ dài hơn nhiều so với 15 phút, nên khi lên trình bày phả
 **LÀM:** Khi có kết quả, mở chi tiết kỹ thuật.
 
 > *[Cắt được]* Câu trả lời có số liệu, biểu đồ và câu SQL để kiểm chứng. Câu chú thích phạm vi dữ liệu do code thêm vào, không phụ thuộc mô hình.
+
+**Công nghệ và cách tích hợp**
+
+> Về công nghệ, đây là kỹ thuật **Text-to-SQL**: mô hình không đọc trực tiếp dữ liệu, mà viết câu SQL để hệ thống tự chạy. Backend gọi **Claude API** qua SDK chính thức của Anthropic, dùng hai mô hình: **Opus 5.5** sinh SQL vì cần chính xác, **Haiku 5.5** viết lời diễn giải vì cần nhanh và rẻ. SQL được kiểm duyệt bằng thư viện **sqlglot**, và dữ liệu được mở qua các **view MySQL** theo vai trò.
+>
+> Prompt gồm lược đồ view của đúng vai trò, định nghĩa nghiệp vụ, ví dụ mẫu và 4 lượt hội thoại gần nhất. Mô hình hoặc trả về SQL, hoặc phản hồi không kèm truy vấn khi câu hỏi chưa rõ hay ngoài phạm vi. Nếu SQL không qua kiểm duyệt hoặc chạy lỗi, hệ thống gửi lỗi lại để mô hình sửa, tối đa hai lần.
+>
+> *[Cắt được]* Về tốc độ và chi phí: phần prompt cố định dùng prompt cache của nhà cung cấp, câu SQL đã sinh được lưu 5 phút, mỗi lần gọi mô hình tối đa 5 giây, cả lượt sinh SQL và truy vấn tối đa 8 giây. Quá thời gian thì trả thông báo lỗi; nếu chỉ phần diễn giải chậm, hệ thống vẫn trả số liệu kèm câu do code viết.
 
 **Bốn lớp bảo vệ**
 
@@ -363,6 +403,7 @@ Bản đủ dài hơn nhiều so với 15 phút, nên khi lên trình bày phả
 | Thao tác | Hiện tượng | Nếu bị hỏi |
 |---|---|---|
 | Gửi bếp khi lượt chọn đã giữ hết phần còn lại (ở SAI 1: bấm 2 suất rồi gửi) | Bị từ chối *Món đang hết nguyên liệu.* dù đã giữ đủ | Lỗi TC-INV-09, ưu tiên 1 trên slide 13 |
+| Giảm suất món đã giữ hết phần còn lại (ở SAI 1: giảm từ 2 xuống 1) | Bị từ chối *Món đang hết nguyên liệu.* | Cùng lỗi với TC-INV-09. Cách xử lý: Hủy lượt chọn rồi chọn lại |
 | Đăng nhập sai để minh họa | Thông báo chung chung, không nói sai mật khẩu | API trả đúng thông báo, giao diện cần hiển thị lại |
 | Giải phóng bàn khi chưa thanh toán | Được phép, bàn về Trống | Đúng đặc tả FR-CAT-18: khách đã rời thì trả bàn, order vẫn được theo dõi riêng |
 | Gọi thêm cho order đã rời bàn | API vẫn giữ nguyên liệu | Lỗi TC-SALE-19, ưu tiên 1 trên slide 13 |
@@ -371,7 +412,41 @@ Bản đủ dài hơn nhiều so với 15 phút, nên khi lên trình bày phả
 
 > Thưa thầy cô, đây là trường hợp ngoài kịch bản. Thông báo trên màn hình là *[đọc thông báo]*. Em xin ghi nhận để kiểm tra sau, và chuyển sang bước tiếp theo.
 
-## 13. Nguồn số liệu (để tra khi bị hỏi "số này lấy ở đâu")
+## 13. Chi tiết công nghệ (để tra, không đọc)
+
+**Thanh toán**
+
+| Hạng mục | Cách làm | Vị trí trong code |
+|---|---|---|
+| Chọn cổng | `PAYMENT_GATEWAY=simulator` hoặc `sepay`; thiếu cấu hình SePay thì API từ chối khởi động | `core/config.py` |
+| Ảnh QR thật | `https://qr.sepay.vn/img` với số tài khoản, ngân hàng, số tiền, nội dung `TT<mã>` | `sales/gateways/sepay.py` |
+| QR mô phỏng | Thư viện `segno` tạo ảnh, không chứa dữ liệu ngân hàng | `sales/payments.py` |
+| Webhook thật | `POST /api/v1/sales/webhooks/sepay`, header `Authorization: Apikey <khóa>`, so sánh bằng `hmac.compare_digest` | `sales/router.py`, `gateways/sepay.py` |
+| Webhook mô phỏng | Chữ ký HMAC-SHA256 của `mã:số tiền` | `gateways/simulator.py` |
+| Khớp giao dịch | Tìm `TT<số>` trong mã hoặc nội dung chuyển khoản; chỉ xử lý tiền vào | `gateways/sepay.py`, `handle_sepay_transfer` |
+| Chống trùng | Kiểm tra `sepay:<id>`, khóa dòng `FOR UPDATE`, unique index trên mã giao dịch | `sales/payments.py`, `sales/models.py` |
+| Bù webhook lỡ | Đọc `/transactions/list` của SePay mỗi 30 giây bằng API token, có lưu mốc đồng bộ; nút Kiểm tra lại | `sync_recent_transfers`, `check_payment` |
+| Hết hạn QR | 10 phút; tác vụ nền quét mỗi 60 giây | `QR_LIFETIME`, `main.py` |
+| Cập nhật màn hình | Web hỏi trạng thái giao dịch mỗi 3 giây | `payment-panel.tsx` |
+| Khi phát triển | ngrok hoặc Cloudflare Tunnel đưa cổng 8000 ra HTTPS công khai | `docs/payment-sepay-setup.md` |
+
+**AI**
+
+| Bước | Công nghệ, cách làm | Vị trí trong code |
+|---|---|---|
+| 1. Nhận câu hỏi | Lấy vai trò từ phiên đăng nhập, trừ hạn mức theo người dùng và ngày | `ai/router.py`, `ai/runtime.py` |
+| 2. Chuẩn hóa | Chuẩn NFC, gọn khoảng trắng, bỏ dấu câu cuối, giữ dấu tiếng Việt | `pipeline/normalize.py` |
+| 3. Dựng prompt | Lược đồ đọc từ view của vai trò, ví dụ mẫu, định nghĩa nghiệp vụ, 4 lượt gần nhất | `pipeline/prompt.py` |
+| 4. Sinh SQL | Opus 5.5, effort thấp, SDK `anthropic`; prompt cache cho phần cố định | `ai/llm.py`, `pipeline/generator.py` |
+| 5. Kiểm duyệt | `sqlglot` phân tích cú pháp MySQL: một câu SELECT, đúng view, chặn hàm nguy hiểm, trần 500 dòng | `ai/guard.py` |
+| 6. Thực thi | Tài khoản riêng từng vai trò, `MAX_EXECUTION_TIME` 3 giây | `pipeline/executor.py`, `ai/accounts.py` |
+| 7. Biểu đồ | Luật theo hình dạng dữ liệu, không gọi mô hình | `ai/charts.py` |
+| 8. Diễn giải | Haiku 5.5 tắt thinking, nhận số tổng do code tính và tối đa 20 dòng; lỗi thì dùng câu dự phòng | `pipeline/interpreter.py` |
+| 9. Lưu vết | Lưu câu hỏi, SQL, trạng thái, thời gian theo phiên của người dùng | `ai/service.py` |
+
+Số view theo chủ đề: Quản lý 17, Bếp 8, Thu ngân 6. DDL ở `db/views/`, quyền ở `db/views/grants.sql.template`.
+
+## 14. Nguồn số liệu (để tra khi bị hỏi "số này lấy ở đâu")
 
 | Số liệu | Nguồn | Cách có số |
 |---|---|---|
@@ -608,3 +683,29 @@ Bản đủ dài hơn nhiều so với 15 phút, nên khi lên trình bày phả
 
 **64. Thầy cô yêu cầu thử một trường hợp sai ngay bây giờ thì sao?**
 > Dạ em xin thử. *(Làm trực tiếp, đọc thông báo trên màn hình. Nếu ra lỗi: "Đây là lỗi cần xử lý, em xin ghi nhận." Không biện minh.)*
+
+## Công nghệ và tích hợp
+
+**65. Vì sao chọn SePay mà không phải VNPay hay MoMo?**
+> Nhà hàng cần nhận chuyển khoản vào đúng tài khoản ngân hàng của mình, và SePay báo biến động số dư qua webhook. *(Cần nhóm thống nhất lý do: phần này chưa có bảng so sánh các cổng trong tài liệu, nên đừng tự nêu so sánh về phí hay tính năng.)*
+
+**66. Làm sao biết khoản tiền thuộc order nào?**
+> Mỗi QR chứa nội dung `TT` kèm mã giao dịch. Khi có tiền vào, backend tìm mã đó trong dữ liệu SePay gửi, rồi đối chiếu số tiền với order. Khách sửa nội dung hoặc chuyển sai số tiền thì khoản đó vào danh sách ngoại lệ để Quản lý xử lý.
+
+**67. Có lưu thông tin thẻ, tài khoản của khách không?**
+> Hệ thống không xử lý thẻ. Tiền đi trực tiếp vào tài khoản ngân hàng của nhà hàng; hệ thống chỉ lưu mã giao dịch và số tiền. Khóa API nằm trong biến môi trường, không ở mã nguồn.
+
+**68. Webhook giả mạo thì sao?**
+> Webhook không có đúng API key bị từ chối và ghi nhật ký. Khóa được so sánh theo thời gian không đổi để tránh dò khóa. SePay xác thực bằng API key chứ không ký nội dung, nên endpoint bắt buộc chạy trên HTTPS.
+
+**69. API sập đúng lúc khách chuyển tiền thì sao?**
+> Khi chạy lại, tác vụ nền đọc danh sách giao dịch từ mốc đã lưu và xử lý phần còn thiếu. Xử lý lặp cũng an toàn vì mỗi mã giao dịch chỉ được ghi nhận một lần. Phần này mới có test tự động, chưa thử với SePay thật.
+
+**70. Vì sao dùng Text-to-SQL, không dùng RAG?**
+> Câu hỏi của quản lý chủ yếu là số liệu: tổng, xếp hạng, so sánh. SQL chạy trên dữ liệu thật sẽ cho số chính xác, và người dùng xem lại được câu SQL. RAG phù hợp hơn với tài liệu dạng văn bản.
+
+**71. Vì sao dùng hai mô hình?**
+> Sinh SQL cần độ chính xác nên dùng Opus 5.5. Diễn giải chỉ viết lại số liệu đã có nên dùng Haiku 5.5 để nhanh và rẻ hơn.
+
+**72. Đổi nhà cung cấp mô hình có khó không?**
+> Lời gọi mô hình gom trong một module riêng, nên phần kiểm duyệt, thực thi và phân quyền không phụ thuộc nhà cung cấp. Tuy vậy, nhóm chưa thử với nhà cung cấp khác, và độ đúng phải đánh giá lại.
