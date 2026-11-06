@@ -10,7 +10,7 @@ Nhóm khảo sát 51 người đang làm việc tại nhà hàng và thấy mộ
 
 ### Kho: biết chính xác còn bao nhiêu và còn bán được bao nhiêu
 
-Trong 17 người làm công việc kho được khảo sát, không ai theo dõi được tồn kho liên tục, và 13 người khó biết tồn thực tế. Hậu quả quen thuộc là khách gọi xong nhân viên mới biết món đã hết.
+Trong 17 người trả lời về kho, không ai theo dõi được tồn kho liên tục, và 13 người khó biết tồn thực tế. Hậu quả quen thuộc là khách gọi xong nhân viên mới biết món đã hết.
 
 Phần trình diễn bắt đầu ở cửa sổ của Bếp, tại màn hình Kho, mục Tồn kho, với nguyên liệu Thịt bò thăn. Màn hình có ba con số, và cả bài trình diễn xoay quanh sự khác nhau giữa chúng. Tồn sổ sách là lượng theo chứng từ, tức lượng mà nhà hàng đang sở hữu trên giấy tờ, được dùng khi kiểm kê. Đang giữ là phần đã được đặt cho các lượt chọn món chưa gửi bếp. Khả dụng là phần còn được phép bán. Với dữ liệu chưa bán, Thịt bò thăn có tồn sổ sách 15 kg, không có phần đang giữ và khả dụng 15 kg.
 
@@ -160,4 +160,4 @@ Sau lượt kiểm thử, nhóm đã sửa hai lỗi là hủy phiếu nhập v�
 
 Song song với việc sửa lỗi, nhóm cần chạy lại 19 ca còn lại, chạy đủ bộ an toàn AI, kiểm tra tích hợp toàn luồng và hoàn thiện tài liệu. Hệ thống chưa nên được xem là sẵn sàng dùng thực tế: luồng chính chạy được trên dữ liệu mô phỏng, nhưng còn lỗi đã biết, SePay chưa chạy tiền thật, và chưa có kết quả đánh giá SUS, UAT với người dùng.
 
-Tóm lại, hệ thống giải quyết được bài toán dữ liệu rời rạc bằng một luồng xuyên suốt: từ kho, qua bán hàng và thanh toán, đến báo cáo và trợ lý AI, trong đó mỗi con số đều truy được về chứng từ gốc. Hạn chế lớn nhất là độ ổn định của AI và các lỗi đang được xử lý. Bài trình bày kết thúc tại đây, xin cảm ơn thầy cô và rất mong nhận được câu hỏi, góp ý của Hội đồng.
+Tóm lại, hệ thống giải quyết được bài toán dữ liệu rời rạc bằng một luồng xuyên suốt: từ kho, qua bán hàng và thanh toán, đến báo cáo và trợ lý AI. Hạn chế lớn nhất là độ ổn định của AI và các lỗi đang được xử lý. Bài trình bày kết thúc tại đây, xin cảm ơn thầy cô và rất mong nhận được câu hỏi, góp ý của Hội đồng.
