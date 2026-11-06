@@ -131,9 +131,9 @@ export function OrderDetail({ orderId }: { orderId: number }) {
     );
   useEffect(() => {
     if (!awaitingPrinter) return;
-    const timer = window.setInterval(detail.reload, 5000);
+    const timer = window.setInterval(detail.refresh, 5000);
     return () => window.clearInterval(timer);
-  }, [awaitingPrinter, detail.reload]);
+  }, [awaitingPrinter, detail.refresh]);
 
   if (detail.status === "loading") return <LoadingState rows={5} />;
   if (detail.status === "error")

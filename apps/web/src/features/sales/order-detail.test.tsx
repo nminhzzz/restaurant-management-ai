@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import {
+  act,
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from "@testing-library/react";
 
 vi.mock("@/lib/api-client", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api-client")>();
@@ -182,5 +188,44 @@ describe("OrderDetail", () => {
     );
     expect(browserPrint).not.toHaveBeenCalled();
     browserPrint.mockRestore();
+  });
+
+  it("keeps an open dialog on screen while polling the print queue", async () => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    try {
+      stubByPath({
+        "/sales/orders/1/tickets": {
+          items: [
+            {
+              MaPhieuBep: 7,
+              NoiDung: "Phở bò",
+              TrangThaiIn: "Chờ in",
+              SoLanIn: 0,
+            },
+          ],
+        },
+        "/sales/orders/1": openOrder(),
+        "/catalog/dishes": dishes,
+        "/catalog/tables": tables,
+      });
+      render(<OrderDetail orderId={1} />);
+      fireEvent.click(
+        await screen.findByRole("button", { name: /Chuyển bàn/ }),
+      );
+      const picker = screen.getByRole("combobox", { name: "Bàn đích" });
+      const callsBefore = fetchMock.mock.calls.length;
+
+      act(() => {
+        vi.advanceTimersByTime(5000);
+      });
+
+      expect(picker).toBeInTheDocument();
+      await waitFor(() =>
+        expect(fetchMock.mock.calls.length).toBeGreaterThan(callsBefore),
+      );
+      expect(screen.getByRole("combobox", { name: "Bàn đích" })).toBe(picker);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
