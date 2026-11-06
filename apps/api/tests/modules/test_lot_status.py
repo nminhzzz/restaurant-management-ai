@@ -433,3 +433,30 @@ async def test_the_sweep_skips_a_lot_whose_stock_changed_after_it_read(session, 
     await session.commit()
     session.expire_all()
     assert (await session.get(IngredientLot, lot_id)).status == "Còn hạn"  # next sweep fixes it
+
+
+@pytest.mark.asyncio
+async def test_the_lot_list_reports_a_cancelled_lot_as_cancelled(session):
+    """TC-BR-19: the listing must not relabel a cancelled, emptied lot as used up."""
+    ingredient = await _ingredient(session, "NL hủy hiển thị")
+    ingredient_id = ingredient.id
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    receipt = await client.post(
+        "/api/v1/inventory/receipts",
+        json={"lines": [{"ingredient_id": ingredient_id, "quantity": 4, "unit_price": 1000}]},
+        headers=h,
+    )
+    await client.delete(f"/api/v1/inventory/receipts/{receipt.json()['MaPhieuNhap']}", headers=h)
+
+    listed = await client.get(
+        "/api/v1/inventory/lots", params={"ingredient_id": ingredient_id}, headers=h
+    )
+    filtered = await client.get(
+        "/api/v1/inventory/lots",
+        params={"ingredient_id": ingredient_id, "status": "Đã hủy"},
+        headers=h,
+    )
+
+    assert [lot["TrangThai"] for lot in listed.json()["items"]] == ["Đã hủy"]
+    assert filtered.json()["total"] == 1

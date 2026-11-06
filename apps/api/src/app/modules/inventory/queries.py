@@ -10,6 +10,7 @@ from app.modules.inventory.models import IngredientLot, StockMovement
 from app.modules.sales.models import Reservation, ReservationDetail
 from app.modules.settings.models import SystemConfig
 from app.shared import business_date
+from app.shared.enums import LotStatus
 
 
 def _held_by_lot(moment):
@@ -132,6 +133,7 @@ async def list_lots(
     warning = config.expiry_warning_days if config else 3
     held, eligible, remaining, held_qty, available = _lot_projection(moment, today)
     state = case(
+        (IngredientLot.status == LotStatus.DA_HUY.value, LotStatus.DA_HUY.value),
         (remaining <= 0, "Đã hết"),
         (~eligible, "Hết hạn"),
         (
