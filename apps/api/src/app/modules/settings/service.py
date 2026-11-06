@@ -136,6 +136,8 @@ async def create_user(
         )
     )
     await session.flush()
+    # MySQL has no RETURNING: load NgayTao here, while async IO is still allowed.
+    await session.refresh(user)
     return user
 
 
