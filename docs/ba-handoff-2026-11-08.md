@@ -194,7 +194,7 @@ Viết test đúng assertion của ca trong tài liệu 06. Không lấy số h�
 - Không đạt: TC-INV-09, TC-SALE-19, TC-CAT-03, TC-CAT-10, TC-SALE-32, TC-SET-01, TC-SET-09, TC-CAT-13, TC-CAT-16, TC-SALE-13, TC-SALE-70, TC-BR-06, TC-INV-05, TC-REP-08, TC-REP-09, TC-REP-07, TC-BR-14, TC-BR-19, TC-BR-15, TC-BR-11, TC-SALE-61.
 - Bị chặn: TC-BR-21.
 
-Nhóm đã sửa và chạy lại đạt TC-SET-01, TC-INV-05, TC-BR-15, TC-BR-19, TC-BR-21 ngày 06/11 trên một nhánh sửa lỗi, nhưng nhánh này chưa có trên GitHub. Đẩy nhánh đó lên và merge trước, rồi sửa các ca còn lại theo thứ tự:
+Nhánh `fix/demo-blockers` (đầu nhánh `395d0ca`, ngày 06/11, tách từ `099191e`) đã sửa và chạy lại đạt TC-SET-01, TC-INV-05, TC-BR-15, TC-BR-19, TC-BR-21. Bằng chứng ở `docs/testing/artifacts/2026-11-06-fix-demo-blockers/` trên nhánh đó. Nhánh này chưa merge vào `main`. Merge nó vào `main` trước khi làm phần A; `main` chỉ có thêm hai commit tài liệu nên không đụng code. Sau đó sửa các ca còn lại theo thứ tự:
 1. Giữ và gửi món: TC-INV-09, TC-SALE-19.
 2. Giá vốn và báo cáo: TC-REP-07, 08, 09, TC-BR-11, 14. Làm cùng A1, vì kỳ vọng của các ca này đã đổi sang bình quân di động.
 3. Webhook và nhật ký: TC-BR-06, TC-SET-09.
@@ -202,9 +202,9 @@ Nhóm đã sửa và chạy lại đạt TC-SET-01, TC-INV-05, TC-BR-15, TC-BR-1
 
 ### B3. Chạy đủ cổng kiểm tra
 
-Chưa có lượt `make gate` đạt toàn bộ, và chưa chạy lại integration MySQL từ 02/11. Lượt gần nhất dừng ở 761 đạt, 6 lỗi do môi trường.
+Trên nhánh `fix/demo-blockers`, lượt ngày 06/11 ghi `make gate` đạt (771 test backend, 200 test frontend, build) và integration MySQL đạt 18/18. Trên `main` chưa có lượt đạt toàn bộ, vì nhánh này chưa được merge.
 
-Chạy lại sau khi xong A1–A6, trong môi trường có MySQL và `AI_READONLY_URL_*`. Ghi mã commit và log.
+Sau khi merge và làm xong A1–A6, chạy lại `make gate` và integration MySQL trong môi trường có MySQL và `AI_READONLY_URL_*`. Ghi mã commit và log.
 
 ### B4. Đo hiệu năng và sao lưu
 
@@ -222,13 +222,14 @@ Biến `Bars` không dùng trong `apps/web/src/features/reports/closed-unpaid-pa
 
 ## C. Thứ tự làm đề xuất
 
-1. A1, vì A3, A4, A5 và nhóm giá vốn của B2 đều dựa trên đơn giá bình quân.
-2. B2 nhóm giá vốn (TC-REP-07/08/09, TC-BR-11/14), làm cùng A1.
-3. A2 và A3.
-4. A4 và A5.
-5. A6.
-6. Phần còn lại của B2, rồi B1.
-7. B3, sau đó B4 và B5.
+1. Merge `fix/demo-blockers` vào `main` (B2).
+2. A1, vì A3, A4, A5 và nhóm giá vốn của B2 đều dựa trên đơn giá bình quân.
+3. B2 nhóm giá vốn (TC-REP-07/08/09, TC-BR-11/14), làm cùng A1.
+4. A2 và A3.
+5. A4 và A5.
+6. A6.
+7. Phần còn lại của B2, rồi B1.
+8. B3, sau đó B4 và B5.
 
 ## D. Quy tắc đối chiếu khi viết test
 
