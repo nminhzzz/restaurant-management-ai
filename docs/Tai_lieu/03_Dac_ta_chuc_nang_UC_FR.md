@@ -2,11 +2,11 @@
 
 Hệ thống quản lý nhà hàng tích hợp AI hỗ trợ hoạt động kinh doanh
 
-Đặc tả 30 Use Case, danh mục Use Case và các yêu cầu chức năng chi tiết của hệ thống quản lý nhà hàng.
+Đặc tả 29 Use Case, danh mục Use Case và các yêu cầu chức năng chi tiết của hệ thống quản lý nhà hàng.
 
 ## 3.4. Đặc tả chức năng
 
-Mục này đặc tả 30 Use Case của hệ thống, chia thành sáu module tương ứng với các nhóm tại mục 3.1.2. Mỗi Use Case trình bày tác nhân, đầu vào, đầu ra, trình tự xử lý và các nhánh nghiệp vụ chính.
+Mục này đặc tả 29 Use Case của hệ thống, chia thành sáu module tương ứng với các nhóm tại mục 3.1.2. Mỗi Use Case trình bày tác nhân, đầu vào, đầu ra, trình tự xử lý và các nhánh nghiệp vụ chính.
 
 Ngoại trừ đăng nhập, người dùng phải có phiên hợp lệ và quyền tương ứng. Mỗi Use Case ghi các mã FR liên quan; nội dung chi tiết của từng FR được trình bày tại phần K của tài liệu này. Danh mục Use Case và đối chiếu nghiệp vụ được trình bày tại phần I của tài liệu này.
 
@@ -46,19 +46,21 @@ Yêu cầu chức năng liên quan: FR-CAT-01, FR-CAT-03.
 
   - Bước 3. Hệ thống lưu kết quả, cập nhật trạng thái phục vụ và danh sách món; dữ liệu của order cũ được giữ nguyên.
 
-Yêu cầu chức năng liên quan: FR-CAT-02, FR-CAT-04, FR-CAT-05, FR-CAT-06, FR-CAT-11, FR-CAT-26, FR-CAT-27, FR-CAT-28.
+  - Bước 4. Danh sách món của Quản lý hiển thị giá bán hiện hành, giá vốn ước tính, tỷ lệ giá vốn và lãi gộp mỗi suất; món có tỷ lệ giá vốn vượt ngưỡng cấu hình được đánh dấu cảnh báo. Chọn một món để xem giá vốn theo từng nguyên liệu trong công thức.
 
-**1.3 – Quản lý công thức**
+Yêu cầu chức năng liên quan: FR-CAT-02, FR-CAT-04, FR-CAT-05, FR-CAT-06, FR-CAT-11, FR-CAT-26, FR-CAT-27, FR-CAT-28, FR-CAT-29.
+
+**1.2a – Thiết lập công thức của món (nghiệp vụ con của UC 1.2)**
 
 - **Tác nhân:** Quản lý
 
-- **Đầu vào:** Món ăn, danh sách nguyên liệu, định lượng, lựa chọn áp dụng ngay hoặc ngày hiệu lực.
+- **Đầu vào: Món ăn đang mở trong chi tiết món,** danh sách nguyên liệu, định lượng, lựa chọn áp dụng ngay hoặc ngày hiệu lực.
 
 - **Đầu ra:** Phiên bản công thức và lịch áp dụng được lưu/cập nhật/hủy hoặc thông báo lỗi.
 
 - **Nội dung xử lý:**
 
-  - Bước 1. Quản lý chọn món, khai báo nguyên liệu và định lượng hoặc chọn lịch công thức cần xử lý.
+  - Bước 1. Trong chi tiết món (UC 1.2), Quản lý mở phần Công thức, khai báo nguyên liệu và định lượng hoặc chọn lịch công thức cần xử lý. Công thức không có màn hình quản lý riêng; mỗi công thức luôn thuộc về đúng một món.
 
   - Bước 2. Hệ thống kiểm tra dữ liệu; Quản lý xác nhận áp dụng công thức đầu tiên, sửa trực tiếp, lên lịch, thay hoặc hủy lịch theo trường hợp tương ứng.
 
@@ -66,7 +68,7 @@ Yêu cầu chức năng liên quan: FR-CAT-02, FR-CAT-04, FR-CAT-05, FR-CAT-06, 
 
 Yêu cầu chức năng liên quan: FR-CAT-07, FR-CAT-08, FR-CAT-09, FR-CAT-10, FR-CAT-23, FR-CAT-24, FR-CAT-25; FR-CAT-11.
 
-**1.4 – Quản lý giá bán**
+**1.3 – Quản lý giá bán**
 
 - **Tác nhân:** Quản lý
 
@@ -76,15 +78,15 @@ Yêu cầu chức năng liên quan: FR-CAT-07, FR-CAT-08, FR-CAT-09, FR-CAT-10, 
 
 - **Nội dung xử lý:**
 
-  - Bước 1. Quản lý chọn món, nhập giá và chọn sửa trực tiếp hoặc lên lịch; với lịch chưa áp dụng, có thể chọn thay hoặc hủy lịch.
+  - Bước 1. Quản lý chọn món, nhập giá và chọn sửa trực tiếp hoặc lên lịch; với lịch chưa áp dụng, có thể chọn thay hoặc hủy lịch. Màn hình hiển thị giá vốn ước tính và tỷ lệ giá vốn theo giá đang nhập để Quản lý cân nhắc trước khi lưu.
 
   - Bước 2. Hệ thống kiểm tra dữ liệu và thời điểm hiệu lực; thông tin không hợp lệ được trả về để chỉnh sửa.
 
   - Bước 3. Hệ thống lưu phiên bản giá và lịch sử; các món đã ghi nhận trên order giữ nguyên giá.
 
-Yêu cầu chức năng liên quan: FR-CAT-20, FR-CAT-21, FR-CAT-22; FR-CAT-23–25.
+Yêu cầu chức năng liên quan: FR-CAT-20, FR-CAT-21, FR-CAT-22; FR-CAT-23–25, FR-CAT-29.
 
-**1.5 – Quản lý bàn**
+**1.4 – Quản lý bàn**
 
 - **Tác nhân:** Quản lý
 
@@ -102,7 +104,7 @@ Yêu cầu chức năng liên quan: FR-CAT-20, FR-CAT-21, FR-CAT-22; FR-CAT-23�
 
 Yêu cầu chức năng liên quan: FR-CAT-17, FR-CAT-19.
 
-**1.6 – Quản lý nguyên liệu**
+**1.5 – Quản lý nguyên liệu**
 
 - **Tác nhân:** Bếp
 
@@ -120,7 +122,7 @@ Yêu cầu chức năng liên quan: FR-CAT-17, FR-CAT-19.
 
 Yêu cầu chức năng liên quan: FR-CAT-12, FR-CAT-13, FR-CAT-14.
 
-**1.7 – Quản lý nhà cung cấp**
+**1.6 – Quản lý nhà cung cấp**
 
 - **Tác nhân:** Bếp
 
@@ -328,9 +330,9 @@ Yêu cầu chức năng liên quan: FR-SALE-25, FR-SALE-26; FR-SALE-32.
 
   - Bước 1. Người lập nhập thông tin hàng thực nhận; hệ thống kiểm tra dữ liệu và trạng thái kiểm kê. Nếu không hợp lệ, yêu cầu chỉnh sửa hoặc từ chối ghi kho.
 
-  - Bước 2. Người lập xác nhận; hệ thống lưu phiếu nhập, tạo lô và cập nhật tồn kho.
+  - Bước 2. Người lập xác nhận; hệ thống lưu phiếu nhập, tạo lô, cập nhật tồn kho và tính lại đơn giá bình quân gia quyền di động của nguyên liệu.
 
-  - Bước 3. Khi sửa hoặc hủy phiếu, hệ thống kiểm tra điều kiện sử dụng các lô. Nếu không đạt, từ chối và hướng dẫn xử lý chênh lệch qua kiểm kê; nếu đạt, lưu thay đổi và nhật ký.
+  - Bước 3. Khi sửa hoặc hủy phiếu, hệ thống kiểm tra điều kiện sử dụng các lô. Nếu không đạt, từ chối và hướng dẫn xử lý chênh lệch qua kiểm kê; nếu đạt, lưu thay đổi, tính lại đơn giá bình quân hiện hành của nguyên liệu và ghi nhật ký.
 
 Yêu cầu chức năng liên quan: FR-INV-01, FR-INV-02, FR-INV-13.
 
@@ -364,9 +366,11 @@ Yêu cầu chức năng liên quan: FR-INV-03, FR-INV-04; FR-INV-13; FR-INV-10�
 
   - Bước 1. Người dùng chọn nguồn và nhập lý do; chọn lô, lượng nguyên liệu hủy hoặc chọn dòng order, số suất món bị bỏ.
 
-  - Bước 2. Hệ thống kiểm tra giới hạn và trạng thái kiểm kê. Với món đã chế biến, hệ thống tự xác định các nguyên liệu và lượng tương ứng từ tiêu hao gốc, hiển thị để người dùng kiểm tra. Dữ liệu không hợp lệ bị từ chối; lô hỏng đang được giữ được xử lý theo FR-INV-06.
+  - Bước 2. Hệ thống kiểm tra giới hạn và trạng thái kiểm kê. Với món đã chế biến, hệ thống tự xác định các nguyên liệu và lượng tương ứng từ tiêu hao gốc. Dữ liệu không hợp lệ bị từ chối.
 
-  - Bước 3. Người dùng xác nhận; hệ thống lưu phiếu, ghi nhật ký và trừ tồn theo lô với nguồn Nguyên liệu. Phiếu nguồn Món đã chế biến liên kết với tiêu hao gốc; chứng từ chênh lệch kiểm kê được sinh từ UC 3.4.
+  - Bước 3. Hệ thống hiển thị bản xem trước gồm lô, lượng hủy, tồn còn lại sau hủy, giá trị hủy theo đơn giá bình quân hiện hành và các lượt giữ bị ảnh hưởng theo FR-INV-06. Người dùng xác nhận hoặc quay lại sửa dữ liệu.
+
+  - Bước 4. Sau khi người dùng xác nhận, hệ thống lưu phiếu, ghi nhật ký và trừ tồn theo lô với nguồn Nguyên liệu. Phiếu nguồn Món đã chế biến liên kết với tiêu hao gốc; chứng từ chênh lệch kiểm kê được sinh từ UC 3.4.
 
 Yêu cầu chức năng liên quan: FR-INV-05, FR-INV-06.
 
@@ -376,17 +380,17 @@ Yêu cầu chức năng liên quan: FR-INV-05, FR-INV-06.
 
 - **Đầu vào:** Tồn sổ sách theo nguyên liệu/lô, số lượng kiểm đếm thực tế và lý do chênh lệch.
 
-- **Đầu ra:** Phiếu kiểm kê, điều chỉnh tồn và chứng từ liên quan, hoặc phiên được hủy.
+- **Đầu ra: Bản xem trước tồn trước và sau điều chỉnh; phiếu kiểm kê đã xác nhận cùng điều chỉnh tồn và chứng từ liên quan, hoặc phiên được hủy.**
 
 - **Nội dung xử lý:**
 
   - Bước 1. Người dùng bắt đầu kiểm kê sau khi kết thúc phục vụ; hệ thống kiểm tra điều kiện, chốt số liệu và khóa thay đổi kho. Nếu chưa đủ điều kiện, thông báo lý do.
 
-  - Bước 2. Người dùng kiểm đếm các lô, kể cả lô hết hạn, nhập số lượng thực tế và lý do chênh lệch, rồi xác nhận.
+  - Bước 2. Người dùng kiểm đếm các lô, kể cả lô hết hạn, nhập số lượng thực tế và lý do chênh lệch, rồi chọn Xem trước.
 
-  - Bước 3. Hệ thống điều chỉnh theo kết quả kiểm kê: giảm tồn và ghi hao hụt khi thiếu, tăng tồn khi thừa; không tạo điều chỉnh khi khớp.
+  - Bước 3. Hệ thống hiển thị tồn trước điều chỉnh, tồn sau điều chỉnh và chênh lệch của từng nguyên liệu, chưa ghi dữ liệu. Người dùng chọn Xác nhận hoặc Quay lại sửa.
 
-  - Bước 4. Hệ thống lưu nhật ký và kết thúc kiểm kê, mở lại thao tác kho. Nếu hủy kiểm kê, hệ thống mở khóa và không điều chỉnh tồn.
+  - Bước 4. Khi người dùng xác nhận, hệ thống điều chỉnh theo kết quả kiểm kê: giảm tồn và ghi hao hụt khi thiếu, tăng tồn khi thừa; không tạo điều chỉnh khi khớp. Hệ thống lưu nhật ký, kết thúc kiểm kê và mở lại thao tác kho. Nếu hủy phiên trước khi xác nhận, tồn không thay đổi và kho được mở khóa.
 
 Yêu cầu chức năng liên quan: FR-INV-08, FR-INV-09.
 
@@ -396,15 +400,15 @@ Yêu cầu chức năng liên quan: FR-INV-08, FR-INV-09.
 
 - **Đầu vào:** Tên nguyên liệu, tiêu chí lọc, dữ liệu tồn theo lô, lượt giữ và ngưỡng cảnh báo.
 
-- **Đầu ra:** Danh sách tồn sổ sách, đủ điều kiện bán, đang giữ, khả dụng và cảnh báo theo lô.
+- **Đầu ra:** Danh sách tồn sổ sách, đủ điều kiện bán, đang giữ, khả dụng, đơn giá bình quân hiện hành, giá trị tồn và cảnh báo theo lô.
 
 - **Nội dung xử lý:**
 
   - Bước 1. Người dùng chọn bộ lọc để xem tồn nguyên liệu và chi tiết theo lô.
 
-  - Bước 2. Hệ thống hiển thị tồn sổ sách, lượng đủ điều kiện sử dụng, lượng giữ và lượng khả dụng, kèm cảnh báo tồn thấp hoặc hạn sử dụng theo quy tắc của từng nguyên liệu.
+  - Bước 2. Hệ thống hiển thị tồn sổ sách, lượng đủ điều kiện sử dụng, lượng giữ, lượng khả dụng, đơn giá bình quân hiện hành và giá trị tồn, kèm cảnh báo tồn thấp hoặc hạn sử dụng theo quy tắc của từng nguyên liệu.
 
-  - Bước 3. Người dùng xem thời điểm dữ liệu và chi tiết lô; nếu không có kết quả, thay đổi bộ lọc hoặc kết thúc.
+  - Bước 3. Người dùng xem thời điểm dữ liệu, chi tiết lô và lịch sử đơn giá bình quân của nguyên liệu; nếu không có kết quả, thay đổi bộ lọc hoặc kết thúc.
 
 Yêu cầu chức năng liên quan: FR-INV-07, FR-INV-10, FR-INV-11, FR-INV-12, FR-INV-14; FR-INV-13.
 
@@ -564,7 +568,7 @@ Yêu cầu chức năng liên quan: FR-SET-06, FR-SET-07.
 
   - Bước 2. Khi đổi mật khẩu, người dùng nhập mật khẩu hiện tại và mật khẩu mới; hệ thống kiểm tra, lưu mật khẩu mới hoặc yêu cầu nhập lại. Việc Quản lý đặt lại mật khẩu được thực hiện tại UC 5.1.
 
-  - Bước 3. Khi đăng xuất, hệ thống xóa thông tin đăng nhập trên trình duyệt và chuyển về màn hình đăng nhập; các lượt giữ món tiếp tục tuân theo thời hạn trên server. Giao diện yêu cầu đăng nhập trước lần thao tác tiếp theo; thời hạn của JWT đã cấp tuân theo cơ chế xác thực tại mục 4.6 của báo cáo.
+    Bước 3. Khi đăng xuất, hệ thống xóa thông tin đăng nhập trên trình duyệt và chuyển về màn hình đăng nhập; các lượt giữ món tiếp tục tuân theo thời hạn trên server. Giao diện yêu cầu đăng nhập trước lần thao tác tiếp theo; thời hạn của JWT đã cấp tuân theo cơ chế xác thực tại mục 4.6 của báo cáo.
 
 Yêu cầu chức năng liên quan: FR-SET-02; FR-SET-03.
 
@@ -592,17 +596,16 @@ Yêu cầu chức năng liên quan: FR-AI-01, FR-AI-02, FR-AI-03, FR-AI-04, FR-A
 
 ## I. Danh mục Use Case và đối chiếu nghiệp vụ
 
-Danh mục gồm 30 Use Case thuộc sáu nhóm: Quản lý danh mục (1.1–1.7), Quản lý bán hàng (2.1–2.8), Quản lý kho (3.1–3.5), Báo cáo thống kê (4.1–4.5), Cài đặt hệ thống (5.1–5.4) và AI Assistant (6.1). Mã UC biểu thị nhóm và nghiệp vụ; mã FR của từng Use Case được ghi tại Bảng 5 và định nghĩa tại phần K của tài liệu này. “Người dùng” trong bảng chỉ chung ba vai trò này; tác nhân ngoài được ghi kèm khi tham gia tương tác.
+Danh mục gồm 29 Use Case thuộc sáu nhóm: Quản lý danh mục (1.1–1.6), Quản lý bán hàng (2.1–2.8), Quản lý kho (3.1–3.5), Báo cáo thống kê (4.1–4.5), Cài đặt hệ thống (5.1–5.4) và AI Assistant (6.1). Mã UC biểu thị nhóm và nghiệp vụ; mã FR của từng Use Case được ghi tại Bảng 5 và định nghĩa tại phần K của tài liệu này. “Người dùng” trong bảng chỉ chung ba vai trò này; tác nhân ngoài được ghi kèm khi tham gia tương tác.
 
 | **Mã UC** | **Mục tiêu**                                   | **Tác nhân trực tiếp**                    |
 |-----------|------------------------------------------------|-------------------------------------------|
 | 1.1       | Quản lý nhóm món                               | Quản lý                                   |
 | 1.2       | Quản lý món ăn                                 | Quản lý                                   |
-| 1.3       | Quản lý công thức                              | Quản lý                                   |
-| 1.4       | Quản lý giá bán                                | Quản lý                                   |
-| 1.5       | Quản lý bàn                                    | Quản lý                                   |
-| 1.6       | Quản lý nguyên liệu                            | Bếp                                       |
-| 1.7       | Quản lý nhà cung cấp                           | Bếp                                       |
+| 1.3       | Quản lý giá bán                                | Quản lý                                   |
+| 1.4       | Quản lý bàn                                    | Quản lý                                   |
+| 1.5       | Quản lý nguyên liệu                            | Bếp                                       |
+| 1.6       | Quản lý nhà cung cấp                           | Bếp                                       |
 | 2.1       | Gọi món tại chỗ                                | Thu ngân/Nhân viên order                  |
 | 2.2       | Gọi món mang về                                | Thu ngân/Nhân viên order                  |
 | 2.3       | Quản lý order và phục vụ                       | Thu ngân/Nhân viên order                  |
@@ -627,7 +630,7 @@ Danh mục gồm 30 Use Case thuộc sáu nhóm: Quản lý danh mục (1.1–1.
 | 5.4       | Đăng nhập và quản lý tài khoản cá nhân         | Người dùng                                |
 | 6.1       | Hỏi AI Assistant                               | Người dùng; Claude API của Anthropic      |
 
-Nhóm 1: UC 1.2 bao gồm cập nhật, tra cứu, xóa mềm và tạm dừng/mở lại phục vụ món. UC 1.3 quản lý công thức, phiên bản và lịch áp dụng; UC 1.4 quản lý giá bán, lịch sử và lịch thay đổi. Xem thực đơn và sơ đồ bàn để gọi món được thực hiện trong luồng bán hàng.
+Nhóm 1: UC 1.2 bao gồm cập nhật, tra cứu, xóa mềm và tạm dừng/mở lại phục vụ món. UC 1.2 gồm nghiệp vụ con 1.2a: thiết lập công thức của từng món, gồm phiên bản và lịch áp dụng, ngay trong chi tiết món; UC 1.3 quản lý giá bán, lịch sử và lịch thay đổi. Xem thực đơn và sơ đồ bàn để gọi món được thực hiện trong luồng bán hàng.
 
 Nhóm 2: UC 2.3 — Quản lý order và phục vụ gồm gọi thêm cho order tại chỗ hoặc mang về Đang mở, riêng tại chỗ phải còn gắn đúng bàn; đổi bàn chỉ cho order tại chỗ Đang mở còn gắn bàn; giảm/hủy món khi được phép sửa và Bếp xác nhận chưa làm; cập nhật phục vụ cho cả tại chỗ và mang về, kể cả sau thanh toán; giải phóng bàn khi khách rời, độc lập trạng thái order. Các nhánh tuân theo điều kiện tại mục 3.4. UC 2.4 bao gồm phiếu tạm tính, chọn phương thức, thanh toán tiền mặt và phát hành hóa đơn. UC 2.5 mở rộng UC 2.4 khi chọn QR, gồm tạo/hủy mã, nhận kết quả và các nhánh quét lỗi, hết hạn hoặc yêu cầu xác minh. UC 2.6 gồm đối soát, xác nhận đã nhận tiền, tiếp tục chờ, mở lại thanh toán, đóng chưa thu và xử lý khoản QR ngoại lệ. UC 2.8 gồm tra cứu order, hóa đơn, phiếu bếp và in lại chứng từ hợp lệ.
 
@@ -668,6 +671,8 @@ Các yêu cầu chức năng được tổ chức theo sáu module và gắn v�
 - **FR-CAT-27 – Trạng thái phục vụ của món:** ChuaCoCongThuc=true xác định món Nháp và ẩn khỏi gọi món. Khi đã có công thức, HetNguyenLieu được tính theo FR-INV-10; TamDungThuCong do Quản lý điều khiển. Món cho chọn thêm khi chưa xóa, không tạm dừng và đủ nguyên liệu khả dụng. Trường hợp thiếu nguyên liệu hiển thị “Hết nguyên liệu”; quản trị hiển thị đồng thời các lý do chặn. Dòng đã giữ được kiểm tra theo phạm vi giữ riêng khi gửi. HetNguyenLieu là thuộc tính dẫn xuất, không lưu trong MON_AN.
 
 - **FR-CAT-28 – Trạng thái xóa độc lập:** Xóa món (FR-CAT-04) là trạng thái riêng biệt (xóa mềm), độc lập với Hoạt động/Hết nguyên liệu/Tạm dừng phục vụ/Nháp.
+
+- **FR-CAT-29 – Giá vốn ước tính và cảnh báo tỷ lệ giá vốn: Danh sách món của Quản lý hiển thị giá bán hiện hành, giá vốn ước tính, tỷ lệ giá vốn (giá vốn ước tính chia giá bán) và lãi gộp mỗi suất. Giá vốn ước tính bằng tổng của định lượng từng nguyên liệu trong công thức hiện hành nhân đơn giá bình quân hiện hành của nguyên liệu đó, sau khi quy đổi về đơn vị chuẩn. Món chưa có công thức hiển thị “Chưa có công thức”; khi một nguyên liệu trong công thức chưa có đơn giá, hệ thống hiển thị “Chưa đủ dữ liệu” kèm tên nguyên liệu thiếu giá, không tính phần thiếu bằng 0. Món có tỷ lệ giá vốn lớn hơn TyLeGiaVonCanhBao (FR-SET-04, mặc định 40%) được đánh dấu cảnh báo. Chọn một món để xem từng nguyên liệu: định lượng, đơn giá bình quân và thành tiền. Hệ thống không tự đổi giá bán; Quản lý quyết định cập nhật giá theo FR-CAT-20 hoặc FR-CAT-23. Giá vốn ước tính phản ánh giá hiện tại để ra quyết định giá bán, khác giá vốn thực tế trong báo cáo (FR-REP-11) được ghi theo đơn giá tại thời điểm xuất.**
 
 - **FR-CAT-07 – Gán công thức chế biến:** Mỗi món ăn gắn với một công thức chế biến, gồm danh sách nguyên liệu và định lượng tương ứng theo đúng đơn vị tính.
 
@@ -783,21 +788,21 @@ Các yêu cầu chức năng được tổ chức theo sáu module và gắn v�
 
 - **FR-INV-01 – Ghi nhận phiếu nhập kho:** Bếp ghi nhận phiếu nhập kho gắn với nhà cung cấp: nguyên liệu, số lượng, đơn giá, ngày nhập, quy đổi theo đúng đơn vị tính chuẩn hóa.
 
-- **FR-INV-02 – Điều kiện sửa/hủy phiếu nhập kho:** Bếp hoặc Quản lý được sửa hoặc hủy phiếu khi các lô liên quan chưa phát sinh giao dịch xuất và không có giữ món còn hiệu lực. Trường hợp đã sử dụng được xử lý bằng kiểm kê. Thay đổi hợp lệ về ngày nhập, số lượng hoặc đơn giá tự cập nhật dữ liệu lô liên quan và tính lại đơn giá bình quân, giá vốn, lợi nhuận các kỳ bị ảnh hưởng. Chuyển phiếu từ tháng A sang tháng B tính lại cả hai tháng và lan sang các tháng sau nếu tồn đầu kỳ hoặc đơn giá kế thừa thay đổi. Thao tác được kiểm tra trong transaction và ghi audit log. Khi hủy phiếu, hệ thống đảo lượng nhập, đưa lượng còn lại của các lô nguồn về 0 và chuyển chúng sang Đã hủy trong cùng transaction; không xóa lịch sử. Các lô này không được giữ món, xuất FIFO hoặc nhận điều chỉnh tăng tồn. Xuất hủy theo FR-INV-05 chỉ trừ lượng được chọn, không chuyển toàn lô sang Đã hủy.
+  **FR-INV-02 – Điều kiện sửa/hủy phiếu nhập kho:** Bếp hoặc Quản lý được sửa hoặc hủy phiếu khi các lô liên quan chưa phát sinh giao dịch xuất và không có giữ món còn hiệu lực. Trường hợp đã sử dụng được xử lý bằng kiểm kê. Thay đổi hợp lệ về số lượng hoặc đơn giá cập nhật dữ liệu lô liên quan và được ghi thành một lần tính lại đơn giá bình quân hiện hành tại thời điểm thao tác; giá trị các lần xuất trước đó không thay đổi. Sửa ngày nhập cập nhật ngày lô, hạn dùng và thứ tự FIFO, không ảnh hưởng đơn giá bình quân. Thao tác được kiểm tra trong transaction và ghi audit log. Khi hủy phiếu, hệ thống đảo lượng nhập, đưa lượng còn lại của các lô nguồn về 0 và chuyển chúng sang Đã hủy trong cùng transaction; không xóa lịch sử. Các lô này không được giữ món, xuất FIFO hoặc nhận điều chỉnh tăng tồn. Xuất hủy theo FR-INV-05 chỉ trừ lượng được chọn, không chuyển toàn lô sang Đã hủy.
 
 - **FR-INV-13 – Quản lý lô FIFO:** Mỗi dòng nhập tạo một lô với số lượng và hạn dùng. Lượng giữ được phân bổ vào các lô còn hạn theo FIFO, chỉ chiếm phần chưa được các lượt giữ khác sử dụng. Khi gửi món, lượng giữ hợp lệ chuyển thành tiêu hao trên các lô tương ứng. Lô hết hạn được tính vào tồn sổ sách để kiểm kê và xuất hủy, được loại khỏi lượng bán được. Hoàn món dựa trên lô của giao dịch gốc theo BR-LOT-01.
 
-- **FR-INV-03 – Ghi nhận tiêu hao khi gửi món:** Hệ thống trừ tồn theo công thức lưu trên dòng món khi lượt gửi đầu tiên hoặc lượt gọi thêm thành công. Lượng giữ tương ứng được kết thúc trong cùng transaction. Tiêu hao được ghi theo từng lô còn hạn theo FIFO và từng dòng món; lượt chọn chưa gửi chỉ tác động lượng khả dụng.
+- **FR-INV-03 – Ghi nhận tiêu hao khi gửi món:** Hệ thống trừ tồn theo công thức lưu trên dòng món khi lượt gửi đầu tiên hoặc lượt gọi thêm thành công. Lượng giữ tương ứng được kết thúc trong cùng transaction. Tiêu hao được ghi theo từng lô còn hạn theo FIFO và từng dòng món; lượt chọn chưa gửi chỉ tác động lượng khả dụng. Giá trị tiêu hao bằng lượng xuất nhân đơn giá bình quân hiện hành tại thời điểm gửi món và không tính lại về sau.
 
-- **FR-INV-04 – Hoàn nguyên liệu:** Món đã gửi chỉ được hủy hoặc giảm khi đang Chờ làm và Bếp xác nhận chưa chế biến theo FR-SALE-07. Hệ thống hoàn đúng lượng vào các lô của giao dịch gốc. Đối với dòng chưa gửi, thao tác giảm/xóa chỉ giải phóng giữ món theo FR-SALE-08.
+- **FR-INV-04 – Hoàn nguyên liệu:** Món đã gửi chỉ được hủy hoặc giảm khi đang Chờ làm và Bếp xác nhận chưa chế biến theo FR-SALE-07. Hệ thống hoàn đúng lượng vào các lô của giao dịch gốc theo đơn giá đã dùng khi xuất, rồi tính lại đơn giá bình quân hiện hành của nguyên liệu. Đối với dòng chưa gửi, thao tác giảm/xóa chỉ giải phóng giữ món theo FR-SALE-08.
 
-- **FR-INV-05 – Lập phiếu xuất hủy:** Phiếu xuất hủy ghi người thực hiện, thời điểm, lý do và nguồn. Nguồn “Nguyên liệu” trừ các lô được chọn cho lượng hư hỏng, hết hạn hoặc hao hụt phát hiện riêng. Với nguồn “Món đã chế biến”, người lập chọn dòng order và số suất bị bỏ; hệ thống tự xác định nguyên liệu, lượng tương ứng theo tiêu hao gốc của dòng món và hiển thị để xác nhận. Các lượng này chỉ đọc, không nhập tùy ý và không tính lại theo công thức hiện tại. Nguồn “Kiểm kê” tham chiếu phiếu kiểm kê có chênh lệch âm, dùng làm chứng từ cho giao dịch điều chỉnh. Chỉ nguồn Nguyên liệu tạo giao dịch xuất thủ công; hai nguồn còn lại sử dụng giao dịch đã ghi nhận.
+- **FR-INV-05 – Lập phiếu xuất hủy:** Phiếu xuất hủy ghi người thực hiện, thời điểm, lý do và nguồn. Nguồn “Nguyên liệu” trừ các lô được chọn cho lượng hư hỏng, hết hạn hoặc hao hụt phát hiện riêng. Với nguồn “Món đã chế biến”, người lập chọn dòng order và số suất bị bỏ; hệ thống tự xác định nguyên liệu, lượng tương ứng theo tiêu hao gốc của dòng món và hiển thị để xác nhận. Các lượng này chỉ đọc, không nhập tùy ý và không tính lại theo công thức hiện tại. Nguồn “Kiểm kê” tham chiếu phiếu kiểm kê có chênh lệch âm, dùng làm chứng từ cho giao dịch điều chỉnh. Chỉ nguồn Nguyên liệu tạo giao dịch xuất thủ công; hai nguồn còn lại sử dụng giao dịch đã ghi nhận. Trước khi lưu phiếu nguồn Nguyên liệu hoặc Món đã chế biến, hệ thống hiển thị bản xem trước gồm lô, lượng, tồn còn lại và giá trị hủy theo đơn giá bình quân hiện hành; phiếu chỉ được ghi khi người lập xác nhận.
 
 - **FR-INV-06 – Kiểm soát số lượng xuất hủy:** Nguồn Nguyên liệu không vượt tồn sổ sách của các lô được chọn. Nếu phần hỏng đang được giữ cho món, backend giải phóng toàn bộ lượt giữ của các dòng bị ảnh hưởng trong cùng transaction và thông báo nhân viên kiểm tra lại. Với nguồn Món đã chế biến, số suất xuất hủy không vượt số suất đã tiêu hao chưa được ghi nhận hủy. Hệ thống tính định lượng nguyên liệu từ tiêu hao gốc của dòng món và số suất hủy. Nguồn Kiểm kê được tạo duy nhất theo kết quả xác nhận phiếu.
 
-- **FR-INV-08 – Kiểm kê định kỳ:** Bếp/Quản lý kiểm kê theo lịch nhà hàng tự đặt, sau khi kết thúc phục vụ và các món đã được chế biến hoặc hủy hợp lệ. Hệ thống yêu cầu xử lý hết lượt chọn chưa gửi và giữ món còn hiệu lực trước khi mở phiên kiểm kê. Trong phiên, backend chặn giữ món, gửi món và các giao dịch nhập/xuất/hoàn kho. Bếp đếm tồn thực tế, gồm lô hết hạn, đối chiếu tồn sổ sách; xác nhận ghi chênh lệch và phân bổ theo BR-LOT-02 trong một transaction. Xác nhận hoặc hủy phiên kết thúc khóa nghiệp vụ.
+- **FR-INV-08 – Kiểm kê định kỳ:** Bếp/Quản lý kiểm kê theo lịch nhà hàng tự đặt, sau khi kết thúc phục vụ và các món đã được chế biến hoặc hủy hợp lệ. Hệ thống yêu cầu xử lý hết lượt chọn chưa gửi và giữ món còn hiệu lực trước khi mở phiên kiểm kê. Trong phiên, backend chặn giữ món, gửi món và các giao dịch nhập/xuất/hoàn kho. Bếp nhập tồn thực tế, gồm lô hết hạn; hệ thống hiển thị bản xem trước tồn trước và sau điều chỉnh. Bếp xác nhận hoặc quay lại sửa; chỉ khi xác nhận, hệ thống mới ghi chênh lệch và phân bổ theo BR-LOT-02 trong một transaction. Xác nhận hoặc hủy phiên kết thúc khóa nghiệp vụ.
 
-- **FR-INV-09 – Ghi nhận kết quả điều chỉnh kiểm kê:** Xác nhận kiểm kê ghi điều chỉnh số lượng theo từng lô và audit log. Chênh lệch âm tự sinh phiếu xuất hủy tham chiếu; chênh lệch dương chỉ tăng tồn, không tạo phiếu nhập mua, doanh thu hoặc chi phí mua hàng. Người kiểm kê nhập số lượng thực tế và lý do, không nhập đơn giá. Giá trị phần điều chỉnh được hệ thống xác định từ đơn giá bình quân của nguyên liệu; khi thiếu căn cứ giá, vẫn ghi số lượng và để giá trị chưa xác định, không mặc định bằng 0. Các chỉ tiêu định giá phụ thuộc được tự cập nhật khi có dữ liệu giá hợp lệ.
+  **FR-INV-09 – Ghi nhận kết quả điều chỉnh kiểm kê:** Xác nhận kiểm kê ghi điều chỉnh số lượng theo từng lô và audit log. Chênh lệch âm tự sinh phiếu xuất hủy tham chiếu; chênh lệch dương chỉ tăng tồn, không tạo phiếu nhập mua, doanh thu hoặc chi phí mua hàng. Người kiểm kê nhập số lượng thực tế và lý do, không nhập đơn giá. Giá trị phần điều chỉnh bằng lượng chênh lệch nhân đơn giá bình quân hiện hành của nguyên liệu; khi nguyên liệu chưa có đơn giá, vẫn ghi số lượng và để giá trị chưa xác định, không mặc định bằng 0. Phần chưa xác định được định giá theo đơn giá bình quân đầu tiên khi nguyên liệu có phiếu nhập hợp lệ.
 
 - **FR-INV-07 – Cảnh báo tồn tối thiểu:** Hệ thống có một mức tồn tối thiểu mặc định, cấu hình tại phần Cài đặt; mỗi nguyên liệu có thể dùng mức mặc định này hoặc có mức tồn tối thiểu riêng, không nhỏ hơn 0. Cảnh báo được kích hoạt khi tồn khả dụng của một nguyên liệu nhỏ hơn mức tồn tối thiểu đang áp dụng cho nguyên liệu đó.
 
@@ -805,7 +810,7 @@ Các yêu cầu chức năng được tổ chức theo sáu module và gắn v�
 
 - **FR-INV-11 – Đồng thời và toàn vẹn giữ món:** Tạo, sửa, giải phóng giữ món và gửi món dùng transaction; backend khóa các nguyên liệu theo thứ tự mã tăng dần rồi khóa lô và lượt giữ liên quan. Kiểm tra lượng khả dụng và ghi giữ món được thực hiện nguyên tử. Gửi món chuyển giữ món thành tiêu hao đúng một lần; lỗi giữa chừng rollback toàn bộ. Khi lô hết hạn hoặc mất khả năng đáp ứng, hệ thống yêu cầu kiểm tra lại dòng bị ảnh hưởng. Mọi lượt giữ và lần gửi thuộc đúng người/lượt chọn hoặc order được phép thao tác.
 
-- **FR-INV-12 – Xem tồn kho:** Màn hình kho hiển thị tên, đơn vị, tồn sổ sách, tồn đủ điều kiện bán, lượng đang giữ, lượng khả dụng, mức tồn tối thiểu và cảnh báo. Người dùng tìm kiếm theo nguyên liệu và lọc theo trạng thái; thời điểm cập nhật được hiển thị cùng số liệu.
+- **FR-INV-12 – Xem tồn kho:** Màn hình kho hiển thị tên, đơn vị, tồn sổ sách, tồn đủ điều kiện bán, lượng đang giữ, lượng khả dụng, mức tồn tối thiểu, cảnh báo, đơn giá bình quân hiện hành và giá trị tồn (tồn sổ sách nhân đơn giá bình quân hiện hành); nguyên liệu chưa có đơn giá hiển thị “Chưa xác định” ở hai cột này, không hiển thị 0. Khi chọn một nguyên liệu, người dùng xem lịch sử đơn giá bình quân gồm thời điểm, chứng từ phát sinh, đơn giá sau giao dịch và tồn sau giao dịch. Người dùng tìm kiếm theo nguyên liệu và lọc theo trạng thái; thời điểm cập nhật được hiển thị cùng số liệu.
 
 - **FR-INV-14 – Cảnh báo hạn sử dụng theo lô:** Mỗi lô nguyên liệu có trạng thái Còn hạn / Sắp hết hạn / Hết hạn, tính theo hạn sử dụng đã khai báo: “Sắp hết hạn” khi hạn sử dụng còn không quá SoNgayCanhBaoHetHan ngày (Quản lý cấu hình tại FR-SET-04, mặc định 3 ngày), “Hết hạn” khi đã quá hạn sử dụng; hệ thống hiển thị cảnh báo riêng biệt với cảnh báo tồn tối thiểu (FR-INV-07) trên màn hình quản lý kho để Bếp chủ động xử lý (ưu tiên xuất dùng trước hoặc lập phiếu xuất hủy nếu đã hết hạn).
 
@@ -821,7 +826,7 @@ Các yêu cầu chức năng được tổ chức theo sáu module và gắn v�
 
 - **FR-REP-05 – Cấu thành giá vốn nguyên liệu tiêu hao:** Giá vốn gồm ba khoản FR-REP-11, FR-REP-12 và FR-REP-13 dưới đây. Mỗi lượng nguyên liệu chỉ được tính một lần. Hao hụt kiểm kê lấy từ giao dịch điều chỉnh kho; phiếu xuất hủy tự sinh chỉ là chứng từ đối chiếu.
 
-  - **FR-REP-11 – Giá vốn bán hàng:** Nguyên liệu tiêu hao theo công thức của order thanh toán thành công được tính theo phiên bản lưu trên từng dòng khi gửi món. Giá vốn theo ORDER.BusinessDate nhân đơn giá bình quân gia quyền của tháng tương ứng, tính từ tồn đầu kỳ và các phiếu nhập hiệu lực trong tháng. Tháng không có nhập dùng đơn giá của kỳ gần nhất trước đó khi có đủ căn cứ. Hệ thống tự tính lại khi phiếu nhập được thêm, sửa hoặc hủy hợp lệ và khi điều chỉnh tồn làm thay đổi dữ liệu đầu vào. Sửa ngày nhập sang tháng khác cập nhật tháng cũ, tháng mới và các kỳ sau bị ảnh hưởng. Giá vốn và lợi nhuận lịch sử phụ thuộc cũng được tính lại; không thay đổi hóa đơn, doanh thu đã ghi nhận hoặc phiên bản công thức của dòng món. Phần thiếu dữ liệu định giá được ghi chưa xác định, không coi là chi phí 0.
+  **FR-REP-11 – Giá vốn bán hàng:** Nguyên liệu tiêu hao theo công thức của order thanh toán thành công được tính theo phiên bản lưu trên từng dòng khi gửi món. Giá vốn của mỗi giao dịch tiêu hao bằng lượng tiêu hao nhân đơn giá bình quân gia quyền di động có hiệu lực tại thời điểm ghi tiêu hao và được tổng hợp theo ORDER.BusinessDate. Giá trị đã ghi nhận không thay đổi khi phát sinh, sửa hoặc hủy phiếu nhập sau đó; hóa đơn, doanh thu và phiên bản công thức của dòng món cũng không bị tác động. Tiêu hao phát sinh khi nguyên liệu chưa có đơn giá được ghi chưa xác định, không coi là chi phí 0, và được định giá theo đơn giá bình quân đầu tiên của nguyên liệu.
 
   - **FR-REP-12 – Hao hụt kho:** Tổng hợp nguyên liệu hao hụt, hư hỏng, hết hạn từ nguồn Nguyên liệu và chênh lệch âm kiểm kê theo ngày biến động kho. Phiếu nguồn Món đã chế biến dùng phân tích lý do tiêu hao gắn với order; chi phí của phần này được giữ trong nhóm FR-REP-11 hoặc FR-REP-13 theo kết quả order, mỗi giao dịch gốc chỉ được tổng hợp một lần.
 
@@ -843,7 +848,7 @@ Các yêu cầu chức năng được tổ chức theo sáu module và gắn v�
 
 - **FR-SET-03 – Giới hạn theo vai trò:** Hệ thống giới hạn phạm vi truy cập chức năng và dữ liệu theo vai trò đã gán. Quản lý kế thừa toàn bộ quyền của Thu ngân/Nhân viên order và Bếp.
 
-- **FR-SET-04 – Cấu hình hệ thống:** Quản lý cấu hình thông tin chung của nhà hàng: tên, địa chỉ, mẫu hóa đơn, mốc giờ bắt đầu Business Date, mức tồn tối thiểu mặc định, số ngày để lô nguyên liệu chuyển sang “Sắp hết hạn” (SoNgayCanhBaoHetHan, mặc định 3 ngày), thời hạn giữ món (ThoiGianGiuChoPhut, mặc định 5 phút) và số câu hỏi AI tối đa mỗi người dùng mỗi ngày (SoCauHoiAIMoiNgay, mặc định 50). Số ngày cảnh báo, thời hạn giữ món và hạn mức câu hỏi AI là số nguyên dương; mức tồn tối thiểu không nhỏ hơn 0. Thay đổi mốc giờ được lưu kèm ngày hiệu lực, có hiệu lực từ Business Date kế tiếp và không ảnh hưởng đến Business Date đang diễn ra.
+- **FR-SET-04 – Cấu hình hệ thống:** Quản lý cấu hình thông tin chung của nhà hàng: tên, địa chỉ, mẫu hóa đơn, mốc giờ bắt đầu Business Date, mức tồn tối thiểu mặc định, số ngày để lô nguyên liệu chuyển sang “Sắp hết hạn” (SoNgayCanhBaoHetHan, mặc định 3 ngày), thời hạn giữ món (ThoiGianGiuChoPhut, mặc định 5 phút), ngưỡng cảnh báo tỷ lệ giá vốn của món (TyLeGiaVonCanhBao, mặc định 40%) và số câu hỏi AI tối đa mỗi người dùng mỗi ngày (SoCauHoiAIMoiNgay, mặc định 50). Số ngày cảnh báo, thời hạn giữ món và hạn mức câu hỏi AI là số nguyên dương; mức tồn tối thiểu không nhỏ hơn 0. Thay đổi mốc giờ được lưu kèm ngày hiệu lực, có hiệu lực từ Business Date kế tiếp và không ảnh hưởng đến Business Date đang diễn ra.
 
 - **FR-SET-05 – Áp dụng ngưỡng cảnh báo tồn kho:** Với mỗi nguyên liệu, hệ thống ưu tiên mức tồn tối thiểu riêng nếu đã được cấu hình; nếu chưa có, áp dụng mức mặc định tại FR-SET-04. Cảnh báo được xác định theo FR-INV-07.
 
@@ -877,9 +882,9 @@ Các yêu cầu chức năng được tổ chức theo sáu module và gắn v�
 
 ## L. Mức ưu tiên và tiêu chí chấp nhận
 
-Mức ưu tiên xác định phạm vi triển khai và tiêu chí nghiệm thu cho 107 yêu cầu chức năng. Mỗi mã yêu cầu liên kết với nội dung đặc tả tại phần K.
+Mức ưu tiên xác định phạm vi triển khai và tiêu chí nghiệm thu cho 108 yêu cầu chức năng. Mỗi mã yêu cầu liên kết với nội dung đặc tả tại phần K.
 
-Hệ thống có 28 yêu cầu Danh mục, 35 Bán hàng, 14 Kho, 13 Báo cáo, 7 Cài đặt và 10 AI Assistant. Mức Must của AI tập trung vào phân quyền và an toàn truy vấn; chất lượng hỏi đáp được đánh giá riêng bằng thực nghiệm.
+Hệ thống có 29 yêu cầu Danh mục, 35 Bán hàng, 14 Kho, 13 Báo cáo, 7 Cài đặt và 10 AI Assistant. Mức Must của AI tập trung vào phân quyền và an toàn truy vấn; chất lượng hỏi đáp được đánh giá riêng bằng thực nghiệm.
 
 ## L.1. Danh mục
 
@@ -913,95 +918,96 @@ Hệ thống có 28 yêu cầu Danh mục, 35 Bán hàng, 14 Kho, 13 Báo cáo, 
 | FR-CAT-26 | Must    | Tạm dừng/mở lại phục vụ món thủ công                    | Quản lý có thể tạm dừng phục vụ một món thủ công bằng cách bật cờ TamDungThuCong.                                                                                                                                                |
 | FR-CAT-27 | Must    | Trạng thái phục vụ của món                              | ChuaCoCongThuc=true xác định món Nháp và ẩn khỏi gọi món.                                                                                                                                                                        |
 | FR-CAT-28 | Must    | Trạng thái xóa độc lập                                  | Xóa món (FR-CAT-04) là trạng thái riêng biệt (xóa mềm), độc lập với Hoạt động/Hết nguyên liệu/Tạm dừng phục vụ/Nháp.                                                                                                             |
+| FR-CAT-29 | Should  | Giá vốn ước tính và cảnh báo tỷ lệ giá vốn              | Giá vốn = Σ định lượng × đơn giá bình quân hiện hành; thiếu giá hiển thị “Chưa đủ dữ liệu”, không tính 0; vượt ngưỡng thì cảnh báo, không tự đổi giá bán.                                                                        |
 
 ## L.2. Bán hàng
 
-| **FR**     | **Mức** | **Yêu cầu**                                           | **Tiêu chí chấp nhận**                                                                           |
-|------------|---------|-------------------------------------------------------|--------------------------------------------------------------------------------------------------|
-| FR-SALE-01 | Must    | Chọn món và giữ món                                   | Giữ đủ nguyên liệu mới thêm dòng; chưa gửi không tạo order/chiếm bàn/tiêu hao.                   |
-| FR-SALE-02 | Must    | Ghi chú/yêu cầu đặc biệt cho món                      | Ghi chú theo đúng dòng, in kèm phiếu; không tự thay định lượng.                                  |
-| FR-SALE-03 | Must    | Gửi món và ghi nhận order                             | Gửi hợp lệ ghi đủ order, kho, giữ, bàn, phiếu trong một transaction; gửi lặp không nhân đôi.     |
-| FR-SALE-04 | Must    | Sinh mã order tự động                                 | Mã duy nhất theo Business Date; rollback không tái dùng số đã cấp.                               |
-| FR-SALE-05 | Must    | Xử lý lượt giữ hết hạn và dữ liệu thay đổi            | Hết hạn hoặc đổi phiên bản được kiểm tra lại; không tự gia hạn; chỉ gửi khi toàn bộ dòng hợp lệ. |
-| FR-SALE-06 | Must    | Gọi thêm cho order đang mở                            | Chỉ gọi thêm cho order Đang mở; tại chỗ còn đúng bàn; dòng cũ giữ nguyên phiên bản.              |
-| FR-SALE-07 | Must    | Điều kiện giảm số lượng/xóa món đã có trong order     | Chỉ giảm/hủy Chờ làm sau xác nhận thực tế với Bếp; hoàn lô gốc.                                  |
-| FR-SALE-08 | Must    | Điều chỉnh và giải phóng giữ món                      | Tăng giữ đủ phần tăng; giảm/xóa giải phóng đúng lượng; sửa ghi chú không gia hạn.                |
-| FR-SALE-09 | Must    | Trạng thái xử lý của món                              | Trạng thái món đi đúng luồng; sau thanh toán chỉ đổi trạng thái phục vụ, không đổi tiền.         |
-| FR-SALE-10 | Must    | Hủy một món trong order                               | Hủy món Chờ làm có người, thời điểm, số lượng và lý do trong audit.                              |
-| FR-SALE-11 | Must    | Xử lý order khi toàn bộ món đã gửi bị hủy             | Hủy hết món không tự đóng order/giải phóng bàn; còn tiếp nhận gọi thêm nếu hợp lệ.               |
-| FR-SALE-12 | Must    | Đổi bàn cho order đang mở                             | Đổi sang bàn trống nguyên tử; sai bàn nguồn/order hoặc bàn đích bận bị chặn; có audit.           |
-| FR-SALE-13 | Must    | Chọn phương thức thanh toán                           | Tiền mặt xác nhận đủ tiền mới ghi thành công, hóa đơn và order nguyên tử.                        |
-| FR-SALE-14 | Must    | Thanh toán QR                                         | Tạo QR cho đúng order và số tiền; trạng thái chờ và hạn dùng được hiển thị.                      |
-| FR-SALE-15 | Must    | Xác nhận thanh toán QR qua webhook                    | Xác nhận hợp lệ hoàn tất một lần; callback lặp không cộng tiền/doanh thu lần nữa.                |
-| FR-SALE-16 | Must    | Tiền QR đến muộn và khoản ngoại lệ                    | Khoản muộn đúng tiền tự xác nhận khi đủ điều kiện FR-SALE-16; các khoản còn lại vào ngoại lệ; không ghi nhận thu trùng.             |
-| FR-SALE-17 | Must    | Quản lý xử lý khoản QR ngoại lệ                       | Chỉ Quản lý áp dụng hoặc ghi hoàn tiền ngoài hệ thống; không phát hành hóa đơn hai lần.          |
-| FR-SALE-18 | Must    | Mã QR hết hạn                                         | Quét lỗi/hết hạn được xử lý theo trạng thái; không giả xác nhận đã nhận tiền.                    |
-| FR-SALE-19 | Must    | Ghi nhận yêu cầu xác minh thanh toán                  | Khách báo trả nhưng chưa xác nhận được chuyển Chờ xác minh và lưu bằng chứng.                    |
-| FR-SALE-20 | Must    | Quản lý xác nhận đã nhận tiền và lưu kết quả đối soát | Quản lý xác nhận đúng tiền phát hành hóa đơn một lần; chưa đủ căn cứ giữ chờ và audit.           |
-| FR-SALE-21 | Must    | In phiếu tạm tính và hóa đơn                          | Phiếu tạm tính ghi chưa thanh toán, không tạo HOA_DON/doanh thu và không khóa order.             |
-| FR-SALE-22 | Must    | Khóa order theo trạng thái thanh toán                 | Khóa sửa món và số tiền theo trạng thái thanh toán; vẫn cho cập nhật phục vụ và giải phóng bàn theo điều kiện riêng.                  |
-| FR-SALE-23 | Must    | Mở lại thanh toán                                     | Mở lại thanh toán giữ lịch sử, chưa thu thành công; không tự gắn lại bàn.                        |
-| FR-SALE-24 | Must    | Ghi nhận mốc thời gian giao dịch                      | Mọi nghiệp vụ ghi thời điểm và Business Date đúng quy tắc cutoff.                                |
-| FR-SALE-25 | Must    | Danh sách và tra cứu order                            | Lọc kết hợp đúng; chi tiết có toàn bộ món, lịch sử thanh toán và chứng từ được phép.             |
-| FR-SALE-26 | Must    | In lại hóa đơn                                        | In lại giữ nguyên hóa đơn gốc, không sửa tiền hoặc phát hành hóa đơn mới.                        |
-| FR-SALE-27 | Must    | Hủy toàn bộ order chưa thanh toán                     | Chỉ Quản lý hủy order đủ điều kiện, bắt buộc lý do và audit.                                     |
-| FR-SALE-28 | Must    | Xử lý nguyên liệu khi hủy toàn bộ order               | Chờ làm hoàn lô gốc; đã chế biến không hoàn; kết thúc giữ chưa gửi.                              |
-| FR-SALE-29 | Must    | Ngoại lệ khi đang chờ xác nhận thanh toán QR          | Đang chờ QR không hủy toàn order trực tiếp; xử lý QR hoặc xác minh trước.                        |
-| FR-SALE-30 | Must    | Xử lý sau khi hủy toàn bộ order                       | Order hủy không phát hành hóa đơn; tiền và tiêu hao được phân nhóm đúng.                         |
-| FR-SALE-31 | Must    | In phiếu bếp tự động                                  | Gửi thành công mới in đúng phần món mới và ghi chú; in sau commit.                               |
-| FR-SALE-32 | Must    | Xử lý khi in phiếu bếp thất bại                       | In lỗi có cảnh báo; in lại phiếu cũ không tạo order hoặc trừ kho thêm.                           |
-| FR-SALE-33 | Must    | Chủ động hủy mã QR                                    | Hủy QR còn chờ đưa order về mở và lưu lịch sử; khách báo trả phải qua xác minh.                  |
-| FR-SALE-34 | Must    | Cập nhật kết quả xử lý ngoài hệ thống                 | Lưu tiến độ/biên nhận đúng quyền; các quyết định nhận tiền/mở lại/đóng chỉ Quản lý.              |
-| FR-SALE-35 | Must    | Đóng order chưa thu được tiền                         | Đóng chưa thu giữ tiêu hao, không hóa đơn/doanh thu; có lý do và lịch sử.                        |
+| **FR**     | **Mức** | **Yêu cầu**                                           | **Tiêu chí chấp nhận**                                                                                                  |
+|------------|---------|-------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
+| FR-SALE-01 | Must    | Chọn món và giữ món                                   | Giữ đủ nguyên liệu mới thêm dòng; chưa gửi không tạo order/chiếm bàn/tiêu hao.                                          |
+| FR-SALE-02 | Must    | Ghi chú/yêu cầu đặc biệt cho món                      | Ghi chú theo đúng dòng, in kèm phiếu; không tự thay định lượng.                                                         |
+| FR-SALE-03 | Must    | Gửi món và ghi nhận order                             | Gửi hợp lệ ghi đủ order, kho, giữ, bàn, phiếu trong một transaction; gửi lặp không nhân đôi.                            |
+| FR-SALE-04 | Must    | Sinh mã order tự động                                 | Mã duy nhất theo Business Date; rollback không tái dùng số đã cấp.                                                      |
+| FR-SALE-05 | Must    | Xử lý lượt giữ hết hạn và dữ liệu thay đổi            | Hết hạn hoặc đổi phiên bản được kiểm tra lại; không tự gia hạn; chỉ gửi khi toàn bộ dòng hợp lệ.                        |
+| FR-SALE-06 | Must    | Gọi thêm cho order đang mở                            | Chỉ gọi thêm cho order Đang mở; tại chỗ còn đúng bàn; dòng cũ giữ nguyên phiên bản.                                     |
+| FR-SALE-07 | Must    | Điều kiện giảm số lượng/xóa món đã có trong order     | Chỉ giảm/hủy Chờ làm sau xác nhận thực tế với Bếp; hoàn lô gốc.                                                         |
+| FR-SALE-08 | Must    | Điều chỉnh và giải phóng giữ món                      | Tăng giữ đủ phần tăng; giảm/xóa giải phóng đúng lượng; sửa ghi chú không gia hạn.                                       |
+| FR-SALE-09 | Must    | Trạng thái xử lý của món                              | Trạng thái món đi đúng luồng; sau thanh toán chỉ đổi trạng thái phục vụ, không đổi tiền.                                |
+| FR-SALE-10 | Must    | Hủy một món trong order                               | Hủy món Chờ làm có người, thời điểm, số lượng và lý do trong audit.                                                     |
+| FR-SALE-11 | Must    | Xử lý order khi toàn bộ món đã gửi bị hủy             | Hủy hết món không tự đóng order/giải phóng bàn; còn tiếp nhận gọi thêm nếu hợp lệ.                                      |
+| FR-SALE-12 | Must    | Đổi bàn cho order đang mở                             | Đổi sang bàn trống nguyên tử; sai bàn nguồn/order hoặc bàn đích bận bị chặn; có audit.                                  |
+| FR-SALE-13 | Must    | Chọn phương thức thanh toán                           | Tiền mặt xác nhận đủ tiền mới ghi thành công, hóa đơn và order nguyên tử.                                               |
+| FR-SALE-14 | Must    | Thanh toán QR                                         | Tạo QR cho đúng order và số tiền; trạng thái chờ và hạn dùng được hiển thị.                                             |
+| FR-SALE-15 | Must    | Xác nhận thanh toán QR qua webhook                    | Xác nhận hợp lệ hoàn tất một lần; callback lặp không cộng tiền/doanh thu lần nữa.                                       |
+| FR-SALE-16 | Must    | Tiền QR đến muộn và khoản ngoại lệ                    | Khoản muộn đúng tiền tự xác nhận khi đủ điều kiện FR-SALE-16; các khoản còn lại vào ngoại lệ; không ghi nhận thu trùng. |
+| FR-SALE-17 | Must    | Quản lý xử lý khoản QR ngoại lệ                       | Chỉ Quản lý áp dụng hoặc ghi hoàn tiền ngoài hệ thống; không phát hành hóa đơn hai lần.                                 |
+| FR-SALE-18 | Must    | Mã QR hết hạn                                         | Quét lỗi/hết hạn được xử lý theo trạng thái; không giả xác nhận đã nhận tiền.                                           |
+| FR-SALE-19 | Must    | Ghi nhận yêu cầu xác minh thanh toán                  | Khách báo trả nhưng chưa xác nhận được chuyển Chờ xác minh và lưu bằng chứng.                                           |
+| FR-SALE-20 | Must    | Quản lý xác nhận đã nhận tiền và lưu kết quả đối soát | Quản lý xác nhận đúng tiền phát hành hóa đơn một lần; chưa đủ căn cứ giữ chờ và audit.                                  |
+| FR-SALE-21 | Must    | In phiếu tạm tính và hóa đơn                          | Phiếu tạm tính ghi chưa thanh toán, không tạo HOA_DON/doanh thu và không khóa order.                                    |
+| FR-SALE-22 | Must    | Khóa order theo trạng thái thanh toán                 | Khóa sửa món và số tiền theo trạng thái thanh toán; vẫn cho cập nhật phục vụ và giải phóng bàn theo điều kiện riêng.    |
+| FR-SALE-23 | Must    | Mở lại thanh toán                                     | Mở lại thanh toán giữ lịch sử, chưa thu thành công; không tự gắn lại bàn.                                               |
+| FR-SALE-24 | Must    | Ghi nhận mốc thời gian giao dịch                      | Mọi nghiệp vụ ghi thời điểm và Business Date đúng quy tắc cutoff.                                                       |
+| FR-SALE-25 | Must    | Danh sách và tra cứu order                            | Lọc kết hợp đúng; chi tiết có toàn bộ món, lịch sử thanh toán và chứng từ được phép.                                    |
+| FR-SALE-26 | Must    | In lại hóa đơn                                        | In lại giữ nguyên hóa đơn gốc, không sửa tiền hoặc phát hành hóa đơn mới.                                               |
+| FR-SALE-27 | Must    | Hủy toàn bộ order chưa thanh toán                     | Chỉ Quản lý hủy order đủ điều kiện, bắt buộc lý do và audit.                                                            |
+| FR-SALE-28 | Must    | Xử lý nguyên liệu khi hủy toàn bộ order               | Chờ làm hoàn lô gốc; đã chế biến không hoàn; kết thúc giữ chưa gửi.                                                     |
+| FR-SALE-29 | Must    | Ngoại lệ khi đang chờ xác nhận thanh toán QR          | Đang chờ QR không hủy toàn order trực tiếp; xử lý QR hoặc xác minh trước.                                               |
+| FR-SALE-30 | Must    | Xử lý sau khi hủy toàn bộ order                       | Order hủy không phát hành hóa đơn; tiền và tiêu hao được phân nhóm đúng.                                                |
+| FR-SALE-31 | Must    | In phiếu bếp tự động                                  | Gửi thành công mới in đúng phần món mới và ghi chú; in sau commit.                                                      |
+| FR-SALE-32 | Must    | Xử lý khi in phiếu bếp thất bại                       | In lỗi có cảnh báo; in lại phiếu cũ không tạo order hoặc trừ kho thêm.                                                  |
+| FR-SALE-33 | Must    | Chủ động hủy mã QR                                    | Hủy QR còn chờ đưa order về mở và lưu lịch sử; khách báo trả phải qua xác minh.                                         |
+| FR-SALE-34 | Must    | Cập nhật kết quả xử lý ngoài hệ thống                 | Lưu tiến độ/biên nhận đúng quyền; các quyết định nhận tiền/mở lại/đóng chỉ Quản lý.                                     |
+| FR-SALE-35 | Must    | Đóng order chưa thu được tiền                         | Đóng chưa thu giữ tiêu hao, không hóa đơn/doanh thu; có lý do và lịch sử.                                               |
 
 ## L.3. Kho
 
-| **FR**    | **Mức** | **Yêu cầu**                         | **Tiêu chí chấp nhận**                                                                 |
-|-----------|---------|-------------------------------------|----------------------------------------------------------------------------------------|
-| FR-INV-01 | Must    | Ghi nhận phiếu nhập kho             | Nhập hợp lệ tạo phiếu, lô, sổ cái và tổng tồn đúng đơn vị trong transaction.           |
-| FR-INV-02 | Must | Điều kiện sửa/hủy phiếu nhập kho | Chỉ sửa/hủy khi lô chưa xuất, không giữ hiệu lực; tự tính lại kỳ cũ/mới và các kỳ sau bị ảnh hưởng; có audit. |
-| FR-INV-03 | Must    | Ghi nhận tiêu hao khi gửi món       | Gửi món mới tiêu hao đúng phiên bản công thức và lô; kết thúc giữ cùng transaction.    |
-| FR-INV-04 | Must    | Hoàn nguyên liệu                    | Giảm/hủy hợp lệ hoàn đúng lượng vào lô gốc, kể cả lô nay hết hạn.                      |
-| FR-INV-05 | Must    | Lập phiếu xuất hủy                  | Nguồn nguyên liệu mới trừ kho; món chế biến/kiểm kê không trừ lặp.                     |
-| FR-INV-06 | Must    | Kiểm soát số lượng xuất hủy         | Không xuất vượt tồn; hủy món chế biến không vượt phần đã tiêu hao chưa ghi hủy.        |
-| FR-INV-07 | Must    | Cảnh báo tồn tối thiểu              | Cảnh báo khi khả dụng dưới ngưỡng riêng hoặc mặc định; cập nhật đúng dữ liệu mới.      |
-| FR-INV-08 | Must    | Kiểm kê định kỳ                     | Mở kiểm kê đúng điều kiện, một phiên; chặn biến động kho cho đến xác nhận/hủy.         |
-| FR-INV-09 | Must | Ghi nhận kết quả điều chỉnh kiểm kê | Điều chỉnh lượng một lần; không yêu cầu nhập giá; thiếu giá vẫn lưu lượng, giá trị chưa xác định; không trừ đôi. |
-| FR-INV-10 | Must    | Tính lượng khả dụng                 | Khả dụng = lô còn hạn trừ giữ còn hiệu lực, theo giờ server kể cả dọn trạng thái chậm. |
-| FR-INV-11 | Must    | Đồng thời và toàn vẹn giữ món       | Khóa đúng thứ tự; cạnh tranh không âm/cấp trùng; gửi lặp và lỗi giữa chừng nguyên tử.  |
-| FR-INV-12 | Must    | Xem tồn kho                         | Hiển thị đủ tồn sổ sách, bán được, giữ, khả dụng, ngưỡng và thời điểm.                 |
-| FR-INV-13 | Must    | Quản lý lô FIFO                     | FIFO lô còn hạn; lô hết hạn còn trong tồn sổ sách, không được bán.                     |
-| FR-INV-14 | Must    | Cảnh báo hạn sử dụng theo lô        | Cảnh báo hạn dùng theo ngày cấu hình; phân biệt sắp hết/hết hạn với tồn thấp.          |
+| **FR**    | **Mức** | **Yêu cầu**                         | **Tiêu chí chấp nhận**                                                                                                                              |
+|-----------|---------|-------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
+| FR-INV-01 | Must    | Ghi nhận phiếu nhập kho             | Nhập hợp lệ tạo phiếu, lô, sổ cái và tổng tồn đúng đơn vị trong transaction.                                                                        |
+| FR-INV-02 | Must    | Điều kiện sửa/hủy phiếu nhập kho    | Chỉ sửa/hủy khi lô chưa xuất, không giữ hiệu lực; tính lại đơn giá bình quân hiện hành, không đổi giá trị đã xuất; có audit.                        |
+| FR-INV-03 | Must    | Ghi nhận tiêu hao khi gửi món       | Gửi món mới tiêu hao đúng phiên bản công thức và lô; kết thúc giữ cùng transaction.                                                                 |
+| FR-INV-04 | Must    | Hoàn nguyên liệu                    | Giảm/hủy hợp lệ hoàn đúng lượng vào lô gốc, kể cả lô nay hết hạn.                                                                                   |
+| FR-INV-05 | Must    | Lập phiếu xuất hủy                  | Nguồn nguyên liệu mới trừ kho; món chế biến/kiểm kê không trừ lặp; chỉ ghi sau khi xác nhận bản xem trước.                                          |
+| FR-INV-06 | Must    | Kiểm soát số lượng xuất hủy         | Không xuất vượt tồn; hủy món chế biến không vượt phần đã tiêu hao chưa ghi hủy.                                                                     |
+| FR-INV-07 | Must    | Cảnh báo tồn tối thiểu              | Cảnh báo khi khả dụng dưới ngưỡng riêng hoặc mặc định; cập nhật đúng dữ liệu mới.                                                                   |
+| FR-INV-08 | Must    | Kiểm kê định kỳ                     | Mở kiểm kê đúng điều kiện, một phiên; chỉ điều chỉnh sau khi xác nhận bản xem trước; chặn biến động kho cho đến xác nhận/hủy.                       |
+| FR-INV-09 | Must    | Ghi nhận kết quả điều chỉnh kiểm kê | Điều chỉnh lượng một lần; không yêu cầu nhập giá; định giá theo bình quân hiện hành; thiếu giá vẫn lưu lượng, giá trị chưa xác định; không trừ đôi. |
+| FR-INV-10 | Must    | Tính lượng khả dụng                 | Khả dụng = lô còn hạn trừ giữ còn hiệu lực, theo giờ server kể cả dọn trạng thái chậm.                                                              |
+| FR-INV-11 | Must    | Đồng thời và toàn vẹn giữ món       | Khóa đúng thứ tự; cạnh tranh không âm/cấp trùng; gửi lặp và lỗi giữa chừng nguyên tử.                                                               |
+| FR-INV-12 | Must    | Xem tồn kho                         | Hiển thị đủ tồn sổ sách, bán được, giữ, khả dụng, ngưỡng, thời điểm, đơn giá bình quân, giá trị tồn và lịch sử đơn giá.                             |
+| FR-INV-13 | Must    | Quản lý lô FIFO                     | FIFO lô còn hạn; lô hết hạn còn trong tồn sổ sách, không được bán.                                                                                  |
+| FR-INV-14 | Must    | Cảnh báo hạn sử dụng theo lô        | Cảnh báo hạn dùng theo ngày cấu hình; phân biệt sắp hết/hết hạn với tồn thấp.                                                                       |
 
 ## L.4. Báo cáo
 
-| **FR**    | **Mức** | **Yêu cầu**                                            | **Tiêu chí chấp nhận**                                                                    |
-|-----------|---------|--------------------------------------------------------|-------------------------------------------------------------------------------------------|
-| FR-REP-01 | Should  | Báo cáo doanh thu                                      | Doanh thu chỉ từ thanh toán thành công, theo Business Date và bộ lọc đúng.                |
-| FR-REP-02 | Should  | Theo dõi thanh toán chưa hoàn tất                      | Chờ xác minh/mở lại theo dõi riêng, không doanh thu; thành công ra khỏi danh sách.        |
-| FR-REP-03 | Should  | Xếp hạng món ăn                                        | Xếp hạng lượng và tiền đúng dữ liệu, thời gian và xử lý đồng hạng.                        |
-| FR-REP-04 | Should  | Lợi nhuận gộp theo chi phí nguyên liệu                 | Lợi nhuận gộp tháng = doanh thu − (giá vốn bán + hao hụt + tiêu hao order hủy/đóng).      |
-| FR-REP-05 | Should  | Cấu thành giá vốn nguyên liệu tiêu hao                 | Ba nhóm chi phí không trùng giao dịch; chứng từ kiểm kê không gây tính hai lần.           |
-| FR-REP-06 | Should  | Chi phí nguyên liệu theo món (tham khảo)               | Chi phí từng món giữ phạm vi tham khảo, không gộp hao hụt kho vào từng món.               |
-| FR-REP-07 | Should  | Phân bố đơn hàng theo khung giờ                        | Phân bố khung giờ/ngày trong tuần khớp dữ liệu giao dịch và thời gian cấu hình.           |
-| FR-REP-08 | Should  | So sánh hai khoảng thời gian                           | Kỳ gốc khác 0 tính đúng %; bằng 0 chỉ chênh lệch tuyệt đối và thông báo.                  |
-| FR-REP-09 | Should  | Hiển thị dạng bảng và biểu đồ                          | Bảng và biểu đồ cùng tổng/bộ lọc, đơn vị và kỳ; dữ liệu rỗng hiển thị đúng.               |
-| FR-REP-10 | Should  | Báo cáo order bị hủy và order đóng chưa thu được tiền  | Order hủy và đóng chưa thu tách nhóm; khoản muộn áp dụng cập nhật tổng không mất lịch sử. |
-| FR-REP-11 | Should | Giá vốn bán hàng | Bình quân và giá vốn tự cập nhật theo phiếu hiệu lực, gồm sửa tháng và kỳ sau. |
-| FR-REP-12 | Should  | Hao hụt kho                                            | Hao hụt kho tổng hợp đúng nguồn và ngày; món chế biến không tính trùng giá vốn order.     |
-| FR-REP-13 | Should  | Tiêu hao của order bị hủy hoặc đóng chưa thu được tiền | Order hủy/đóng chỉ phần không hoàn kho; nhận tiền muộn chuyển nhóm một lần.               |
+| **FR**    | **Mức** | **Yêu cầu**                                            | **Tiêu chí chấp nhận**                                                                                         |
+|-----------|---------|--------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|
+| FR-REP-01 | Should  | Báo cáo doanh thu                                      | Doanh thu chỉ từ thanh toán thành công, theo Business Date và bộ lọc đúng.                                     |
+| FR-REP-02 | Should  | Theo dõi thanh toán chưa hoàn tất                      | Chờ xác minh/mở lại theo dõi riêng, không doanh thu; thành công ra khỏi danh sách.                             |
+| FR-REP-03 | Should  | Xếp hạng món ăn                                        | Xếp hạng lượng và tiền đúng dữ liệu, thời gian và xử lý đồng hạng.                                             |
+| FR-REP-04 | Should  | Lợi nhuận gộp theo chi phí nguyên liệu                 | Lợi nhuận gộp tháng = doanh thu − (giá vốn bán + hao hụt + tiêu hao order hủy/đóng).                           |
+| FR-REP-05 | Should  | Cấu thành giá vốn nguyên liệu tiêu hao                 | Ba nhóm chi phí không trùng giao dịch; chứng từ kiểm kê không gây tính hai lần.                                |
+| FR-REP-06 | Should  | Chi phí nguyên liệu theo món (tham khảo)               | Chi phí từng món giữ phạm vi tham khảo, không gộp hao hụt kho vào từng món.                                    |
+| FR-REP-07 | Should  | Phân bố đơn hàng theo khung giờ                        | Phân bố khung giờ/ngày trong tuần khớp dữ liệu giao dịch và thời gian cấu hình.                                |
+| FR-REP-08 | Should  | So sánh hai khoảng thời gian                           | Kỳ gốc khác 0 tính đúng %; bằng 0 chỉ chênh lệch tuyệt đối và thông báo.                                       |
+| FR-REP-09 | Should  | Hiển thị dạng bảng và biểu đồ                          | Bảng và biểu đồ cùng tổng/bộ lọc, đơn vị và kỳ; dữ liệu rỗng hiển thị đúng.                                    |
+| FR-REP-10 | Should  | Báo cáo order bị hủy và order đóng chưa thu được tiền  | Order hủy và đóng chưa thu tách nhóm; khoản muộn áp dụng cập nhật tổng không mất lịch sử.                      |
+| FR-REP-11 | Should  | Giá vốn bán hàng                                       | Giá vốn mỗi lần xuất theo bình quân di động tại thời điểm xuất; không tính lại khi phiếu nhập thay đổi sau đó. |
+| FR-REP-12 | Should  | Hao hụt kho                                            | Hao hụt kho tổng hợp đúng nguồn và ngày; món chế biến không tính trùng giá vốn order.                          |
+| FR-REP-13 | Should  | Tiêu hao của order bị hủy hoặc đóng chưa thu được tiền | Order hủy/đóng chỉ phần không hoàn kho; nhận tiền muộn chuyển nhóm một lần.                                    |
 
 ## L.5. Cài đặt
 
-| **FR**    | **Mức** | **Yêu cầu**                             | **Tiêu chí chấp nhận**                                                             |
-|-----------|---------|-----------------------------------------|------------------------------------------------------------------------------------|
-| FR-SET-01 | Must    | Quản lý tài khoản                       | Tạo/sửa/khóa/gán vai trò đúng quyền, trả đúng dữ liệu, không lỗi sau khi đã lưu.   |
-| FR-SET-02 | Must    | Đăng nhập/đăng xuất/đổi mật khẩu        | Đăng nhập/đăng xuất/đổi mật khẩu hoạt động; mật khẩu cũ không dùng sau đổi.        |
-| FR-SET-03 | Must    | Giới hạn theo vai trò                   | API kiểm tra vai trò hiện tại; Quản lý kế thừa; tài khoản khóa bị chặn.            |
-| FR-SET-04 | Must    | Cấu hình hệ thống                       | Cấu hình hợp lệ; ngưỡng không âm, hạn/ngày/câu hỏi dương; cutoff mới từ ngày sau.  |
-| FR-SET-05 | Must    | Áp dụng ngưỡng cảnh báo tồn kho         | Ngưỡng riêng ưu tiên, thiếu thì dùng mặc định; cảnh báo theo khả dụng.             |
-| FR-SET-06 | Must    | Audit log cho thao tác rủi ro cao       | Mỗi thao tác rủi ro có audit một lần, đủ dấu vết và không bí mật.                  |
-| FR-SET-07 | Must    | Nội dung tối thiểu và quyền xem nhật ký | Chỉ Quản lý xem toàn bộ; log có người/thời điểm/thao tác/trước-sau, không sửa/xóa. |
+| **FR**    | **Mức** | **Yêu cầu**                             | **Tiêu chí chấp nhận**                                                                                               |
+|-----------|---------|-----------------------------------------|----------------------------------------------------------------------------------------------------------------------|
+| FR-SET-01 | Must    | Quản lý tài khoản                       | Tạo/sửa/khóa/gán vai trò đúng quyền, trả đúng dữ liệu, không lỗi sau khi đã lưu.                                     |
+| FR-SET-02 | Must    | Đăng nhập/đăng xuất/đổi mật khẩu        | Đăng nhập/đăng xuất/đổi mật khẩu hoạt động; mật khẩu cũ không dùng sau đổi.                                          |
+| FR-SET-03 | Must    | Giới hạn theo vai trò                   | API kiểm tra vai trò hiện tại; Quản lý kế thừa; tài khoản khóa bị chặn.                                              |
+| FR-SET-04 | Must    | Cấu hình hệ thống                       | Cấu hình hợp lệ; ngưỡng không âm, hạn/ngày/câu hỏi dương; tỷ lệ giá vốn trong khoảng 1–100%; cutoff mới từ ngày sau. |
+| FR-SET-05 | Must    | Áp dụng ngưỡng cảnh báo tồn kho         | Ngưỡng riêng ưu tiên, thiếu thì dùng mặc định; cảnh báo theo khả dụng.                                               |
+| FR-SET-06 | Must    | Audit log cho thao tác rủi ro cao       | Mỗi thao tác rủi ro có audit một lần, đủ dấu vết và không bí mật.                                                    |
+| FR-SET-07 | Must    | Nội dung tối thiểu và quyền xem nhật ký | Chỉ Quản lý xem toàn bộ; log có người/thời điểm/thao tác/trước-sau, không sửa/xóa.                                   |
 
 ## L.6. AI Assistant
 
@@ -1018,7 +1024,7 @@ Hệ thống có 28 yêu cầu Danh mục, 35 Bán hàng, 14 Kho, 13 Báo cáo, 
 | FR-AI-09 | Must    | Thông báo khi không thể trả lời                         | Lỗi/từ chối có thông báo và mã truy vết; dữ liệu rỗng không tạo số liệu.              |
 | FR-AI-10 | Must    | Hạn mức và bộ nhớ đệm                                   | Hạn mức được chặn; đổi dữ liệu/quyền không dùng cache cũ; tồn khả dụng luôn hiện tại. |
 
-Mức Won’t trong phạm vi khóa luận gồm đa chi nhánh, khuyến mãi, CRM, hoàn tiền ngân hàng tự động, hóa đơn điện tử và tích hợp thiết bị hoặc cổng thanh toán thật. Các nội dung này nằm ngoài 107 yêu cầu chức năng.
+Mức Won’t trong phạm vi khóa luận gồm đa chi nhánh, khuyến mãi, CRM, hoàn tiền ngân hàng tự động, hóa đơn điện tử và tích hợp thiết bị hoặc cổng thanh toán thật. Các nội dung này nằm ngoài 108 yêu cầu chức năng.
 
 ## M. Đặc tả đầy đủ các Use Case trọng yếu
 
@@ -1076,15 +1082,15 @@ Bước 1. Người dùng yêu cầu mở phiên. Backend khóa bản ghi điề
 
 Bước 2. Chốt tồn sổ sách, gồm lô hết hạn; mở phiên duy nhất và chặn giữ/gửi món, nhập/xuất/hoàn kho trong phiên.
 
-Bước 3. Người dùng nhập tồn thực tế theo nguyên liệu và lý do chênh lệch. Hệ thống tính chênh lệch để người dùng xác nhận.
+Bước 3. Người dùng nhập tồn thực tế theo nguyên liệu và lý do cho dòng lệch rồi chọn Xem trước. Hệ thống tính chênh lệch và hiển thị tồn trước điều chỉnh, tồn sau điều chỉnh và chênh lệch của từng nguyên liệu; bản xem trước chưa ghi dữ liệu. Người dùng chọn Xác nhận hoặc Quay lại sửa.
 
 Bước 4. Xác nhận trong một transaction: âm phân bổ FIFO trên lô còn lượng kể cả hết hạn; dương cộng vào lô mới nhất còn hiệu lực, hoặc tạo lô điều chỉnh nếu không có.
 
-Bước 5. Ghi giao dịch điều chỉnh, phiếu xuất hủy tham chiếu khi thiếu và audit log; phiếu này không trừ kho lần hai. Người kiểm kê không nhập giá. Hệ thống tự định giá theo bình quân khi đủ căn cứ; thiếu giá vẫn ghi số lượng, phần giá trị chưa xác định. Đóng phiên và mở lại thao tác kho.
+Bước 5. Ghi giao dịch điều chỉnh, phiếu xuất hủy tham chiếu khi thiếu và audit log; phiếu này không trừ kho lần hai. Người kiểm kê không nhập giá. Hệ thống định giá phần điều chỉnh theo đơn giá bình quân hiện hành; nguyên liệu chưa có đơn giá vẫn được ghi số lượng, phần giá trị chưa xác định. Đóng phiên và mở lại thao tác kho.
 
-Luồng phụ và ngoại lệ: Còn lượt chọn Đang giữ hoặc Hết hạn chưa được gửi/hủy: từ chối mở phiên và yêu cầu nhân viên xử lý lượt chọn. Hết hạn không tự hủy lượt chọn và không làm điều kiện mở kiểm kê trở thành hợp lệ. Hủy phiên: không điều chỉnh tồn. Lỗi giữa chừng: rollback, không để giao dịch kho và chứng từ lệch nhau.
+Luồng phụ và ngoại lệ: Còn lượt chọn Đang giữ hoặc Hết hạn chưa được gửi/hủy: từ chối mở phiên và yêu cầu nhân viên xử lý lượt chọn. Hết hạn không tự hủy lượt chọn và không làm điều kiện mở kiểm kê trở thành hợp lệ. Quay lại sửa: trở về màn hình nhập số lượng, phiếu vẫn Đang kiểm kê và kho vẫn khóa. Hủy phiên: không điều chỉnh tồn. Lỗi giữa chừng: rollback, không để giao dịch kho và chứng từ lệch nhau.
 
-Hậu điều kiện: Mỗi chênh lệch được áp dụng một lần; tổng lô bằng tồn tổng hợp và sổ cái. Xác nhận/hủy kết thúc khóa nghiệp vụ.
+Hậu điều kiện: Mỗi chênh lệch được áp dụng một lần và chỉ sau khi người kiểm kê xác nhận bản xem trước; tổng lô bằng tồn tổng hợp và sổ cái. Xác nhận/hủy kết thúc khóa nghiệp vụ.
 
 Truy vết: FR-INV-08–11; FR-SET-06.
 
@@ -1114,13 +1120,13 @@ Truy vết: FR-AI-01–10; NFR-02, 04–05, 08.
 
 #### Giữ món và mở kiểm kê
 
-| **Điều kiện tại giờ server** | **Lượng khả dụng** | **Gửi món** | **Mở kiểm kê** |
-|---|---|---|---|
-| Giữ Đang giữ, thời điểm hết hạn lớn hơn giờ server | Trừ phần giữ của các dòng khác; dòng đang gửi được cộng lại phần giữ của chính nó | Kiểm tra lại bàn, phiên bản và quyền; ghi nguyên tử | Từ chối khi còn lượt chọn chưa kết thúc |
-| Đã đến hoặc qua thời điểm hết hạn, lượt chọn chưa gửi/hủy | Phần hết hạn không chiếm nguyên liệu | Kiểm tra lại toàn bộ dòng; đủ khả dụng mới tiếp nhận, đổi phiên bản phải xác nhận | Từ chối cho đến khi nhân viên gửi hợp lệ hoặc hủy lượt chọn |
-| Lượt chọn đã gửi thành công | Không còn lượng giữ; tiêu hao đã ghi một lần | Gửi lại cùng mã trả kết quả cũ, không phát sinh tiêu hao | Kiểm tra điều kiện món và các lượt chọn khác |
-| Lượt chọn đã hủy | Không chiếm lượng khả dụng | Không gửi lại lượt đã hủy; tạo lượt chọn mới nếu cần | Không còn là lượt chọn chưa xử lý |
-| Đang có phiên kiểm kê | Tồn được chốt phục vụ kiểm đếm | Chặn giữ mới, sửa giữ và gửi món | Không mở phiên thứ hai; nhập/xuất/hoàn kho cũng bị chặn |
+| **Điều kiện tại giờ server**                              | **Lượng khả dụng**                                                                | **Gửi món**                                                                       | **Mở kiểm kê**                                              |
+|-----------------------------------------------------------|-----------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|-------------------------------------------------------------|
+| Giữ Đang giữ, thời điểm hết hạn lớn hơn giờ server        | Trừ phần giữ của các dòng khác; dòng đang gửi được cộng lại phần giữ của chính nó | Kiểm tra lại bàn, phiên bản và quyền; ghi nguyên tử                               | Từ chối khi còn lượt chọn chưa kết thúc                     |
+| Đã đến hoặc qua thời điểm hết hạn, lượt chọn chưa gửi/hủy | Phần hết hạn không chiếm nguyên liệu                                              | Kiểm tra lại toàn bộ dòng; đủ khả dụng mới tiếp nhận, đổi phiên bản phải xác nhận | Từ chối cho đến khi nhân viên gửi hợp lệ hoặc hủy lượt chọn |
+| Lượt chọn đã gửi thành công                               | Không còn lượng giữ; tiêu hao đã ghi một lần                                      | Gửi lại cùng mã trả kết quả cũ, không phát sinh tiêu hao                          | Kiểm tra điều kiện món và các lượt chọn khác                |
+| Lượt chọn đã hủy                                          | Không chiếm lượng khả dụng                                                        | Không gửi lại lượt đã hủy; tạo lượt chọn mới nếu cần                              | Không còn là lượt chọn chưa xử lý                           |
+| Đang có phiên kiểm kê                                     | Tồn được chốt phục vụ kiểm đếm                                                    | Chặn giữ mới, sửa giữ và gửi món                                                  | Không mở phiên thứ hai; nhập/xuất/hoàn kho cũng bị chặn     |
 
 Giờ server bằng thời điểm hết hạn được xếp vào nhánh hết hạn. Hết hạn giữ chỉ giải phóng khả dụng, không tương đương thao tác Hủy lượt chọn. Điều kiện mở kiểm kê được kiểm tra lại trong transaction có khóa điều phối.
 
@@ -1128,42 +1134,42 @@ Giờ server bằng thời điểm hết hạn được xếp vào nhánh hết 
 
 Các dòng dưới áp dụng sau khi webhook đã xác thực và xác định được giao dịch. Webhook không hợp lệ chỉ được ghi log, không xác nhận thu tiền.
 
-| **Tình huống** | **Kết quả nghiệp vụ** | **Doanh thu, hóa đơn và bàn** |
-|---|---|---|
-| Đúng giao dịch, đúng tiền, chưa có lần thu thành công; chưa có quyết định mở lại/đóng/hủy | Xác nhận tự động; áp dụng cả QR cũ đã hết hạn/hủy hoặc order đang chờ xác minh | Phát hành một hóa đơn, ghi doanh thu một lần theo BusinessDate của order; không đổi bàn |
-| Như trên nhưng đang có QR mới chưa nhận tiền | Trong cùng transaction, xác nhận khoản cũ và hủy lần QR mới chưa nhận tiền | Không để hai lần thu thành công |
-| Đã có quyết định mở lại của Quản lý nhưng chưa thu lại | Ghi khoản ngoại lệ; chỉ Quản lý được áp dụng khoản cũ sau kiểm tra | Khi áp dụng hợp lệ: một hóa đơn; hủy QR mới chưa nhận tiền; không gắn lại bàn đã giải phóng |
-| Order đóng chưa thu, khoản nhận đúng và đủ | Ghi ngoại lệ; Quản lý được áp dụng để chuyển Đã thanh toán | Ghi doanh thu một lần; chuyển giá vốn từ FR-REP-13 sang FR-REP-11, giữ lịch sử đóng |
-| Order đã thanh toán bằng khoản khác, đã hủy, hoặc số tiền không khớp | Ghi ngoại lệ, không tự thay đổi order; ghi nhận hoàn tiền ngoài hệ thống nếu không thể áp dụng | Không phát hành hóa đơn thứ hai hoặc cộng doanh thu lần nữa |
-| Webhook lặp của cùng khoản nhận, kể cả khoản đã xác nhận thủ công | Đối chiếu mã cổng và mã ngân hàng với các lần thu/ngoại lệ đã ghi; liên kết vào bản ghi tương ứng | Không tạo khoản thu hoặc ngoại lệ mới cho cùng tiền |
-| Chưa đủ căn cứ xác minh | Giữ Chờ xác minh; lưu kết quả kiểm tra; chỉ Quản lý quyết định mở lại hoặc đóng | Không tự đóng theo thời gian; chưa hóa đơn và doanh thu |
+| **Tình huống**                                                                            | **Kết quả nghiệp vụ**                                                                             | **Doanh thu, hóa đơn và bàn**                                                               |
+|-------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
+| Đúng giao dịch, đúng tiền, chưa có lần thu thành công; chưa có quyết định mở lại/đóng/hủy | Xác nhận tự động; áp dụng cả QR cũ đã hết hạn/hủy hoặc order đang chờ xác minh                    | Phát hành một hóa đơn, ghi doanh thu một lần theo BusinessDate của order; không đổi bàn     |
+| Như trên nhưng đang có QR mới chưa nhận tiền                                              | Trong cùng transaction, xác nhận khoản cũ và hủy lần QR mới chưa nhận tiền                        | Không để hai lần thu thành công                                                             |
+| Đã có quyết định mở lại của Quản lý nhưng chưa thu lại                                    | Ghi khoản ngoại lệ; chỉ Quản lý được áp dụng khoản cũ sau kiểm tra                                | Khi áp dụng hợp lệ: một hóa đơn; hủy QR mới chưa nhận tiền; không gắn lại bàn đã giải phóng |
+| Order đóng chưa thu, khoản nhận đúng và đủ                                                | Ghi ngoại lệ; Quản lý được áp dụng để chuyển Đã thanh toán                                        | Ghi doanh thu một lần; chuyển giá vốn từ FR-REP-13 sang FR-REP-11, giữ lịch sử đóng         |
+| Order đã thanh toán bằng khoản khác, đã hủy, hoặc số tiền không khớp                      | Ghi ngoại lệ, không tự thay đổi order; ghi nhận hoàn tiền ngoài hệ thống nếu không thể áp dụng    | Không phát hành hóa đơn thứ hai hoặc cộng doanh thu lần nữa                                 |
+| Webhook lặp của cùng khoản nhận, kể cả khoản đã xác nhận thủ công                         | Đối chiếu mã cổng và mã ngân hàng với các lần thu/ngoại lệ đã ghi; liên kết vào bản ghi tương ứng | Không tạo khoản thu hoặc ngoại lệ mới cho cùng tiền                                         |
+| Chưa đủ căn cứ xác minh                                                                   | Giữ Chờ xác minh; lưu kết quả kiểm tra; chỉ Quản lý quyết định mở lại hoặc đóng                   | Không tự đóng theo thời gian; chưa hóa đơn và doanh thu                                     |
 
 #### Khóa order, phục vụ và bàn
 
-| **Trạng thái/điều kiện** | **Sửa nội dung hoặc gọi thêm** | **Cập nhật món và bàn** |
-|---|---|---|
-| Đang mở, tại chỗ còn gắn đúng bàn; hoặc mang về | Cho gọi thêm; giảm/hủy chỉ dòng Chờ làm và sau xác nhận Bếp chưa chế biến | Cho cập nhật phục vụ; đổi bàn chỉ tại chỗ còn gắn bàn, bàn đích trống |
-| Đang mở, tại chỗ đã giải phóng bàn | Không gọi thêm hoặc đổi bàn cho order cũ; các điều chỉnh khác vẫn theo FR-SALE-07 và điều kiện thanh toán | Không gắn lại bàn; không tác động order mới đang dùng bàn cũ |
-| Chờ xác nhận / Chờ xác minh / Đã thanh toán / Đóng chưa thu | Khóa món và số tiền; không tạo lần thu mới trừ luồng mở lại được phép | Cho cập nhật chế biến/phục vụ của dòng chưa hủy; được giải phóng đúng bàn còn phục vụ order |
-| Toàn bộ dòng bị hủy nhưng order chưa hủy toàn phần | Order vẫn Đang mở; gọi thêm phải thỏa điều kiện bàn/loại đơn | Không tự giải phóng bàn |
-| Đã hủy toàn bộ order | Không gọi thêm, sửa món, đổi bàn hoặc thu tiền cho order hủy; tiền muộn vào ngoại lệ | Không cập nhật tiếp các dòng đã hủy; bàn được giải phóng khi khách rời theo đúng liên kết order |
+| **Trạng thái/điều kiện**                                    | **Sửa nội dung hoặc gọi thêm**                                                                            | **Cập nhật món và bàn**                                                                         |
+|-------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|
+| Đang mở, tại chỗ còn gắn đúng bàn; hoặc mang về             | Cho gọi thêm; giảm/hủy chỉ dòng Chờ làm và sau xác nhận Bếp chưa chế biến                                 | Cho cập nhật phục vụ; đổi bàn chỉ tại chỗ còn gắn bàn, bàn đích trống                           |
+| Đang mở, tại chỗ đã giải phóng bàn                          | Không gọi thêm hoặc đổi bàn cho order cũ; các điều chỉnh khác vẫn theo FR-SALE-07 và điều kiện thanh toán | Không gắn lại bàn; không tác động order mới đang dùng bàn cũ                                    |
+| Chờ xác nhận / Chờ xác minh / Đã thanh toán / Đóng chưa thu | Khóa món và số tiền; không tạo lần thu mới trừ luồng mở lại được phép                                     | Cho cập nhật chế biến/phục vụ của dòng chưa hủy; được giải phóng đúng bàn còn phục vụ order     |
+| Toàn bộ dòng bị hủy nhưng order chưa hủy toàn phần          | Order vẫn Đang mở; gọi thêm phải thỏa điều kiện bàn/loại đơn                                              | Không tự giải phóng bàn                                                                         |
+| Đã hủy toàn bộ order                                        | Không gọi thêm, sửa món, đổi bàn hoặc thu tiền cho order hủy; tiền muộn vào ngoại lệ                      | Không cập nhật tiếp các dòng đã hủy; bàn được giải phóng khi khách rời theo đúng liên kết order |
 
 #### Xuất hủy và tính giá vốn
 
-| **Nguồn** | **Dữ liệu người dùng chọn** | **Biến động kho** | **Nhóm chi phí** |
-|---|---|---|---|
-| Nguyên liệu | Lô, lượng hủy và lý do | Trừ đúng lô một lần; giải phóng giữ bị ảnh hưởng | FR-REP-12 theo ngày biến động kho |
-| Món đã chế biến | Dòng order, số suất bị bỏ và lý do | Không trừ thêm; tự lấy lượng từ tiêu hao gốc, không nhập gram tùy ý | Giữ trong FR-REP-11 hoặc FR-REP-13 theo kết quả order; không cộng vào hao hụt kho lần nữa |
-| Kiểm kê âm | Số đếm và lý do tại phiên kiểm kê | Một giao dịch điều chỉnh theo từng lô; phiếu xuất hủy chỉ tham chiếu | FR-REP-12; không cộng cả giao dịch và chứng từ |
-| Kiểm kê dương | Số đếm và lý do tại phiên kiểm kê | Một điều chỉnh tăng; không sinh phiếu xuất hủy | Không tính thành doanh thu hoặc hao hụt âm |
-| Giảm/hủy dòng Chờ làm | Dòng món và số lượng hợp lệ, sau xác nhận Bếp | Hoàn đúng lô gốc, kể cả nay đã hết hạn | Phần đã hoàn không còn là tiêu hao; tồn hết hạn tăng nhưng khả dụng không tăng |
+| **Nguồn**             | **Dữ liệu người dùng chọn**                   | **Biến động kho**                                                    | **Nhóm chi phí**                                                                          |
+|-----------------------|-----------------------------------------------|----------------------------------------------------------------------|-------------------------------------------------------------------------------------------|
+| Nguyên liệu           | Lô, lượng hủy và lý do                        | Trừ đúng lô một lần; giải phóng giữ bị ảnh hưởng                     | FR-REP-12 theo ngày biến động kho                                                         |
+| Món đã chế biến       | Dòng order, số suất bị bỏ và lý do            | Không trừ thêm; tự lấy lượng từ tiêu hao gốc, không nhập gram tùy ý  | Giữ trong FR-REP-11 hoặc FR-REP-13 theo kết quả order; không cộng vào hao hụt kho lần nữa |
+| Kiểm kê âm            | Số đếm và lý do tại phiên kiểm kê             | Một giao dịch điều chỉnh theo từng lô; phiếu xuất hủy chỉ tham chiếu | FR-REP-12; không cộng cả giao dịch và chứng từ                                            |
+| Kiểm kê dương         | Số đếm và lý do tại phiên kiểm kê             | Một điều chỉnh tăng; không sinh phiếu xuất hủy                       | Không tính thành doanh thu hoặc hao hụt âm                                                |
+| Giảm/hủy dòng Chờ làm | Dòng món và số lượng hợp lệ, sau xác nhận Bếp | Hoàn đúng lô gốc, kể cả nay đã hết hạn                               | Phần đã hoàn không còn là tiêu hao; tồn hết hạn tăng nhưng khả dụng không tăng            |
 
-Số suất bỏ được kiểm tra cộng dồn theo dòng order; nhiều dòng nguyên liệu của cùng một suất không được cộng thành nhiều suất. Giá vốn được tính tự động theo dữ liệu hiệu lực; giá trị chưa xác định được phân biệt với 0 thực theo tài liệu 04, phần G.1.
+Số suất bỏ được kiểm tra cộng dồn theo dòng order; nhiều dòng nguyên liệu của cùng một suất không được cộng thành nhiều suất. Giá trị mỗi dòng xuất bằng lượng xuất nhân đơn giá bình quân hiện hành tại thời điểm xuất; giá trị chưa xác định được phân biệt với 0 thực theo tài liệu 04, phần G.1.
 
 ## N. Phân rã chức năng
 
 <img src="../images/03_Dac_ta_chuc_nang_UC_FR/media/image1.png" width="567" />
 
-Phân rã chức năng trong [UseCase_HeThongQuanLyNhaHang.drawio](../So_do/UseCase_HeThongQuanLyNhaHang.drawio)
+Phân rã chức năng trong UseCase_HeThongQuanLyNhaHang.drawio
 
 Phạm vi vai trò được tổng hợp tại mục 2.5 và 4.4 của báo cáo chính. Quản lý quyết định hủy toàn bộ order, đối soát, đóng chưa thu, mở lại thanh toán và xử lý QR ngoại lệ; Thu ngân/Nhân viên order thực hiện bán hàng và xác minh ban đầu theo điều kiện; Bếp quản lý nguyên liệu, nhà cung cấp và chứng từ kho. Không vai trò ứng dụng nào được sửa/xóa trực tiếp sổ cái kho, audit log hoặc nhật ký AI. Quyền chi tiết tiếp tục tuân theo từng FR, không suy ra quyền chỉ từ việc nhìn thấy màn hình.

@@ -18,13 +18,15 @@ Bước 3. Quản lý cập nhật thông tin, tạm dừng hoặc mở lại ph
 
 Bước 4. Món ăn chỉ được xóa mềm. Nhóm chưa từng có món được xóa vĩnh viễn; nhóm còn món chưa xóa mềm không được xóa; nhóm chỉ còn món đã xóa mềm được xóa mềm. Thao tác xóa được ghi nhật ký.
 
+Bước 5. Danh sách món hiển thị cho Quản lý giá vốn ước tính theo công thức hiện hành và đơn giá bình quân của nguyên liệu, tỷ lệ giá vốn so với giá bán và lãi gộp mỗi suất; món vượt ngưỡng cấu hình được đánh dấu cảnh báo.
+
 <img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image2.png" width="567" />
 
 Hình 1. QT-01 — Quản lý món ăn. Luồng chính.
 
-### 2.3.2. Quản lý công thức
+### 2.3.2. Thiết lập công thức của món
 
-Bước 1. Quản lý chọn món, chọn nguyên liệu và nhập định lượng theo đơn vị chuẩn.
+Bước 1. Trong chi tiết món, Quản lý mở phần Công thức, chọn nguyên liệu và nhập định lượng theo đơn vị chuẩn.
 
 Bước 2. Công thức đầu tiên có hiệu lực ngay và món thoát khỏi trạng thái Nháp.
 
@@ -34,7 +36,7 @@ Bước 4. Dòng món đã gửi giữ nguyên phiên bản công thức đượ
 
 <img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image3.png" width="567" />
 
-Hình 2. QT-02 — Quản lý công thức. Luồng chính.
+Hình 2. QT-02 — Thiết lập công thức của món. Luồng chính.
 
 ### 2.3.3. Quản lý giá bán
 
@@ -43,6 +45,8 @@ Bước 1. Quản lý chọn món, nhập giá bán và ngày hiệu lực.
 Bước 2. Quản lý chọn lên lịch giá cho ngày kinh doanh tương lai hoặc sửa trực tiếp để áp dụng ngay; có thể thay hoặc hủy lịch chưa áp dụng.
 
 Bước 3. Khi gửi món, order lấy giá hiện hành; thay đổi giá không làm đổi các món đã bán.
+
+Bước 4. Khi giá nhập nguyên liệu tăng làm tỷ lệ giá vốn của món vượt ngưỡng, món được đánh dấu cảnh báo trên danh sách món. Quản lý xem chi tiết giá vốn theo nguyên liệu rồi quyết định sửa trực tiếp hoặc lên lịch giá mới; hệ thống không tự đổi giá bán.
 
 <img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image4.png" width="567" />
 
@@ -94,7 +98,7 @@ Bước 3. Bếp chế biến và báo món xong để nhân viên cập nhật 
 
 Bước 4. Thu ngân thực hiện thanh toán. Khi khách rời đi, nhân viên giải phóng bàn; thanh toán thành công không tự giải phóng bàn khi khách còn ngồi.
 
-<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image8.png" width="468" />
+<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image8.png" width="442" />
 
 Hình 7. QT-07 — Gọi món tại chỗ. Luồng chính.
 
@@ -136,7 +140,7 @@ Bước 3. Nếu mã hết hạn hoặc Thu ngân hủy mã còn chờ, order v�
 
 Bước 4. Nếu khách báo đã bị trừ tiền nhưng chưa có kết quả hợp lệ, Thu ngân chuyển sang quy trình xác minh thanh toán, không yêu cầu khách trả lại ngay.
 
-<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image11.png" width="485" />
+<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image11.png" width="458" />
 
 Hình 10. QT-10 — Thanh toán QR. Luồng chính.
 
@@ -192,13 +196,13 @@ Bước 3. Người lập xác nhận; hệ thống lưu phiếu, tạo lô và 
 
 Bước 4. Phiếu chỉ được sửa hoặc hủy khi các lô chưa phát sinh xuất và không có giữ món còn hiệu lực; dữ liệu đã sử dụng được xử lý qua kiểm kê.
 
-Hủy phiếu nhập chỉ được thực hiện khi tất cả lô liên quan chưa phát sinh giao dịch xuất và không có giữ món còn hiệu lực. Khi hủy, hệ thống đảo lượng nhập, đưa số lượng còn lại của các lô sinh từ phiếu về 0 và chuyển các lô này sang Đã hủy; giữ phiếu, lô và lịch sử giao dịch để truy vết. Lô Đã hủy không được phân bổ FIFO, giữ món hoặc nhận điều chỉnh tăng tồn. Thao tác đồng thời loại phiếu khỏi dữ liệu nhập hiệu lực và tính lại giá vốn các kỳ bị ảnh hưởng. Xuất hủy nguyên liệu là nghiệp vụ riêng: chỉ trừ lượng được chọn trong lô, phần còn lại tiếp tục được sử dụng nếu đủ điều kiện; không chuyển cả lô sang Đã hủy.
+Hủy phiếu nhập chỉ được thực hiện khi tất cả lô liên quan chưa phát sinh giao dịch xuất và không có giữ món còn hiệu lực. Khi hủy, hệ thống đảo lượng nhập, đưa số lượng còn lại của các lô sinh từ phiếu về 0 và chuyển các lô này sang Đã hủy; giữ phiếu, lô và lịch sử giao dịch để truy vết. Lô Đã hủy không được phân bổ FIFO, giữ món hoặc nhận điều chỉnh tăng tồn. Thao tác đồng thời loại phiếu khỏi dữ liệu nhập hiệu lực và tính lại đơn giá bình quân hiện hành của nguyên liệu. Xuất hủy nguyên liệu là nghiệp vụ riêng: chỉ trừ lượng được chọn trong lô, phần còn lại tiếp tục được sử dụng nếu đủ điều kiện; không chuyển cả lô sang Đã hủy.
 
-<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image15.png" width="567" />
+<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image26.png" width="567" />
 
 Hình 14. QT-14 — Nhập kho nguyên liệu theo lô. Luồng chính.
 
-Hệ thống tự cập nhật đơn giá bình quân và giá vốn khi thêm, sửa hoặc hủy phiếu nhập hợp lệ. Sửa ngày nhập sang tháng khác tính lại tháng cũ, tháng mới và các kỳ sau bị ảnh hưởng; điều kiện sửa/hủy vẫn tuân theo FR-INV-02.
+Giá trị nguyên liệu được tính theo phương pháp bình quân gia quyền di động. Mỗi lần lưu phiếu nhập, hệ thống tính lại đơn giá bình quân của từng nguyên liệu: đơn giá mới = (giá trị tồn trước khi nhập + số lượng nhập × đơn giá nhập) / (lượng tồn trước khi nhập + số lượng nhập). Sửa số lượng, đơn giá hoặc hủy phiếu theo FR-INV-02 được ghi thành một lần tính lại tại thời điểm thao tác; nếu thao tác làm lượng tồn về 0, đơn giá hiện hành được giữ nguyên; giá trị các lần xuất đã ghi nhận trước đó giữ nguyên. Sửa ngày nhập chỉ cập nhật hạn dùng và thứ tự FIFO của lô, không làm thay đổi đơn giá bình quân.
 
 ### 2.3.15. Xuất nguyên liệu theo FIFO
 
@@ -220,11 +224,13 @@ Bước 1. Bếp hoặc Quản lý chọn nguồn xuất hủy và nhập lý do
 
 Bước 2. Với nguyên liệu hỏng hoặc hết hạn, người lập chọn đúng lô thực tế cần hủy; lượng hủy không vượt tồn.
 
-Bước 3. Hệ thống kiểm tra giới hạn. Với món đã chế biến, hệ thống tự tính lượng nguyên liệu theo số suất hủy và tiêu hao gốc của dòng order. Nếu lô nguyên liệu hỏng đang được giữ, hệ thống giải phóng lượt giữ bị ảnh hưởng và thông báo nhân viên kiểm tra lại.
+Bước 3. Hệ thống kiểm tra giới hạn và trạng thái kiểm kê. Với món đã chế biến, hệ thống tự tính lượng nguyên liệu theo số suất hủy và tiêu hao gốc của dòng order.
 
-Bước 4. Người lập xác nhận; hệ thống lưu phiếu và nhật ký. Nguồn Nguyên liệu trừ tồn theo lô; nguồn Món đã chế biến và chứng từ Kiểm kê sử dụng giao dịch gốc để phân loại hao hụt.
+Bước 4. Hệ thống hiển thị bản xem trước gồm lô, lượng hủy, tồn còn lại sau hủy, giá trị hủy theo đơn giá bình quân hiện hành và các lượt giữ sẽ bị giải phóng nếu lô đang được giữ. Người lập kiểm tra rồi xác nhận, hoặc quay lại sửa lô, lượng và lý do.
 
-<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image17.png" width="584" />
+Bước 5. Sau khi người lập xác nhận, hệ thống lưu phiếu và nhật ký trong một transaction. Nguồn Nguyên liệu trừ tồn theo lô, giải phóng lượt giữ bị ảnh hưởng và thông báo nhân viên kiểm tra lại; nguồn Món đã chế biến và chứng từ Kiểm kê sử dụng giao dịch gốc để phân loại hao hụt.
+
+<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image27.png" width="584" />
 
 Hình 16. QT-16 — Xuất hủy nguyên liệu và món đã chế biến. Luồng chính.
 
@@ -232,13 +238,13 @@ Hình 16. QT-16 — Xuất hủy nguyên liệu và món đã chế biến. Lu�
 
 Bước 1. Bếp hoặc Quản lý yêu cầu mở kiểm kê sau khi kết thúc phục vụ. Hệ thống từ chối nếu còn lượt chọn chưa gửi/hủy, kể cả giữ đã hết hạn; nhân viên xử lý các lượt đó trước khi yêu cầu lại. Khi đủ điều kiện, hệ thống mở một phiên duy nhất và khóa biến động kho trong cùng transaction.
 
-Bước 2. Bếp đếm tồn thực tế theo nguyên liệu, gồm cả lô hết hạn còn hàng.
+Bước 2. Bếp đếm tồn thực tế theo nguyên liệu, gồm cả lô hết hạn còn hàng, nhập số lượng thực tế và lý do cho dòng có chênh lệch, rồi chọn Xem trước.
 
-Bước 3. Hệ thống tính chênh lệch so với tồn sổ sách; người kiểm kê kiểm tra, nhập lý do và xác nhận.
+Bước 3. Hệ thống hiển thị bản xem trước gồm tồn trên hệ thống trước điều chỉnh, tồn sau điều chỉnh theo số thực tế và chênh lệch của từng nguyên liệu; bản xem trước chưa ghi dữ liệu. Bếp kiểm tra rồi chọn Xác nhận, hoặc Quay lại sửa để chỉnh số lượng.
 
-Bước 4. Hệ thống phân bổ chênh lệch xuống từng lô và ghi nhận điều chỉnh; chênh lệch âm sinh chứng từ xuất hủy, không trừ tồn lần hai. Người dùng không nhập đơn giá. Giá trị điều chỉnh được tự xác định theo bình quân; thiếu căn cứ giá không cản ghi số lượng và được hiển thị chưa xác định. Kết thúc phiên thì mở khóa kho.
+Bước 4. Khi Bếp xác nhận, hệ thống phân bổ chênh lệch xuống từng lô và ghi nhận điều chỉnh trong một transaction; chênh lệch âm sinh chứng từ xuất hủy, không trừ tồn lần hai. Người dùng không nhập đơn giá: giá trị điều chỉnh bằng lượng chênh lệch nhân đơn giá bình quân hiện hành; nguyên liệu chưa có đơn giá vẫn được ghi số lượng, giá trị hiển thị chưa xác định. Phiếu chuyển sang Đã xác nhận và kho được mở khóa. Nếu hủy phiên trước khi xác nhận, tồn không thay đổi và kho được mở khóa.
 
-<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image1.png" width="567" />
+<img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image28.png" width="567" />
 
 Hình 17. QT-17 — Kiểm kê và điều chỉnh tồn kho. Luồng chính.
 
@@ -246,11 +252,11 @@ Hình 17. QT-17 — Kiểm kê và điều chỉnh tồn kho. Luồng chính.
 
 Bước 1. Bếp hoặc Quản lý mở màn hình kho, tìm nguyên liệu hoặc lọc theo tồn và hạn sử dụng.
 
-Bước 2. Hệ thống hiển thị tồn sổ sách, lượng đang giữ và lượng khả dụng; lô hết hạn không tính vào lượng bán được.
+Bước 2. Hệ thống hiển thị tồn sổ sách, lượng đang giữ, lượng khả dụng, đơn giá bình quân hiện hành và giá trị tồn; lô hết hạn không tính vào lượng bán được.
 
 Bước 3. Hệ thống cảnh báo khi lượng khả dụng thấp hơn mức tồn tối thiểu hoặc lô sắp hết hạn.
 
-Bước 4. Người dùng xem chi tiết lô và lịch sử xuất, hoàn. Bếp quyết định nhập bổ sung hoặc xử lý lô hỏng; cảnh báo không tự tạo phiếu.
+Bước 4. Người dùng xem chi tiết lô, lịch sử xuất, hoàn và lịch sử đơn giá bình quân. Bếp quyết định nhập bổ sung hoặc xử lý lô hỏng; cảnh báo không tự tạo phiếu.
 
 <img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image19.png" width="567" />
 
@@ -359,17 +365,21 @@ Các quy trình tại mục 2.3 là căn cứ xác định sáu module tại m�
 
 11\. Business Date là mốc do Quản lý cấu hình, dùng làm căn cứ hiệu lực giá/công thức và đơn vị nhóm báo cáo theo ngày.
 
-12\. Lợi nhuận gộp theo chi phí nguyên liệu = Doanh thu − Giá vốn nguyên liệu tiêu hao, tính bằng tiền theo tháng ở mức tổng toàn nhà hàng.
+12\. Lợi nhuận gộp theo chi phí nguyên liệu = Doanh thu − Giá vốn nguyên liệu tiêu hao, tính bằng tiền theo tháng ở mức tổng toàn nhà hàng. Giá vốn của mỗi lần xuất kho bằng lượng xuất nhân đơn giá bình quân gia quyền di động tại thời điểm xuất.
 
 13\. AI Assistant: mỗi vai trò có trợ lý AI riêng, chỉ truy cập dữ liệu thuộc phạm vi vai trò, kiểm soát ở tầng backend/data layer.
 
 14\. Mọi câu trả lời của AI Assistant phải kèm bảng số liệu gốc và chú thích phạm vi dữ liệu.
 
-15\. Kiểm kê do Bếp/Quản lý tổ chức định kỳ theo UC 3.4, sau khi kết thúc chế biến và xử lý hết giữ món; các nghiệp vụ làm thay đổi tồn bị khóa trong phiên kiểm kê.
+15\. Kiểm kê do Bếp/Quản lý tổ chức định kỳ theo UC 3.4, sau khi kết thúc chế biến và xử lý hết giữ món; các nghiệp vụ làm thay đổi tồn bị khóa trong phiên kiểm kê. Kết quả kiểm đếm chỉ được ghi vào tồn kho sau khi người kiểm kê xem trước tồn trước và sau điều chỉnh rồi xác nhận.
 
 16\. Nguyên tắc xóa mềm áp dụng thống nhất cho toàn bộ danh mục khi đối tượng đã có dữ liệu lịch sử tham chiếu.
 
 17\. Quản lý có quyền hủy toàn bộ order chưa thanh toán; nguyên liệu chỉ hoàn kho cho các món đang ở trạng thái “Chờ làm” tại thời điểm hủy (chi tiết tại UC 2.7).
+
+18\. Phiếu xuất hủy chỉ trừ tồn sau khi người lập xem bản xem trước gồm lô, lượng hủy, tồn còn lại và giá trị hủy, rồi xác nhận.
+
+19\. Giá vốn ước tính của món bằng tổng định lượng từng nguyên liệu trong công thức hiện hành nhân đơn giá bình quân hiện hành, dùng để cảnh báo và hỗ trợ quyết định giá bán; giá vốn trong báo cáo lợi nhuận vẫn là giá trị ghi tại thời điểm xuất kho.
 
 ## B. Điều kiện triển khai các quy trình trọng yếu
 
