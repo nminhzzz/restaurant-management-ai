@@ -71,6 +71,7 @@ class ConfigOut(BaseModel):
     SoNgayCanhBaoHetHan: int = Field(validation_alias="expiry_warning_days")
     ThoiGianGiuChoPhut: int = Field(validation_alias="hold_minutes")
     SoCauHoiAIMoiNgay: int = Field(validation_alias="ai_daily_question_quota")
+    TyLeGiaVonCanhBao: float = Field(validation_alias="cost_ratio_warning")
 
     model_config = {"from_attributes": True, "populate_by_name": True}
 
@@ -83,6 +84,7 @@ class ConfigUpdate(BaseModel):
     SoNgayCanhBaoHetHan: int | None = Field(default=None, gt=0)
     ThoiGianGiuChoPhut: int | None = Field(default=None, gt=0)
     SoCauHoiAIMoiNgay: int | None = Field(default=None, gt=0)
+    TyLeGiaVonCanhBao: float | None = Field(default=None, ge=1, le=100)
     GioBatDauBusinessDate: time | None = None
 
     @field_validator("GioBatDauBusinessDate")

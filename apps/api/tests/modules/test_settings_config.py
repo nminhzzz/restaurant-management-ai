@@ -196,3 +196,53 @@ async def test_editing_a_delayed_pending_cutoff_never_reclassifies_current_day(
             assert business_date.business_date_start(date(2026, 10, 1)) == datetime(
                 2026, 10, 1, 8, 15
             )
+
+
+@pytest.mark.asyncio
+async def test_the_cost_ratio_warning_defaults_to_40_and_can_be_changed(session):
+    """FR-SET-04: TyLeGiaVonCanhBao, default 40 %."""
+    client, token = await _mgr(session)
+    headers = {"Authorization": f"Bearer {token}"}
+    async with client:
+        initial = await client.get("/api/v1/settings/config", headers=headers)
+        updated = await client.put(
+            "/api/v1/settings/config", json={"TyLeGiaVonCanhBao": 35.5}, headers=headers
+        )
+        reloaded = await client.get("/api/v1/settings/config", headers=headers)
+    app.dependency_overrides.clear()
+
+    assert initial.json()["TyLeGiaVonCanhBao"] == 40
+    assert updated.status_code == 200, updated.text
+    assert reloaded.json()["TyLeGiaVonCanhBao"] == 35.5
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("value", [0, 0.99, 100.01, 150, -5])
+async def test_the_cost_ratio_warning_must_stay_between_1_and_100(session, value):
+    client, token = await _mgr(session)
+    headers = {"Authorization": f"Bearer {token}"}
+    async with client:
+        rejected = await client.put(
+            "/api/v1/settings/config", json={"TyLeGiaVonCanhBao": value}, headers=headers
+        )
+        unchanged = await client.get("/api/v1/settings/config", headers=headers)
+    app.dependency_overrides.clear()
+
+    assert rejected.status_code == 422
+    assert unchanged.json()["TyLeGiaVonCanhBao"] == 40
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("value", [1, 100])
+async def test_the_cost_ratio_warning_accepts_both_ends_of_its_range(session, value):
+    client, token = await _mgr(session)
+    async with client:
+        accepted = await client.put(
+            "/api/v1/settings/config",
+            json={"TyLeGiaVonCanhBao": value},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+    app.dependency_overrides.clear()
+
+    assert accepted.status_code == 200, accepted.text
+    assert accepted.json()["TyLeGiaVonCanhBao"] == value

@@ -67,15 +67,6 @@ class CountIn(BaseModel):
     reason: str | None = Field(default=None, max_length=255)
 
 
-class MonthCostOut(BaseModel):
-    MaNguyenLieu: int
-    Thang: int
-    GiaBinhQuan: float
-    TongSoLuongNhap: float
-    ThoiDiemTinh: datetime | None = None
-    model_config = ConfigDict(from_attributes=True)
-
-
 class StockRowOut(BaseModel):
     MaNguyenLieu: int
     TenNguyenLieu: str

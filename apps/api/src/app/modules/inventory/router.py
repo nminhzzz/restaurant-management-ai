@@ -1,6 +1,7 @@
 """Inventory router."""
 
 from datetime import date
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
@@ -8,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
 from app.core.dependencies import Principal, require_roles
-from app.core.errors import NotFoundError
+from app.core.errors import BusinessRuleError, NotFoundError
 from app.modules.inventory import queries
 from app.modules.inventory import service as svc
 from app.modules.inventory.schemas import CountIn, IssueCreate, ReceiptCreate, ReceiptUpdate
@@ -160,6 +161,41 @@ async def create_issue(
     return {"MaPhieuXuat": iss.id}
 
 
+@router.post("/issues/preview")
+async def preview_issue(
+    payload: IssueCreate,
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    session: AsyncSession = Depends(get_session),
+):
+    """FR-INV-05: lots, quantities, what is left and the value, before anything is written."""
+    if payload.source != "Nguyên liệu":
+        raise BusinessRuleError("Bản xem trước này chỉ dành cho nguồn Nguyên liệu.")
+    preview = await svc.preview_issue(
+        session, payload.reason, [ln.model_dump() for ln in payload.lines]
+    )
+
+    def number(value: Decimal | None) -> float | None:
+        return None if value is None else float(value)
+
+    return {
+        "lines": [
+            {
+                **line,
+                "HanSuDung": line["HanSuDung"].isoformat() if line["HanSuDung"] else None,
+                "SoLuongHuy": float(line["SoLuongHuy"]),
+                "TonLoConLai": float(line["TonLoConLai"]),
+                "GiaTri": number(line["GiaTri"]),
+            }
+            for line in preview["lines"]
+        ],
+        "TongGiaTri": number(preview["TongGiaTri"]),
+        "LuotGiuBiGiaiPhong": [
+            {**hold, "SoLuongGiu": float(hold["SoLuongGiu"])}
+            for hold in preview["LuotGiuBiGiaiPhong"]
+        ],
+    }
+
+
 @router.post("/stocktakes", status_code=201)
 async def create_stocktake(
     user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
@@ -183,7 +219,7 @@ async def record_counts(
         [
             (
                 c.ingredient_id,
-                __import__("decimal").Decimal(str(c.actual_qty)),
+                Decimal(str(c.actual_qty)),
                 c.reason,
             )
             for c in counts
@@ -191,6 +227,31 @@ async def record_counts(
     )
     await session.commit()
     return {"ok": True}
+
+
+@router.post("/stocktakes/{sid}/preview")
+async def preview_stocktake(
+    sid: int,
+    counts: list[CountIn],
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    session: AsyncSession = Depends(get_session),
+):
+    """Read-only: the counter checks stock before and after, then confirms or goes back."""
+    rows = await svc.preview_stocktake(
+        session, sid, [(c.ingredient_id, Decimal(str(c.actual_qty)), c.reason) for c in counts]
+    )
+    return {
+        "MaPhieuKiemKe": sid,
+        "items": [
+            {
+                **row,
+                "TonTruocDieuChinh": float(row["TonTruocDieuChinh"]),
+                "TonSauDieuChinh": float(row["TonSauDieuChinh"]),
+                "ChenhLech": float(row["ChenhLech"]),
+            }
+            for row in rows
+        ],
+    }
 
 
 @router.post("/stocktakes/{sid}/cancel")
@@ -228,6 +289,23 @@ async def list_stock(
     page_size = min(max(1, page_size), 100)
     items, total = await svc.list_stock(
         session, search=search, alerting=alerting, page=page, page_size=page_size
+    )
+    return {"items": items, "total": total, "page": page, "page_size": page_size}
+
+
+@router.get("/stock/{ingredient_id}/cost-history")
+async def stock_cost_history(
+    ingredient_id: int,
+    page: int = 1,
+    page_size: int = 20,
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    session: AsyncSession = Depends(get_session),
+):
+    """FR-INV-12: how the average unit cost of one ingredient moved, newest first."""
+    page = max(1, page)
+    page_size = min(max(1, page_size), 100)
+    items, total = await queries.cost_history(
+        session, ingredient_id, page=page, page_size=page_size
     )
     return {"items": items, "total": total, "page": page, "page_size": page_size}
 

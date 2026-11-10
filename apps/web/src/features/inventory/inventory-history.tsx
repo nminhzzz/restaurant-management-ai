@@ -114,12 +114,16 @@ export function InventoryHistory({ ingredientId }: { ingredientId?: number }) {
             label="Trạng thái lô"
             value={status}
             allLabel="Tất cả lô"
-            options={["Còn hạn", "Sắp hết hạn", "Hết hạn", "Đã hết"].map(
-              (value) => ({
-                value,
-                label: value,
-              }),
-            )}
+            options={[
+              "Còn hạn",
+              "Sắp hết hạn",
+              "Hết hạn",
+              "Đã hết",
+              "Đã hủy",
+            ].map((value) => ({
+              value,
+              label: value,
+            }))}
             onChange={(value) => {
               setStatus(value);
               setPage(1);

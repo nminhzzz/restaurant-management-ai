@@ -99,7 +99,10 @@ export function GroupList() {
     const order = groups.map((g) => g.MaNhomMon);
     [order[index], order[target]] = [order[target], order[index]];
     void reorder.run(async () => {
-      await apiFetch("/catalog/groups/order", { method: "PUT", body: order });
+      await apiFetch("/catalog/groups/order", {
+        method: "PUT",
+        body: { MaNhomMon: order },
+      });
       groupsRes.reload();
     });
   }

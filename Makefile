@@ -42,7 +42,7 @@ check-resources: ## Kiểm tra đĩa/RAM/load trước khi chạy integration (s
 revision: ## Sinh migration mới: make revision m="add order tables"
 	cd $(API) && uv run alembic revision --autogenerate -m "$(m)"
 
-seed: ## Sinh dữ liệu mô phỏng 12 tháng
+seed: ## Sinh dữ liệu mô phỏng 2 tháng
 	cd $(API) && uv run python ../../scripts/seed/generate.py
 
 audit-eval: ## Kiểm tra bộ câu hỏi đánh giá trên CSDL: make audit-eval d=restaurant_demo

@@ -156,7 +156,10 @@ async def test_two_holds_cannot_overbook_the_same_lots(session):
 
     assert first.status_code == 201
     assert second.status_code == 422
-    assert second.json()["error"]["message"] == "Không đủ tồn kho khả dụng."
+    # TC-SALE-13: the refusal names the dish and how many portions are missing.
+    assert second.json()["error"]["message"] == (
+        "Không đủ nguyên liệu cho món Món giữ chỗ: cần 2 suất, chỉ còn đủ 1 suất (thiếu 1 suất)."
+    )
 
 
 @pytest.mark.anyio
@@ -618,3 +621,135 @@ async def test_reopening_a_selection_can_show_expired_holds(session):
         f"/api/v1/sales/holds?selection_code={hold.selection_code}", headers=headers
     )
     assert active_only.json() == []
+
+
+@pytest.mark.anyio
+async def test_a_hold_that_takes_all_the_stock_can_still_be_sent(session):
+    """TC-INV-09: 'nothing left for anyone else' is not a reason to refuse the holder."""
+    dish, ingredient, table = await _setup(session, stock=2)
+    client = await _make_client(session)
+    headers, _ = await _headers(session)
+    hold = (await _hold(client, headers, dish, table, quantity=2)).json()
+
+    sent = await client.post(
+        "/api/v1/sales/orders",
+        json={
+            "MaBan": table.id,
+            "lines": [{"MaMon": dish.id, "SoLuong": 2, "hold_id": hold["MaGiuCho"]}],
+        },
+        headers=headers,
+    )
+
+    assert sent.status_code == 201, sent.text
+    await session.refresh(ingredient)
+    assert float(ingredient.stock_qty) == 0
+    reservation = await session.get(Reservation, hold["MaGiuCho"])
+    await session.refresh(reservation)
+    assert reservation.status == "Đã gửi"
+
+
+@pytest.mark.anyio
+async def test_a_hold_that_takes_all_the_stock_can_still_be_reduced(session):
+    dish, _, table = await _setup(session, stock=2)
+    client = await _make_client(session)
+    headers, _ = await _headers(session)
+    hold = (await _hold(client, headers, dish, table, quantity=2)).json()
+
+    reduced = await client.patch(
+        f"/api/v1/sales/holds/{hold['MaGiuCho']}", json={"quantity": 1}, headers=headers
+    )
+
+    assert reduced.status_code == 200, reduced.text
+    assert reduced.json()["SoLuong"] == 1
+
+
+@pytest.mark.anyio
+async def test_nothing_can_be_held_for_an_order_that_left_its_table(session):
+    """TC-SALE-19: refused at once, so no ingredient stays reserved until the hold lapses."""
+    dish, _, table = await _setup(session, stock=5)
+    client = await _make_client(session)
+    headers, _ = await _headers(session)
+    created = await client.post(
+        "/api/v1/sales/orders",
+        json={"MaBan": table.id, "lines": [{"MaMon": dish.id, "SoLuong": 1}]},
+        headers=headers,
+    )
+    order_id = created.json()["MaOrder"]
+    released = await client.post(
+        f"/api/v1/sales/tables/{table.id}/release", json={"order_id": order_id}, headers=headers
+    )
+    assert released.status_code == 200, released.text
+
+    hold = await _hold(client, headers, dish, table, quantity=1, order_id=order_id)
+
+    assert hold.status_code == 422
+    assert "giải phóng khỏi bàn" in hold.json()["error"]["message"]
+    held = await session.scalar(
+        select(func.count()).select_from(Reservation).where(Reservation.status == "Đang giữ")
+    )
+    assert held == 0
+
+
+@pytest.mark.anyio
+async def test_an_expired_selection_short_of_stock_names_the_dish_and_the_shortage(session):
+    """TC-SALE-13: two portions were held, the hold lapsed and one portion was sold meanwhile."""
+    dish, ingredient, table = await _setup(session, stock=2)
+    client = await _make_client(session)
+    headers, _ = await _headers(session)
+    hold = (await _hold(client, headers, dish, table, quantity=2)).json()
+    reservation = await session.get(Reservation, hold["MaGiuCho"])
+    reservation.expires_at = business_date.now() - timedelta(minutes=1)
+    await session.commit()
+    other = await client.post(
+        "/api/v1/sales/orders",
+        json={"order_type": "Mang về", "lines": [{"MaMon": dish.id, "SoLuong": 1}]},
+        headers=headers,
+    )
+    assert other.status_code == 201, other.text
+
+    refused = await client.post(
+        "/api/v1/sales/orders",
+        json={
+            "MaBan": table.id,
+            "XacNhanHetHan": True,
+            "lines": [{"MaMon": dish.id, "SoLuong": 2, "hold_id": hold["MaGiuCho"]}],
+        },
+        headers=headers,
+    )
+
+    assert refused.status_code == 422
+    assert refused.json()["error"]["message"] == (
+        "Không đủ nguyên liệu cho món Món giữ chỗ: cần 2 suất, chỉ còn đủ 1 suất (thiếu 1 suất)."
+    )
+    await session.refresh(ingredient)
+    assert float(ingredient.stock_qty) == 1
+    await session.refresh(reservation)
+    assert reservation.status in ("Đang giữ", "Hết hạn")
+
+
+@pytest.mark.anyio
+async def test_a_held_lot_that_expired_refuses_the_send_and_names_the_line(session):
+    """TC-SALE-61: the whole submission is refused and says which dish to check again."""
+    dish, ingredient, table = await _setup(session, stock=3)
+    client = await _make_client(session)
+    headers, _ = await _headers(session)
+    hold = (await _hold(client, headers, dish, table, quantity=2)).json()
+    lot = (await session.execute(select(IngredientLot))).scalar_one()
+    lot.expiry_date = business_date.business_date_of(business_date.now()) - timedelta(days=1)
+    await session.commit()
+
+    refused = await client.post(
+        "/api/v1/sales/orders",
+        json={
+            "MaBan": table.id,
+            "lines": [{"MaMon": dish.id, "SoLuong": 2, "hold_id": hold["MaGiuCho"]}],
+        },
+        headers=headers,
+    )
+
+    assert refused.status_code == 422
+    message = refused.json()["error"]["message"]
+    assert "Món giữ chỗ" in message and "kiểm tra lại dòng này" in message
+    await session.refresh(ingredient)
+    assert float(ingredient.stock_qty) == 3
+    assert await session.scalar(select(func.count()).select_from(OrderLine)) == 0

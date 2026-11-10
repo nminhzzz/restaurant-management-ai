@@ -84,3 +84,15 @@ async def test_a_late_night_order_belongs_to_the_previous_business_date(
 
     assert order_at_0130.business_date == order_at_0130.placed_at.date() - timedelta(days=1)
     assert any(row["ThoiDiem"] == 1 for row in body["items"])
+
+
+@pytest.mark.anyio
+async def test_weekday_figures_follow_the_business_date_and_carry_revenue(
+    api_client, manager_token, order_at_0130
+):
+    """TC-REP-07: 01:30 on Friday still counts for Thursday, with its revenue."""
+    body = (await api_client.get(HOURS, headers=_auth(manager_token))).json()
+
+    assert order_at_0130.business_date.isoweekday() == 4
+    assert order_at_0130.placed_at.isoweekday() == 5
+    assert body["by_weekday"] == [{"Thu": 4, "SoDon": 1, "DoanhThu": 40000}]

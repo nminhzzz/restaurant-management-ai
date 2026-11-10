@@ -1,4 +1,4 @@
-"""Seed parameters — the single place the experiment can be tuned (Appendix 4).
+"""Seed parameters — the single place the experiment can be tuned (Appendix B.1).
 
 Every random draw in the generator goes through `random.Random(config.seed)`, never the
 global `random`, so the same seed always rebuilds the same dataset.
@@ -30,29 +30,30 @@ def frozen_clock(moment: datetime) -> Iterator[None]:
 
 @dataclass(frozen=True)
 class SeedConfig:
+    """`orders_target=None` follows the daily rule of Appendix B.1 (about 4.800 orders in
+    two months); a number forces that exact total, spread over the same daily shape."""
+
     seed: int = 42
-    months: int = 12
-    orders_target: int = 20_000
+    months: int = 2
+    orders_target: int | None = None
     now: datetime = field(default_factory=lambda: business_date.now())
 
     def __post_init__(self) -> None:
-        if self.months < 1 or self.orders_target < 0:
+        if self.months < 1 or (self.orders_target is not None and self.orders_target < 0):
             raise ValueError("Seed months must be positive and orders must be nonnegative.")
 
+    @property
+    def days(self) -> int:
+        return self.months * 30
 
-# The day has two peaks — lunch around 11-13h and dinner around 18-20h — with the
-# 15-16h lull between them (Appendix 4).
+
+WEEKDAY_ORDERS = 70
+WEEKEND_ORDERS = 110
+DAILY_ORDER_JITTER = 0.15
+
+# Opening hours are 10:00-22:00, with a lunch peak around 11-13h, a dinner peak around
+# 18-20h and the 15-16h lull between them.
 HOUR_WEIGHTS: dict[int, float] = {
-    0: 0.05,
-    1: 0.03,
-    2: 0.02,
-    3: 0.02,
-    4: 0.03,
-    5: 0.10,
-    6: 0.30,
-    7: 0.60,
-    8: 0.80,
-    9: 0.90,
     10: 1.00,
     11: 2.00,
     12: 2.20,
@@ -65,34 +66,13 @@ HOUR_WEIGHTS: dict[int, float] = {
     19: 2.30,
     20: 1.70,
     21: 1.00,
-    22: 0.50,
-    23: 0.20,
-}
-
-WEEKEND_MULTIPLIER = 1.6
-
-# Seasonality of the lunar-calendar year: quiet after Tết, busy towards the holidays.
-MONTH_SEASONALITY: dict[int, float] = {
-    1: 1.25,
-    2: 0.80,
-    3: 0.95,
-    4: 1.00,
-    5: 1.05,
-    6: 1.00,
-    7: 0.95,
-    8: 1.00,
-    9: 1.05,
-    10: 1.05,
-    11: 1.10,
-    12: 1.20,
 }
 
 # A few dishes carry most of the orders.
 DISH_POWER_LAW_EXPONENT = 1.2
 
-DISH_COUNT_RANGE = (60, 80)
-TABLE_COUNT = 20
-SUPPLIER_COUNT = 5
+MAX_LINES_PER_ORDER = 4
+MAX_SERVINGS_PER_LINE = 2
 
 CASH_PAYMENT_RATIO = 0.70
 RECONCILE_RATIO = 0.05
@@ -100,5 +80,13 @@ DISPUTE_RATIO = 0.03
 CANCELLED_ORDER_RATIO = 0.04
 TAKEAWAY_RATIO = 0.20
 
-RECEIPTS_PER_MONTH = 10
-WRITE_OFFS_PER_MONTH = 3
+RESTOCK_HOUR = 8
+DRY_RESTOCK_WEEKDAYS = (0, 3)  # Monday and Thursday
+OPENING_STOCK_DAYS = 3
+RESTOCK_STEP_KG = 0.5
+MAX_RECEIPT_LINE_KG = 30
+MAX_STOCK_KG = 40
+PRICE_JITTER = 0.10
+
+WRITE_OFF_CHANCE = 0.10
+WRITE_OFF_RANGE_KG = (0.2, 1.0)

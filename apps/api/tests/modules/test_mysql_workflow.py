@@ -223,3 +223,93 @@ async def test_mysql_stock_sale_payment_costing_and_permissions(
             .all()
         )
         assert sum(m.qty for m in movements) == 15
+
+
+@pytest_asyncio.fixture
+async def manager_client(mysql_workflow_session):
+    session = mysql_workflow_session
+    await seed_reference_data(session)
+    session.add(
+        User(
+            username="regression_manager",
+            password_hash=hash_password("acceptance-pass"),
+            full_name="Kiểm thử hồi quy",
+            role_id="MANAGER",
+            status="Hoạt động",
+        )
+    )
+    await session.commit()
+    app = create_app()
+
+    async def override_session():
+        yield session
+
+    app.dependency_overrides[get_session] = override_session
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        login = await client.post(
+            "/api/v1/settings/auth/login",
+            json={"username": "regression_manager", "password": "acceptance-pass"},
+        )
+        assert login.status_code == 200, login.text
+        client.headers["Authorization"] = f"Bearer {login.json()['access_token']}"
+        yield client
+
+
+@pytest.mark.asyncio
+async def test_mysql_created_account_response_includes_its_database_timestamp(manager_client):
+    # MySQL has no RETURNING, so the server-generated NgayTao is unloaded after the INSERT.
+    response = await manager_client.post(
+        "/api/v1/settings/users",
+        json={
+            "username": "regression_new_user",
+            "password": "acceptance-pass",
+            "full_name": "Tài khoản mới",
+            "role": "CASHIER",
+        },
+    )
+
+    assert response.status_code == 201, response.text
+    body = response.json()
+    assert body["TenDangNhap"] == "regression_new_user"
+    assert body["NgayTao"]
+
+
+@pytest.mark.asyncio
+async def test_mysql_cancelling_a_receipt_reverses_its_lot_and_records_the_movement(
+    mysql_workflow_session, manager_client
+):
+    session = mysql_workflow_session
+    ingredient = await manager_client.post(
+        "/api/v1/catalog/ingredients",
+        json={"TenNguyenLieu": "NL hủy phiếu MySQL", "DonViTinh": "kg"},
+    )
+    assert ingredient.status_code == 201, ingredient.text
+    ingredient_id = ingredient.json()["MaNguyenLieu"]
+    receipt = await manager_client.post(
+        "/api/v1/inventory/receipts",
+        json={"lines": [{"ingredient_id": ingredient_id, "quantity": 8, "unit_price": 1000}]},
+    )
+    assert receipt.status_code == 201, receipt.text
+
+    cancelled = await manager_client.delete(
+        f"/api/v1/inventory/receipts/{receipt.json()['MaPhieuNhap']}"
+    )
+
+    assert cancelled.status_code == 200, cancelled.text
+    session.expire_all()
+    stock = await session.scalar(select(Ingredient.stock_qty).where(Ingredient.id == ingredient_id))
+    lot = await session.scalar(
+        select(IngredientLot).where(IngredientLot.ingredient_id == ingredient_id)
+    )
+    movements = (
+        await session.scalars(
+            select(StockMovement).where(
+                StockMovement.ingredient_id == ingredient_id, StockMovement.kind == "Hoàn kho"
+            )
+        )
+    ).all()
+    assert stock == 0
+    assert lot.quantity_remaining == 0
+    assert lot.status == "Đã hủy"
+    assert [m.qty for m in movements] == [Decimal("-8")]
+    assert movements[0].receipt_line_id == lot.receipt_line_id

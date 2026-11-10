@@ -36,35 +36,32 @@ function ChangeBadge({
   changePercent: string | null;
   difference: number;
 }) {
-  if (changePercent === null)
-    return (
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge tone="neutral">Không xác định tỷ lệ phần trăm</Badge>
-        <span className="font-semibold tabular-nums">
-          {signedVnd(difference)}
-        </span>
-      </div>
-    );
-  const value = Number(changePercent);
-  if (value > 0)
-    return (
-      <Badge tone="success">
-        <TrendingUp className="mr-1 size-3.5" aria-hidden />
-        Tăng {formatNumber(value)}%
-      </Badge>
-    );
-  if (value < 0)
-    return (
-      <Badge tone="danger">
-        <TrendingDown className="mr-1 size-3.5" aria-hidden />
-        Giảm {formatNumber(Math.abs(value))}%
-      </Badge>
-    );
+  const value = changePercent === null ? null : Number(changePercent);
+  // FR-REP-08: the absolute difference is always shown; the percentage only when defined.
   return (
-    <Badge tone="neutral">
-      <Minus className="mr-1 size-3.5" aria-hidden />
-      Không đổi
-    </Badge>
+    <div className="flex flex-wrap items-center gap-2">
+      {value === null ? (
+        <Badge tone="neutral">Không xác định tỷ lệ phần trăm</Badge>
+      ) : value > 0 ? (
+        <Badge tone="success">
+          <TrendingUp className="mr-1 size-3.5" aria-hidden />
+          Tăng {formatNumber(value)}%
+        </Badge>
+      ) : value < 0 ? (
+        <Badge tone="danger">
+          <TrendingDown className="mr-1 size-3.5" aria-hidden />
+          Giảm {formatNumber(Math.abs(value))}%
+        </Badge>
+      ) : (
+        <Badge tone="neutral">
+          <Minus className="mr-1 size-3.5" aria-hidden />
+          Không đổi
+        </Badge>
+      )}
+      <span className="font-semibold tabular-nums">
+        {signedVnd(difference)}
+      </span>
+    </div>
   );
 }
 

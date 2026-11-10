@@ -22,7 +22,7 @@ class BusinessPeriod:
 
     @property
     def month_key(self) -> int:
-        """`YYYYMM`, the key of GIA_BINH_QUAN_THANG."""
+        """`YYYYMM`, the key of a business month."""
         return self.start.year * 100 + self.start.month
 
 

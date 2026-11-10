@@ -1,6 +1,7 @@
 """Seed failures must leave auditable results and coherent persisted data."""
 
 import random
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 
 import pytest
@@ -11,8 +12,8 @@ from sqlalchemy import func, select
 
 from app.core.errors import BusinessRuleError
 from app.modules.catalog.models import DiningTable, Ingredient
-from app.modules.inventory.models import StockIssue
-from app.modules.sales.models import Order, PaymentTransaction
+from app.modules.inventory.models import StockIssue, StockMovement
+from app.modules.sales.models import Order, OrderLine, PaymentTransaction
 
 
 async def test_rejected_order_does_not_occupy_a_table(session, seeded_reference):
@@ -45,6 +46,11 @@ async def test_seed_reaches_requested_order_count_and_reports_attempts(session, 
     assert sum(result.rejection_reasons.values()) == result.order_rejected + result.issue_rejected
     assert await session.scalar(select(func.count()).select_from(Order)) == 40
     assert "Đang mở" not in set(await session.scalars(select(Order.status)))
+    # A finished order has its dishes served or cancelled, never still waiting in the kitchen.
+    assert set(await session.scalars(select(OrderLine.status))) <= {"Đã phục vụ", "Đã hủy"}
+    # Every row carries the simulated moment it describes, not the time the generator ran.
+    assert await session.scalar(select(func.max(StockMovement.occurred_at))) < config.now
+    assert await session.scalar(select(func.max(PaymentTransaction.created_at))) < config.now
     assert result.pending_verification == await session.scalar(
         select(func.count()).select_from(Order).where(Order.status == "Chờ xác minh thanh toán")
     )
@@ -182,3 +188,127 @@ async def test_receipt_failure_aborts_with_business_date_context(
     with pytest.raises(RuntimeError, match=r"receipt.*2026") as caught:
         await operations._receive(session, ids, random.Random(42), config.now.date())
     assert isinstance(caught.value.__cause__, ValueError)
+
+
+async def _receipt_lines(session):
+    from app.modules.inventory.models import GoodsReceiptLine
+
+    return dict(
+        (
+            await session.execute(
+                select(
+                    GoodsReceiptLine.ingredient_id, func.sum(GoodsReceiptLine.quantity)
+                ).group_by(GoodsReceiptLine.ingredient_id)
+            )
+        )
+        .tuples()
+        .all()
+    )
+
+
+async def test_a_delivery_covers_the_expected_use_plus_the_minimum_stock(session, seeded_reference):
+    ids = await seed_catalog(session, SeedConfig())
+    monday = date(2026, 10, 19)
+
+    await operations._receive(session, ids, random.Random(42), monday)
+
+    bought = await _receipt_lines(session)
+    assert set(bought) == {supply.ingredient_id for supply in ids.supplies}
+    for supply in ids.supplies:
+        days = 1 if supply.restocked_daily else 3  # dry goods last until Thursday
+        need = supply.use_per_order_kg * 70 * days + supply.min_stock_kg
+        assert need <= bought[supply.ingredient_id] < need + 0.5
+        assert bought[supply.ingredient_id] <= operations.MAX_RECEIPT_LINE_KG
+
+
+async def test_dry_goods_are_delivered_only_on_monday_and_thursday(session, seeded_reference):
+    ids = await seed_catalog(session, SeedConfig())
+    tuesday = date(2026, 10, 20)
+
+    await operations._receive(session, ids, random.Random(42), tuesday)
+
+    assert set(await _receipt_lines(session)) == {
+        supply.ingredient_id for supply in ids.supplies if supply.restocked_daily
+    }
+
+
+async def test_a_second_delivery_buys_nothing_while_the_storeroom_is_full(
+    session, seeded_reference
+):
+    ids = await seed_catalog(session, SeedConfig())
+    monday = date(2026, 10, 19)
+    await operations._receive(session, ids, random.Random(42), monday)
+
+    assert await operations._receive(session, ids, random.Random(42), monday) == 0
+
+
+async def test_no_delivery_lifts_an_ingredient_above_the_storage_ceiling(session, seeded_reference):
+    ids = await seed_catalog(session, SeedConfig())
+    saturday = date(2026, 10, 24)
+
+    # A demand far beyond the kitchen's size must be cut off by the ceilings.
+    for _ in range(3):
+        await operations._receive(
+            session, ids, random.Random(42), saturday, forecast=lambda _day: 100_000
+        )
+
+    assert await session.scalar(select(func.max(Ingredient.stock_qty))) == operations.MAX_STOCK_KG
+    await operations.validate_stock_ceiling(session)
+
+
+async def test_ceiling_check_rejects_a_ledger_that_went_over(
+    session, seeded_reference, monkeypatch
+):
+    ids = await seed_catalog(session, SeedConfig())
+    await operations._receive(session, ids, random.Random(42), date(2026, 10, 19))
+    monkeypatch.setattr(operations, "MAX_STOCK_KG", 1)
+
+    with pytest.raises(RuntimeError, match="ceiling"):
+        await operations.validate_stock_ceiling(session)
+
+
+async def test_lots_past_their_date_are_written_off_before_the_morning_delivery(
+    session, seeded_reference
+):
+    from app.modules.inventory.models import IngredientLot
+
+    ids = await seed_catalog(session, SeedConfig())
+    monday = date(2026, 10, 19)
+    await operations._receive(session, ids, random.Random(42), monday)
+    friday = monday + timedelta(days=4)  # meat keeps three days, produce a week
+
+    with operations.frozen_clock(datetime.combine(friday, time(8))):
+        assert await operations._discard_expired(session, ids, friday)
+        assert not await operations._discard_expired(session, ids, friday)
+
+    expired_left = await session.scalar(
+        select(func.count())
+        .select_from(IngredientLot)
+        .where(IngredientLot.quantity_remaining > 0, IngredientLot.expiry_date < friday)
+    )
+    assert expired_left == 0
+    assert set(await session.scalars(select(StockIssue.reason))) == {"Hết hạn"}
+    kept = await session.scalar(
+        select(func.count()).select_from(IngredientLot).where(IngredientLot.quantity_remaining > 0)
+    )
+    assert kept == 12 + 13  # produce and dry goods are still inside their shelf life
+    await operations.validate_seed_integrity(session)
+
+
+def test_delivery_prices_swing_ten_percent_around_the_usual_price():
+    rng = random.Random(42)
+
+    prices = {operations.receipt_unit_price(rng, 200_000) for _ in range(500)}
+
+    assert min(prices) >= 180_000
+    assert max(prices) <= 220_000
+    assert len(prices) > 20
+    assert all(price % 500 == 0 for price in prices)
+
+
+def test_an_order_never_lists_the_same_dish_twice():
+    rng = random.Random(42)
+
+    for _ in range(200):
+        picked = operations._pick_dishes(rng, [1, 2, 3, 4, 5], [5, 4, 3, 2, 1], 4)
+        assert len(picked) == len(set(picked)) == 4

@@ -9,7 +9,7 @@ from typing import Any
 from sqlalchemy import JSON, ForeignKey, Index, String, func
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
-from app.shared.base import Base, BigInteger, DateTime3
+from app.shared.base import Base, BigInteger, DateTime3, clock_now
 
 
 class SystemAuditLog(Base):
@@ -23,7 +23,7 @@ class SystemAuditLog(Base):
         nullable=True,
     )
     occurred_at: Mapped[datetime] = mapped_column(
-        "ThoiDiem", DateTime3, server_default=func.now(), nullable=False
+        "ThoiDiem", DateTime3, default=clock_now, server_default=func.now(), nullable=False
     )
     action: Mapped[str] = mapped_column("LoaiThaoTac", String(50), nullable=False)
     target_entity: Mapped[str] = mapped_column("DoiTuong", String(50), nullable=False)

@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class ReleaseTableIn(BaseModel):
@@ -74,7 +74,16 @@ class HoldCreate(BaseModel):
 
 
 class HoldUpdate(BaseModel):
-    quantity: int = Field(ge=1)
+    """FR-SALE-08: change the quantity, the note, or both, of a line not sent yet."""
+
+    quantity: int | None = Field(default=None, ge=1)
+    note: str | None = Field(default=None, max_length=255)
+
+    @model_validator(mode="after")
+    def something_to_change(self) -> "HoldUpdate":
+        if self.quantity is None and "note" not in self.model_fields_set:
+            raise ValueError("Cần số lượng hoặc ghi chú để cập nhật.")
+        return self
 
 
 class HoldReleaseIn(BaseModel):

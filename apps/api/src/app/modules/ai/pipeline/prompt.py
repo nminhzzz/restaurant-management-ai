@@ -37,7 +37,6 @@ VIEW_LOAIBANGHI_VALUES: dict[str, tuple[str, ...]] = {
         "HOA_DON",
         "THANH_TOAN",
         "TON_KHO",
-        "GIA_VON_THANG",
         "GIAO_DICH_KHO",
         "PHIEU_NHAP",
     ),
@@ -83,12 +82,11 @@ COLUMN_NOTES: dict[str, str] = {
     ),
     "MucTonToiThieu": "mức tồn tối thiểu hiệu lực để cảnh báo",
     "CanhBaoTonThap": "1 nếu tồn hiện tại dưới mức tối thiểu, ngược lại 0",
-    "Thang": (
-        "tháng của giá vốn bình quân, định dạng YYYYMM (ví dụ 202609, không phải 1-12), "
-        "ở LoaiBanGhi = 'GIA_VON_THANG'"
+    "ThoiDiemHieuLuc": (
+        "thời điểm một đơn giá bình quân bắt đầu có hiệu lực; đơn giá hiện hành của một "
+        "nguyên liệu là dòng có ThoiDiemHieuLuc lớn nhất"
     ),
-    "GiaBinhQuanThang": "giá vốn bình quân gia quyền trong tháng của nguyên liệu",
-    "TongSoLuongNhapThang": "tổng số lượng nhập trong tháng dùng để tính giá bình quân",
+    "DonGiaBinhQuan": "đơn giá bình quân gia quyền di động của nguyên liệu sau lần tính đó",
     "MaGiaoDichKho": "mã giao dịch kho",
     "SoLuong": "số lượng của giao dịch kho (nhập/xuất/trừ tự động/điều chỉnh)",
     "LoaiGiaoDich": (

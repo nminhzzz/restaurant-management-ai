@@ -18,7 +18,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.modules.ai.runtime_models import AiDailyUsage, AiSqlCache  # noqa: F401
-from app.shared.base import Base, BigInteger, DateTime3
+from app.shared.base import Base, BigInteger, DateTime3, clock_now
 
 
 class ChatSession(Base):
@@ -30,7 +30,7 @@ class ChatSession(Base):
         nullable=False,
     )
     created_at: Mapped[datetime] = mapped_column(
-        "ThoiDiemBatDau", DateTime3, server_default=func.now(), nullable=False
+        "ThoiDiemBatDau", DateTime3, default=clock_now, server_default=func.now(), nullable=False
     )
     role_id: Mapped[str | None] = mapped_column(
         "MaVaiTro",
@@ -58,7 +58,7 @@ class AssistantQuery(Base):
     summary: Mapped[str | None] = mapped_column("KetQuaTomTat", Text, nullable=True)
     latency_ms: Mapped[int | None] = mapped_column("ThoiGianPhanHoi", Integer, nullable=True)
     occurred_at: Mapped[datetime] = mapped_column(
-        "ThoiDiem", DateTime3, server_default=func.now(), nullable=False
+        "ThoiDiem", DateTime3, default=clock_now, server_default=func.now(), nullable=False
     )
     model_version: Mapped[str | None] = mapped_column("ModelPhienBan", Text, nullable=True)
     input_tokens: Mapped[int] = mapped_column(

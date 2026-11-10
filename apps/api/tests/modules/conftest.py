@@ -508,9 +508,10 @@ async def _r_payment(session, order, *, method, status, amount, bd):
     return payment
 
 
-async def _r_ingredient(session, name, avg_cost, *, month=202609):
+async def _r_ingredient(session, name, unit_cost):
+    """An ingredient in stock; `unit_cost=None` leaves it without any unit cost."""
     from app.modules.catalog.models import Ingredient
-    from app.modules.inventory.models import MonthlyAverageCost
+    from app.modules.inventory.models import AverageCostHistory
 
     ingredient = Ingredient(
         name=name,
@@ -521,16 +522,35 @@ async def _r_ingredient(session, name, avg_cost, *, month=202609):
     )
     session.add(ingredient)
     await session.flush()
-    session.add(
-        MonthlyAverageCost(
-            ingredient_id=ingredient.id,
-            month=month,
-            avg_cost=Decimal(str(avg_cost)),
-            total_qty=Decimal("1"),
+    if unit_cost is not None:
+        session.add(
+            AverageCostHistory(
+                ingredient_id=ingredient.id,
+                effective_at=datetime(2026, 9, 1, 8, 0),
+                avg_cost=Decimal(str(unit_cost)),
+                stock_qty=Decimal("100"),
+            )
         )
-    )
-    await session.flush()
+        await session.flush()
     return ingredient
+
+
+async def _r_draw(session, line, ingredient, quantity, unit_cost, bd):
+    """What sending the dish wrote to the ledger: the draw and its value at that moment."""
+    from app.modules.inventory.models import StockMovement
+
+    quantity = Decimal(str(quantity))
+    movement = StockMovement(
+        ingredient_id=ingredient.id,
+        kind="Trừ tự động",
+        qty=-quantity,
+        business_date=bd,
+        order_line_id=line.id,
+        value=None if unit_cost is None else -(quantity * Decimal(str(unit_cost))),
+    )
+    session.add(movement)
+    await session.flush()
+    return movement
 
 
 async def _r_recipe(session, dish, ingredient, quantity, bd):
@@ -679,7 +699,8 @@ async def september_data(session, write_off_in_september):
     dish = await _r_dish(session, "Món September")
     recipe = await _r_recipe(session, dish, ingredient, Decimal("0.5"), _sep(1))
     order = await _r_order(session, bd=_sep(20), status="Đã thanh toán", order_type="Mang về")
-    await _r_line(session, order, dish, 4, 125000, recipe_id=recipe.id)
+    line = await _r_line(session, order, dish, 4, 125000, recipe_id=recipe.id)
+    await _r_draw(session, line, ingredient, Decimal("2"), Decimal("10000"), _sep(20))
     revenue = Decimal("500000")
     await _r_invoice(session, order, bd=_sep(20), total=revenue)
     await session.commit()
@@ -703,7 +724,8 @@ async def order_before_recipe_change(session):
     dish = await _r_dish(session, "Món đổi công thức")
     recipe = await _r_recipe(session, dish, ingredient, Decimal("0.5"), _sep(1))
     order = await _r_order(session, bd=_sep(5), status="Đã thanh toán", order_type="Mang về")
-    await _r_line(session, order, dish, 2, 60000, recipe_id=recipe.id)
+    line = await _r_line(session, order, dish, 2, 60000, recipe_id=recipe.id)
+    await _r_draw(session, line, ingredient, Decimal("1"), Decimal("10000"), _sep(5))
     await session.commit()
     return SimpleNamespace(expected_cost=Decimal("10000"))
 
@@ -714,7 +736,8 @@ async def order_after_recipe_change(session):
     dish = await _r_dish(session, "Món đổi công thức mới")
     recipe = await _r_recipe(session, dish, ingredient, Decimal("0.25"), _sep(15))
     order = await _r_order(session, bd=_sep(25), status="Đã thanh toán", order_type="Mang về")
-    await _r_line(session, order, dish, 2, 60000, recipe_id=recipe.id)
+    line = await _r_line(session, order, dish, 2, 60000, recipe_id=recipe.id)
+    await _r_draw(session, line, ingredient, Decimal("0.5"), Decimal("10000"), _sep(25))
     await session.commit()
     return SimpleNamespace(expected_cost=Decimal("5000"))
 
@@ -746,21 +769,33 @@ async def write_off_in_september(session):
 
 
 @pytest_asyncio.fixture
-async def write_off_before_month_close(session):
-    ingredient = await _r_ingredient(session, "NL chưa tính giá", Decimal("10000"))
+async def write_off_without_unit_cost(session):
+    """Written off before the ingredient ever had a valid receipt: the value is unknown."""
+    ingredient = await _r_ingredient(session, "NL chưa có đơn giá", None)
     await _r_issue(session, bd=_sep(23), ingredient=ingredient, quantity=Decimal("2"), cost=None)
     await session.commit()
-    return SimpleNamespace(count=1)
+    return SimpleNamespace(count=1, ingredient_id=ingredient.id)
 
 
 @pytest_asyncio.fixture
-async def write_off_after_backfill(session, write_off_before_month_close):
-    from app.modules.inventory.costing import backfill_issue_costs
+async def write_off_priced_by_first_receipt(session, write_off_without_unit_cost):
+    from app.modules.inventory import service as inventory_service
 
-    updated = await backfill_issue_costs(session, 202609)
+    await inventory_service.create_receipt(
+        session,
+        None,
+        None,
+        datetime(2026, 9, 24, 8, 0),
+        [
+            {
+                "ingredient_id": write_off_without_unit_cost.ingredient_id,
+                "quantity": 5,
+                "unit_price": 6000,
+            }
+        ],
+    )
     await session.commit()
-    assert updated == write_off_before_month_close.count
-    return SimpleNamespace(count=0)
+    return SimpleNamespace(value=Decimal("12000"))
 
 
 @pytest_asyncio.fixture

@@ -62,7 +62,11 @@ async def create_group(session: AsyncSession, actor_id: int, name: str) -> DishG
     await session.flush()
     session.add(
         SystemAuditLog(
-            user_id=actor_id, action="CREATE_GROUP", target_entity="NHOM_MON", target_id=str(g.id)
+            user_id=actor_id,
+            action="CREATE_GROUP",
+            target_entity="NHOM_MON",
+            target_id=str(g.id),
+            after={"TenNhomMon": g.name, "ThuTuHienThi": g.display_order},
         )
     )
     await session.flush()
@@ -82,12 +86,18 @@ async def update_group(
     g = await session.get(DishGroup, group_id)
     if g is None or g.is_deleted:
         raise NotFoundError("Không tìm thấy nhóm món.")
+    before = {"TenNhomMon": g.name}
     if name is not None:
         g.name = name
     await session.flush()
     session.add(
         SystemAuditLog(
-            user_id=actor_id, action="UPDATE_GROUP", target_entity="NHOM_MON", target_id=str(g.id)
+            user_id=actor_id,
+            action="UPDATE_GROUP",
+            target_entity="NHOM_MON",
+            target_id=str(g.id),
+            before=before,
+            after={"TenNhomMon": g.name},
         )
     )
     await session.flush()
@@ -1020,15 +1030,19 @@ async def list_tables(session):
     return list(r.scalars().all())
 
 
-async def ensure_dish_sellable(session, dish_id: int):
-    """The single backend check for FR-CAT-04/26/27: deleted, draft or blocked dishes."""
+async def ensure_dish_sellable(session, dish_id: int, *, stock_held: bool = False):
+    """The single backend check for FR-CAT-04/26/27: deleted, draft or blocked dishes.
+
+    `stock_held` is for a selection that already holds its ingredients: the stock it
+    reserved is exactly what makes the dish look short to everyone else (FR-INV-10).
+    """
     from app.modules.catalog.models import Dish
 
     dish = await session.get(Dish, dish_id)
     if dish is None or dish.is_deleted:
         raise BusinessRuleError("Món không tồn tại hoặc đã bị xóa.")
     reasons = []
-    if await is_short_of_ingredients(session, dish.id):
+    if not stock_held and await is_short_of_ingredients(session, dish.id):
         reasons.append("hết nguyên liệu")
     if dish.manual_paused:
         reasons.append("tạm dừng phục vụ")

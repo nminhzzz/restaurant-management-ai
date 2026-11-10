@@ -9,6 +9,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import BusinessRuleError
 from app.modules.catalog.models import Ingredient
+from app.modules.inventory.costing import (
+    current_unit_cost,
+    movement_value,
+    record_purchase,
+    record_return,
+    value_at_current_cost,
+)
 from app.modules.inventory.lot_status import sync_lot_status
 from app.modules.inventory.models import IngredientLot, StockMovement
 from app.shared import business_date
@@ -27,6 +34,8 @@ class StockChange:
     source_receipt_line_id: int | None = None
     source_issue_line_id: int | None = None
     source_stocktake_line_id: int | None = None
+    # Purchase price of a receipt line; it is what moves the average unit cost.
+    unit_price: Decimal | None = None
 
 
 def _bd_now() -> date:
@@ -202,6 +211,7 @@ async def apply_stock_movement(
             or change.kind == "Điều chỉnh kiểm kê"
         ) and change.source_stocktake_line_id is None:
             raise BusinessRuleError("Thiếu MaChiTietKiemKe cho điều chỉnh kiểm kê.")
+        stock_before = Decimal(str(ing.stock_qty))
         ing.stock_qty = ing.stock_qty + delta
         kind_val = (
             change.kind if change.kind != StockMovementType.TRU_TU_DONG else StockMovementType.NHAP
@@ -221,6 +231,12 @@ async def apply_stock_movement(
         )
         session.add(m)
         await session.flush()
+        if kind_val == StockMovementType.NHAP and change.unit_price is not None:
+            await record_purchase(
+                session, m, stock_before=stock_before, unit_price=Decimal(str(change.unit_price))
+            )
+        else:
+            await value_at_current_cost(session, m)
         movements.append(m)
         return movements
 
@@ -257,6 +273,7 @@ async def apply_stock_movement(
     if total_avail < need:
         raise BusinessRuleError("Không đủ tồn kho khả dụng.")
 
+    unit_cost = await current_unit_cost(session, change.ingredient_id)
     remaining = need
     for lot in lots:
         if remaining <= 0:
@@ -287,6 +304,7 @@ async def apply_stock_movement(
             issue_line_id=change.source_issue_line_id,
             stocktake_line_id=change.source_stocktake_line_id,
             performed_by=actor_id,
+            value=movement_value(-take, unit_cost),
         )
         session.add(m)
         movements.append(m)
@@ -311,6 +329,7 @@ async def reverse_movement(
             await sync_lot_status(session, lot)
             await session.flush()
     ing = await lock_ingredient(session, movement.ingredient_id)
+    stock_before = Decimal(str(ing.stock_qty))
     # movement.qty is negative for draw, so -qty is positive
     ing.stock_qty = ing.stock_qty - movement.qty
     await session.flush()
@@ -326,6 +345,7 @@ async def reverse_movement(
         issue_line_id=movement.issue_line_id,
         stocktake_line_id=movement.stocktake_line_id,
         performed_by=actor_id,
+        value=None if movement.value is None else -movement.value,
     )
     # Fallback lineage for Hoan kho (CHECK now allows order/receipt/stocktake)
     if (
@@ -344,4 +364,12 @@ async def reverse_movement(
                 pass
     session.add(rev)
     await session.flush()
+    await record_return(
+        session,
+        rev.ingredient_id,
+        stock_before=stock_before,
+        quantity=Decimal(str(rev.qty)),
+        value=rev.value,
+        movement=rev,
+    )
     return rev

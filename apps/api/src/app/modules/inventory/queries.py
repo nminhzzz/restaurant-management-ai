@@ -6,10 +6,17 @@ from sqlalchemy import case, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.catalog.models import Ingredient
-from app.modules.inventory.models import IngredientLot, StockMovement
-from app.modules.sales.models import Reservation, ReservationDetail
+from app.modules.inventory.costing import current_unit_costs, movement_value
+from app.modules.inventory.models import (
+    AverageCostHistory,
+    GoodsReceiptLine,
+    IngredientLot,
+    StockMovement,
+)
+from app.modules.sales.models import Order, OrderLine, Reservation, ReservationDetail
 from app.modules.settings.models import SystemConfig
 from app.shared import business_date
+from app.shared.enums import LotStatus
 
 
 def _held_by_lot(moment):
@@ -98,12 +105,21 @@ async def list_stock(
             statement.order_by(Ingredient.id).offset((page - 1) * page_size).limit(page_size)
         )
     ).all()
+    unit_costs = await current_unit_costs(session, [row[0].id for row in rows])
+
+    def stock_value(ingredient: Ingredient) -> float | None:
+        value = movement_value(ingredient.stock_qty, unit_costs.get(ingredient.id))
+        return None if value is None else float(value)
+
     return [
         {
             "MaNguyenLieu": ing.id,
             "TenNguyenLieu": ing.name,
             "DonViTinh": ing.unit,
             "SoLuongTon": float(ing.stock_qty),
+            # FR-INV-12: None, never 0, while the ingredient has no unit cost.
+            "DonGiaBinhQuan": float(unit_costs[ing.id]) if ing.id in unit_costs else None,
+            "GiaTriTon": stock_value(ing),
             "SoLuongDuDieuKien": float(eligible_qty),
             "SoLuongGiu": float(held_qty),
             "SoLuongKhaDung": float(available_qty),
@@ -119,6 +135,60 @@ async def list_stock(
     ], total
 
 
+async def cost_history(
+    session: AsyncSession, ingredient_id: int, page: int = 1, page_size: int = 20
+) -> tuple[list[dict], int]:
+    """FR-INV-12: each recalculation of the unit cost with the document that caused it."""
+    total = int(
+        await session.scalar(
+            select(func.count())
+            .select_from(AverageCostHistory)
+            .where(AverageCostHistory.ingredient_id == ingredient_id)
+        )
+        or 0
+    )
+    rows = await session.execute(
+        select(
+            AverageCostHistory,
+            StockMovement.kind,
+            GoodsReceiptLine.receipt_id,
+            Order.id,
+            Order.display_code,
+        )
+        .outerjoin(StockMovement, StockMovement.id == AverageCostHistory.movement_id)
+        .outerjoin(GoodsReceiptLine, GoodsReceiptLine.id == StockMovement.receipt_line_id)
+        .outerjoin(OrderLine, OrderLine.id == StockMovement.order_line_id)
+        .outerjoin(Order, Order.id == OrderLine.order_id)
+        .where(AverageCostHistory.ingredient_id == ingredient_id)
+        .order_by(AverageCostHistory.effective_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
+    return [
+        {
+            "ThoiDiemHieuLuc": row.effective_at.isoformat(),
+            "DonGiaBinhQuan": float(row.avg_cost),
+            "SoLuongTon": float(row.stock_qty),
+            "MaGiaoDichKho": row.movement_id,
+            "ChungTu": _cost_document(kind, receipt_id, order_id, order_code),
+        }
+        for row, kind, receipt_id, order_id, order_code in rows
+    ], total
+
+
+def _cost_document(
+    kind: str | None, receipt_id: int | None, order_id: int | None, order_code: str | None
+) -> str:
+    if kind is None:
+        return "Sửa đơn giá phiếu nhập"
+    if receipt_id is not None:
+        action = "Hủy phiếu nhập" if kind == "Hoàn kho" else "Phiếu nhập"
+        return f"{action} #{receipt_id}"
+    if order_id is not None:
+        return f"Hoàn kho order {order_code or f'#{order_id}'}"
+    return kind
+
+
 async def list_lots(
     session: AsyncSession,
     ingredient_id: int | None = None,
@@ -132,6 +202,7 @@ async def list_lots(
     warning = config.expiry_warning_days if config else 3
     held, eligible, remaining, held_qty, available = _lot_projection(moment, today)
     state = case(
+        (IngredientLot.status == LotStatus.DA_HUY.value, LotStatus.DA_HUY.value),
         (remaining <= 0, "Đã hết"),
         (~eligible, "Hết hạn"),
         (

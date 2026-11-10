@@ -31,6 +31,7 @@ import { formatDate, formatVnd } from "@/lib/format";
 import { useResource } from "@/lib/use-resource";
 
 import { OrderDetail } from "./order-detail";
+import { PaymentHistory } from "./payment-history";
 import { ORDER_STATUSES } from "./order-lookup";
 import { PaymentPanel } from "./payment-panel";
 
@@ -111,6 +112,7 @@ export function OrderManagement() {
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
           <OrderDetail key={`detail-${selected}`} orderId={selected} />
           <PaymentPanel key={`payment-${selected}`} orderId={selected} />
+          <PaymentHistory key={`history-${selected}`} orderId={selected} />
         </div>
       </div>
     );

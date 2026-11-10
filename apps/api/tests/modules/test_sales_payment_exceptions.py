@@ -1,5 +1,7 @@
 """FR-SALE-19/23/35: verification, reopen and closing an order without money."""
 
+from datetime import datetime
+
 import pytest
 from sqlalchemy import func, select
 
@@ -13,10 +15,10 @@ from app.modules.catalog.models import (
     RecipeItem,
 )
 from app.modules.inventory.models import (
+    AverageCostHistory,
     GoodsReceipt,
     GoodsReceiptLine,
     IngredientLot,
-    MonthlyAverageCost,
 )
 from app.modules.sales.models import Invoice, PaymentTransaction
 from app.modules.sales.payments import PAYMENT_CLOSED_UNPAID
@@ -42,11 +44,11 @@ async def _setup(session):
     await session.flush()
     bd = business_date.business_date_of(business_date.now())
     session.add(
-        MonthlyAverageCost(
+        AverageCostHistory(
             ingredient_id=ingredient.id,
-            month=bd.year * 100 + bd.month,
+            effective_at=datetime(bd.year, bd.month, bd.day),
             avg_cost=1000,
-            total_qty=1,
+            stock_qty=5,
         )
     )
     session.add_all(

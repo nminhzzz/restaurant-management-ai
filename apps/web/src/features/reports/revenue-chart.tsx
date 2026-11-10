@@ -183,7 +183,7 @@ export function RevenueChart() {
               }
             />
           </section>
-          <TopDishes granularity={granularity} />
+          <TopDishes granularity={granularity} anchor={anchor} />
           <section className="space-y-3 xl:col-span-2">
             <h2 className="text-[15px] font-bold">Chi tiết</h2>
             <ReportTable

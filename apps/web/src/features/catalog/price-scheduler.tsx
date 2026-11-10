@@ -7,7 +7,38 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiFetch } from "@/lib/api-client";
+import { formatPercent, formatVnd } from "@/lib/format";
 import { useAction } from "@/lib/use-action";
+
+/** What the manager weighs before saving a price: the estimated cost against it. */
+export type CostBasis = { cost: number; threshold: number };
+
+/**
+ * FR-CAT-29: the cost ratio of the price being typed. It only informs the decision;
+ * nothing changes the price but the manager.
+ */
+export function CostRatioHint({
+  price,
+  basis,
+}: {
+  price: string;
+  basis?: CostBasis | null;
+}) {
+  const value = Number(price);
+  if (!basis || price.trim() === "" || !(value > 0)) return null;
+  const ratio = (basis.cost * 100) / value;
+  const over = ratio > basis.threshold;
+  return (
+    <p
+      role="status"
+      className={over ? "text-xs text-warning-fg" : "text-xs text-muted"}
+    >
+      Giá vốn ước tính {formatVnd(basis.cost)} · tỷ lệ giá vốn{" "}
+      {formatPercent(ratio)}
+      {over ? ` · vượt ngưỡng ${formatPercent(basis.threshold)}` : ""}
+    </p>
+  );
+}
 
 /**
  * Schedules a future price (FR-CAT-20). `BusinessDateApDung` is optional: leaving it
@@ -16,9 +47,11 @@ import { useAction } from "@/lib/use-action";
 export function PriceScheduler({
   dishId,
   onScheduled,
+  costBasis,
 }: {
   dishId: number;
   onScheduled?: () => void;
+  costBasis?: CostBasis | null;
 }) {
   const [date, setDate] = useState("");
   const [price, setPrice] = useState("");
@@ -65,6 +98,7 @@ export function PriceScheduler({
           value={price}
           onChange={(e) => setPrice(e.target.value)}
         />
+        <CostRatioHint price={price} basis={costBasis} />
       </FormField>
       <div className="space-y-1.5">
         <Label htmlFor="bd">Business Date áp dụng</Label>

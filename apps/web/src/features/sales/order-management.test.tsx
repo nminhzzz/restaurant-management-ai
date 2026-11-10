@@ -64,10 +64,26 @@ function lastOrderQuery(): URLSearchParams {
   return new URLSearchParams(paths.at(-1)?.split("?")[1]);
 }
 
+const payments = {
+  items: [
+    {
+      MaGiaoDich: 18,
+      PhuongThuc: "QR",
+      TrangThai: "Thành công",
+      SoTien: 80000,
+      ThoiDiemTao: "2026-10-23T12:05:00",
+      MaThamChieuNganHang: "FT-QA-18",
+      AnhChungTu: null,
+    },
+  ],
+};
+
 beforeEach(() => {
-  fetchMock.mockImplementation((path: string) =>
-    Promise.resolve(path.startsWith("/catalog/tables") ? tables : page),
-  );
+  fetchMock.mockImplementation((path: string) => {
+    if (path.startsWith("/catalog/tables")) return Promise.resolve(tables);
+    if (path.endsWith("/payments")) return Promise.resolve(payments);
+    return Promise.resolve(page);
+  });
 });
 
 afterEach(() => {
@@ -115,6 +131,12 @@ describe("OrderManagement", () => {
 
     expect(screen.getByText("Chi tiết món #42")).toBeTruthy();
     expect(screen.getByText("Thanh toán #42")).toBeTruthy();
+    // TC-SALE-70: the payment attempts, their bank reference and outcome are shown.
+    const history = await screen.findByRole("row", {
+      name: /#18 .* QR 80\.000 ₫ FT-QA-18 Thành công/,
+    });
+    expect(history).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledWith("/sales/orders/42/payments");
 
     fireEvent.click(screen.getByRole("button", { name: /Quay lại danh sách/ }));
     expect(await screen.findByText("ORD-20261023-0041")).toBeTruthy();

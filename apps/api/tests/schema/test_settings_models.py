@@ -24,6 +24,7 @@ EXPECTED = {
         "SoNgayCanhBaoHetHan",
         "ThoiGianGiuChoPhut",
         "SoCauHoiAIMoiNgay",
+        "TyLeGiaVonCanhBao",
         "MocDongBoSepay",
     },
 }

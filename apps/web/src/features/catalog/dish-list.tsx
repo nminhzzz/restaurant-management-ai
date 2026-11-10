@@ -21,6 +21,7 @@ import {
   LoadingState,
   StatusBadge,
 } from "@/components/page-states";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -39,15 +40,64 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DishDetail } from "@/features/catalog/dish-detail";
-import type { Dish, Group } from "@/features/catalog/types";
+import type { Dish, DishCost, Group } from "@/features/catalog/types";
 import { useCanWrite } from "@/features/catalog/use-role";
 import { apiFetch } from "@/lib/api-client";
-import { formatVnd } from "@/lib/format";
+import { formatPercent, formatVnd } from "@/lib/format";
 import { useAction } from "@/lib/use-action";
 import { useClientPagination } from "@/lib/use-client-pagination";
 import { useResource } from "@/lib/use-resource";
 
 const WRITE_ROLES = ["MANAGER"];
+
+const NO_COSTS: DishCost[] = [];
+
+/** FR-CAT-29: estimated cost, cost ratio and gross margin of one dish, manager only. */
+function CostCells({ cost }: { cost: DishCost | undefined }) {
+  if (!cost) {
+    return (
+      <>
+        <TableCell />
+        <TableCell />
+        <TableCell />
+      </>
+    );
+  }
+  if (cost.TinhTrang !== "Đủ dữ liệu") {
+    return (
+      <>
+        <TableCell className="text-right text-muted">
+          {cost.TinhTrang}
+          {cost.NguyenLieuThieuGia.length > 0
+            ? `: ${cost.NguyenLieuThieuGia.join(", ")}`
+            : ""}
+        </TableCell>
+        <TableCell className="text-right text-muted">—</TableCell>
+        <TableCell className="text-right text-muted">—</TableCell>
+      </>
+    );
+  }
+  return (
+    <>
+      <TableCell className="text-right tabular-nums">
+        {formatVnd(cost.GiaVonUocTinh)}
+      </TableCell>
+      <TableCell className="text-right tabular-nums">
+        <span className="inline-flex items-center justify-end gap-1.5">
+          {cost.CanhBao ? (
+            <Badge tone="warning">
+              Vượt {formatPercent(cost.NguongCanhBao)}
+            </Badge>
+          ) : null}
+          {cost.TyLeGiaVon === null ? "—" : formatPercent(cost.TyLeGiaVon)}
+        </span>
+      </TableCell>
+      <TableCell className="text-right tabular-nums">
+        {cost.LaiGop === null ? "—" : formatVnd(cost.LaiGop)}
+      </TableCell>
+    </>
+  );
+}
 
 /** 40px thumbnail; falls back to a plain icon when there is no image or it fails to load. */
 function DishThumbnail({
@@ -226,6 +276,27 @@ export function DishList() {
   const load = useCallback(() => loadCatalog(showDeleted), [showDeleted]);
   const catalog = useResource(load);
   const canWrite = useCanWrite(WRITE_ROLES);
+  // Cost figures are the manager's; other roles never request them.
+  const loadCosts = useCallback(
+    () =>
+      canWrite
+        ? apiFetch<{ items: DishCost[] }>("/catalog/dishes/costs").then(
+            (data) => data.items ?? NO_COSTS,
+          )
+        : Promise.resolve(NO_COSTS),
+    [canWrite],
+  );
+  const costs = useResource(loadCosts);
+  const costByDish = new Map(
+    (costs.status === "ready" ? costs.data : NO_COSTS).map((cost) => [
+      cost.MaMon,
+      cost,
+    ]),
+  );
+  function reloadAll() {
+    catalog.reload();
+    costs.reload();
+  }
   const [query, setQuery] = useState("");
   const [groupFilter, setGroupFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -378,6 +449,15 @@ export function DishList() {
                 <TableHead>Tên món</TableHead>
                 <TableHead>Nhóm</TableHead>
                 <TableHead className="text-right">Giá hiện tại</TableHead>
+                {canWrite ? (
+                  <>
+                    <TableHead className="text-right">
+                      Giá vốn ước tính
+                    </TableHead>
+                    <TableHead className="text-right">Tỷ lệ giá vốn</TableHead>
+                    <TableHead className="text-right">Lãi gộp/suất</TableHead>
+                  </>
+                ) : null}
                 <TableHead>Trạng thái</TableHead>
                 <TableHead className="sr-only">Thao tác</TableHead>
               </TableRow>
@@ -401,6 +481,9 @@ export function DishList() {
                   <TableCell className="text-right tabular-nums">
                     {formatVnd(d.GiaHienTai)}
                   </TableCell>
+                  {canWrite ? (
+                    <CostCells cost={costByDish.get(d.MaMon)} />
+                  ) : null}
                   <TableCell>
                     <div className="flex flex-wrap items-center gap-1">
                       <StatusBadge status={d.DaXoa ? "Đã xóa" : d.TrangThai} />
@@ -453,7 +536,7 @@ export function DishList() {
               {visible.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={5}
+                    colSpan={canWrite ? 8 : 5}
                     className="py-8 text-center text-muted"
                   >
                     Không có món nào khớp bộ lọc.
@@ -519,7 +602,7 @@ export function DishList() {
         <DishDetail
           dish={detailDish}
           onOpenChange={(open) => !open && setDetailDish(null)}
-          onChanged={catalog.reload}
+          onChanged={reloadAll}
         />
       )}
     </div>

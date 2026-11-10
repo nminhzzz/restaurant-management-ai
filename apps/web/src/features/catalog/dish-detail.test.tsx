@@ -28,12 +28,58 @@ function stubRoutes(overrides: Record<string, unknown> = {}) {
     if (path.startsWith("/catalog/dishes/1/recipes")) {
       return Promise.resolve(overrides.recipes ?? []);
     }
+    if (path === "/catalog/dishes/1/cost") {
+      return Promise.resolve(overrides.cost ?? noRecipe);
+    }
     if (path.startsWith("/catalog/ingredients")) {
       return Promise.resolve({ items: [] });
     }
     return Promise.resolve({});
   });
 }
+
+const noRecipe = {
+  MaMon: 1,
+  TinhTrang: "Chưa có công thức",
+  GiaBan: null,
+  GiaVonUocTinh: null,
+  TyLeGiaVon: null,
+  LaiGop: null,
+  CanhBao: false,
+  NguongCanhBao: 40,
+  NguyenLieuThieuGia: [],
+  ChiTiet: [],
+};
+
+const beefStirFry = {
+  MaMon: 1,
+  TinhTrang: "Đủ dữ liệu",
+  GiaBan: 80000,
+  GiaVonUocTinh: 36500,
+  TyLeGiaVon: 45.63,
+  LaiGop: 43500,
+  CanhBao: true,
+  NguongCanhBao: 40,
+  NguyenLieuThieuGia: [],
+  ChiTiet: [
+    {
+      MaNguyenLieu: 1,
+      TenNguyenLieu: "Bò",
+      DonViTinh: "kg",
+      DinhLuong: 0.15,
+      DonGiaBinhQuan: 230000,
+      ThanhTien: 34500,
+    },
+    {
+      MaNguyenLieu: 2,
+      TenNguyenLieu: "Hành",
+      DonViTinh: "kg",
+      DinhLuong: 0.05,
+      DonGiaBinhQuan: 40000,
+      ThanhTien: 2000,
+    },
+  ],
+};
 
 describe("DishDetail", () => {
   beforeEach(() => {
@@ -107,5 +153,99 @@ describe("DishDetail", () => {
 
     expect(await screen.findByText("Công thức hiện tại")).toBeInTheDocument();
     expect(screen.getByText(/Bột mì \(0\.2 kg\)/)).toBeInTheDocument();
+  });
+
+  it("breaks the estimated cost down by ingredient and flags a ratio over the threshold", async () => {
+    stubRoutes({ cost: beefStirFry });
+
+    render(
+      <DishDetail dish={dish} onOpenChange={vi.fn()} onChanged={vi.fn()} />,
+    );
+
+    expect(
+      await screen.findByRole("row", {
+        name: /Bò 0,15 kg 230\.000 ₫ 34\.500 ₫/,
+      }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("row", { name: /Hành 0,05 kg 40\.000 ₫ 2\.000 ₫/ }),
+    ).toBeVisible();
+    const summary = screen.getByText(/Giá vốn ước tính/, { selector: "p" });
+    expect(summary).toHaveTextContent("36.500 ₫");
+    expect(summary).toHaveTextContent("45,6%");
+    expect(summary).toHaveTextContent("43.500 ₫");
+    expect(summary).toHaveTextContent("vượt ngưỡng 40,0%");
+  });
+
+  it("names the ingredient without a unit cost instead of counting it as zero", async () => {
+    stubRoutes({
+      cost: {
+        ...beefStirFry,
+        TinhTrang: "Chưa đủ dữ liệu",
+        GiaVonUocTinh: null,
+        TyLeGiaVon: null,
+        LaiGop: null,
+        CanhBao: false,
+        NguyenLieuThieuGia: ["Hành"],
+        ChiTiet: [
+          beefStirFry.ChiTiet[0],
+          { ...beefStirFry.ChiTiet[1], DonGiaBinhQuan: null, ThanhTien: null },
+        ],
+      },
+    });
+
+    render(
+      <DishDetail dish={dish} onOpenChange={vi.fn()} onChanged={vi.fn()} />,
+    );
+
+    expect(
+      await screen.findByRole("row", {
+        name: /Hành 0,05 kg Chưa xác định Chưa xác định/,
+      }),
+    ).toBeVisible();
+    expect(screen.getByText(/Chưa đủ dữ liệu: Hành/)).toBeVisible();
+    expect(screen.queryByText(/tỷ lệ giá vốn/)).not.toBeInTheDocument();
+  });
+
+  it("shows the cost ratio of the price being typed before it is saved", async () => {
+    stubRoutes({ cost: beefStirFry });
+
+    render(
+      <DishDetail dish={dish} onOpenChange={vi.fn()} onChanged={vi.fn()} />,
+    );
+    await screen.findByRole("row", { name: /Bò 0,15 kg/ });
+
+    fireEvent.change(screen.getByLabelText("Giá mới"), {
+      target: { value: "100000" },
+    });
+    expect(
+      screen.getByText(/tỷ lệ giá vốn 36,5%$/, { selector: "p" }),
+    ).toBeVisible();
+
+    fireEvent.change(screen.getByLabelText("Áp dụng giá ngay"), {
+      target: { value: "73000" },
+    });
+    expect(
+      screen.getByText(/tỷ lệ giá vốn 50,0% · vượt ngưỡng 40,0%/),
+    ).toBeVisible();
+    expect(
+      mockFetch.mock.calls.some(([, options]) => options?.method === "POST"),
+    ).toBe(false);
+  });
+
+  it("does not request the cost estimate for a role other than the manager", async () => {
+    clearSession();
+    saveSession({ token: "t", role: "CASHIER", username: "thungan" });
+    stubRoutes({ cost: beefStirFry });
+
+    render(
+      <DishDetail dish={dish} onOpenChange={vi.fn()} onChanged={vi.fn()} />,
+    );
+    await screen.findByText("Giá bán");
+
+    expect(screen.queryByText("Giá vốn ước tính")).not.toBeInTheDocument();
+    expect(
+      mockFetch.mock.calls.some(([path]) => path === "/catalog/dishes/1/cost"),
+    ).toBe(false);
   });
 });

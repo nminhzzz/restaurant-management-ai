@@ -185,6 +185,31 @@ describe("OrderStep", () => {
     );
   });
 
+  it("keeps the note of a held line on the server once the field is left", async () => {
+    route({});
+    render(
+      <OrderStep
+        tableId={4}
+        orderId={null}
+        onBack={vi.fn()}
+        onSent={vi.fn()}
+      />,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: /Phở bò/ }));
+    const note = await screen.findByLabelText("Ghi chú Phở bò");
+
+    fireEvent.change(note, { target: { value: " không hành " } });
+    fireEvent.blur(note);
+
+    // TC-SALE-26: only the note is sent, so the hold's quantity and deadline are untouched.
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith("/sales/holds/99", {
+        method: "PATCH",
+        body: { note: "không hành" },
+      }),
+    );
+  });
+
   it("adds lines to an open order instead of creating one", async () => {
     const onSent = vi.fn();
     route({

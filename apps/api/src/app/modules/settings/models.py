@@ -1,11 +1,22 @@
 """Settings module tables: VAI_TRO, NGUOI_DUNG, CAU_HINH_HE_THONG."""
 
 from datetime import date, datetime, time
+from decimal import Decimal
 
-from sqlalchemy import DECIMAL, Date, ForeignKey, Index, Integer, String, Time, func
+from sqlalchemy import (
+    DECIMAL,
+    CheckConstraint,
+    Date,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Time,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.shared.base import Base, BigInteger, DateTime3
+from app.shared.base import Base, BigInteger, DateTime3, clock_now
 
 
 class RoleTable(Base):
@@ -34,7 +45,7 @@ class User(Base):
         "TrangThai", String(20), nullable=False, default="Hoạt động"
     )
     created_at: Mapped[datetime] = mapped_column(
-        "NgayTao", DateTime3, server_default=func.now(), nullable=False
+        "NgayTao", DateTime3, default=clock_now, server_default=func.now(), nullable=False
     )
     # Incremented on password reset/change or a role change so old JWTs stop working.
     token_version: Mapped[int] = mapped_column("PhienBanToken", Integer, nullable=False, default=0)
@@ -67,6 +78,15 @@ class SystemConfig(Base):
     )
     ai_daily_question_quota: Mapped[int] = mapped_column(
         "SoCauHoiAIMoiNgay", Integer, nullable=False, default=50
+    )
+    # FR-CAT-29: a dish whose estimated cost exceeds this share of its price is flagged.
+    cost_ratio_warning: Mapped[Decimal] = mapped_column(
+        "TyLeGiaVonCanhBao", DECIMAL(5, 2), nullable=False, default=40, server_default="40"
+    )
+    __table_args__ = (
+        CheckConstraint(
+            "TyLeGiaVonCanhBao >= 1 AND TyLeGiaVonCanhBao <= 100", name="cost_ratio_warning_range"
+        ),
     )
 
 

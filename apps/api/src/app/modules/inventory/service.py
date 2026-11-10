@@ -8,7 +8,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import BusinessRuleError, NotFoundError
 from app.modules.catalog.models import Ingredient, RecipeItem
-from app.modules.inventory.costing import latest_average_cost, month_key_of, refresh_costing
+from app.modules.inventory.costing import (
+    current_unit_cost,
+    movement_value,
+    record_receipt_correction,
+    value_at_current_cost,
+)
 from app.modules.inventory.lot_status import sync_lot_status
 from app.modules.inventory.models import (
     GoodsReceipt,
@@ -126,6 +131,7 @@ async def create_receipt(
                 kind="Nhập",
                 business_date=business_date.business_date_of(receipt.receipt_date),
                 source_receipt_line_id=gl.id,
+                unit_price=unit_price,
             ),
             actor_id=actor_id,
         )
@@ -134,6 +140,7 @@ async def create_receipt(
         # Mark unit locked once any receipt exists (BR-CAT)
         if not ing.unit_locked:
             ing.unit_locked = True
+        receipt.total = Decimal(str(receipt.total or 0)) + gl.total
     await session.flush()
     session.add(
         SystemAuditLog(
@@ -144,7 +151,6 @@ async def create_receipt(
         )
     )
     await session.flush()
-    await refresh_costing(session, month_key_of(receipt.receipt_date))
     return receipt
 
 
@@ -228,6 +234,7 @@ async def cancel_receipt(session: AsyncSession, actor_id: int, receipt_id: int) 
             if ing and Decimal(str(ing.stock_qty)) < remaining:
                 raise BusinessRuleError("Không đủ tồn kho để hủy phiếu.")
             lot.quantity_remaining = Decimal("0")
+            stock_before = Decimal(str(ing.stock_qty)) if ing else remaining
             if ing:
                 ing.stock_qty = ing.stock_qty - remaining
             m = StockMovement(
@@ -240,6 +247,16 @@ async def cancel_receipt(session: AsyncSession, actor_id: int, receipt_id: int) 
                 performed_by=actor_id,
             )
             session.add(m)
+            await record_receipt_correction(
+                session,
+                gl.ingredient_id,
+                stock_before=stock_before,
+                old_quantity=remaining,
+                old_price=Decimal(str(gl.unit_price)),
+                new_quantity=Decimal(0),
+                new_price=Decimal(0),
+                movement=m,
+            )
         lot.status = LotStatus.DA_HUY.value
     receipt.status = "Đã hủy"
     session.add(
@@ -251,7 +268,6 @@ async def cancel_receipt(session: AsyncSession, actor_id: int, receipt_id: int) 
         )
     )
     await session.flush()
-    await refresh_costing(session, month_key_of(receipt.receipt_date))
 
 
 async def update_receipt(
@@ -276,7 +292,7 @@ async def update_receipt(
     if receipt.status != "Hiệu lực":
         raise BusinessRuleError("Chỉ được sửa phiếu ở trạng thái Hiệu lực.")
     await _ensure_receipt_untouched(session, receipt_id)
-    old_month = month_key_of(receipt.receipt_date)
+    before = await _receipt_snapshot(session, receipt)
     for ln in lines:
         line_id = ln["line_id"]
         new_qty = Decimal(str(ln["quantity"]))
@@ -295,48 +311,79 @@ async def update_receipt(
             raise BusinessRuleError(
                 "Đã có giao dịch xuất kho liên quan, phải điều chỉnh qua kiểm kê định kỳ."
             )
-        delta = new_qty - Decimal(str(gl.quantity))
-        from app.modules.catalog.models import Ingredient
-        from app.modules.inventory.models import StockMovement
-
-        ing = await session.get(Ingredient, gl.ingredient_id)
-        if ing is not None and Decimal(str(ing.stock_qty)) + delta < 0:
+        old_qty = Decimal(str(gl.quantity))
+        old_price = Decimal(str(gl.unit_price))
+        delta = new_qty - old_qty
+        ing = await lock_ingredient(session, gl.ingredient_id)
+        stock_before = Decimal(str(ing.stock_qty))
+        if stock_before + delta < 0:
             raise BusinessRuleError("Tồn kho sau khi sửa không được âm.")
         gl.quantity = new_qty
         gl.unit_price = new_price
-        # Keep the lot's own costing data in step with the edited receipt line:
-        # opening-stock valuation falls back to these fields (FR-REP-05a).
+        gl.total = new_qty * new_price
         lot.quantity_remaining = new_qty
         lot.received_quantity = new_qty
         await sync_lot_status(session, lot)
         lot.unit_price = new_price
-        if ing is not None:
-            ing.stock_qty = ing.stock_qty + delta
+        ing.stock_qty = ing.stock_qty + delta
+        movement = None
         if delta != 0:
-            session.add(
-                StockMovement(
-                    ingredient_id=gl.ingredient_id,
-                    lot_id=None,
-                    kind="Nhập",
-                    qty=delta,
-                    business_date=_bd(),
-                    receipt_line_id=gl.id,
-                    performed_by=actor_id,
-                )
+            movement = StockMovement(
+                ingredient_id=gl.ingredient_id,
+                lot_id=None,
+                kind="Nhập",
+                qty=delta,
+                business_date=_bd(),
+                receipt_line_id=gl.id,
+                performed_by=actor_id,
+            )
+            session.add(movement)
+        if delta != 0 or new_price != old_price:
+            await record_receipt_correction(
+                session,
+                gl.ingredient_id,
+                stock_before=stock_before,
+                old_quantity=old_qty,
+                old_price=old_price,
+                new_quantity=new_qty,
+                new_price=new_price,
+                movement=movement,
             )
         await session.flush()
+    receipt.total = await session.scalar(
+        select(func.coalesce(func.sum(GoodsReceiptLine.total), 0)).where(
+            GoodsReceiptLine.receipt_id == receipt_id
+        )
+    )
+    if receipt_date is not None and receipt_date != receipt.receipt_date:
+        # Only lot dates, expiry and FIFO order follow the new date; the unit cost does not.
+        await _move_receipt_date(session, receipt, receipt_date)
     session.add(
         SystemAuditLog(
             user_id=actor_id,
             action="UPDATE_RECEIPT",
             target_entity="PHIEU_NHAP_KHO",
             target_id=str(receipt_id),
+            before=before,
+            after=await _receipt_snapshot(session, receipt),
         )
     )
     await session.flush()
-    if receipt_date is not None and receipt_date != receipt.receipt_date:
-        await _move_receipt_date(session, receipt, receipt_date)
-    await refresh_costing(session, min(old_month, month_key_of(receipt.receipt_date)))
+
+
+async def _receipt_snapshot(session: AsyncSession, receipt: GoodsReceipt) -> dict:
+    lines = await session.execute(
+        select(GoodsReceiptLine.id, GoodsReceiptLine.quantity, GoodsReceiptLine.unit_price)
+        .where(GoodsReceiptLine.receipt_id == receipt.id)
+        .order_by(GoodsReceiptLine.id)
+    )
+    return {
+        "NgayNhap": receipt.receipt_date.isoformat(),
+        "ChiTiet": [
+            {"MaChiTietNhap": line_id, "SoLuong": float(quantity), "DonGia": float(unit_price)}
+            for line_id, quantity, unit_price in lines
+        ],
+    }
 
 
 async def _move_receipt_date(
@@ -521,6 +568,8 @@ async def preview_prepared_write_off(
                 "ingredient_name": ingredient.name if ingredient else f"#{ingredient_id}",
                 "unit": ingredient.unit if ingredient else "",
                 "quantity": quantity,
+                # FR-INV-05: shown at the unit cost in force; None while there is none.
+                "value": movement_value(quantity, await current_unit_cost(session, ingredient_id)),
                 "order_line_id": order_line_id,
                 "servings": servings,
             }
@@ -616,7 +665,7 @@ async def create_issue(
             issue_id=issue.id,
             ingredient_id=iid,
             quantity=qty,
-            estimated_cost=None,
+            estimated_cost=movement_value(qty, await current_unit_cost(session, iid)),
             order_line_id=ln.get("order_line_id"),
             servings=ln.get("servings"),
         )
@@ -649,8 +698,111 @@ async def create_issue(
         )
     )
     await session.flush()
-    await refresh_costing(session, month_key_of(issue.created_at))
     return issue
+
+
+async def preview_issue(session: AsyncSession, reason: str, lines: list[dict]) -> dict:
+    """FR-INV-05: what a "Nguyên liệu" write-off would do, without writing anything.
+
+    Mirrors the draw of `apply_stock_movement` for a manual issue: the chosen lot or FIFO,
+    expired lots only for an expiry write-off, and holds released when the lot is needed.
+    """
+    from app.modules.inventory.stock import _held_by_lot, lots_for_fifo
+    from app.modules.sales.models import Reservation, ReservationDetail
+
+    await _ensure_no_open_stocktake_for_preview(session)
+    allow_expired = "hết hạn" in reason.lower() if reason else False
+    now = business_date.now().replace(tzinfo=None)
+    # Several lines may draw the same lot; later lines see what earlier ones left.
+    remaining_by_lot: dict[int, Decimal] = {}
+    released: set[int] = set()
+    out_lines = []
+    total: Decimal | None = Decimal(0)
+    for ln in lines:
+        if ln.get("ingredient_id") is None or ln.get("quantity") is None:
+            raise BusinessRuleError("Cần nguyên liệu và số lượng cho phiếu xuất hủy.")
+        ingredient_id = int(ln["ingredient_id"])
+        need = Decimal(str(ln["quantity"]))
+        if need <= 0:
+            raise BusinessRuleError("Số lượng phải lớn hơn 0.")
+        ingredient = await session.get(Ingredient, ingredient_id)
+        if ingredient is None:
+            raise BusinessRuleError("Nguyên liệu không tồn tại.")
+        lots = await lots_for_fifo(session, ingredient_id, allow_expired=allow_expired)
+        if ln.get("lot_id"):
+            lots = [lot for lot in lots if lot.id == int(ln["lot_id"])]
+            if not lots:
+                raise BusinessRuleError("Lô đã chọn không còn đủ hàng để xuất.")
+        for lot in lots:
+            remaining_by_lot.setdefault(lot.id, Decimal(str(lot.quantity_remaining)))
+        if sum((remaining_by_lot[lot.id] for lot in lots), Decimal(0)) < need:
+            raise BusinessRuleError("Không đủ tồn kho khả dụng.")
+        held = {} if allow_expired else await _held_by_lot(session, [lot.id for lot in lots], now)
+        unit_cost = await current_unit_cost(session, ingredient_id)
+        left = need
+        for lot in lots:
+            if left <= 0:
+                break
+            on_hand = remaining_by_lot[lot.id]
+            free = max(Decimal(0), on_hand - held.get(lot.id, Decimal(0)))
+            if free < left and held.get(lot.id, Decimal(0)) > 0:
+                released.add(lot.id)
+                free = on_hand
+            take = min(free, left)
+            if take <= 0:
+                continue
+            remaining_by_lot[lot.id] = on_hand - take
+            value = movement_value(take, unit_cost)
+            total = None if value is None or total is None else total + value
+            out_lines.append(
+                {
+                    "MaNguyenLieu": ingredient_id,
+                    "TenNguyenLieu": ingredient.name,
+                    "DonViTinh": ingredient.unit,
+                    "MaLoNguyenLieu": lot.id,
+                    "HanSuDung": lot.expiry_date,
+                    "SoLuongHuy": take,
+                    "TonLoConLai": remaining_by_lot[lot.id],
+                    "GiaTri": value,
+                }
+            )
+            left -= take
+    holds = []
+    if released:
+        rows = await session.execute(
+            select(
+                Reservation.id,
+                Reservation.selection_code,
+                ReservationDetail.lot_id,
+                ReservationDetail.quantity,
+            )
+            .join(ReservationDetail, ReservationDetail.reservation_id == Reservation.id)
+            .where(
+                ReservationDetail.lot_id.in_(released),
+                Reservation.status == "Đang giữ",
+                Reservation.expires_at > now,
+            )
+            .order_by(Reservation.id)
+        )
+        holds = [
+            {
+                "MaGiuCho": reservation_id,
+                "MaLuotChon": selection_id,
+                "MaLoNguyenLieu": lot_id,
+                "SoLuongGiu": quantity,
+            }
+            for reservation_id, selection_id, lot_id, quantity in rows
+        ]
+    return {"lines": out_lines, "TongGiaTri": total, "LuotGiuBiGiaiPhong": holds}
+
+
+async def _ensure_no_open_stocktake_for_preview(session: AsyncSession) -> None:
+    """Same refusal as the real write-off, read without taking its locks."""
+    open_id = await session.scalar(
+        select(Stocktake.id).where(Stocktake.status == "Đang kiểm kê").limit(1)
+    )
+    if open_id is not None:
+        raise BusinessRuleError("Đang kiểm kê, không thể thay đổi tồn kho.")
 
 
 async def list_issues(
@@ -842,6 +994,55 @@ async def record_counts(
     await session.flush()
 
 
+async def preview_stocktake(
+    session: AsyncSession,
+    stocktake_id: int,
+    counts: list[tuple[int, Decimal, str | None]],
+) -> list[dict]:
+    """FR-INV-08: stock before and after the adjustment, for the counter to check.
+
+    Nothing is written and the counting session stays open and locked; stock only changes
+    when the counter confirms.
+    """
+    stocktake = await session.get(Stocktake, stocktake_id)
+    if stocktake is None:
+        raise NotFoundError("Không tìm thấy phiếu kiểm kê.")
+    if stocktake.status != "Đang kiểm kê":
+        raise BusinessRuleError("Phiếu kiểm kê không còn ở trạng thái Đang kiểm kê.")
+    actual_by_ingredient: dict[int, tuple[Decimal, str | None]] = {}
+    for ingredient_id, actual, reason in counts:
+        if ingredient_id in actual_by_ingredient:
+            raise BusinessRuleError("Nguyên liệu trùng lặp trong cùng phiếu kiểm kê.")
+        if actual < 0:
+            raise BusinessRuleError("Tồn thực tế không được âm.")
+        actual_by_ingredient[ingredient_id] = (actual, reason)
+    ingredients = {
+        ingredient.id: ingredient
+        for ingredient in await session.scalars(
+            select(Ingredient).where(Ingredient.id.in_(actual_by_ingredient))
+        )
+    }
+    rows = []
+    for ingredient_id, (actual, reason) in actual_by_ingredient.items():
+        ingredient = ingredients.get(ingredient_id)
+        if ingredient is None or ingredient.is_deleted:
+            raise BusinessRuleError("Nguyên liệu không tồn tại.")
+        before = Decimal(str(ingredient.stock_qty))
+        difference = actual - before
+        rows.append(
+            {
+                "MaNguyenLieu": ingredient_id,
+                "TenNguyenLieu": ingredient.name,
+                "DonViTinh": ingredient.unit,
+                "TonTruocDieuChinh": before,
+                "TonSauDieuChinh": actual,
+                "ChenhLech": difference,
+                "LyDoChenhLech": reason,
+            }
+        )
+    return rows
+
+
 async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: int) -> None:
     await lock_stock_operations(session)
     st = (
@@ -917,6 +1118,7 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
                     performed_by=actor_id,
                 )
                 session.add(m2)
+                await value_at_current_cost(session, m2)
                 rem -= take
             # remaining shortage (system > FIFO sum) is shortage beyond lots — adjust ingredient total directly
             from app.modules.catalog.models import Ingredient as Ing2
@@ -954,9 +1156,7 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
                     received_at=st.stocktake_date,
                     expiry_date=None,
                     is_adjustment=True,
-                    unit_price=await latest_average_cost(
-                        session, line.ingredient_id, month_key_of(st.stocktake_date)
-                    ),
+                    unit_price=await current_unit_cost(session, line.ingredient_id),
                 )
                 session.add(lot)
             else:
@@ -975,6 +1175,7 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
                 performed_by=actor_id,
             )
             session.add(m)
+            await value_at_current_cost(session, m)
             from app.modules.catalog.models import Ingredient as Ing4
 
             ing = await session.get(Ing4, line.ingredient_id)
@@ -1001,7 +1202,9 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
                     issue_id=issue.id,
                     ingredient_id=ingredient_id,
                     quantity=quantity,
-                    estimated_cost=None,
+                    estimated_cost=movement_value(
+                        quantity, await current_unit_cost(session, ingredient_id)
+                    ),
                 )
             )
         await session.flush()
@@ -1017,7 +1220,6 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
         )
     )
     await session.flush()
-    await refresh_costing(session, month_key_of(st.stocktake_date))
 
 
 async def list_stock(

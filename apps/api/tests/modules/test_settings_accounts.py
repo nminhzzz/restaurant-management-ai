@@ -231,3 +231,43 @@ async def test_manager_cannot_demote_themselves(session):
     assert resp.status_code == 422
     await session.refresh(mgr)
     assert mgr.role_id == Role.MANAGER.value
+
+
+@pytest.mark.anyio
+async def test_audit_entries_keep_what_changed_before_and_after(session):
+    """TC-SET-09: a reset password and a created or renamed group used to log nothing."""
+    from app.modules.catalog import service as catalog_service
+    from app.modules.settings import service as settings_service
+    from app.shared.audit import SystemAuditLog
+    from app.shared.roles import Role
+
+    await seed_reference_data(session)
+    manager = await settings_service.create_user(
+        session, None, "ql_audit", "mat-khau-cu", "Quản lý", None, Role.MANAGER
+    )
+    cashier = await settings_service.create_user(
+        session, manager.id, "tn_audit", "mat-khau-cu", "Thu ngân", None, Role.CASHIER
+    )
+    group = await catalog_service.create_group(session, manager.id, "Khai vị")
+    await catalog_service.update_group(session, manager.id, group.id, "Món khai vị")
+    await settings_service.reset_password(session, manager.id, cashier.id, "mat-khau-moi")
+    await session.commit()
+
+    rows = {
+        row.action: row
+        for row in await session.scalars(
+            select(SystemAuditLog).where(
+                SystemAuditLog.action.in_(("CREATE_GROUP", "UPDATE_GROUP", "RESET_PASSWORD"))
+            )
+        )
+    }
+
+    assert rows["CREATE_GROUP"].after == {"TenNhomMon": "Khai vị", "ThuTuHienThi": 1}
+    assert rows["UPDATE_GROUP"].before == {"TenNhomMon": "Khai vị"}
+    assert rows["UPDATE_GROUP"].after == {"TenNhomMon": "Món khai vị"}
+    reset = rows["RESET_PASSWORD"]
+    assert reset.before["PhienBanToken"] + 1 == reset.after["PhienBanToken"]
+    assert reset.after["TenDangNhap"] == "tn_audit"
+    # The log must never carry the password or its hash.
+    logged = f"{reset.before}{reset.after}"
+    assert "mat-khau" not in logged and cashier.password_hash not in logged

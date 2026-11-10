@@ -1,264 +1,214 @@
-"""Monthly weighted average costing.
+"""Moving weighted average costing (document 04 G.1; FR-INV-02/03/04/09, FR-REP-11).
 
-QD-01: averages, costs and profit follow the ledger automatically. Every change to a receipt
-(create, edit, cancel, move to another month) or to stock refreshes the affected month and every
-later one through `refresh_costing`; there is no manual month close.
+Every ingredient has one current unit cost. It is recalculated when stock arrives with a value
+of its own — a receipt, a corrected or cancelled receipt, a dish handed back to stock — and each
+recalculation is one row of LICH_SU_GIA_BINH_QUAN. Sales, write-offs and stocktake adjustments
+take the current unit cost and never move it.
 
-QD-02: a cost that cannot be determined is NULL, never 0, so a total is not reported as complete
-when some part of it is unpriced.
+The value of a movement is written once, when it happens, and is never recomputed. An ingredient
+without a valid receipt has no unit cost: its movements carry NULL, never 0, until the first
+receipt prices them.
 """
 
-from collections.abc import Iterator
-from contextlib import contextmanager
-from contextvars import ContextVar
-from datetime import datetime
+from collections.abc import Iterable
+from datetime import datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.inventory.models import (
-    GoodsReceipt,
-    GoodsReceiptLine,
-    IngredientLot,
-    MonthlyAverageCost,
-    StockIssueLine,
-    StockMovement,
-)
-from app.shared import business_date as _bd
+from app.modules.inventory.models import AverageCostHistory, StockIssueLine, StockMovement
+from app.shared import business_date
 
-_deferred: ContextVar[bool] = ContextVar("costing_deferred", default=False)
+CENT = Decimal("0.01")
+MILLISECOND = timedelta(milliseconds=1)
 
 
-@contextmanager
-def deferred_costing() -> Iterator[None]:
-    """Skip the automatic refresh while a bulk job (the seed) loads many documents.
+def money(amount: Decimal) -> Decimal:
+    return amount.quantize(CENT, rounding=ROUND_HALF_UP)
 
-    The caller must call `refresh_costing` itself when it is done.
+
+def movement_value(quantity: Decimal, unit_cost: Decimal | None) -> Decimal | None:
+    """Rounded unit cost x quantity, signed like the quantity; None while there is no unit cost."""
+    if unit_cost is None:
+        return None
+    return money(Decimal(str(quantity)) * unit_cost)
+
+
+def blended_cost(stock: Decimal, unit_cost: Decimal, quantity: Decimal, value: Decimal) -> Decimal:
+    """Unit cost after `quantity` worth `value` joins (or, when negative, leaves) the stock.
+
+    With nothing left there is nothing to divide by, so the unit cost in force stays. The same
+    holds when taking a receipt back out would leave a negative value: stock drawn in between
+    already carried that value away at the average.
     """
-    token = _deferred.set(True)
-    try:
-        yield
-    finally:
-        _deferred.reset(token)
+    remaining = stock + quantity
+    if remaining <= 0:
+        return unit_cost
+    blended = (stock * unit_cost + value) / remaining
+    if blended < 0:
+        return unit_cost
+    return money(blended)
 
 
-def month_key_of(moment: datetime) -> int:
-    day = _bd.business_date_of(moment)
-    return day.year * 100 + day.month
-
-
-def _following(month: int) -> int:
-    return month + 89 if month % 100 == 12 else month + 1
-
-
-async def _previous_costs(session: AsyncSession, month: int) -> dict[int, Decimal]:
-    """Latest known average cost before `month` (FR-REP-05a carry-forward)."""
-    rows = (
-        await session.execute(
-            select(
-                MonthlyAverageCost.ingredient_id,
-                MonthlyAverageCost.month,
-                MonthlyAverageCost.avg_cost,
-            )
-            .where(MonthlyAverageCost.month < month)
-            .order_by(
-                MonthlyAverageCost.ingredient_id.asc(),
-                MonthlyAverageCost.month.desc(),
-            )
-        )
-    ).all()
-    out: dict[int, Decimal] = {}
-    for ingredient_id, _month, avg in rows:
-        out.setdefault(int(ingredient_id), Decimal(str(avg)))
-    return out
-
-
-async def _opening_state(
-    session: AsyncSession, month: int, previous: dict[int, Decimal]
-) -> tuple[dict[int, Decimal], dict[int, Decimal]]:
-    """Quantity and value of stock at the start of the month.
-
-    The ledger is the source of truth: the sum of every movement before the month
-    is the quantity on hand. Value uses the previous month's average when it exists;
-    otherwise the weighted purchase price of the lots received before the month.
-    """
-    start, _ = _bd.business_month_range(month)
-    qty_rows = (
-        await session.execute(
-            select(StockMovement.ingredient_id, func.sum(StockMovement.qty))
-            .where(StockMovement.business_date < start.date())
-            .group_by(StockMovement.ingredient_id)
-        )
-    ).all()
-    quantities = {
-        int(ingredient_id): max(Decimal(str(qty or 0)), Decimal(0))
-        for ingredient_id, qty in qty_rows
-    }
-
-    lot_rows = (
-        await session.execute(
-            select(
-                IngredientLot.ingredient_id,
-                func.sum(IngredientLot.received_quantity),
-                func.sum(IngredientLot.received_quantity * IngredientLot.unit_price),
-            )
-            .where(IngredientLot.received_at < start, IngredientLot.unit_price.is_not(None))
-            .group_by(IngredientLot.ingredient_id)
-        )
-    ).all()
-    lot_avg: dict[int, Decimal] = {}
-    for ingredient_id, qty, total in lot_rows:
-        if qty and Decimal(str(qty)) > 0:
-            lot_avg[int(ingredient_id)] = Decimal(str(total)) / Decimal(str(qty))
-
-    values: dict[int, Decimal] = {}
-    for ingredient_id, qty in quantities.items():
-        unit = previous.get(ingredient_id) or lot_avg.get(ingredient_id) or Decimal(0)
-        values[ingredient_id] = qty * unit
-    return quantities, values
-
-
-async def recompute_month(session: AsyncSession, month: int) -> list[MonthlyAverageCost]:
-    start, end = _bd.business_month_range(month)
-    previous = await _previous_costs(session, month)
-    opening_qty, opening_value = await _opening_state(session, month, previous)
-
-    # Purchases in the month, excluding cancelled receipts and stocktake-surplus lines.
-    q = (
+def _latest_rows():
+    latest = (
         select(
-            GoodsReceiptLine.ingredient_id,
-            func.sum(GoodsReceiptLine.quantity).label("qty"),
-            func.sum(GoodsReceiptLine.quantity * GoodsReceiptLine.unit_price).label("total"),
+            AverageCostHistory.ingredient_id.label("ingredient_id"),
+            func.max(AverageCostHistory.effective_at).label("effective_at"),
         )
-        .join(GoodsReceipt, GoodsReceiptLine.receipt_id == GoodsReceipt.id)
-        .outerjoin(IngredientLot, IngredientLot.receipt_line_id == GoodsReceiptLine.id)
-        .where(
-            GoodsReceipt.receipt_date >= start,
-            GoodsReceipt.receipt_date < end,
-            GoodsReceipt.status != "Đã hủy",
-            or_(IngredientLot.is_adjustment.is_(False), IngredientLot.id.is_(None)),
-        )
-        .group_by(GoodsReceiptLine.ingredient_id)
+        .group_by(AverageCostHistory.ingredient_id)
+        .subquery()
     )
-    purchases = {
-        int(row[0]): (Decimal(str(row[1] or 0)), Decimal(str(row[2] or 0)))
-        for row in (await session.execute(q)).all()
+    return select(AverageCostHistory.ingredient_id, AverageCostHistory.avg_cost).join(
+        latest,
+        (latest.c.ingredient_id == AverageCostHistory.ingredient_id)
+        & (latest.c.effective_at == AverageCostHistory.effective_at),
+    )
+
+
+async def current_unit_costs(
+    session: AsyncSession, ingredient_ids: Iterable[int] | None = None
+) -> dict[int, Decimal]:
+    """Unit cost in force per ingredient; an ingredient that was never priced is absent."""
+    statement = _latest_rows()
+    if ingredient_ids is not None:
+        statement = statement.where(AverageCostHistory.ingredient_id.in_(set(ingredient_ids)))
+    return {
+        int(ingredient_id): Decimal(str(cost))
+        for ingredient_id, cost in await session.execute(statement)
     }
 
-    ingredient_ids = sorted(set(opening_qty) | set(purchases))
-    out: list[MonthlyAverageCost] = []
-    computed: set[int] = set()
-    for ing_id in ingredient_ids:
-        buy_qty, buy_total = purchases.get(ing_id, (Decimal(0), Decimal(0)))
-        open_qty = opening_qty.get(ing_id, Decimal(0))
-        denominator = open_qty + buy_qty
-        if denominator > 0:
-            avg = (opening_value.get(ing_id, Decimal(0)) + buy_total) / denominator
-        elif ing_id in previous:
-            # No stock movement and no purchase: keep last month's unit cost so a later
-            # report can still cost anything that was consumed from carried stock.
-            avg = previous[ing_id]
-        else:
-            continue
-        avg = avg.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-        existing = await session.get(MonthlyAverageCost, {"ingredient_id": ing_id, "month": month})
-        if existing:
-            existing.avg_cost = avg
-            existing.total_qty = buy_qty
-            existing.computed_at = _bd.now()
-        else:
-            existing = MonthlyAverageCost(
-                ingredient_id=ing_id,
-                month=month,
-                avg_cost=avg,
-                total_qty=buy_qty,
-                computed_at=_bd.now(),
-            )
-            session.add(existing)
-        out.append(existing)
-        computed.add(ing_id)
-    # A cancelled or re-dated receipt can leave a month with no basis at all: drop its stale row.
-    for stale in (
-        (await session.execute(select(MonthlyAverageCost).where(MonthlyAverageCost.month == month)))
-        .scalars()
-        .all()
-    ):
-        if stale.ingredient_id not in computed:
-            await session.delete(stale)
-    await session.flush()
-    return out
 
-
-async def backfill_issue_costs(session: AsyncSession, month: int) -> int:
-    start, end = _bd.business_month_range(month)
-    # find avg for month
-    costs = {
-        c.ingredient_id: Decimal(str(c.avg_cost))
-        for c in (
-            await session.execute(
-                select(MonthlyAverageCost).where(MonthlyAverageCost.month == month)
-            )
-        )
-        .scalars()
-        .all()
-    }
-    if not costs:
-        return 0
-    from app.modules.inventory.models import StockIssue
-
-    q = (
-        select(StockIssueLine)
-        .join(StockIssue, StockIssueLine.issue_id == StockIssue.id)
-        .where(
-            StockIssueLine.estimated_cost.is_(None),
-            StockIssue.created_at >= start,
-            StockIssue.created_at < end,
-        )
-    )
-    lines = (await session.execute(q)).scalars().all()
-    updated = 0
-    for ln in lines:
-        avg = costs.get(ln.ingredient_id)
-        if avg is not None:
-            ln.estimated_cost = (avg * ln.quantity).quantize(
-                Decimal("0.01"), rounding=ROUND_HALF_UP
-            )
-            updated += 1
-    await session.flush()
-    return updated
-
-
-async def latest_average_cost(
-    session: AsyncSession, ingredient_id: int, month: int
-) -> Decimal | None:
-    """Most recent known average up to `month`, or None when nothing gives a basis."""
-    value = await session.scalar(
-        select(MonthlyAverageCost.avg_cost)
-        .where(
-            MonthlyAverageCost.ingredient_id == ingredient_id,
-            MonthlyAverageCost.month <= month,
-        )
-        .order_by(MonthlyAverageCost.month.desc())
+async def current_unit_cost(session: AsyncSession, ingredient_id: int) -> Decimal | None:
+    cost = await session.scalar(
+        select(AverageCostHistory.avg_cost)
+        .where(AverageCostHistory.ingredient_id == ingredient_id)
+        .order_by(AverageCostHistory.effective_at.desc())
         .limit(1)
     )
-    return None if value is None else Decimal(str(value))
+    return None if cost is None else Decimal(str(cost))
 
 
-async def refresh_costing(session: AsyncSession, from_month: int) -> None:
-    """Recompute `from_month` and every later month, then price unpriced write-offs.
+async def value_at_current_cost(session: AsyncSession, movement: StockMovement) -> None:
+    """A draw, write-off or stocktake adjustment: valued at the unit cost in force, once."""
+    movement.value = movement_value(
+        movement.qty, await current_unit_cost(session, movement.ingredient_id)
+    )
 
-    A change in one month shifts the opening value of the next, so the whole tail is redone.
+
+async def _record(
+    session: AsyncSession,
+    ingredient_id: int,
+    unit_cost: Decimal,
+    stock_after: Decimal,
+    movement: StockMovement | None,
+) -> AverageCostHistory:
+    if movement is not None and movement.id is None:
+        await session.flush()
+    moment = _to_millisecond(business_date.now())
+    latest = await session.scalar(
+        select(func.max(AverageCostHistory.effective_at)).where(
+            AverageCostHistory.ingredient_id == ingredient_id
+        )
+    )
+    # Two recalculations inside one millisecond still need distinct, ordered keys.
+    if latest is not None and moment <= latest:
+        moment = latest + MILLISECOND
+    row = AverageCostHistory(
+        ingredient_id=ingredient_id,
+        effective_at=moment,
+        avg_cost=unit_cost,
+        stock_qty=stock_after,
+        movement_id=None if movement is None else movement.id,
+    )
+    session.add(row)
+    await session.flush()
+    return row
+
+
+def _to_millisecond(moment: datetime) -> datetime:
+    naive = moment.replace(tzinfo=None)
+    return naive.replace(microsecond=naive.microsecond // 1000 * 1000)
+
+
+async def _price_backlog(session: AsyncSession, ingredient_id: int, unit_cost: Decimal) -> None:
+    """The first unit cost prices everything that moved while the ingredient had none."""
+    movements = await session.scalars(
+        select(StockMovement).where(
+            StockMovement.ingredient_id == ingredient_id, StockMovement.value.is_(None)
+        )
+    )
+    for movement in movements:
+        movement.value = movement_value(movement.qty, unit_cost)
+    lines = await session.scalars(
+        select(StockIssueLine).where(
+            StockIssueLine.ingredient_id == ingredient_id, StockIssueLine.estimated_cost.is_(None)
+        )
+    )
+    for line in lines:
+        line.estimated_cost = movement_value(line.quantity, unit_cost)
+    await session.flush()
+
+
+async def record_purchase(
+    session: AsyncSession, movement: StockMovement, *, stock_before: Decimal, unit_price: Decimal
+) -> None:
+    """A receipt line joined the stock at its own price."""
+    quantity = Decimal(str(movement.qty))
+    movement.value = money(quantity * unit_price)
+    current = await current_unit_cost(session, movement.ingredient_id)
+    if current is None:
+        unit_cost = money(unit_price)
+        await _price_backlog(session, movement.ingredient_id, unit_cost)
+    else:
+        unit_cost = blended_cost(stock_before, current, quantity, quantity * unit_price)
+    await _record(session, movement.ingredient_id, unit_cost, stock_before + quantity, movement)
+
+
+async def record_receipt_correction(
+    session: AsyncSession,
+    ingredient_id: int,
+    *,
+    stock_before: Decimal,
+    old_quantity: Decimal,
+    old_price: Decimal,
+    new_quantity: Decimal,
+    new_price: Decimal,
+    movement: StockMovement | None = None,
+) -> None:
+    """A receipt line was corrected or cancelled (`new_quantity` 0).
+
+    The old quantity and value leave the average first; only then does the corrected line join.
+    Values already written on earlier movements stay as they are.
     """
-    if _deferred.get():
+    if movement is not None:
+        movement.value = money(new_quantity * new_price - old_quantity * old_price)
+    current = await current_unit_cost(session, ingredient_id)
+    stock_without = stock_before - old_quantity
+    if current is None:
+        unit_cost = money(new_price)
+    else:
+        unit_cost = blended_cost(stock_before, current, -old_quantity, -old_quantity * old_price)
+        if new_quantity > 0:
+            unit_cost = blended_cost(
+                stock_without, unit_cost, new_quantity, new_quantity * new_price
+            )
+    await _record(session, ingredient_id, unit_cost, stock_without + new_quantity, movement)
+
+
+async def record_return(
+    session: AsyncSession,
+    ingredient_id: int,
+    *,
+    stock_before: Decimal,
+    quantity: Decimal,
+    value: Decimal | None,
+    movement: StockMovement | None = None,
+) -> None:
+    """Stock handed back by a cancelled dish, at the value it left with (FR-INV-04)."""
+    current = await current_unit_cost(session, ingredient_id)
+    if value is None or current is None:
         return
-    latest = month_key_of(_bd.now())
-    receipt_last = await session.scalar(select(func.max(GoodsReceipt.receipt_date)))
-    if receipt_last is not None:
-        latest = max(latest, month_key_of(receipt_last))
-    month = from_month
-    last = max(latest, from_month)
-    while month <= last:
-        await recompute_month(session, month)
-        await backfill_issue_costs(session, month)
-        month = _following(month)
+    unit_cost = blended_cost(stock_before, current, quantity, value)
+    await _record(session, ingredient_id, unit_cost, stock_before + quantity, movement)

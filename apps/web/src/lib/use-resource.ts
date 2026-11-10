@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ApiError } from "@/lib/api-client";
 
@@ -17,16 +17,19 @@ const FALLBACK = "Không tải được dữ liệu. Kiểm tra kết nối rồ
  */
 export function useResource<T>(
   fetcher: () => Promise<T>,
-): Resource<T> & { reload: () => void } {
+): Resource<T> & { reload: () => void; refresh: () => void } {
   const [state, setState] = useState<Resource<T>>({ status: "loading" });
   const [version, setVersion] = useState(0);
+  const background = useRef(false);
 
   useEffect(() => {
     let active = true;
+    const isBackground = background.current;
     fetcher().then(
       (data) => active && setState({ status: "ready", data }),
       (error: unknown) =>
         active &&
+        !isBackground &&
         setState({
           status: "error",
           message: error instanceof ApiError ? error.message : FALLBACK,
@@ -38,9 +41,17 @@ export function useResource<T>(
   }, [fetcher, version]);
 
   const reload = useCallback(() => {
+    background.current = false;
     setState({ status: "loading" });
     setVersion((value) => value + 1);
   }, []);
 
-  return { ...state, reload };
+  // For polling: the screen and any open dialog stay mounted, and a failed poll keeps
+  // the last data instead of replacing the screen with an error.
+  const refresh = useCallback(() => {
+    background.current = true;
+    setVersion((value) => value + 1);
+  }, []);
+
+  return { ...state, reload, refresh };
 }

@@ -390,16 +390,19 @@ export function IngredientList() {
         </>
       )}
 
-      <IngredientFormDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        title="Thêm nguyên liệu"
-        initial={EMPTY_FORM}
-        unitLocked={false}
-        unitError={null}
-        pending={create.pending}
-        onSubmit={handleCreate}
-      />
+      {/* Mounted per opening, so a new ingredient never inherits the last one's values. */}
+      {createOpen && (
+        <IngredientFormDialog
+          open
+          onOpenChange={setCreateOpen}
+          title="Thêm nguyên liệu"
+          initial={EMPTY_FORM}
+          unitLocked={false}
+          unitError={null}
+          pending={create.pending}
+          onSubmit={handleCreate}
+        />
+      )}
 
       {editIngredient && (
         <IngredientFormDialog

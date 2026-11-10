@@ -41,7 +41,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { apiFetch } from "@/lib/api-client";
-import { formatDateTime, formatNumber } from "@/lib/format";
+import { formatDateTime, formatNumber, formatVnd } from "@/lib/format";
 import { useAction } from "@/lib/use-action";
 import { useResource } from "@/lib/use-resource";
 
@@ -85,7 +85,143 @@ type PreparedPreviewLine = {
   ingredient_name: string;
   unit: string;
   quantity: number;
+  value?: number | null;
 };
+
+type IssuePreviewLine = {
+  MaNguyenLieu: number;
+  TenNguyenLieu: string;
+  DonViTinh: string;
+  MaLoNguyenLieu: number;
+  HanSuDung: string | null;
+  SoLuongHuy: number;
+  TonLoConLai: number;
+  GiaTri: number | null;
+};
+
+type IssuePreview = {
+  lines: IssuePreviewLine[];
+  TongGiaTri: number | null;
+  LuotGiuBiGiaiPhong: {
+    MaGiuCho: number;
+    MaLuotChon: string;
+    MaLoNguyenLieu: number;
+    SoLuongGiu: number;
+  }[];
+};
+
+// FR-INV-05: the voucher is written only after this preview is confirmed.
+type Review =
+  | { source: "Nguyên liệu"; data: IssuePreview }
+  | { source: "Món đã chế biến"; data: PreparedPreviewData[] };
+
+const PREVIEWED_SOURCES = ["Nguyên liệu", "Món đã chế biến"];
+
+function valueLabel(value: number | null | undefined): string {
+  return value === null || value === undefined
+    ? "Chưa xác định"
+    : formatVnd(value);
+}
+
+function IssueReview({ review }: { review: Review }) {
+  if (review.source === "Món đã chế biến") {
+    return (
+      <Table>
+        <caption className="sr-only">
+          Xem trước xuất hủy món đã chế biến
+        </caption>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Dòng món</TableHead>
+            <TableHead>Nguyên liệu</TableHead>
+            <TableHead className="text-right">Số lượng</TableHead>
+            <TableHead className="text-right">Giá trị</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {review.data.flatMap((item) =>
+            item.lines.map((line) => (
+              <TableRow key={`${item.order_line_id}-${line.ingredient_id}`}>
+                <TableCell className="tabular-nums">
+                  #{item.order_line_id} · {item.servings} suất
+                </TableCell>
+                <TableCell>
+                  {line.ingredient_name} ({line.unit})
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {formatNumber(line.quantity)}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {valueLabel(line.value)}
+                </TableCell>
+              </TableRow>
+            )),
+          )}
+        </TableBody>
+      </Table>
+    );
+  }
+  const { lines, TongGiaTri, LuotGiuBiGiaiPhong } = review.data;
+  return (
+    <div className="space-y-3">
+      <Table>
+        <caption className="sr-only">Xem trước xuất hủy nguyên liệu</caption>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Nguyên liệu</TableHead>
+            <TableHead>Lô</TableHead>
+            <TableHead className="text-right">Lượng hủy</TableHead>
+            <TableHead className="text-right">Tồn lô còn lại</TableHead>
+            <TableHead className="text-right">Giá trị</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {lines.map((line) => (
+            <TableRow key={`${line.MaNguyenLieu}-${line.MaLoNguyenLieu}`}>
+              <TableCell className="font-medium">
+                {line.TenNguyenLieu} ({line.DonViTinh})
+              </TableCell>
+              <TableCell className="tabular-nums">
+                #{line.MaLoNguyenLieu}
+                {line.HanSuDung ? ` · HSD ${line.HanSuDung}` : ""}
+              </TableCell>
+              <TableCell className="text-right tabular-nums">
+                {formatNumber(line.SoLuongHuy)}
+              </TableCell>
+              <TableCell className="text-right tabular-nums">
+                {formatNumber(line.TonLoConLai)}
+              </TableCell>
+              <TableCell className="text-right tabular-nums">
+                {valueLabel(line.GiaTri)}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      <p className="text-right text-sm">
+        Tổng giá trị hủy: <strong>{valueLabel(TongGiaTri)}</strong>
+      </p>
+      {LuotGiuBiGiaiPhong.length > 0 ? (
+        <div
+          role="status"
+          className="rounded-control border border-warning bg-warning-subtle px-3 py-2 text-sm"
+        >
+          <p className="font-medium">
+            {LuotGiuBiGiaiPhong.length} lượt giữ món sẽ bị giải phóng:
+          </p>
+          <ul className="mt-1 list-inside list-disc">
+            {LuotGiuBiGiaiPhong.map((hold) => (
+              <li key={`${hold.MaGiuCho}-${hold.MaLoNguyenLieu}`}>
+                Lượt #{hold.MaGiuCho} · lô #{hold.MaLoNguyenLieu} ·{" "}
+                {formatNumber(hold.SoLuongGiu)}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 type PreparedPreviewData = {
   order_line_id: number;
@@ -192,6 +328,7 @@ function IssueForm({
   );
   const stocktakes = useResource(loadStocktakes);
   const [error, setError] = useState<string | null>(null);
+  const [review, setReview] = useState<Review | null>(null);
 
   function updateLine(key: string, patch: Partial<DraftLine>) {
     setLines((prev) =>
@@ -228,51 +365,110 @@ function IssueForm({
     }
   }
 
-  async function submit() {
+  function validate(): boolean {
     setError(null);
     if (source === "Món đã chế biến") {
       if (lines.some((l) => !l.orderLineId || !(Number(l.servings) > 0))) {
         setError("Chọn dòng món và nhập số suất hủy.");
-        return;
+        return false;
       }
     } else {
       if (lines.some((l) => !l.ingredientId)) {
         setError("Chọn nguyên liệu cho từng dòng.");
-        return;
+        return false;
       }
       if (lines.some((l) => !(Number(l.quantity) > 0))) {
         setError("Số lượng phải lớn hơn 0.");
-        return;
+        return false;
       }
     }
     if (source === "Kiểm kê" && !stocktakeId) {
       setError("Chọn phiếu kiểm kê đã chốt.");
+      return false;
+    }
+    return true;
+  }
+
+  function requestBody() {
+    return {
+      reason,
+      source,
+      stocktake_id: stocktakeId ? Number(stocktakeId) : null,
+      lines:
+        source === "Món đã chế biến"
+          ? lines.map((l) => ({
+              order_line_id: Number(l.orderLineId),
+              servings: Number(l.servings),
+            }))
+          : lines.map((l) => ({
+              ingredient_id: Number(l.ingredientId),
+              quantity: Number(l.quantity),
+              lot_id: l.lotId ? Number(l.lotId) : null,
+            })),
+    };
+  }
+
+  async function showReview() {
+    if (!validate()) return;
+    if (source === "Món đã chế biến") {
+      const data = await run(() =>
+        Promise.all(
+          lines.map((l) =>
+            apiFetch<PreparedPreviewData>(
+              `/inventory/issues/prepared-preview?order_line_id=${l.orderLineId}&servings=${l.servings}`,
+            ),
+          ),
+        ),
+      );
+      if (data !== undefined) setReview({ source: "Món đã chế biến", data });
       return;
     }
+    const data = await run(() =>
+      apiFetch<IssuePreview>("/inventory/issues/preview", {
+        method: "POST",
+        body: requestBody(),
+      }),
+    );
+    if (data !== undefined) setReview({ source: "Nguyên liệu", data });
+  }
+
+  async function submit() {
+    if (!validate()) return;
     const result = await run(
       () =>
-        apiFetch("/inventory/issues", {
-          method: "POST",
-          body: {
-            reason,
-            source,
-            stocktake_id: stocktakeId ? Number(stocktakeId) : null,
-            lines:
-              source === "Món đã chế biến"
-                ? lines.map((l) => ({
-                    order_line_id: Number(l.orderLineId),
-                    servings: Number(l.servings),
-                  }))
-                : lines.map((l) => ({
-                    ingredient_id: Number(l.ingredientId),
-                    quantity: Number(l.quantity),
-                    lot_id: l.lotId ? Number(l.lotId) : null,
-                  })),
-          },
-        }),
+        apiFetch("/inventory/issues", { method: "POST", body: requestBody() }),
       "Đã ghi nhận xuất kho. Nếu lô đang được giữ, hệ thống đã giải phóng lượt giữ — kiểm tra lại dòng món liên quan.",
     );
     if (result !== undefined) onCreated();
+  }
+
+  if (review !== null) {
+    return (
+      <div className="space-y-4">
+        <p className="text-sm text-muted">
+          Lý do: <strong>{reason}</strong> · Nguồn: <strong>{source}</strong>.
+          Chưa có gì được ghi; phiếu chỉ được lưu khi bạn chọn Xác nhận.
+        </p>
+        <IssueReview review={review} />
+        {actionError ? (
+          <p role="alert" className="text-danger-fg">
+            {actionError}
+          </p>
+        ) : null}
+        <div className="flex justify-end gap-2 border-t border-border pt-4">
+          <Button
+            variant="secondary"
+            onClick={() => setReview(null)}
+            disabled={pending}
+          >
+            Quay lại sửa
+          </Button>
+          <Button onClick={submit} disabled={pending}>
+            {pending ? "Đang ghi nhận…" : "Xác nhận"}
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -513,9 +709,15 @@ function IssueForm({
       ) : null}
 
       <div className="flex justify-end border-t border-border pt-4">
-        <Button onClick={submit} disabled={pending}>
-          {pending ? "Đang ghi nhận…" : "Ghi nhận xuất kho"}
-        </Button>
+        {PREVIEWED_SOURCES.includes(source) ? (
+          <Button onClick={showReview} disabled={pending}>
+            {pending ? "Đang tính…" : "Xem trước"}
+          </Button>
+        ) : (
+          <Button onClick={submit} disabled={pending}>
+            {pending ? "Đang ghi nhận…" : "Ghi nhận xuất kho"}
+          </Button>
+        )}
       </div>
     </div>
   );

@@ -15,12 +15,53 @@ const stockItems = [
   { MaNguyenLieu: 2, TenNguyenLieu: "Muối", SoLuongTon: 5 },
 ];
 
+const previewItems = [
+  {
+    MaNguyenLieu: 1,
+    TenNguyenLieu: "Gạo",
+    TonTruocDieuChinh: 10,
+    TonSauDieuChinh: 9,
+    ChenhLech: -1,
+    LyDoChenhLech: "Rơi vỡ",
+  },
+  {
+    MaNguyenLieu: 2,
+    TenNguyenLieu: "Muối",
+    TonTruocDieuChinh: 5,
+    TonSauDieuChinh: 4,
+    ChenhLech: -1,
+    LyDoChenhLech: "Hao hụt",
+  },
+];
+
+async function fillCounts() {
+  fireEvent.change(await screen.findByLabelText("Tồn thực tế Gạo"), {
+    target: { value: "9" },
+  });
+  fireEvent.change(screen.getByLabelText("Tồn thực tế Muối"), {
+    target: { value: "4" },
+  });
+  fireEvent.change(screen.getByLabelText("Lý do chênh lệch Gạo"), {
+    target: { value: "Rơi vỡ" },
+  });
+  fireEvent.change(screen.getByLabelText("Lý do chênh lệch Muối"), {
+    target: { value: "Hao hụt" },
+  });
+}
+
+function wrote(path: string) {
+  return fetchMock.mock.calls.some(([called]) => called === path);
+}
+
 function route() {
   fetchMock.mockImplementation(
     (path: string, options: { method?: string } = {}) => {
       const method = options.method ?? "GET";
       if (path === "/inventory/stocktakes" && method === "POST") {
         return Promise.resolve({ MaPhieuKiemKe: 1 });
+      }
+      if (path === "/inventory/stocktakes/1/preview") {
+        return Promise.resolve({ items: previewItems });
       }
       if (path === "/inventory/stocktakes/1/counts") {
         return Promise.resolve({ ok: true });
@@ -45,14 +86,14 @@ describe("StocktakePanel", () => {
     route();
   });
 
-  it("keeps the confirm button disabled until every ingredient has a count", async () => {
+  it("keeps the preview button disabled until every ingredient has a count", async () => {
     render(<StocktakePanel />);
     fireEvent.click(
       await screen.findByRole("button", { name: "Tạo phiếu kiểm kê" }),
     );
 
     const confirmButton = await screen.findByRole("button", {
-      name: "Xác nhận kiểm kê",
+      name: "Xem trước",
     });
     expect(confirmButton).toBeDisabled();
 
@@ -74,24 +115,45 @@ describe("StocktakePanel", () => {
     expect(confirmButton).toBeEnabled();
   });
 
-  it("records counts then confirms when every row is filled", async () => {
+  it("shows stock before and after and writes nothing until the preview is confirmed", async () => {
     render(<StocktakePanel />);
     fireEvent.click(
       await screen.findByRole("button", { name: "Tạo phiếu kiểm kê" }),
     );
-    fireEvent.change(await screen.findByLabelText("Tồn thực tế Gạo"), {
-      target: { value: "9" },
-    });
-    fireEvent.change(screen.getByLabelText("Tồn thực tế Muối"), {
-      target: { value: "4" },
-    });
-    fireEvent.change(screen.getByLabelText("Lý do chênh lệch Gạo"), {
-      target: { value: "Rơi vỡ" },
-    });
-    fireEvent.change(screen.getByLabelText("Lý do chênh lệch Muối"), {
-      target: { value: "Hao hụt" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Xác nhận kiểm kê" }));
+    await fillCounts();
+    fireEvent.click(screen.getByRole("button", { name: "Xem trước" }));
+
+    expect(
+      await screen.findByRole("columnheader", { name: "Tồn trước điều chỉnh" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("columnheader", { name: "Tồn sau điều chỉnh" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("row", { name: /Gạo 10 9 -1 Rơi vỡ/ }),
+    ).toBeVisible();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/inventory/stocktakes/1/preview",
+      expect.objectContaining({
+        method: "POST",
+        body: [
+          { ingredient_id: 1, actual_qty: 9, reason: "Rơi vỡ" },
+          { ingredient_id: 2, actual_qty: 4, reason: "Hao hụt" },
+        ],
+      }),
+    );
+    expect(wrote("/inventory/stocktakes/1/counts")).toBe(false);
+    expect(wrote("/inventory/stocktakes/1/confirm")).toBe(false);
+  });
+
+  it("records counts then confirms once the preview is accepted", async () => {
+    render(<StocktakePanel />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Tạo phiếu kiểm kê" }),
+    );
+    await fillCounts();
+    fireEvent.click(screen.getByRole("button", { name: "Xem trước" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Xác nhận" }));
 
     await screen.findByRole("button", { name: "Tạo phiếu kiểm kê" });
     expect(fetchMock).toHaveBeenCalledWith(
@@ -108,6 +170,26 @@ describe("StocktakePanel", () => {
       "/inventory/stocktakes/1/confirm",
       expect.objectContaining({ method: "POST" }),
     );
+  });
+
+  it("goes back to the entry sheet with the typed counts kept and nothing written", async () => {
+    render(<StocktakePanel />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Tạo phiếu kiểm kê" }),
+    );
+    await fillCounts();
+    fireEvent.click(screen.getByRole("button", { name: "Xem trước" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Quay lại sửa" }),
+    );
+
+    expect(await screen.findByLabelText("Tồn thực tế Gạo")).toHaveValue(9);
+    expect(screen.getByLabelText("Lý do chênh lệch Muối")).toHaveValue(
+      "Hao hụt",
+    );
+    expect(screen.getByRole("button", { name: "Xem trước" })).toBeEnabled();
+    expect(wrote("/inventory/stocktakes/1/counts")).toBe(false);
+    expect(wrote("/inventory/stocktakes/1/confirm")).toBe(false);
   });
 
   it("requests history page 1 with the default page size and shows the real total", async () => {

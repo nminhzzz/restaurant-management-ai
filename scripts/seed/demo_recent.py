@@ -18,7 +18,7 @@ import argparse
 import asyncio
 import random
 import sys
-from datetime import timedelta
+from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -27,25 +27,84 @@ for extra in (REPO_ROOT, REPO_ROOT / "apps" / "api" / "src"):
     if str(extra) not in sys.path:
         sys.path.insert(0, str(extra))
 
-from scripts.seed.catalog import CatalogIds
+from scripts.seed.catalog import CatalogIds, Supply, build_catalogue, use_per_order
 from scripts.seed.operations import _place_order, _receive
-from sqlalchemy import distinct, func, select
+from sqlalchemy import func, select, update
 
 from app.core.database import get_session_factory
-from app.modules.catalog.models import DiningTable, Dish, Recipe, RecipeItem, Supplier
-from app.modules.sales.models import Invoice
+from app.modules.catalog.models import (
+    DiningTable,
+    Dish,
+    Ingredient,
+    Recipe,
+    RecipeItem,
+    Supplier,
+)
+from app.modules.inventory.models import GoodsReceiptLine
+from app.modules.sales.models import Invoice, Order, OrderLine
 from app.modules.settings.models import User
 from app.shared import business_date
 from app.shared.enums import VersionStatus
 
 WEIGHT_EXPONENT = 1.1
+FRESH_SHELF_DAYS = 7
+FALLBACK_UNIT_PRICE = 50_000
+
+
+def demo_weights(count: int) -> list[float]:
+    return [1.0 / ((rank + 1) ** WEIGHT_EXPONENT) for rank in range(count)]
+
+
+async def load_supplies(session, usage: dict[int, float]) -> tuple[Supply, ...]:
+    """Restocking terms of an existing database: the seed catalogue where the name matches,
+    otherwise the ingredient's own last purchase."""
+    specs = build_catalogue().ingredients
+    suppliers = dict((await session.execute(select(Supplier.name, Supplier.id))).tuples().all())
+    fallback_supplier = next(iter(suppliers.values()), None)
+    last_prices = dict(
+        (
+            await session.execute(
+                select(GoodsReceiptLine.ingredient_id, GoodsReceiptLine.unit_price).order_by(
+                    GoodsReceiptLine.id
+                )
+            )
+        )
+        .tuples()
+        .all()
+    )
+    supplies = []
+    for ingredient_id, name, min_stock, shelf_days in await session.execute(
+        select(Ingredient.id, Ingredient.name, Ingredient.min_stock, Ingredient.shelf_days).where(
+            Ingredient.id.in_(usage)
+        )
+    ):
+        spec = specs.get(name)
+        supplies.append(
+            Supply(
+                ingredient_id=int(ingredient_id),
+                supplier_id=suppliers.get(spec.category.supplier, fallback_supplier)
+                if spec
+                else fallback_supplier,
+                unit_price=spec.unit_price
+                if spec
+                else int(last_prices.get(ingredient_id) or FALLBACK_UNIT_PRICE),
+                min_stock_kg=float(min_stock or 0),
+                restocked_daily=shelf_days is not None and shelf_days <= FRESH_SHELF_DAYS,
+                use_per_order_kg=usage[int(ingredient_id)],
+            )
+        )
+    return tuple(supplies)
 
 
 async def load_ids(session) -> CatalogIds:
     dishes = (
         await session.execute(
             select(Dish.id, Dish.name)
-            .where(Dish.is_deleted.is_(False), Dish.status == "Hoạt động")
+            .where(
+                Dish.is_deleted.is_(False),
+                Dish.missing_recipe.is_(False),
+                Dish.manual_paused.is_(False),
+            )
             .order_by(Dish.id)
         )
     ).all()
@@ -53,22 +112,21 @@ async def load_ids(session) -> CatalogIds:
         raise SystemExit("Không có món đang hoạt động để tạo dữ liệu.")
 
     dish_ids = [int(row[0]) for row in dishes]
-    ingredient_ids = list(
-        (
-            await session.execute(
-                select(distinct(RecipeItem.ingredient_id))
-                .join(Recipe, Recipe.id == RecipeItem.recipe_id)
-                .where(
-                    Recipe.dish_id.in_(dish_ids),
-                    Recipe.status == VersionStatus.HIEU_LUC.value,
-                )
-            )
+    weights = demo_weights(len(dish_ids))
+    recipes: dict[int, dict[int, float]] = {dish_id: {} for dish_id in dish_ids}
+    for dish_id, ingredient_id, quantity in await session.execute(
+        select(Recipe.dish_id, RecipeItem.ingredient_id, RecipeItem.quantity)
+        .join(Recipe, Recipe.id == RecipeItem.recipe_id)
+        .where(
+            Recipe.dish_id.in_(dish_ids),
+            Recipe.status == VersionStatus.HIEU_LUC.value,
         )
-        .scalars()
-        .all()
-    )
-    if not ingredient_ids:
+    ):
+        recipes[int(dish_id)][int(ingredient_id)] = float(quantity)
+    usage = use_per_order([recipes[dish_id] for dish_id in dish_ids], weights)
+    if not usage:
         raise SystemExit("Không tìm thấy nguyên liệu từ công thức hiện hành.")
+    supplies = await load_supplies(session, usage)
 
     table_ids = list(
         (
@@ -94,12 +152,24 @@ async def load_ids(session) -> CatalogIds:
     return CatalogIds(
         dish_names=[str(row[1]) for row in dishes],
         dish_ids=dish_ids,
-        ingredient_ids=[int(i) for i in ingredient_ids],
+        ingredient_ids=list(usage),
         table_ids=[int(t) for t in table_ids],
         supplier_ids=[supplier] if supplier is not None else [None],
         users=[],
         manager_id=manager,
+        supplies=supplies,
     )
+
+
+async def settle_past_lines(session, through: date) -> int:
+    """Mark generated past dishes as served: a waiting line would block opening a stocktake."""
+    past_orders = select(Order.id).where(Order.business_date <= through, Order.status != "Đang mở")
+    result = await session.execute(
+        update(OrderLine)
+        .where(OrderLine.status == "Chờ làm", OrderLine.order_id.in_(past_orders))
+        .values(status="Đã phục vụ")
+    )
+    return int(result.rowcount)
 
 
 async def main() -> int:
@@ -116,15 +186,17 @@ async def main() -> int:
     async with factory() as session:
         ids = await load_ids(session)
         end = business_date.business_date_of(business_date.now())
-    weights = [1.0 / ((rank + 1) ** WEIGHT_EXPONENT) for rank in range(len(ids.dish_ids))]
+    weights = demo_weights(len(ids.dish_ids))
+
+    def forecast(_day: date) -> float:
+        return args.per_day
 
     days = [end - timedelta(days=offset) for offset in range(args.days - 1, -1, -1)]
     succeeded = rejected = 0
     for index, day in enumerate(days):
         async with factory() as session:
-            # Restock at the start and twice a week so popular dishes stay sellable.
-            if index == 0 or day.weekday() in (0, 3):
-                await _receive(session, ids, rng, day, all_ingredients=True)
+            # Fresh goods every morning, dry goods on their delivery days, all on day one.
+            await _receive(session, ids, rng, day, all_ingredients=index == 0, forecast=forecast)
             for _ in range(args.per_day):
                 for _attempt in range(6):
                     outcome = await _place_order(session, ids, weights, rng, day)
@@ -132,7 +204,7 @@ async def main() -> int:
                         succeeded += 1
                         break
                     rejected += 1
-                    await _receive(session, ids, rng, day, all_ingredients=True)
+                    await _receive(session, ids, rng, day, all_ingredients=True, forecast=forecast)
                 else:
                     print(f"  bỏ {args.per_day} order ngày {day}: hết tồn")
             await session.commit()
@@ -147,6 +219,12 @@ async def main() -> int:
                 .limit(args.days)
             )
         ).all()
+    async with factory() as session:
+        settled = await settle_past_lines(
+            session, business_date.business_date_of(business_date.now())
+        )
+        await session.commit()
+    print(f"Đã chuyển {settled} dòng món cũ sang Đã phục vụ.")
     print("\nDoanh thu theo ngày:")
     for day, invoices, revenue in rows:
         print(f"  {day}: {invoices} hóa đơn · {Decimal(str(revenue or 0)):,.0f} đ")

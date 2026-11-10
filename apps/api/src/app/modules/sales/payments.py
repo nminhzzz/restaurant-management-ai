@@ -586,6 +586,29 @@ async def handle_sepay_transfer(session: AsyncSession, body: dict[str, Any]) -> 
         )
         return "unmatched"
 
+    if (
+        payment.status == QR_SUCCESS
+        and transfer.reference
+        and payment.bank_ref == transfer.reference
+        and payment.gateway_transaction_id is None
+        and transfer.amount == payment.amount
+    ):
+        # FR-SALE-15/16: the manager already confirmed this very transfer by its bank
+        # reference. The webhook is the same money arriving late, so it is linked to
+        # the payment instead of being parked as a second receipt.
+        payment.gateway_transaction_id = bank_ref
+        session.add(
+            SystemAuditLog(
+                user_id=None,
+                action="WEBHOOK_LINKED_TO_CONFIRMED_PAYMENT",
+                target_entity="GIAO_DICH_THANH_TOAN",
+                target_id=str(payment.id),
+                after={"MaGiaoDichNganHang": payment.bank_ref, "MaGiaoDichCong": bank_ref},
+            )
+        )
+        await session.flush()
+        return "duplicate"
+
     if payment.status == QR_SUCCESS:
         # New money for a payment that is already settled: never double-invoice.
         logger.warning(

@@ -356,6 +356,20 @@ export function OrderStep({
     updateLine(line.MaMon, { SoLuong: updated.SoLuong });
   }
 
+  // FR-SALE-08: the note is kept on the held line, so a reopened selection still has it.
+  // Only the note travels; the hold's quantity and deadline stay as they are.
+  async function saveNote(line: CartLine) {
+    if (!line.holdId) return;
+    try {
+      await apiFetch(`/sales/holds/${line.holdId}`, {
+        method: "PATCH",
+        body: { note: line.GhiChu.trim() || null },
+      });
+    } catch (e: unknown) {
+      setError(messageOf(e, "Không lưu được ghi chú."));
+    }
+  }
+
   async function step(line: CartLine, delta: number) {
     const next = line.SoLuong + delta;
     setError(null);
@@ -702,6 +716,7 @@ export function OrderStep({
                         onChange={(e) =>
                           updateLine(l.MaMon, { GhiChu: e.target.value })
                         }
+                        onBlur={() => saveNote(l)}
                       />
                     </label>
                     <div className="inline-flex items-center overflow-hidden rounded-control border border-border">

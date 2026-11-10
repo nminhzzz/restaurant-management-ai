@@ -15,6 +15,16 @@ export function formatNumber(
   return amount.toLocaleString("vi-VN", { maximumFractionDigits: 2 });
 }
 
+/** `45.625` → `45,6%`: one decimal, as cost ratios are shown (FR-CAT-29). */
+export function formatPercent(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value))
+    return "";
+  return `${value.toLocaleString("vi-VN", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })}%`;
+}
+
 /** `2026-09-25` → `25/09/2026`; anything that is not an ISO date passes through. */
 export function formatDate(value: string | null | undefined): string {
   if (!value) return "";

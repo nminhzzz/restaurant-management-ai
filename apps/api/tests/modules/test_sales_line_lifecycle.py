@@ -1,5 +1,7 @@
 """Phase 4 Task 2 — line status, cancel, move, cancel order."""
 
+from decimal import Decimal
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select
@@ -334,7 +336,11 @@ async def test_reducing_then_cancelling_returns_exactly_what_was_drawn(session):
     assert created.status_code == 201
     oid, lid = created.json()["MaOrder"], created.json()["lines"][0]["MaChiTietOrder"]
     assert await ingredient_total(session, d) == 7
-    await client.patch(f"/api/v1/sales/orders/{oid}/lines/{lid}", json={"SoLuong": 1}, headers=h)
+    await client.patch(
+        f"/api/v1/sales/orders/{oid}/lines/{lid}",
+        json={"SoLuong": 1, "LyDo": "khách bớt món"},
+        headers=h,
+    )
     assert await ingredient_total(session, d) == 9
 
     r = await client.post(
@@ -439,10 +445,17 @@ async def test_reducing_a_line_is_recorded_in_the_audit_log(session):
     )
     oid, lid = created.json()["MaOrder"], created.json()["lines"][0]["MaChiTietOrder"]
 
-    reduced = await client.patch(
+    without_reason = await client.patch(
         f"/api/v1/sales/orders/{oid}/lines/{lid}", json={"SoLuong": 1}, headers=h
     )
+    reduced = await client.patch(
+        f"/api/v1/sales/orders/{oid}/lines/{lid}",
+        json={"SoLuong": 1, "LyDo": "khách bớt món"},
+        headers=h,
+    )
 
+    # TC-SALE-32: no reduction, and no audit row, without a stated reason.
+    assert without_reason.status_code == 422
     assert reduced.status_code == 200
     rows = (
         (
@@ -459,6 +472,7 @@ async def test_reducing_a_line_is_recorded_in_the_audit_log(session):
     assert len(rows) == 1
     assert rows[0].user_id == actor.id
     assert rows[0].before == {"SoLuong": 3}
+    assert rows[0].reason == "khách bớt món"
     assert rows[0].after == {"SoLuong": 1}
 
 
@@ -487,3 +501,151 @@ async def test_patching_the_same_quantity_writes_no_audit_row(session):
         .all()
     )
     assert count == []
+
+
+async def _dish_without_stock(session, need):
+    """A sellable dish whose only ingredient has never been received."""
+    group = DishGroup(name="Nhóm giá vốn", display_order=1, is_deleted=False)
+    session.add(group)
+    await session.flush()
+    dish = Dish(name="Món giá vốn", group_id=group.id, is_deleted=False)
+    ingredient = Ingredient(
+        name="NL giá vốn", unit="kg", min_stock=1, stock_qty=0, is_deleted=False
+    )
+    session.add_all([dish, ingredient])
+    await session.flush()
+    bd = business_date.business_date_of(business_date.now())
+    recipe = Recipe(
+        dish_id=dish.id,
+        business_date=bd,
+        status=VersionStatus.HIEU_LUC.value,
+        change_type="Tạo mới",
+    )
+    session.add_all(
+        [
+            DishPriceVersion(
+                dish_id=dish.id,
+                price=50000,
+                business_date=bd,
+                status=VersionStatus.HIEU_LUC.value,
+                change_type="Tạo mới",
+            ),
+            recipe,
+        ]
+    )
+    await session.flush()
+    session.add(RecipeItem(recipe_id=recipe.id, ingredient_id=ingredient.id, quantity=need))
+    await session.commit()
+    return dish, ingredient.id
+
+
+async def _receive(session, client, ingredient_id, quantity, unit_price):
+    manager, _ = await _headers(session, role="MANAGER", username="manager_cost")
+    r = await client.post(
+        "/api/v1/inventory/receipts",
+        json={
+            "lines": [
+                {"ingredient_id": ingredient_id, "quantity": quantity, "unit_price": unit_price}
+            ]
+        },
+        headers=manager,
+    )
+    assert r.status_code == 201, r.text
+
+
+async def _ledger(session, ingredient_id):
+    from app.modules.inventory.models import StockMovement
+
+    rows = await session.execute(
+        select(StockMovement.kind, StockMovement.qty, StockMovement.value)
+        .where(StockMovement.ingredient_id == ingredient_id)
+        .order_by(StockMovement.id)
+    )
+    return [tuple(row) for row in rows]
+
+
+async def _cost_rows(session, ingredient_id):
+    from app.modules.inventory.models import AverageCostHistory
+
+    rows = await session.execute(
+        select(AverageCostHistory.avg_cost, AverageCostHistory.stock_qty)
+        .where(AverageCostHistory.ingredient_id == ingredient_id)
+        .order_by(AverageCostHistory.effective_at)
+    )
+    return [tuple(row) for row in rows]
+
+
+@pytest.mark.anyio
+async def test_a_sent_dish_is_valued_at_the_unit_cost_in_force_and_keeps_that_value(session):
+    """FR-INV-03: the draw is valued once; a later receipt does not reprice it."""
+    d, iid = await _dish_without_stock(session, need=20)
+    t = await _table(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    await _receive(session, client, iid, 100, 12_000)
+
+    await _submit(session, client, h, d, t)
+    await _receive(session, client, iid, 70, 18_428.57)
+
+    assert (await _ledger(session, iid))[1] == ("Trừ tự động", -20, -240_000)
+    # (80 x 12.000 + 70 x 18.428,57) / 150
+    assert (await _cost_rows(session, iid))[-1] == (15_000, 150)
+
+
+@pytest.mark.anyio
+async def test_a_cancelled_waiting_dish_returns_at_the_unit_cost_it_left_with(session):
+    """TC-BR-24: (150 x 15.000 + 20 x 12.000) / 170 = 14.647,06 and one new history row."""
+    d, iid = await _dish_without_stock(session, need=20)
+    t = await _table(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    await _receive(session, client, iid, 100, 12_000)
+    oid, lid = await _submit(session, client, h, d, t)
+    await _receive(session, client, iid, 70, 18_428.57)
+    rows_before = len(await _cost_rows(session, iid))
+
+    r = await client.post(
+        f"/api/v1/sales/orders/{oid}/lines/{lid}/cancel", json={"reason": "khách đổi ý"}, headers=h
+    )
+
+    assert r.status_code == 200, r.text
+    assert (await _ledger(session, iid))[-1] == ("Hoàn kho", 20, 240_000)
+    history = await _cost_rows(session, iid)
+    assert len(history) == rows_before + 1
+    assert history[-1] == (Decimal("14647.06"), 170)
+
+
+@pytest.mark.anyio
+async def test_a_dish_sent_before_any_receipt_is_priced_by_the_first_one(session):
+    """TC-BR-25: unknown until the first valid receipt, then priced once at its unit price."""
+    d, ing = await _setup_dish_with_stock(session, qty=5, need=1)
+    iid = ing.id
+    t = await _table(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+
+    await _submit(session, client, h, d, t)
+    assert await _ledger(session, iid) == [("Trừ tự động", -1, None)]
+    await _receive(session, client, iid, 5, 6)
+
+    assert await _ledger(session, iid) == [("Trừ tự động", -1, -6), ("Nhập", 5, 30)]
+    assert await _cost_rows(session, iid) == [(6, 9)]
+
+
+@pytest.mark.anyio
+async def test_an_old_order_still_names_a_dish_that_was_deleted_since(session):
+    """TC-CAT-10: the order detail showed 'Món #13' once the dish was soft-deleted."""
+    d, _ = await _setup_dish_with_stock(session, qty=5, dish_name="Ốc xào")
+    dish_id = d.id
+    t = await _table(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    oid, _ = await _submit(session, client, h, d, t)
+    manager, _ = await _headers(session, role="MANAGER", username="manager_delete")
+    deleted = await client.delete(f"/api/v1/catalog/dishes/{dish_id}", headers=manager)
+    assert deleted.status_code == 204, deleted.text
+
+    detail = await client.get(f"/api/v1/sales/orders/{oid}", headers=h)
+
+    assert detail.status_code == 200, detail.text
+    assert [line["TenMon"] for line in detail.json()["lines"]] == ["Ốc xào"]

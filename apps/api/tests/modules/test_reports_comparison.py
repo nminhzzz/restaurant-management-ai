@@ -142,6 +142,7 @@ async def test_the_cancelled_report_includes_consumed_ingredient_cost(
             qty=Decimal("-1"),
             business_date=date(2026, 9, 21),
             order_line_id=line.id,
+            value=Decimal("-10000"),
         )
     )
     await session.commit()

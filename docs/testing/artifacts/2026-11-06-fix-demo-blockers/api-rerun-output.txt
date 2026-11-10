@@ -1,0 +1,48 @@
+--TC-SET-01
+201 {'TenDangNhap': 'rerun1793937917', 'MaVaiTro': 'CASHIER', 'NgayTao': '2026-11-06T11:05:17.631000'}
+login new 200
+--TC-INV-05
+lots before [(18854, 1000.0, 'Còn hạn')]
+cancel 200 lots after [(18854, 0.0, 'Đã hủy')]
+audit 353 rid 353 ['MaNhatKy', 'MaNguoiDung', 'ThoiDiem', 'LoaiThaoTac', 'DoiTuong', 'MaDoiTuong', 'DuLieuTruoc', 'DuLieuSau']
+--TC-BR-19
+cancel 200 [(18855, 0.0, 'Đã hủy')] [(18856, 0.0, 'Đã hủy')]
+receipt status Đã hủy
+history kept [('Hoàn kho', -300.0), ('Nhập', 300.0)]
+--TC-BR-15
+before ('813890000.00', '0', 1323)
+201
+with receipt ('813890000.00', '373943915.91497300', 1323)
+cancel 200 after ('813890000.00', '361792640.61237700', 1323)
+--TC-BR-21
+recipe 201
+cancel 200 [(18858, 0.0, 'Đã hủy')]
+hold 422 {"error":{"code":"BUSINESS_RULE_VIOLATION","message":"Món đang hết nguyên liệu."}}
+open st 422 {"error":{"code":"BUSINESS_RULE_VIOLATION","message":"Còn món Chờ làm, hãy xử lý trước khi kiểm kê."}}
+--BR15 before ('813890000.00', '361792640.61237700', 1323)
+with ('813890000.00', '373943915.91497300', 1323)
+cancel 200 after ('813890000.00', '361792640.61237700', 1323)
+--BR21
+cancel 200 [(18860, 0.0, 'Đã hủy')]
+hold 422 {"error":{"code":"BUSINESS_RULE_VIOLATION","message":"Món đang hết nguyên liệu."}}
+open st 422 {"error":{"code":"BUSINESS_RULE_VIOLATION","message":"Còn món Chờ làm, hãy xử lý trước khi kiểm kê."}}
+--BR15 before ('819815000.00', '360678834.08667100', 1338)
+with ('819815000.00', '540233271.81825500', 1338)
+cancel 200 after ('819815000.00', '360678834.08667100', 1338)
+--BR21
+cancel 200 [(39398, 0.0, 'Đã hủy')]
+hold 422 {"error":{"code":"BUSINESS_RULE_VIOLATION","message":"Món đang hết nguyên liệu."}}
+open st 422 {"error":{"code":"BUSINESS_RULE_VIOLATION","message":"Còn món Chờ làm, hãy xử lý trước khi kiểm kê."}}
+--BR21
+cancel 200 [(39400, 0.0, 'Đã hủy')]
+hold 422 {"error":{"code":"BUSINESS_RULE_VIOLATION","message":"Món đang hết nguyên liệu."}}
+open st 201 {"MaPhieuKiemKe":1}
+counts 200
+confirm 422 {"error":{"code":"BUSINESS_RULE_VIOLATION","message":"Chưa kiểm đủ nguyên liệu đang hoạt động."}}
+lots after surplus [(39400, 0.0, 'Đã hủy')]
+cancel st 200
+--BR21 full count
+n 79 ['MaNguyenLieu', 'TenNguyenLieu', 'DonViTinh', 'SoLuongTon', 'SoLuongDuDieuKien', 'SoLuongGiu', 'SoLuongKhaDung', 'MucTonToiThieuApDung']
+counts 200
+confirm 200 {"ok":true}
+lots [(39402, 0.0, 'Đã hủy', False), (39403, 2.0, 'Còn hạn', True)]

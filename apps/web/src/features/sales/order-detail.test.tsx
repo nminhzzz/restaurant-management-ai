@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import {
+  act,
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from "@testing-library/react";
 
 vi.mock("@/lib/api-client", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api-client")>();
@@ -79,6 +85,32 @@ describe("OrderDetail", () => {
     expect(confirmButton).not.toBeDisabled();
   });
 
+  it("names a line whose dish was deleted from the menu since", async () => {
+    stubByPath({
+      "/sales/orders/1/tickets": { items: [] },
+      "/sales/orders/1": openOrder({
+        lines: [
+          {
+            MaChiTietOrder: 11,
+            MaMon: 13,
+            TenMon: "Ốc xào",
+            SoLuong: 1,
+            DonGia: 80000,
+            GhiChu: null,
+            TrangThai: "Đã phục vụ",
+          },
+        ],
+      }),
+      "/catalog/dishes": dishes,
+      "/catalog/tables": tables,
+    });
+    render(<OrderDetail orderId={1} />);
+
+    // TC-CAT-10: the menu no longer lists dish 13, the order still does.
+    expect(await screen.findByText("Ốc xào")).toBeInTheDocument();
+    expect(screen.queryByText("Món #13")).not.toBeInTheDocument();
+  });
+
   it("disables line actions once the order is locked", async () => {
     stubByPath({
       "/sales/orders/1/tickets": { items: [] },
@@ -151,6 +183,41 @@ describe("OrderDetail", () => {
       await screen.findByText(/Đã gọi thêm thành dòng món mới/),
     ).toBeInTheDocument();
   });
+
+  it("asks for a reason before a sent dish is reduced and sends it", async () => {
+    stubByPath({
+      "/sales/orders/1/tickets": { items: [] },
+      "/sales/orders/1": openOrder(),
+      "/catalog/dishes": dishes,
+      "/catalog/tables": tables,
+    });
+    render(<OrderDetail orderId={1} />);
+    fireEvent.click(await screen.findByRole("button", { name: "× 2" }));
+    expect(
+      screen.queryByLabelText("Lý do giảm số lượng"),
+    ).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Số lượng Phở bò"), {
+      target: { value: "1" },
+    });
+    // TC-SALE-32: the reduction cannot be saved until a reason is typed.
+    expect(screen.getByRole("button", { name: "Lưu" })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("Lý do giảm số lượng"), {
+      target: { value: "khách bớt món" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Lưu" }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/sales/orders/1/lines/10",
+        expect.objectContaining({
+          method: "PATCH",
+          body: { quantity: 1, reason: "khách bớt món" },
+        }),
+      ),
+    );
+  });
+
   it("queues reprints on server and shows actual delivery problems", async () => {
     stubByPath({
       "/sales/orders/1/tickets": {
@@ -182,5 +249,44 @@ describe("OrderDetail", () => {
     );
     expect(browserPrint).not.toHaveBeenCalled();
     browserPrint.mockRestore();
+  });
+
+  it("keeps an open dialog on screen while polling the print queue", async () => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    try {
+      stubByPath({
+        "/sales/orders/1/tickets": {
+          items: [
+            {
+              MaPhieuBep: 7,
+              NoiDung: "Phở bò",
+              TrangThaiIn: "Chờ in",
+              SoLanIn: 0,
+            },
+          ],
+        },
+        "/sales/orders/1": openOrder(),
+        "/catalog/dishes": dishes,
+        "/catalog/tables": tables,
+      });
+      render(<OrderDetail orderId={1} />);
+      fireEvent.click(
+        await screen.findByRole("button", { name: /Chuyển bàn/ }),
+      );
+      const picker = screen.getByRole("combobox", { name: "Bàn đích" });
+      const callsBefore = fetchMock.mock.calls.length;
+
+      act(() => {
+        vi.advanceTimersByTime(5000);
+      });
+
+      expect(picker).toBeInTheDocument();
+      await waitFor(() =>
+        expect(fetchMock.mock.calls.length).toBeGreaterThan(callsBefore),
+      );
+      expect(screen.getByRole("combobox", { name: "Bàn đích" })).toBe(picker);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

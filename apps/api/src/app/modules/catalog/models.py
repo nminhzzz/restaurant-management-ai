@@ -15,7 +15,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.shared.base import Base, BigInteger, DateTime3
+from app.shared.base import Base, BigInteger, DateTime3, clock_now
 
 
 class DishGroup(Base):
@@ -125,7 +125,7 @@ class DishPriceVersion(Base):
     )
     price: Mapped[Decimal] = mapped_column("GiaBan", DECIMAL(18, 2), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        "ThoiDiemTao", DateTime3, server_default=func.now(), nullable=False
+        "ThoiDiemTao", DateTime3, default=clock_now, server_default=func.now(), nullable=False
     )
     business_date: Mapped[date] = mapped_column("BusinessDateApDung", Date, nullable=False)
     effective_from: Mapped[datetime | None] = mapped_column(
@@ -179,7 +179,7 @@ class Recipe(Base):
     )
     version_number: Mapped[int] = mapped_column("SoPhienBan", Integer, nullable=False, default=1)
     created_at: Mapped[datetime] = mapped_column(
-        "ThoiDiemTao", DateTime3, server_default=func.now(), nullable=False
+        "ThoiDiemTao", DateTime3, default=clock_now, server_default=func.now(), nullable=False
     )
 
 

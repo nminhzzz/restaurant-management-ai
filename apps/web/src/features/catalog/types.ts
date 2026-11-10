@@ -12,6 +12,27 @@ export type Dish = {
 
 export type Group = { MaNhomMon: number; TenNhom: string };
 
+/** FR-CAT-29: manager-only estimate; every money field is null while it is unknown. */
+export type DishCost = {
+  MaMon: number;
+  TinhTrang: "Đủ dữ liệu" | "Chưa có công thức" | "Chưa đủ dữ liệu";
+  GiaBan: number | null;
+  GiaVonUocTinh: number | null;
+  TyLeGiaVon: number | null;
+  LaiGop: number | null;
+  CanhBao: boolean;
+  NguongCanhBao: number;
+  NguyenLieuThieuGia: string[];
+  ChiTiet?: {
+    MaNguyenLieu: number;
+    TenNguyenLieu: string;
+    DonViTinh: string;
+    DinhLuong: number;
+    DonGiaBinhQuan: number | null;
+    ThanhTien: number | null;
+  }[];
+};
+
 export type Ingredient = {
   MaNguyenLieu: number;
   TenNguyenLieu: string;

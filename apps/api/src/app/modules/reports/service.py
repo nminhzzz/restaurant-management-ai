@@ -49,7 +49,7 @@ def period_out(period: BusinessPeriod) -> PeriodOut:
 
 
 def month_key(month: str) -> int:
-    """`"2026-09"` → `202609`, the key of GIA_BINH_QUAN_THANG."""
+    """`"2026-09"` → `202609`, the key of a business month."""
     return month_period(month).month_key
 
 
@@ -92,7 +92,10 @@ async def hourly(session: AsyncSession, period: BusinessPeriod) -> HourlyOut:
             HourBucketOut(ThoiDiem=b.ThoiDiem, SoDon=b.SoDon, DoanhThu=b.DoanhThu)
             for b in distribution.items
         ],
-        by_weekday=[WeekdayBucketOut(Thu=b.Thu, SoDon=b.SoDon) for b in distribution.by_weekday],
+        by_weekday=[
+            WeekdayBucketOut(Thu=b.Thu, SoDon=b.SoDon, DoanhThu=float(b.DoanhThu))
+            for b in distribution.by_weekday
+        ],
         period=period_out(period),
     )
 

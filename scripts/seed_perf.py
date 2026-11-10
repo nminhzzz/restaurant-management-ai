@@ -1,4 +1,4 @@
-"""Appendix J command entry point; run through apps/api uv environment."""
+"""Appendix B.2 dataset entry point; run through apps/api uv environment."""
 
 import sys
 from pathlib import Path

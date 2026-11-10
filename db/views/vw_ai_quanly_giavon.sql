@@ -1,13 +1,13 @@
--- One row per topic record; no joins to other one-to-many topics.
+-- One row per recalculation of an ingredient's moving weighted average unit cost.
 CREATE OR REPLACE VIEW vw_ai_quanly_giavon AS
 SELECT
-  'GIA_VON_THANG' AS LoaiBanGhi,
+  'LICH_SU_GIA' AS LoaiBanGhi,
   gv.MaNguyenLieu AS MaNguyenLieu,
   n.TenNguyenLieu AS TenNguyenLieu,
   n.DonViTinh AS DonViTinh,
-  gv.Thang AS Thang,
-  gv.DonGiaBinhQuan AS GiaBinhQuanThang,
-  gv.TongSoLuongNhap AS TongSoLuongNhapThang
-FROM GIA_BINH_QUAN_THANG AS gv
+  gv.ThoiDiemHieuLuc AS ThoiDiemHieuLuc,
+  gv.DonGiaBinhQuan AS DonGiaBinhQuan,
+  gv.SoLuongTon AS SoLuongTon
+FROM LICH_SU_GIA_BINH_QUAN AS gv
 JOIN NGUYEN_LIEU AS n
   ON n.MaNguyenLieu = gv.MaNguyenLieu;
