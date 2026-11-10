@@ -44,6 +44,8 @@ import { useResource } from "@/lib/use-resource";
 
 type OrderLine = {
   MaChiTietOrder: number;
+  // Sent by the API so a soft-deleted dish still reads by name (FR-CAT-28).
+  TenMon?: string | null;
   MaMon: number;
   SoLuong: number;
   DonGia: number;
@@ -122,6 +124,7 @@ export function OrderDetail({ orderId }: { orderId: number }) {
   const [cancelLine, setCancelLine] = useState<OrderLine | null>(null);
   const [editingLine, setEditingLine] = useState<number | null>(null);
   const [qtyDraft, setQtyDraft] = useState("");
+  const [reduceReason, setReduceReason] = useState("");
   const [quantityRequestId, setQuantityRequestId] = useState("");
 
   const awaitingPrinter =
@@ -173,6 +176,9 @@ export function OrderDetail({ orderId }: { orderId: number }) {
               quantity,
               ...(quantity > line.SoLuong
                 ? { request_line_id: quantityRequestId }
+                : {}),
+              ...(quantity < line.SoLuong
+                ? { reason: reduceReason.trim() }
                 : {}),
             },
           },
@@ -344,7 +350,7 @@ export function OrderDetail({ orderId }: { orderId: number }) {
             >
               <div className="min-w-0 flex-1">
                 <p className="font-medium">
-                  {names.get(line.MaMon) ?? `Món #${line.MaMon}`}
+                  {line.TenMon ?? names.get(line.MaMon) ?? `Món #${line.MaMon}`}
                 </p>
                 {line.GhiChu && (
                   <p className="text-xs text-muted">{line.GhiChu}</p>
@@ -354,14 +360,32 @@ export function OrderDetail({ orderId }: { orderId: number }) {
               {editingLine === line.MaChiTietOrder ? (
                 <div className="flex items-center gap-1.5">
                   <Input
-                    aria-label={`Số lượng ${names.get(line.MaMon) ?? line.MaMon}`}
+                    aria-label={`Số lượng ${line.TenMon ?? names.get(line.MaMon) ?? line.MaMon}`}
                     type="number"
                     min={1}
                     className="h-9 w-16"
                     value={qtyDraft}
                     onChange={(e) => setQtyDraft(e.target.value)}
                   />
-                  <Button size="sm" onClick={() => saveQuantity(line)}>
+                  {/* FR-SALE-07: reducing a sent dish needs a stated reason. */}
+                  {Number(qtyDraft) >= 1 && Number(qtyDraft) < line.SoLuong ? (
+                    <Input
+                      aria-label="Lý do giảm số lượng"
+                      placeholder="Lý do giảm"
+                      className="h-9 w-40"
+                      value={reduceReason}
+                      onChange={(e) => setReduceReason(e.target.value)}
+                    />
+                  ) : null}
+                  <Button
+                    size="sm"
+                    disabled={
+                      Number(qtyDraft) >= 1 &&
+                      Number(qtyDraft) < line.SoLuong &&
+                      reduceReason.trim() === ""
+                    }
+                    onClick={() => saveQuantity(line)}
+                  >
                     Lưu
                   </Button>
                   <Button
@@ -381,6 +405,7 @@ export function OrderDetail({ orderId }: { orderId: number }) {
                     setEditingLine(line.MaChiTietOrder);
                     setQuantityRequestId(crypto.randomUUID());
                     setQtyDraft(String(line.SoLuong));
+                    setReduceReason("");
                   }}
                 >
                   × {line.SoLuong}
@@ -566,7 +591,7 @@ export function OrderDetail({ orderId }: { orderId: number }) {
       <ConfirmDialog
         open={cancelLine !== null}
         onOpenChange={(open) => !open && setCancelLine(null)}
-        title={`Hủy ${cancelLine ? (names.get(cancelLine.MaMon) ?? `món #${cancelLine.MaMon}`) : ""}?`}
+        title={`Hủy ${cancelLine ? (cancelLine.TenMon ?? names.get(cancelLine.MaMon) ?? `món #${cancelLine.MaMon}`) : ""}?`}
         confirmLabel="Hủy món"
         danger
         requireReason

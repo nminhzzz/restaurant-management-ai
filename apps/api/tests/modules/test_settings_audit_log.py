@@ -1,7 +1,5 @@
 """Audit log FR-SET-08/09."""
 
-from datetime import UTC, datetime
-
 import pytest
 from httpx import ASGITransport, AsyncClient
 
@@ -10,6 +8,7 @@ from app.core.security import create_access_token, hash_password
 from app.main import app
 from app.modules.settings.models import User
 from app.modules.settings.service import seed_reference_data
+from app.shared import business_date
 from app.shared.roles import Role
 
 
@@ -156,7 +155,8 @@ async def test_the_date_range_filter_narrows_by_occurred_at(session):
         )
         assert created.status_code == 201
 
-        today = datetime.now(UTC).date().isoformat()
+        # Audit rows are stamped by the application clock, which the suite pins.
+        today = business_date.now().date().isoformat()
         in_range = await client.get(
             f"/api/v1/settings/audit-log?date_from={today}&date_to={today}",
             headers={"Authorization": f"Bearer {token}"},

@@ -127,16 +127,6 @@ FROM NGUYEN_LIEU n
 WHERE n.DaXoa = 0
 UNION ALL
 SELECT
-    'GIA_VON_THANG', NULL, NULL, NULL, NULL, NULL, NULL,
-    NULL, NULL, NULL, NULL, NULL, NULL,
-    NULL, NULL, NULL, NULL, NULL,
-    gv.MaNguyenLieu, n.TenNguyenLieu, n.DonViTinh, NULL, NULL,
-    gv.Thang, gv.DonGiaBinhQuan, gv.TongSoLuongNhap,
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
-FROM GIA_BINH_QUAN_THANG gv
-JOIN NGUYEN_LIEU n ON n.MaNguyenLieu = gv.MaNguyenLieu
-UNION ALL
-SELECT
     'GIAO_DICH_KHO', ct.MaOrder, g.BusinessDate, NULL, o.TrangThai, NULL, NULL,
     NULL, NULL, NULL, NULL, NULL, NULL,
     NULL, NULL, NULL, NULL, NULL,

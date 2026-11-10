@@ -95,6 +95,37 @@ describe("IngredientList", () => {
     expect(sugar).toHaveTextContent("0");
   });
 
+  it("opens the add dialog empty after a previous ingredient was saved", async () => {
+    mockFetch.mockResolvedValue({ items: [] });
+    render(<IngredientList />);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Thêm nguyên liệu" }),
+    );
+    fireEvent.change(screen.getByLabelText("Tên nguyên liệu"), {
+      target: { value: "Thịt bò" },
+    });
+    fireEvent.change(screen.getByLabelText("Đơn vị tính"), {
+      target: { value: "g" },
+    });
+    fireEvent.change(screen.getByLabelText("Mức tồn tối thiểu"), {
+      target: { value: "500" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Lưu" }));
+    await vi.waitFor(() =>
+      expect(
+        screen.queryByLabelText("Tên nguyên liệu"),
+      ).not.toBeInTheDocument(),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Thêm nguyên liệu" }));
+
+    const field = (label: string) =>
+      (screen.getByLabelText(label) as HTMLInputElement).value;
+    expect(field("Tên nguyên liệu")).toBe("");
+    expect(field("Mức tồn tối thiểu")).toBe("");
+  });
+
   it("sends the shelf life when creating an ingredient", async () => {
     mockFetch.mockResolvedValue({ items: [] });
     render(<IngredientList />);

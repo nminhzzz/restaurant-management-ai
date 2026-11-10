@@ -20,6 +20,7 @@ const config = {
   SoNgayCanhBaoHetHan: 3,
   ThoiGianGiuChoPhut: 5,
   SoCauHoiAIMoiNgay: 50,
+  TyLeGiaVonCanhBao: 40,
 };
 
 describe("ConfigPanel", () => {
@@ -47,6 +48,37 @@ describe("ConfigPanel", () => {
         expect.objectContaining({
           method: "PUT",
           body: expect.objectContaining({ TenNhaHang: "Nhà hàng mới" }),
+        }),
+      ),
+    );
+  });
+
+  it("saves the cost-ratio warning threshold and refuses a value outside 1 to 100", async () => {
+    fetchMock.mockResolvedValue(config);
+
+    render(<ConfigPanel />);
+
+    const threshold = await screen.findByLabelText(
+      "Ngưỡng cảnh báo tỷ lệ giá vốn của món (%)",
+    );
+    expect(threshold).toHaveValue("40");
+    fireEvent.change(threshold, { target: { value: "0" } });
+    expect(
+      screen.getByText("Ngưỡng tỷ lệ giá vốn phải từ 1 đến 100."),
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "Lưu cấu hình" })).toBeDisabled();
+    fireEvent.change(threshold, { target: { value: "101" } });
+    expect(screen.getByRole("button", { name: "Lưu cấu hình" })).toBeDisabled();
+
+    fireEvent.change(threshold, { target: { value: "35,5" } });
+    fireEvent.click(screen.getByRole("button", { name: "Lưu cấu hình" }));
+
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/settings/config",
+        expect.objectContaining({
+          method: "PUT",
+          body: expect.objectContaining({ TyLeGiaVonCanhBao: 35.5 }),
         }),
       ),
     );

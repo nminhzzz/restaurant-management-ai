@@ -23,6 +23,9 @@ describe("ComparisonReport", () => {
     expect(screen.getByRole("img")).toBeInTheDocument();
     expect(await screen.findByText(/Tăng 20/)).toBeInTheDocument();
     expect(screen.getByText(/Tăng 25/)).toBeInTheDocument();
+    // TC-REP-08: the absolute difference stays visible next to the percentage.
+    expect(screen.getByText("+200.000 ₫")).toBeInTheDocument();
+    expect(screen.getByText("+100.000 ₫")).toBeInTheDocument();
     expect(screen.getByText("Giá vốn")).toBeInTheDocument();
   });
 

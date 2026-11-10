@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.errors import BusinessRuleError, NotFoundError
 from app.modules.catalog.models import DiningTable, Dish, DishPriceVersion
 from app.modules.catalog.versions import recipe_items
+from app.modules.inventory.costing import money, record_return
 from app.modules.inventory.lot_status import sync_lot_status
 from app.modules.inventory.models import IngredientLot, StockMovement
 from app.modules.inventory.stock import (
@@ -238,6 +239,11 @@ async def _return_line_stock(
     for ingredient_id, amount in needed.items():
         remaining = amount
         skip = returned.get(ingredient_id, Decimal(0))
+        ingredient = locked_ingredients[ingredient_id]
+        stock_before = Decimal(str(ingredient.stock_qty)) if ingredient is not None else Decimal(0)
+        handed_back = Decimal(0)
+        handed_back_value: Decimal | None = Decimal(0)
+        last_return: StockMovement | None = None
         for movement in drawings:
             if remaining <= 0:
                 break
@@ -260,22 +266,40 @@ async def _return_line_stock(
             if lot is not None:
                 lot.quantity_remaining = Decimal(str(lot.quantity_remaining)) + take
                 await sync_lot_status(session, lot)
-            ingredient = locked_ingredients[ingredient_id]
             if ingredient is not None:
                 ingredient.stock_qty = Decimal(str(ingredient.stock_qty)) + take
-            session.add(
-                StockMovement(
-                    ingredient_id=ingredient_id,
-                    lot_id=movement.lot_id,
-                    kind=StockMovementType.HOAN_KHO,
-                    qty=take,
-                    business_date=_bd_of(now),
-                    order_line_id=line.id,
-                    performed_by=actor_id,
-                )
+            # FR-INV-04: the stock comes back at the unit cost it left with, not today's.
+            value = (
+                None
+                if movement.value is None
+                else money(-Decimal(str(movement.value)) * take / drawn)
+            )
+            last_return = StockMovement(
+                ingredient_id=ingredient_id,
+                lot_id=movement.lot_id,
+                kind=StockMovementType.HOAN_KHO,
+                qty=take,
+                business_date=_bd_of(now),
+                order_line_id=line.id,
+                performed_by=actor_id,
+                value=value,
+            )
+            session.add(last_return)
+            handed_back += take
+            handed_back_value = (
+                None if value is None or handed_back_value is None else handed_back_value + value
             )
             returned[movement.lot_id] = returned.get(movement.lot_id, Decimal(0)) + take
             remaining -= take
+        if last_return is not None:
+            await record_return(
+                session,
+                ingredient_id,
+                stock_before=stock_before,
+                quantity=handed_back,
+                value=handed_back_value,
+                movement=last_return,
+            )
     await session.flush()
 
 
@@ -599,6 +623,7 @@ async def update_line(
     *,
     actor_id: int | None = None,
     request_line_id: str | None = None,
+    reason: str | None = None,
 ) -> OrderLine:
     await ensure_no_open_stocktake(session)
     order = await _lock_order(session, order_id)
@@ -650,6 +675,10 @@ async def update_line(
     if line.status != LINE_WAITING:
         raise BusinessRuleError("Chỉ sửa món ở trạng thái Chờ.")
     if delta < 0:
+        # FR-SALE-07: taking a sent dish off the order needs a stated reason.
+        reason = (reason or "").strip()
+        if not reason:
+            raise BusinessRuleError("Cần nhập lý do khi giảm số lượng món đã gửi.")
         previous_quantity = int(line.quantity)
         await _return_line_stock(session, line, Decimal(-delta), actor_id=actor_id)
         line.quantity = quantity
@@ -661,6 +690,7 @@ async def update_line(
                 target_id=str(line.id),
                 before={"SoLuong": previous_quantity},
                 after={"SoLuong": quantity},
+                reason=reason[:255],
             )
         )
     line.total = Decimal(str(line.unit_price)) * int(line.quantity)

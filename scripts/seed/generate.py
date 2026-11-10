@@ -1,8 +1,8 @@
 """Entry point of `make seed`.
 
 Reference data first — the three roles and the singleton config row are what every
-foreign key in the dataset ultimately hangs from — then the catalogue, then a year of
-operations, all through the module services so the data obeys the business invariants.
+foreign key in the dataset ultimately hangs from — then the catalogue, then two months
+of operations, all through the module services so the data obeys the business invariants.
 """
 
 import argparse
@@ -10,7 +10,7 @@ import asyncio
 import json
 import sys
 from dataclasses import asdict
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 # `make seed` runs this file by path, so sys.path[0] is `scripts/seed/` and the
@@ -22,13 +22,12 @@ if str(REPO_ROOT) not in sys.path:
 from alembic.runtime.migration import MigrationContext  # noqa: E402
 from scripts.seed.catalog import seed_catalog  # noqa: E402
 from scripts.seed.config import SeedConfig  # noqa: E402
-from scripts.seed.operations import SeedSummary, seed_operations  # noqa: E402
+from scripts.seed.operations import SeedSummary, seed_days, seed_operations  # noqa: E402
 from sqlalchemy.engine import make_url  # noqa: E402
 
 from app.core.config import get_settings  # noqa: E402
 from app.core.database import get_session_factory  # noqa: E402
 from app.modules.settings.service import seed_reference_data  # noqa: E402
-from app.shared import business_date  # noqa: E402
 
 
 def seed_report(
@@ -36,7 +35,7 @@ def seed_report(
 ) -> dict:
     """Emit reproducibility metadata through an explicit credential-free allowlist."""
     url = make_url(database_url)
-    end = business_date.business_date_of(config.now)
+    days = seed_days(config)
     return {
         "status": "completed",
         "config": {
@@ -44,8 +43,8 @@ def seed_report(
             "months": config.months,
             "orders_target": config.orders_target,
             "now": config.now.isoformat(),
-            "business_date_start": (end - timedelta(days=config.months * 30)).isoformat(),
-            "business_date_end": end.isoformat(),
+            "business_date_start": days[0].isoformat(),
+            "business_date_end": days[-1].isoformat(),
         },
         "database": {
             "dialect": url.get_backend_name(),
@@ -58,7 +57,8 @@ def seed_report(
 
 
 async def generate(config: SeedConfig) -> None:
-    print(f"[seed] seed={config.seed} months={config.months} target={config.orders_target}")
+    target = "theo ngày" if config.orders_target is None else config.orders_target
+    print(f"[seed] seed={config.seed} months={config.months} target={target}")
     factory = get_session_factory()
     async with factory() as session:
         await seed_reference_data(session)
@@ -85,10 +85,14 @@ async def generate(config: SeedConfig) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Sinh dữ liệu mô phỏng 12 tháng.")
+    parser = argparse.ArgumentParser(description="Sinh dữ liệu mô phỏng 2 tháng.")
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--months", type=int, default=12)
-    parser.add_argument("--orders", type=int, default=20_000)
+    parser.add_argument("--months", type=int, default=2)
+    parser.add_argument(
+        "--orders",
+        type=int,
+        help="Ép tổng số order (mặc định: 70 order ngày thường, 110 order cuối tuần, ±15%%).",
+    )
     parser.add_argument(
         "--now",
         type=datetime.fromisoformat,

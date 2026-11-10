@@ -168,9 +168,14 @@ async def update_hold(
     session: AsyncSession = Depends(get_session),
     user: Principal = Depends(require_roles(Role.MANAGER, Role.CASHIER)),
 ):
-    hold = await reservations.update_hold(
-        session, hold_id=hold_id, user_id=user.user_id, quantity=payload.quantity
-    )
+    if "note" in payload.model_fields_set:
+        hold = await reservations.update_hold_note(
+            session, hold_id=hold_id, user_id=user.user_id, note=payload.note
+        )
+    if payload.quantity is not None:
+        hold = await reservations.update_hold(
+            session, hold_id=hold_id, user_id=user.user_id, quantity=payload.quantity
+        )
     await session.commit()
     return await _hold_payload(session, hold)
 
@@ -263,7 +268,21 @@ async def get_order(
         .scalars()
         .all()
     )
-    return _order_payload(order, lines)
+    payload = _order_payload(order, lines)
+    # FR-CAT-28: an order keeps the names of its dishes after a dish is soft-deleted,
+    # so they are read here rather than from the menu the client can still see.
+    names = dict(
+        (
+            await session.execute(
+                select(Dish.id, Dish.name).where(Dish.id.in_({line.dish_id for line in lines}))
+            )
+        )
+        .tuples()
+        .all()
+    )
+    for line in payload["lines"]:
+        line["TenMon"] = names.get(line["MaMon"])
+    return payload
 
 
 @router.post("/orders/{order_id}/lines", status_code=201)
@@ -334,6 +353,7 @@ async def patch_order_line(
         int(quantity),
         actor_id=user.user_id,
         request_line_id=payload.get("request_line_id"),
+        reason=payload.get("reason") or payload.get("LyDo"),
     )
     await session.commit()
     return {

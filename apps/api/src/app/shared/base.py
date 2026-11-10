@@ -45,9 +45,20 @@ class Base(DeclarativeBase):
     metadata = MetaData(naming_convention=NAMING_CONVENTION)
 
 
+def clock_now() -> datetime:
+    """Column default taken from the application clock rather than the database's.
+
+    Live, the two agree. When history is replayed (the seed) a row then carries the moment
+    it describes instead of the moment the generator happened to run.
+    """
+    from app.shared import business_date
+
+    return business_date.now()
+
+
 class CreatedAtMixin:
     created_at: Mapped[datetime] = mapped_column(
-        "NgayTao", DateTime3, server_default=func.now(), nullable=False
+        "NgayTao", DateTime3, default=clock_now, server_default=func.now(), nullable=False
     )
 
 

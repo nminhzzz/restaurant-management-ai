@@ -16,7 +16,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.shared.base import Base, BigInteger, DateTime3
+from app.shared.base import Base, BigInteger, DateTime3, clock_now
 
 
 def _initial_quantity(context) -> Decimal:
@@ -27,7 +27,7 @@ class GoodsReceipt(Base):
     __tablename__ = "PHIEU_NHAP_KHO"
     id: Mapped[int] = mapped_column("MaPhieuNhap", BigInteger, primary_key=True, autoincrement=True)
     receipt_date: Mapped[datetime] = mapped_column(
-        "NgayNhap", DateTime3, server_default=func.now(), nullable=False
+        "NgayNhap", DateTime3, default=clock_now, server_default=func.now(), nullable=False
     )
     supplier_id: Mapped[int | None] = mapped_column(
         "MaNCC",
@@ -99,7 +99,7 @@ class IngredientLot(Base):
         "TrangThai", String(20), nullable=False, default="C\u00f2n h\u1ea1n"
     )
     received_at: Mapped[datetime] = mapped_column(
-        "NgayNhap", DateTime3, server_default=func.now(), nullable=False
+        "NgayNhap", DateTime3, default=clock_now, server_default=func.now(), nullable=False
     )
     is_adjustment: Mapped[bool] = mapped_column("LoDieuChinhKiemKe", default=False, nullable=False)
     expiry_date: Mapped[date | None] = mapped_column("HanSuDung", Date, nullable=True)
@@ -132,7 +132,7 @@ class StockIssue(Base):
         "TrangThai", String(20), nullable=False, default="Nh\u00e1p"
     )
     created_at: Mapped[datetime] = mapped_column(
-        "NgayTao", DateTime3, server_default=func.now(), nullable=False
+        "NgayTao", DateTime3, default=clock_now, server_default=func.now(), nullable=False
     )
     issue_date: Mapped[datetime | None] = mapped_column("NgayXuat", DateTime3, nullable=True)
     created_by: Mapped[int | None] = mapped_column(
@@ -176,7 +176,8 @@ class StockIssueLine(Base):
         nullable=False,
     )
     quantity: Mapped[Decimal] = mapped_column("SoLuong", DECIMAL(18, 6), nullable=False)
-    # NULL means "not priced yet" (QD-02): filled from the monthly average once one exists.
+    # Quantity x the unit cost in force at issue time, never recomputed. NULL while the
+    # ingredient has no unit cost; the first valid receipt prices it once.
     estimated_cost: Mapped[Decimal | None] = mapped_column(
         "GiaVonUocTinh", DECIMAL(18, 2), nullable=True
     )
@@ -196,7 +197,7 @@ class Stocktake(Base):
         "MaPhieuKiemKe", BigInteger, primary_key=True, autoincrement=True
     )
     stocktake_date: Mapped[datetime] = mapped_column(
-        "NgayKiemKe", DateTime3, server_default=func.now(), nullable=False
+        "NgayKiemKe", DateTime3, default=clock_now, server_default=func.now(), nullable=False
     )
     status: Mapped[str] = mapped_column(
         "TrangThai", String(20), nullable=False, default="\u0110ang ki\u1ec3m k\u00ea"
@@ -254,7 +255,7 @@ class StockMovement(Base):
     kind: Mapped[str] = mapped_column("LoaiGiaoDich", String(30), nullable=False)
     qty: Mapped[Decimal] = mapped_column("SoLuongThayDoi", DECIMAL(18, 6), nullable=False)
     occurred_at: Mapped[datetime] = mapped_column(
-        "ThoiDiem", DateTime3, server_default=func.now(), nullable=False
+        "ThoiDiem", DateTime3, default=clock_now, server_default=func.now(), nullable=False
     )
     business_date: Mapped[date] = mapped_column("BusinessDate", Date, nullable=False)
     receipt_line_id: Mapped[int | None] = mapped_column(
@@ -285,6 +286,9 @@ class StockMovement(Base):
     balance_after: Mapped[Decimal] = mapped_column(
         "TonSauGiaoDich", DECIMAL(18, 6), nullable=False, default=0
     )
+    # Signed like the quantity and written once, at the unit cost in force when the movement
+    # happened. NULL while the ingredient has never been priced; never 0 for "unknown".
+    value: Mapped[Decimal | None] = mapped_column("GiaTri", DECIMAL(18, 2), nullable=True)
     __table_args__ = (
         CheckConstraint(
             "((LoaiGiaoDich = 'Nh\u1eadp' AND MaChiTietNhap IS NOT NULL) OR "
@@ -299,18 +303,22 @@ class StockMovement(Base):
     )
 
 
-class MonthlyAverageCost(Base):
-    __tablename__ = "GIA_BINH_QUAN_THANG"
+class AverageCostHistory(Base):
+    """One row per recalculation of an ingredient's moving weighted average unit cost."""
+
+    __tablename__ = "LICH_SU_GIA_BINH_QUAN"
     ingredient_id: Mapped[int] = mapped_column(
         "MaNguyenLieu",
         ForeignKey("NGUYEN_LIEU.MaNguyenLieu", ondelete="RESTRICT", onupdate="RESTRICT"),
         primary_key=True,
     )
-    month: Mapped[int] = mapped_column("Thang", Integer, primary_key=True)
+    effective_at: Mapped[datetime] = mapped_column("ThoiDiemHieuLuc", DateTime3, primary_key=True)
     avg_cost: Mapped[Decimal] = mapped_column("DonGiaBinhQuan", DECIMAL(18, 2), nullable=False)
-    total_qty: Mapped[Decimal] = mapped_column(
-        "TongSoLuongNhap", DECIMAL(18, 6), nullable=False, default=0
-    )
-    computed_at: Mapped[datetime] = mapped_column(
-        "ThoiDiemTinh", DateTime3, server_default=func.now(), nullable=False
+    stock_qty: Mapped[Decimal] = mapped_column("SoLuongTon", DECIMAL(18, 6), nullable=False)
+    # NULL when only the unit price of a receipt was corrected: no stock moved.
+    movement_id: Mapped[int | None] = mapped_column(
+        "MaGiaoDichKho",
+        BigInteger,
+        ForeignKey("GIAO_DICH_KHO.MaGiaoDichKho", ondelete="RESTRICT", onupdate="RESTRICT"),
+        nullable=True,
     )

@@ -92,7 +92,13 @@ EXPECTED_COLUMNS = {
 FORBIDDEN = {"MatKhauHash", "GiaVonUocTinh", "SoDienThoai"}
 
 # FR-AI-03: the cashier must never see cost/purchase-price columns.
-FORBIDDEN_CASHIER = {"DonGiaNhap", "GiaBinhQuanThang", "TenNhaCungCap", "MaNguyenLieu"}
+FORBIDDEN_CASHIER = {
+    "DonGiaNhap",
+    "DonGiaBinhQuan",
+    "GiaBinhQuanThang",
+    "TenNhaCungCap",
+    "MaNguyenLieu",
+}
 # FR-AI-04: the warehouse role must never see revenue/invoice/amount columns.
 FORBIDDEN_WAREHOUSE = {"TongTien", "SoTien", "DonGia", "DonGiaMon", "DonGiaNhap"}
 
@@ -232,7 +238,13 @@ async def test_all_topic_views_obey_role_column_restrictions_on_mysql(
                     if role == Role.WAREHOUSE:
                         assert columns.isdisjoint(
                             FORBIDDEN_WAREHOUSE
-                            | {"GiaVonUocTinh", "GiaBinhQuanThang", "MaCongThuc", "DinhLuong"}
+                            | {
+                                "GiaVonUocTinh",
+                                "DonGiaBinhQuan",
+                                "GiaBinhQuanThang",
+                                "MaCongThuc",
+                                "DinhLuong",
+                            }
                         )
                     if view.endswith("_suat"):
                         assert columns == {"MaMon", "TenMon", "SoSuatKhaDung", "ThoiDiemTinh"}

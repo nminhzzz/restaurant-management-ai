@@ -41,6 +41,16 @@ type StockRow = {
   SoLuongTon?: number;
 };
 
+type PreviewRow = {
+  MaNguyenLieu: number;
+  TenNguyenLieu: string;
+  DonViTinh?: string;
+  TonTruocDieuChinh: number;
+  TonSauDieuChinh: number;
+  ChenhLech: number;
+  LyDoChenhLech?: string | null;
+};
+
 const HISTORY_PAGE_SIZE = 20;
 
 const STOCKTAKE_STATUSES = [
@@ -101,6 +111,8 @@ function DraftStocktake({
 }) {
   const [counts, setCounts] = useState<Record<number, string>>({});
   const [reasons, setReasons] = useState<Record<number, string>>({});
+  // FR-INV-08: the counter checks stock before and after, and only then confirms.
+  const [preview, setPreview] = useState<PreviewRow[] | null>(null);
   const { run, pending, error } = useAction();
   const loadLots = useCallback(
     () => apiFetch<{ items: LotRow[] }>("/inventory/lots?page_size=100"),
@@ -124,16 +136,29 @@ function DraftStocktake({
     return diff === 0 || (reasons[ing.MaNguyenLieu] ?? "").trim() !== "";
   });
 
-  async function confirm() {
-    const payload = ingredients.map((ing) => ({
+  function countPayload() {
+    return ingredients.map((ing) => ({
       ingredient_id: ing.MaNguyenLieu,
       actual_qty: Number(counts[ing.MaNguyenLieu]),
       reason: reasons[ing.MaNguyenLieu]?.trim() || null,
     }));
+  }
+
+  async function showPreview() {
+    const result = await run(() =>
+      apiFetch<{ items: PreviewRow[] }>(
+        `/inventory/stocktakes/${stocktakeId}/preview`,
+        { method: "POST", body: countPayload() },
+      ),
+    );
+    if (result !== undefined) setPreview(result.items);
+  }
+
+  async function confirm() {
     const recorded = await run(() =>
       apiFetch(`/inventory/stocktakes/${stocktakeId}/counts`, {
         method: "POST",
-        body: payload,
+        body: countPayload(),
       }),
     );
     if (recorded === undefined) return;
@@ -145,6 +170,76 @@ function DraftStocktake({
       "Đã xác nhận kiểm kê, cập nhật tồn kho.",
     );
     if (confirmed !== undefined) onDone();
+  }
+
+  if (preview !== null) {
+    return (
+      <div className="space-y-4">
+        <p className="text-sm text-muted">
+          Kiểm tra tồn trước và sau điều chỉnh. Tồn kho chỉ thay đổi khi bạn
+          chọn Xác nhận; kho vẫn đang khóa.
+        </p>
+        <Table>
+          <caption className="sr-only">Xem trước điều chỉnh kiểm kê</caption>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nguyên liệu</TableHead>
+              <TableHead className="text-right">Tồn trước điều chỉnh</TableHead>
+              <TableHead className="text-right">Tồn sau điều chỉnh</TableHead>
+              <TableHead className="text-right">Chênh lệch</TableHead>
+              <TableHead>Lý do chênh lệch</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {preview.map((row) => (
+              <TableRow key={row.MaNguyenLieu}>
+                <TableCell className="font-medium">
+                  {row.TenNguyenLieu}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {formatNumber(row.TonTruocDieuChinh)}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {formatNumber(row.TonSauDieuChinh)}
+                </TableCell>
+                <TableCell
+                  className={cn(
+                    "text-right tabular-nums",
+                    row.ChenhLech !== 0 && "font-semibold text-danger-fg",
+                  )}
+                >
+                  {row.ChenhLech > 0 ? "+" : ""}
+                  {formatNumber(row.ChenhLech)}
+                </TableCell>
+                <TableCell>{row.LyDoChenhLech || "—"}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+
+        {error ? (
+          <p role="alert" className="text-danger-fg">
+            {error}
+          </p>
+        ) : null}
+
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" onClick={onCancel} disabled={pending}>
+            Hủy phiên
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => setPreview(null)}
+            disabled={pending}
+          >
+            Quay lại sửa
+          </Button>
+          <Button onClick={confirm} disabled={pending}>
+            {pending ? "Đang xác nhận…" : "Xác nhận"}
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -241,8 +336,8 @@ function DraftStocktake({
         <Button variant="secondary" onClick={onCancel} disabled={pending}>
           Hủy phiên
         </Button>
-        <Button onClick={confirm} disabled={!allFilled || pending}>
-          {pending ? "Đang xác nhận…" : "Xác nhận kiểm kê"}
+        <Button onClick={showPreview} disabled={!allFilled || pending}>
+          {pending ? "Đang tính…" : "Xem trước"}
         </Button>
       </div>
     </div>

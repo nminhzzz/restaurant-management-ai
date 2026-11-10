@@ -544,3 +544,78 @@ async def test_a_partial_refund_keeps_the_exception_open_for_the_rest(session):
     await session.refresh(exception)
     assert exception.status == "Đã hoàn tiền"
     assert Decimal(str(exception.refund_amount)) == Decimal("100000")
+
+
+@pytest.mark.anyio
+async def test_a_webhook_for_money_the_manager_already_confirmed_is_linked_not_parked(session):
+    """TC-BR-06: one receipt, one invoice, and no exception for the same transfer."""
+    dish, table = await _setup(session)
+    client = await _make_client(session)
+    headers, manager = await _headers(session, role="MANAGER")
+    order_id = await _submit(session, client, headers, dish, table)
+    started = await client.post(f"/api/v1/sales/orders/{order_id}/pay/qr", headers=headers)
+    payment_id = started.json()["MaGiaoDich"]
+    amount = Decimal(str(started.json()["SoTien"]))
+    await payments.request_verification(
+        session, payment_id, actor_id=manager.id, bank_ref="FT9000187"
+    )
+    await payments.resolve_reconciliation(
+        session, payment_id, "received", actor_id=manager.id, received_amount=amount
+    )
+    await session.commit()
+    transfer = {
+        "id": "9500",
+        "transferType": "in",
+        "transferAmount": int(amount),
+        "code": f"TT{payment_id}",
+        "content": f"TT{payment_id}",
+        "referenceCode": "FT9000187",
+    }
+
+    first = await payments.handle_sepay_transfer(session, transfer)
+    second = await payments.handle_sepay_transfer(session, transfer)
+    await session.commit()
+
+    assert (first, second) == ("duplicate", "duplicate")
+    assert (await session.execute(select(PaymentException))).scalars().all() == []
+    invoices = (
+        (await session.execute(select(Invoice).where(Invoice.order_id == order_id))).scalars().all()
+    )
+    assert len(invoices) == 1
+    payment = await session.get(PaymentTransaction, payment_id)
+    assert (payment.bank_ref, payment.gateway_transaction_id) == ("FT9000187", "sepay:9500")
+
+
+@pytest.mark.anyio
+async def test_a_different_transfer_for_a_settled_payment_is_still_kept_for_review(session):
+    """Only the very transfer the manager confirmed is linked; other money stays visible."""
+    dish, table = await _setup(session)
+    client = await _make_client(session)
+    headers, manager = await _headers(session, role="MANAGER")
+    order_id = await _submit(session, client, headers, dish, table)
+    started = await client.post(f"/api/v1/sales/orders/{order_id}/pay/qr", headers=headers)
+    payment_id = started.json()["MaGiaoDich"]
+    amount = Decimal(str(started.json()["SoTien"]))
+    await payments.request_verification(
+        session, payment_id, actor_id=manager.id, bank_ref="FT9000187"
+    )
+    await payments.resolve_reconciliation(
+        session, payment_id, "received", actor_id=manager.id, received_amount=amount
+    )
+    await session.commit()
+
+    outcome = await payments.handle_sepay_transfer(
+        session,
+        {
+            "id": "9501",
+            "transferType": "in",
+            "transferAmount": int(amount),
+            "code": f"TT{payment_id}",
+            "content": f"TT{payment_id}",
+            "referenceCode": "FT-KHAC",
+        },
+    )
+    await session.commit()
+
+    assert outcome == "unmatched"
+    assert len((await session.execute(select(PaymentException))).scalars().all()) == 1

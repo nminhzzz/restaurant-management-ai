@@ -47,6 +47,31 @@ describe("GroupList", () => {
     expect(screen.queryByText("Nhóm 2")).not.toBeInTheDocument();
   });
 
+  it("sends the new order as the object the API expects when a group moves up", async () => {
+    mockFetch.mockImplementation((path: string, opts?: { method?: string }) => {
+      if (path === "/catalog/groups" && (!opts || opts.method === undefined)) {
+        return Promise.resolve([
+          { MaNhomMon: 1, TenNhom: "A" },
+          { MaNhomMon: 2, TenNhom: "B" },
+          { MaNhomMon: 3, TenNhom: "C" },
+        ]);
+      }
+      return Promise.resolve([]);
+    });
+    render(<GroupList />);
+    await screen.findByText("C");
+
+    const up = screen.getAllByRole("button", { name: "Di chuyển lên" });
+    fireEvent.click(up[up.length - 1]);
+
+    await vi.waitFor(() =>
+      expect(mockFetch).toHaveBeenCalledWith("/catalog/groups/order", {
+        method: "PUT",
+        body: { MaNhomMon: [1, 3, 2] },
+      }),
+    );
+  });
+
   it("surfaces the API's message inline when a delete is rejected", async () => {
     mockFetch.mockImplementation((path: string, opts?: { method?: string }) => {
       if (path === "/catalog/groups" && (!opts || opts.method === undefined)) {

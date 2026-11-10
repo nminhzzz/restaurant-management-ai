@@ -1,6 +1,7 @@
 """Settings service: auth, users, config, audit, backup."""
 
 from datetime import UTC, date, datetime, time, timedelta
+from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -250,6 +251,9 @@ async def reset_password(
     user = await session.get(User, user_id)
     if user is None:
         raise NotFoundError("Kh\u00f4ng t\u00ecm th\u1ea5y t\u00e0i kho\u1ea3n.")
+    # The log never holds a password or its hash; the session version is what changed
+    # that can be shown (FR-SET-07).
+    before = {"TenDangNhap": user.username, "PhienBanToken": int(user.token_version or 0)}
     user.password_hash = hash_password(new_password)
     # Every JWT issued before this moment stops working.
     user.token_version = int(user.token_version or 0) + 1
@@ -260,6 +264,12 @@ async def reset_password(
             action="RESET_PASSWORD",
             target_entity="NGUOI_DUNG",
             target_id=str(user_id),
+            before=before,
+            after={
+                "TenDangNhap": user.username,
+                "PhienBanToken": user.token_version,
+                "MatKhau": "Đã đặt lại",
+            },
         )
     )
     await session.flush()
@@ -306,6 +316,7 @@ async def update_config(
         "SoNgayCanhBaoHetHan": cfg.expiry_warning_days,
         "ThoiGianGiuChoPhut": cfg.hold_minutes,
         "SoCauHoiAIMoiNgay": cfg.ai_daily_question_quota,
+        "TyLeGiaVonCanhBao": float(cfg.cost_ratio_warning),
     }
     # Only allow documented configuration fields.
     if "TenNhaHang" in d and d["TenNhaHang"] is not None:
@@ -326,6 +337,8 @@ async def update_config(
         cfg.hold_minutes = int(d["ThoiGianGiuChoPhut"])
     if "SoCauHoiAIMoiNgay" in d and d["SoCauHoiAIMoiNgay"] is not None:
         cfg.ai_daily_question_quota = int(d["SoCauHoiAIMoiNgay"])
+    if "TyLeGiaVonCanhBao" in d and d["TyLeGiaVonCanhBao"] is not None:
+        cfg.cost_ratio_warning = Decimal(str(d["TyLeGiaVonCanhBao"]))
     requested_start = d.get("GioBatDauBusinessDate")
     if requested_start is not None:
         with business_date.business_date_schedule(before_schedule):
@@ -385,6 +398,7 @@ async def update_config(
                 "SoNgayCanhBaoHetHan": cfg.expiry_warning_days,
                 "ThoiGianGiuChoPhut": cfg.hold_minutes,
                 "SoCauHoiAIMoiNgay": cfg.ai_daily_question_quota,
+                "TyLeGiaVonCanhBao": float(cfg.cost_ratio_warning),
             },
         )
     )

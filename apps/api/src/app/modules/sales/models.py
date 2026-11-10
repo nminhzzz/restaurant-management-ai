@@ -24,6 +24,7 @@ from app.shared.base import (  # PaymentTransaction defaults match enums.Payment
     Base,
     BigInteger,
     DateTime3,
+    clock_now,
 )
 
 
@@ -67,7 +68,7 @@ class Order(Base):
         nullable=True,
     )
     created_at: Mapped[datetime] = mapped_column(
-        "NgayTao", DateTime3, server_default=func.now(), nullable=False
+        "NgayTao", DateTime3, default=clock_now, server_default=func.now(), nullable=False
     )
     updated_at: Mapped[datetime | None] = mapped_column("NgayCapNhat", DateTime3, nullable=True)
     total: Mapped[Decimal] = mapped_column(
@@ -117,7 +118,7 @@ class OrderLine(Base):
     )
     total: Mapped[Decimal | None] = mapped_column("ThanhTien", DECIMAL(18, 2), nullable=True)
     added_at: Mapped[datetime] = mapped_column(
-        "ThoiDiemThem", DateTime3, server_default=func.now(), nullable=False
+        "ThoiDiemThem", DateTime3, default=clock_now, server_default=func.now(), nullable=False
     )
     status: Mapped[str] = mapped_column("TrangThai", String(20), nullable=False, default="Ch\u1edd")
     request_line_id: Mapped[str | None] = mapped_column(
@@ -151,7 +152,7 @@ class TableMoveLog(Base):
         nullable=True,
     )
     created_at: Mapped[datetime] = mapped_column(
-        "ThoiDiem", DateTime3, server_default=func.now(), nullable=False
+        "ThoiDiem", DateTime3, default=clock_now, server_default=func.now(), nullable=False
     )
     performed_by: Mapped[int | None] = mapped_column(
         "NguoiThucHien",
@@ -180,7 +181,7 @@ class PaymentTransaction(Base):
     )
     business_date: Mapped[date] = mapped_column("BusinessDate", Date, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        "NgayTao", DateTime3, server_default=func.now(), nullable=False
+        "NgayTao", DateTime3, default=clock_now, server_default=func.now(), nullable=False
     )
     qr_code: Mapped[str | None] = mapped_column("MaQR", String(500), nullable=True)
     qr_created_at: Mapped[datetime | None] = mapped_column(
@@ -236,7 +237,7 @@ class PaymentException(Base):
     note: Mapped[str | None] = mapped_column("GhiChu", String(255), nullable=True)
     business_date: Mapped[date] = mapped_column("BusinessDate", Date, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        "NgayTao", DateTime3, server_default=func.now(), nullable=False
+        "NgayTao", DateTime3, default=clock_now, server_default=func.now(), nullable=False
     )
     resolved_at: Mapped[datetime | None] = mapped_column("ThoiDiemXuLy", DateTime3, nullable=True)
     resolved_by: Mapped[int | None] = mapped_column(
@@ -267,7 +268,7 @@ class Invoice(Base):
     )
     business_date: Mapped[date] = mapped_column("BusinessDate", Date, nullable=False)
     issued_at: Mapped[datetime] = mapped_column(
-        "ThoiDiemXuat", DateTime3, server_default=func.now(), nullable=False
+        "ThoiDiemXuat", DateTime3, default=clock_now, server_default=func.now(), nullable=False
     )
     total: Mapped[Decimal] = mapped_column(
         "TongTien", DECIMAL(18, 2), nullable=False, default=Decimal("0")
@@ -324,7 +325,7 @@ class KitchenTicket(Base):
     print_error: Mapped[str | None] = mapped_column("LoiIn", String(500))
     printed_at: Mapped[datetime | None] = mapped_column("ThoiDiemIn", DateTime3)
     created_at: Mapped[datetime] = mapped_column(
-        "NgayTao", DateTime3, server_default=func.now(), nullable=False
+        "NgayTao", DateTime3, default=clock_now, server_default=func.now(), nullable=False
     )
     __table_args__ = (Index("ix_PHIEU_BEP_HangDoi", "TrangThaiIn", "LanThuTiepTheo"),)
 
@@ -385,7 +386,7 @@ class Reservation(Base):
         unique=True,
     )
     created_at: Mapped[datetime] = mapped_column(
-        "NgayTao", DateTime3, server_default=func.now(), nullable=False
+        "NgayTao", DateTime3, default=clock_now, server_default=func.now(), nullable=False
     )
     __table_args__ = (
         UniqueConstraint("MaYeuCauGui", "MaDongYeuCau", name="uq_GIU_CHO_MON_request_line"),

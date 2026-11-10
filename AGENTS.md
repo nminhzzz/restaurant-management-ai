@@ -27,7 +27,7 @@ apps/web/src/
 └── types/
 db/views/          # DDL view phân quyền cho trợ lý AI
 data/eval/         # bộ câu hỏi – SQL chuẩn phục vụ đánh giá
-scripts/seed/      # sinh dữ liệu mô phỏng 12 tháng
+scripts/seed/      # sinh dữ liệu mô phỏng 2 tháng
 ```
 
 ## Lệnh

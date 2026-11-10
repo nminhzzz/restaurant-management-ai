@@ -13,17 +13,35 @@ import {
 import { ErrorState, LoadingState } from "@/components/page-states";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PriceScheduler } from "@/features/catalog/price-scheduler";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  CostRatioHint,
+  PriceScheduler,
+  type CostBasis,
+} from "@/features/catalog/price-scheduler";
 import { RecipeEditor } from "@/features/catalog/recipe-editor";
 import type {
   Dish,
+  DishCost,
   Ingredient,
   PriceVersion,
   RecipeVersion,
 } from "@/features/catalog/types";
 import { useCanWrite } from "@/features/catalog/use-role";
 import { apiFetch } from "@/lib/api-client";
-import { formatDate, formatVnd } from "@/lib/format";
+import {
+  formatDate,
+  formatNumber,
+  formatPercent,
+  formatVnd,
+} from "@/lib/format";
 import { useAction } from "@/lib/use-action";
 import { useResource } from "@/lib/use-resource";
 
@@ -37,12 +55,74 @@ const loadIngredients = () =>
     "/catalog/ingredients?size=200",
   ).then((r) => (Array.isArray(r) ? r : r.items));
 
+function unknown(value: number | null, format: (value: number) => string) {
+  return value === null ? "Chưa xác định" : format(value);
+}
+
+/** FR-CAT-29: each ingredient of the recipe in force with its unit cost and amount. */
+function CostBreakdown({ cost }: { cost: DishCost }) {
+  if (cost.TinhTrang === "Chưa có công thức") {
+    return <p className="text-muted">Chưa có công thức.</p>;
+  }
+  return (
+    <div className="space-y-2">
+      <Table>
+        <caption className="sr-only">Giá vốn theo nguyên liệu</caption>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Nguyên liệu</TableHead>
+            <TableHead className="text-right">Định lượng</TableHead>
+            <TableHead className="text-right">Đơn giá bình quân</TableHead>
+            <TableHead className="text-right">Thành tiền</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {(cost.ChiTiet ?? []).map((line) => (
+            <TableRow key={line.MaNguyenLieu}>
+              <TableCell className="font-medium">
+                {line.TenNguyenLieu}
+              </TableCell>
+              <TableCell className="text-right tabular-nums">
+                {formatNumber(line.DinhLuong)} {line.DonViTinh}
+              </TableCell>
+              <TableCell className="text-right tabular-nums">
+                {unknown(line.DonGiaBinhQuan, formatVnd)}
+              </TableCell>
+              <TableCell className="text-right tabular-nums">
+                {unknown(line.ThanhTien, formatVnd)}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      {cost.TinhTrang === "Chưa đủ dữ liệu" ? (
+        <p role="status" className="text-warning-fg">
+          Chưa đủ dữ liệu: {cost.NguyenLieuThieuGia.join(", ")} chưa có đơn giá
+          bình quân nên chưa tính được giá vốn.
+        </p>
+      ) : (
+        <p role="status" className={cost.CanhBao ? "text-warning-fg" : ""}>
+          Giá vốn ước tính{" "}
+          <strong>{unknown(cost.GiaVonUocTinh, formatVnd)}</strong> · tỷ lệ giá
+          vốn <strong>{unknown(cost.TyLeGiaVon, formatPercent)}</strong> · lãi
+          gộp mỗi suất <strong>{unknown(cost.LaiGop, formatVnd)}</strong>
+          {cost.CanhBao
+            ? ` · vượt ngưỡng ${formatPercent(cost.NguongCanhBao)}`
+            : ""}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function ApplyNowRow({
   onApply,
   pending,
+  costBasis,
 }: {
   onApply: (gia: number) => void;
   pending: boolean;
+  costBasis?: CostBasis | null;
 }) {
   const [value, setValue] = useState("");
   return (
@@ -57,6 +137,7 @@ function ApplyNowRow({
           value={value}
           onChange={(e) => setValue(e.target.value)}
         />
+        <CostRatioHint price={value} basis={costBasis} />
       </div>
       <Button
         variant="secondary"
@@ -90,6 +171,21 @@ export function DishDetail({
   );
   const versionsRes = useResource(loadVersions);
 
+  // FR-CAT-29: the estimate is the manager's; other roles never request it.
+  const loadCost = useCallback(
+    () =>
+      canWrite
+        ? apiFetch<DishCost>(`/catalog/dishes/${dish.MaMon}/cost`)
+        : Promise.resolve(null),
+    [canWrite, dish.MaMon],
+  );
+  const costRes = useResource(loadCost);
+  const cost = costRes.status === "ready" ? costRes.data : null;
+  const costBasis: CostBasis | null =
+    cost && cost.GiaVonUocTinh !== null
+      ? { cost: cost.GiaVonUocTinh, threshold: cost.NguongCanhBao }
+      : null;
+
   const ingredientsRes = useResource(loadIngredients);
   const ingredients =
     ingredientsRes.status === "ready" ? ingredientsRes.data : [];
@@ -100,6 +196,7 @@ export function DishDetail({
 
   function reloadAll() {
     versionsRes.reload();
+    costRes.reload();
     onChanged();
   }
 
@@ -199,14 +296,26 @@ export function DishDetail({
               )}
               {canWrite && (
                 <div className="space-y-2">
-                  <PriceScheduler dishId={dish.MaMon} onScheduled={reloadAll} />
+                  <PriceScheduler
+                    dishId={dish.MaMon}
+                    onScheduled={reloadAll}
+                    costBasis={costBasis}
+                  />
                   <ApplyNowRow
                     onApply={handleApplyNow}
                     pending={applyNowAction.pending}
+                    costBasis={costBasis}
                   />
                 </div>
               )}
             </section>
+
+            {cost ? (
+              <section className="space-y-3 border-b border-border py-5">
+                <h3 className="font-bold">Giá vốn ước tính</h3>
+                <CostBreakdown cost={cost} />
+              </section>
+            ) : null}
 
             <section className="space-y-3 pt-5">
               <h3 className="font-bold">Công thức</h3>

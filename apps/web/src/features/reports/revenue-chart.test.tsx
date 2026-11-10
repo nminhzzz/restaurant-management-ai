@@ -22,6 +22,23 @@ describe("RevenueChart", () => {
     ).toBeInTheDocument();
   });
 
+  it("ranks the best sellers over the same period as the revenue shown", async () => {
+    stubFetch(revenueResponse);
+
+    render(<RevenueChart />);
+    await screen.findByRole("table");
+
+    const paths = (apiFetch as unknown as ReturnType<typeof vi.fn>).mock.calls
+      .map(([path]) => String(path))
+      .filter((path) => path.startsWith("/reports/"));
+    const revenue = paths.find((path) => path.startsWith("/reports/revenue"));
+    const dishes = paths.find((path) => path.startsWith("/reports/dishes"));
+    const anchor = /anchor=(\d{4}-\d{2}-\d{2})/.exec(revenue ?? "")?.[1];
+    // TC-REP-09: without the anchor the API fell back to the current period.
+    expect(anchor).toBeDefined();
+    expect(dishes).toContain(`anchor=${anchor}`);
+  });
+
   // FR-REP-02 and FR-REP-05b: a provisional figure must be labelled in words, not only coloured.
   it("labels provisional figures so the manager knows they are not final", async () => {
     stubFetch({ ...revenueResponse, provisional: "500000" });

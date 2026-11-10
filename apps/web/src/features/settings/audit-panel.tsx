@@ -95,6 +95,7 @@ const ACTION_LABELS: Record<string, string> = {
   UPDATE_USER: "Cập nhật tài khoản",
   WEBHOOK_NEEDS_RECONCILIATION: "Webhook cần đối soát",
   WEBHOOK_REJECTED: "Webhook bị từ chối",
+  WEBHOOK_LINKED_TO_CONFIRMED_PAYMENT: "Webhook khớp khoản đã xác nhận",
   WEBHOOK_UNMATCHED: "Webhook không khớp order",
 };
 
@@ -110,6 +111,7 @@ const TARGET_LABELS: Record<string, string> = {
   CONG_THUC: "Công thức món",
   GIA_BINH_QUAN_THANG: "Giá vốn bình quân tháng",
   GIAO_DICH_THANH_TOAN: "Giao dịch thanh toán",
+  LICH_SU_GIA_BINH_QUAN: "Lịch sử đơn giá bình quân",
   LICH_SU_GIA_MON: "Lịch sử giá món",
   MON_AN: "Món ăn",
   NGUOI_DUNG: "Tài khoản người dùng",

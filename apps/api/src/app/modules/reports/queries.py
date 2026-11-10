@@ -16,9 +16,8 @@ from sqlalchemy import Integer, and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import BusinessRuleError
-from app.modules.catalog.models import Dish, RecipeItem
+from app.modules.catalog.models import Dish
 from app.modules.inventory.models import (
-    MonthlyAverageCost,
     StockIssue,
     StockIssueLine,
     StockMovement,
@@ -275,11 +274,12 @@ def _dialect_name(session: AsyncSession) -> str:
 
 
 def _weekday_iso(session: AsyncSession):
+    """ISO weekday of the Business Date: an order at 00:30 belongs to the evening before."""
     if _dialect_name(session) == "mysql":
         # WEEKDAY(): Monday=0 … Sunday=6, so +1 gives the ISO numbering.
-        return func.weekday(Order.created_at) + 1
+        return func.weekday(Order.business_date) + 1
     # strftime('%w'): Sunday=0 … Saturday=6; shift it onto ISO (Monday=1).
-    return (func.cast(func.strftime("%w", Order.created_at), Integer) + 6) % 7 + 1
+    return (func.cast(func.strftime("%w", Order.business_date), Integer) + 6) % 7 + 1
 
 
 PAID_ORDER_STATUS = "Đã thanh toán"
@@ -414,31 +414,24 @@ def _month_period(month: int) -> BusinessPeriod:
     return resolve_period("month", start.date())
 
 
-def _consumed_amount():
-    """Quantity x recipe quantity x monthly average cost, for one order line."""
-    return OrderLine.quantity * RecipeItem.quantity * MonthlyAverageCost.avg_cost
+ORDER_MOVEMENT_KINDS = ("Trừ tự động", "Hoàn kho")
 
 
-def _join_recipe_cost(stmt, month: int):
-    return stmt.join(RecipeItem, RecipeItem.recipe_id == OrderLine.recipe_id).join(
-        MonthlyAverageCost,
-        and_(
-            RecipeItem.ingredient_id == MonthlyAverageCost.ingredient_id,
-            MonthlyAverageCost.month == month,
-        ),
+def _order_movements(stmt):
+    """Ledger rows of dishes: draws, and the returns that undo them at the same value."""
+    return (
+        stmt.select_from(StockMovement)
+        .join(OrderLine, OrderLine.id == StockMovement.order_line_id)
+        .join(Order, Order.id == OrderLine.order_id)
+        .where(StockMovement.kind.in_(ORDER_MOVEMENT_KINDS))
     )
 
 
 async def ingredient_cost(session: AsyncSession, month: int) -> Decimal:
-    """FR-REP-05a: each line is costed from the recipe version pinned on it."""
+    """FR-REP-11: what the dishes of paid orders drew, at the value written on each draw."""
     period = _month_period(month)
-    stmt = (
-        select(func.coalesce(func.sum(_consumed_amount()), 0))
-        .select_from(OrderLine)
-        .join(Order, Order.id == OrderLine.order_id)
-    )
-    stmt = _join_recipe_cost(stmt, month).where(
-        *_paid_orders_window(period), OrderLine.status != LINE_CANCELLED
+    stmt = _order_movements(select(func.coalesce(func.sum(-StockMovement.value), 0))).where(
+        *_paid_orders_window(period)
     )
     return await _scalar_sum(session, stmt)
 
@@ -446,30 +439,20 @@ async def ingredient_cost(session: AsyncSession, month: int) -> Decimal:
 async def exceptional_order_costs(
     session: AsyncSession, period: BusinessPeriod, statuses: tuple[str, ...]
 ) -> dict[int, Decimal]:
-    """FR-REP-05c: net ingredient cost actually consumed by cancelled/closed orders.
+    """FR-REP-13: net ingredient cost actually consumed by cancelled/closed orders.
 
     The ledger is authoritative: a "Chờ làm" line that was cancelled has its draw reversed
-    by a Hoàn kho movement, so its net is zero; a prepared line that was not returned
-    keeps a positive net even though the line now reads "Đã hủy".
+    by a Hoàn kho movement of the same value, so its net is zero; a prepared line that was
+    not returned keeps a positive net even though the line now reads "Đã hủy".
     """
-    net_cost = func.sum(-StockMovement.qty * MonthlyAverageCost.avg_cost)
     stmt = (
-        select(OrderLine.order_id, func.coalesce(net_cost, 0))
-        .select_from(StockMovement)
-        .join(OrderLine, OrderLine.id == StockMovement.order_line_id)
-        .join(Order, Order.id == OrderLine.order_id)
-        .join(
-            MonthlyAverageCost,
-            and_(
-                MonthlyAverageCost.ingredient_id == StockMovement.ingredient_id,
-                MonthlyAverageCost.month == period.month_key,
-            ),
+        _order_movements(
+            select(OrderLine.order_id, func.coalesce(func.sum(-StockMovement.value), 0))
         )
         .where(
             Order.status.in_(statuses),
             Order.business_date >= period.start,
             Order.business_date <= period.end,
-            StockMovement.kind.in_(("Trừ tự động", "Hoàn kho")),
         )
         .group_by(OrderLine.order_id)
     )
@@ -478,7 +461,7 @@ async def exceptional_order_costs(
 
 
 async def exceptional_cost_total(session: AsyncSession, month: int) -> Decimal:
-    """FR-REP-04: 05c is part of total cost, not an off-book loss."""
+    """FR-REP-04: FR-REP-13 is part of total cost, not an off-book loss."""
     period = _month_period(month)
     costs = await exceptional_order_costs(
         session, period, (*CANCELLED_ORDER_STATUSES, STATUS_CLOSED_UNPAID)
@@ -490,14 +473,11 @@ async def dish_ingredient_cost(session: AsyncSession, month: int) -> list[DishCo
     """FR-REP-06: per-dish ingredient cost — no waste, no margin."""
     period = _month_period(month)
     stmt = (
-        select(OrderLine.dish_id, Dish.name, func.coalesce(func.sum(_consumed_amount()), 0))
-        .select_from(OrderLine)
-        .join(Order, Order.id == OrderLine.order_id)
+        _order_movements(
+            select(OrderLine.dish_id, Dish.name, func.coalesce(func.sum(-StockMovement.value), 0))
+        )
         .join(Dish, Dish.id == OrderLine.dish_id)
-    )
-    stmt = (
-        _join_recipe_cost(stmt, month)
-        .where(*_paid_orders_window(period), OrderLine.status != LINE_CANCELLED)
+        .where(*_paid_orders_window(period))
         .group_by(OrderLine.dish_id, Dish.name)
         .order_by(OrderLine.dish_id.asc())
     )
@@ -508,81 +488,63 @@ async def dish_ingredient_cost(session: AsyncSession, month: int) -> list[DishCo
     ]
 
 
+async def _unvalued_order_movements(session: AsyncSession, period: BusinessPeriod) -> int:
+    """Draws of the period whose ingredient has no unit cost yet: unknown, not zero."""
+    return await _scalar_count(
+        session,
+        _order_movements(select(func.count(StockMovement.id))).where(
+            StockMovement.value.is_(None),
+            Order.business_date >= period.start,
+            Order.business_date <= period.end,
+        ),
+    )
+
+
 async def waste_cost(session: AsyncSession, month: int) -> tuple[Decimal, int]:
-    """Manual write-offs plus negative stocktake adjustments, and uncosted rows."""
+    """FR-REP-12: manual write-offs plus stocktake shortages, and the rows still unvalued."""
     start, end = business_month_range(month)
-    window = (StockIssue.created_at >= start, StockIssue.created_at < end)
+    # A prepared-dish write-off classifies cost that FR-REP-11/13 already carries from the
+    # original draw, and a stocktake voucher only documents the adjustment below; counting
+    # either here as well would double the cost.
+    manual = (
+        StockIssue.created_at >= start,
+        StockIssue.created_at < end,
+        StockIssue.stocktake_id.is_(None),
+        StockIssueLine.order_line_id.is_(None),
+    )
     manual_waste = await _scalar_sum(
         session,
         select(func.coalesce(func.sum(StockIssueLine.estimated_cost), 0))
         .join(StockIssue, StockIssue.id == StockIssueLine.issue_id)
-        # A prepared-dish write-off classifies cost that 05c already carries from the
-        # original stock movement; counting it here as well would double the cost.
-        .where(
-            *window,
-            StockIssue.stocktake_id.is_(None),
-            StockIssueLine.order_line_id.is_(None),
-        ),
+        .where(*manual),
     )
-    uncosted = await _scalar_count(
+    unvalued_manual = await _scalar_count(
         session,
         select(func.count(StockIssueLine.id))
         .join(StockIssue, StockIssue.id == StockIssueLine.issue_id)
-        .where(
-            *window,
-            StockIssue.stocktake_id.is_(None),
-            StockIssueLine.order_line_id.is_(None),
-            StockIssueLine.estimated_cost.is_(None),
-        ),
+        .where(*manual, StockIssueLine.estimated_cost.is_(None)),
     )
 
-    # A negative stocktake line is a cost too (FR-REP-05b), but it has no
-    # StockIssueLine. Cost it from the same monthly weighted average.
-    movement_window = (
+    shortages = (
+        StockMovement.kind == "Điều chỉnh kiểm kê",
+        StockMovement.qty < 0,
         StockMovement.business_date >= start.date(),
         StockMovement.business_date < end.date(),
     )
     stocktake_waste = await _scalar_sum(
-        session,
-        select(func.coalesce(func.sum(-StockMovement.qty * MonthlyAverageCost.avg_cost), 0))
-        .select_from(StockMovement)
-        .join(
-            MonthlyAverageCost,
-            and_(
-                MonthlyAverageCost.ingredient_id == StockMovement.ingredient_id,
-                MonthlyAverageCost.month == month,
-            ),
-        )
-        .where(
-            StockMovement.kind == "Điều chỉnh kiểm kê",
-            StockMovement.qty < 0,
-            *movement_window,
-        ),
+        session, select(func.coalesce(func.sum(-StockMovement.value), 0)).where(*shortages)
     )
-    uncosted_stocktake = await _scalar_count(
+    unvalued_stocktake = await _scalar_count(
         session,
-        select(func.count(StockMovement.id))
-        .select_from(StockMovement)
-        .outerjoin(
-            MonthlyAverageCost,
-            and_(
-                MonthlyAverageCost.ingredient_id == StockMovement.ingredient_id,
-                MonthlyAverageCost.month == month,
-            ),
-        )
-        .where(
-            StockMovement.kind == "Điều chỉnh kiểm kê",
-            StockMovement.qty < 0,
-            MonthlyAverageCost.avg_cost.is_(None),
-            *movement_window,
-        ),
+        select(func.count(StockMovement.id)).where(*shortages, StockMovement.value.is_(None)),
     )
-    return manual_waste + stocktake_waste, uncosted + uncosted_stocktake
+    return manual_waste + stocktake_waste, unvalued_manual + unvalued_stocktake
 
 
 async def cost_of_goods(session: AsyncSession, month: int) -> CostBreakdown:
     ingredients = await ingredient_cost(session, month)
     waste, uncosted = await waste_cost(session, month)
+    uncosted += await _unvalued_order_movements(session, _month_period(month))
     exceptional = await exceptional_cost_total(session, month)
     return CostBreakdown(
         NguyenLieu=ingredients,

@@ -26,7 +26,7 @@ Ngày kinh doanh của phiếu nhập/xuất/kiểm kê và công thức/giá hi
 | `vw_ai_quanly_congthuc` | `MaCongThuc`, `MaMon`, `TenMon`, `BusinessDateApDung`, `TrangThai`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `DinhLuong` |
 | `vw_ai_quanly_dongmon` | `LoaiBanGhi`, `MaOrder`, `BusinessDate`, `TrangThaiOrder`, `TenMon`, `TenNhom`, `SoLuongMon`, `DonGiaMon`, `ThanhTienMon` |
 | `vw_ai_quanly_giaodich` | `LoaiBanGhi`, `MaOrder`, `BusinessDate`, `TrangThaiOrder`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `MaGiaoDichKho`, `SoLuong`, `LoaiGiaoDich` |
-| `vw_ai_quanly_giavon` | `LoaiBanGhi`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `Thang`, `GiaBinhQuanThang`, `TongSoLuongNhapThang` |
+| `vw_ai_quanly_giavon` | `LoaiBanGhi`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `ThoiDiemHieuLuc`, `DonGiaBinhQuan`, `SoLuongTon` |
 | `vw_ai_quanly_hoadon` | `LoaiBanGhi`, `MaOrder`, `BusinessDate`, `MaHoaDon`, `ThoiDiemXuat`, `TongTien` |
 | `vw_ai_quanly_kiemke` | `MaPhieuKiemKe`, `BusinessDate`, `TrangThai`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `TonHeThong`, `TonThucTe`, `ChenhLech` |
 | `vw_ai_quanly_lo` | `LoaiBanGhi`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `MaLo`, `SoLuongConLai`, `TrangThaiLo`, `NgayNhapLo`, `HanSuDungLo` |

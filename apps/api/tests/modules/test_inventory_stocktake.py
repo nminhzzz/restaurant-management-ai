@@ -8,6 +8,7 @@ from app.core.security import create_access_token, hash_password
 from app.main import app
 from app.modules.catalog.models import Ingredient
 from app.modules.inventory.models import (
+    AverageCostHistory,
     GoodsReceipt,
     GoodsReceiptLine,
     IngredientLot,
@@ -74,6 +75,15 @@ async def _ingredient(session, name, stock_qty):
             )
         )
         ing.stock_qty = stock_qty
+        # The receipt above priced the ingredient, as a real one would have.
+        session.add(
+            AverageCostHistory(
+                ingredient_id=ing.id,
+                effective_at=business_date.now().replace(tzinfo=None),
+                avg_cost=1000,
+                stock_qty=stock_qty,
+            )
+        )
         await session.flush()
     await session.commit()
     return ing
@@ -186,7 +196,7 @@ async def test_cannot_record_counts_after_confirm(session):
         await session.execute(select(StockIssueLine).where(StockIssueLine.issue_id == issue.id))
     ).scalar_one()
     assert issue_line.quantity == 2
-    # Priced from the month average (2 kg at 1.000) as soon as the stocktake is confirmed.
+    # Valued at the unit cost in force (2 kg at 1.000) when the stocktake is confirmed.
     assert issue_line.estimated_cost == 2000
     r = await client.post(
         f"/api/v1/inventory/stocktakes/{sid}/counts",

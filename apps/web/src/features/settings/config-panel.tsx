@@ -23,6 +23,7 @@ type Config = {
   SoNgayCanhBaoHetHan: number;
   ThoiGianGiuChoPhut: number;
   SoCauHoiAIMoiNgay: number;
+  TyLeGiaVonCanhBao: number;
 };
 
 const loadConfig = () => apiFetch<Config>("/settings/config");
@@ -63,6 +64,7 @@ function ConfigForm({
     ),
   );
   const [aiQuota, setAiQuota] = useState(String(config.SoCauHoiAIMoiNgay));
+  const [costRatio, setCostRatio] = useState(String(config.TyLeGiaVonCanhBao));
 
   const numberError = (value: string, label: string, positive = false) => {
     const trimmed = value.trim();
@@ -74,6 +76,12 @@ function ConfigForm({
   const expiryError = numberError(expiryDays, "Số ngày cảnh báo", true);
   const holdError = numberError(holdMinutes, "Thời gian giữ chỗ", true);
   const aiQuotaError = numberError(aiQuota, "Hạn mức câu hỏi AI", true);
+  // FR-SET-04: a percentage from 1 to 100, decimals allowed.
+  const costRatioValue = Number(costRatio.trim().replace(",", "."));
+  const costRatioError =
+    costRatio.trim() !== "" && costRatioValue >= 1 && costRatioValue <= 100
+      ? null
+      : "Ngưỡng tỷ lệ giá vốn phải từ 1 đến 100.";
   const nameError = name.trim() === "" ? "Nhập tên nhà hàng." : null;
   const canSave =
     /^([01]\d|2[0-3]):[0-5]\d$/.test(cutoff) &&
@@ -81,6 +89,7 @@ function ConfigForm({
     expiryError === null &&
     holdError === null &&
     aiQuotaError === null &&
+    costRatioError === null &&
     nameError === null;
 
   async function save() {
@@ -98,6 +107,7 @@ function ConfigForm({
             SoNgayCanhBaoHetHan: Number(expiryDays),
             ThoiGianGiuChoPhut: Number(holdMinutes),
             SoCauHoiAIMoiNgay: Number(aiQuota),
+            TyLeGiaVonCanhBao: costRatioValue,
           },
         }),
       "Đã lưu cấu hình.",
@@ -175,6 +185,19 @@ function ConfigForm({
           inputMode="numeric"
           value={aiQuota}
           onChange={(e) => setAiQuota(e.target.value)}
+        />
+      </FormField>
+      <FormField
+        id="cfg-cost-ratio"
+        label="Ngưỡng cảnh báo tỷ lệ giá vốn của món (%)"
+        help="Món có giá vốn ước tính vượt tỷ lệ này so với giá bán được đánh dấu cảnh báo; giá bán không tự đổi."
+        error={costRatioError}
+      >
+        <Input
+          id="cfg-cost-ratio"
+          inputMode="decimal"
+          value={costRatio}
+          onChange={(e) => setCostRatio(e.target.value)}
         />
       </FormField>
       <FormField

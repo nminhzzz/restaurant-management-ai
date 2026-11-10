@@ -493,18 +493,6 @@ async def seed_views(engine: AsyncEngine) -> None:
             "SoLuongKhaDung": "n.SoLuongTon",
         },
     )
-    quanly_gia_von = _branch(
-        _QUANLY_COLUMNS,
-        {
-            "LoaiBanGhi": "'GIA_VON_THANG'",
-            "MaNguyenLieu": "gv.MaNguyenLieu",
-            "TenNguyenLieu": "n.TenNguyenLieu",
-            "DonViTinh": "n.DonViTinh",
-            "Thang": "gv.Thang",
-            "GiaBinhQuanThang": "gv.DonGiaBinhQuan",
-            "TongSoLuongNhapThang": "gv.TongSoLuongNhap",
-        },
-    )
     quanly_giao_dich_kho = _branch(
         _QUANLY_COLUMNS,
         {
@@ -636,8 +624,6 @@ async def seed_views(engine: AsyncEngine) -> None:
                 f"UNION ALL SELECT {quanly_hoa_don} FROM HOA_DON h "
                 f"UNION ALL SELECT {quanly_thanh_toan} FROM GIAO_DICH_THANH_TOAN t "
                 f"UNION ALL SELECT {quanly_ton_kho} FROM NGUYEN_LIEU n "
-                f"UNION ALL SELECT {quanly_gia_von} FROM GIA_BINH_QUAN_THANG gv "
-                "JOIN NGUYEN_LIEU n ON n.MaNguyenLieu = gv.MaNguyenLieu "
                 f"UNION ALL SELECT {quanly_giao_dich_kho} FROM GIAO_DICH_KHO g "
                 "JOIN NGUYEN_LIEU n ON n.MaNguyenLieu = g.MaNguyenLieu "
                 "LEFT JOIN CHI_TIET_ORDER ct ON ct.MaChiTietOrder = g.MaChiTietOrder "

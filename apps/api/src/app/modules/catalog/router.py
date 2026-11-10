@@ -8,6 +8,7 @@ from app.core.dependencies import Principal, require_roles
 from app.core.errors import NotFoundError
 from app.modules.catalog import service as svc
 from app.modules.catalog import versions as catalog_versions
+from app.modules.catalog.costing import DishCostEstimate, estimate_dish_costs
 from app.modules.catalog.schemas import (
     DishCreate,
     DishOut,
@@ -140,6 +141,64 @@ async def list_dishes(
             )
         )
     return Page[DishOut](items=out, total=total, page=page, size=size)
+
+
+def _number(value) -> float | None:
+    return None if value is None else float(value)
+
+
+def _cost_out(estimate: DishCostEstimate, *, lines: bool) -> dict:
+    out = {
+        "MaMon": estimate.dish_id,
+        "TinhTrang": estimate.status,
+        "GiaBan": _number(estimate.price),
+        "GiaVonUocTinh": _number(estimate.cost),
+        "TyLeGiaVon": _number(estimate.ratio),
+        "LaiGop": _number(estimate.margin),
+        "CanhBao": estimate.warning,
+        "NguongCanhBao": float(estimate.threshold),
+        "NguyenLieuThieuGia": estimate.missing,
+    }
+    if lines:
+        out["ChiTiet"] = [
+            {
+                "MaNguyenLieu": line.ingredient_id,
+                "TenNguyenLieu": line.name,
+                "DonViTinh": line.unit,
+                "DinhLuong": float(line.quantity),
+                "DonGiaBinhQuan": _number(line.unit_cost),
+                "ThanhTien": _number(line.amount),
+            }
+            for line in estimate.lines
+        ]
+    return out
+
+
+@router.get("/dishes/costs")
+async def list_dish_costs(
+    user: Principal = Depends(require_roles(Role.MANAGER)),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    """FR-CAT-29: cost figures are the manager's; the dish list of other roles has none."""
+    dishes, _ = await svc.list_dishes(session)
+    estimates = await estimate_dish_costs(session, [d.id for d in dishes], _today())
+    await session.commit()
+    return {"items": [_cost_out(estimates[d.id], lines=False) for d in dishes]}
+
+
+@router.get("/dishes/{dish_id}/cost")
+async def get_dish_cost(
+    dish_id: int,
+    user: Principal = Depends(require_roles(Role.MANAGER)),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    """FR-CAT-29: the estimate with each ingredient's quantity, unit cost and amount."""
+    d = await svc.get_dish(session, dish_id)
+    if d is None or d.is_deleted:
+        raise NotFoundError("Không tìm thấy món ăn.")
+    estimates = await estimate_dish_costs(session, [dish_id], _today())
+    await session.commit()
+    return _cost_out(estimates[dish_id], lines=True)
 
 
 @router.post("/dishes", response_model=DishOut, status_code=201)

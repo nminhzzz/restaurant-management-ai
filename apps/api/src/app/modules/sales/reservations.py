@@ -15,6 +15,7 @@ from app.core.errors import BusinessRuleError, NotFoundError
 from app.modules.catalog.models import DiningTable, Ingredient, Recipe, RecipeItem
 from app.modules.catalog.service import ensure_dish_sellable
 from app.modules.catalog.versions import active_price_version, active_recipe, recipe_items
+from app.modules.inventory.costing import current_unit_cost, movement_value
 from app.modules.inventory.lot_status import sync_lot_status
 from app.modules.inventory.models import IngredientLot, StockMovement
 from app.modules.inventory.stock import ensure_no_open_stocktake, lock_stock_operations
@@ -124,7 +125,35 @@ async def _allocate(
         allocations.append((lot, take))
         remaining -= take
     if remaining > 0:
-        raise BusinessRuleError("Không đủ tồn kho khả dụng.")
+        raise _InsufficientStock("Không đủ tồn kho khả dụng.")
+    return allocations
+
+
+class _InsufficientStock(BusinessRuleError):
+    pass
+
+
+async def _allocate_recipe(
+    session: AsyncSession, dish_id: int, items: list, quantity: int, now: datetime
+) -> list[tuple[IngredientLot, Decimal]]:
+    """Lots for `quantity` portions; a shortage names the dish and how many portions lack."""
+    allocations: list[tuple[IngredientLot, Decimal]] = []
+    try:
+        for item in items:
+            allocations.extend(
+                await _allocate(
+                    session, item.ingredient_id, Decimal(str(item.quantity)) * quantity, now
+                )
+            )
+    except _InsufficientStock:
+        from app.modules.catalog.models import Dish
+
+        name = await session.scalar(select(Dish.name).where(Dish.id == dish_id))
+        available = min(await available_portions(session, dish_id, now), quantity - 1)
+        raise BusinessRuleError(
+            f"Không đủ nguyên liệu cho món {name}: cần {quantity} suất, "
+            f"chỉ còn đủ {available} suất (thiếu {quantity - available} suất)."
+        ) from None
     return allocations
 
 
@@ -202,6 +231,12 @@ async def create_hold(
             raise BusinessRuleError("Order không còn mở.")
         if order.table_id != table_id:
             raise BusinessRuleError("Lượt giữ chỗ khác bàn của order.")
+        if order.table_id is not None:
+            # FR-SALE-06: once the party left the table nothing can be added, so nothing
+            # may be held for it either.
+            table = await session.get(DiningTable, order.table_id)
+            if table is None or table.current_order_id != order.id:
+                raise BusinessRuleError("Order đã được giải phóng khỏi bàn, không thể gọi thêm.")
     elif table_id is not None:
         table = await session.get(DiningTable, table_id)
         if table is None or table.is_deleted:
@@ -209,10 +244,7 @@ async def create_hold(
         if table.status != "Trống" or table.current_order_id is not None:
             raise BusinessRuleError("Bàn đang phục vụ.")
 
-    allocations: list[tuple[IngredientLot, Decimal]] = []
-    for item in items:
-        need = Decimal(str(item.quantity)) * quantity
-        allocations.extend(await _allocate(session, item.ingredient_id, need, now))
+    allocations = await _allocate_recipe(session, dish_id, items, quantity, now)
 
     code = selection_code or uuid4().hex
     if len(code) > 36:
@@ -342,16 +374,9 @@ async def get_hold_for_submit(
             delete(ReservationDetail).where(ReservationDetail.reservation_id == reservation.id)
         )
         await session.flush()
-        allocations: list[tuple[IngredientLot, Decimal]] = []
-        for item in items:
-            allocations.extend(
-                await _allocate(
-                    session,
-                    item.ingredient_id,
-                    Decimal(str(item.quantity)) * reservation.quantity,
-                    now,
-                )
-            )
+        allocations = await _allocate_recipe(
+            session, reservation.dish_id, items, int(reservation.quantity), now
+        )
         await _add_details(session, reservation, allocations)
         reservation.price_version_id = price.id
         reservation.recipe_id = recipe.id
@@ -368,7 +393,7 @@ async def update_hold(
         raise BusinessRuleError("Số lượng phải lớn hơn 0.")
     await ensure_no_open_stocktake(session)
     reservation = await _owned_active(session, hold_id, user_id)
-    await ensure_dish_sellable(session, reservation.dish_id)
+    await ensure_dish_sellable(session, reservation.dish_id, stock_held=True)
     current = int(reservation.quantity)
     if quantity == current:
         return reservation
@@ -384,16 +409,7 @@ async def update_hold(
     )
     await session.flush()
     now = _now()
-    allocations: list[tuple[IngredientLot, Decimal]] = []
-    for item in items:
-        allocations.extend(
-            await _allocate(
-                session,
-                item.ingredient_id,
-                Decimal(str(item.quantity)) * quantity,
-                now,
-            )
-        )
+    allocations = await _allocate_recipe(session, reservation.dish_id, items, quantity, now)
     await _add_details(session, reservation, allocations)
     refreshed_expiry = _expiry_for(
         now, await _hold_minutes(session), [lot for lot, _ in allocations]
@@ -403,6 +419,16 @@ async def update_hold(
         refreshed_expiry if quantity > current else min(reservation.expires_at, refreshed_expiry)
     )
     reservation.quantity = quantity
+    await session.flush()
+    return reservation
+
+
+async def update_hold_note(
+    session: AsyncSession, *, hold_id: int, user_id: int, note: str | None
+) -> Reservation:
+    """FR-SALE-08: a note changes nothing about the stock, so the deadline stays as it is."""
+    reservation = await _owned_active(session, hold_id, user_id)
+    reservation.note = (note or "").strip() or None
     await session.flush()
     return reservation
 
@@ -535,7 +561,8 @@ async def consume_hold(
     if reservation.status != HOLD_ACTIVE:
         raise BusinessRuleError("Lượt giữ chỗ không còn hiệu lực.")
     await ensure_no_open_stocktake(session)
-    await ensure_dish_sellable(session, reservation.dish_id)
+    # FR-INV-10: this hold owns its stock, so "no stock left for anyone else" is no refusal.
+    dish = await ensure_dish_sellable(session, reservation.dish_id, stock_held=True)
     today = _business_date()
     current_price = await active_price_version(session, reservation.dish_id, today)
     if current_price is not None and current_price.id != reservation.price_version_id:
@@ -562,6 +589,7 @@ async def consume_hold(
         if reservation.recipe_id is not None
         else [],
     )
+    unit_costs: dict[int, Decimal | None] = {}
     for detail in details:
         lot = (
             await session.execute(
@@ -576,7 +604,11 @@ async def consume_hold(
             or Decimal(str(lot.quantity_remaining)) < Decimal(str(detail.quantity))
             or (lot.expiry_date is not None and lot.expiry_date < today)
         ):
-            raise BusinessRuleError("Lô giữ chỗ không còn đủ số lượng hoặc đã hết hạn.")
+            # FR-SALE-06: the whole submission is refused; say which line to look at again.
+            raise BusinessRuleError(
+                f"Món {dish.name} ({reservation.quantity} suất): lô đang giữ không còn đủ "
+                "số lượng hoặc đã hết hạn, hãy kiểm tra lại dòng này."
+            )
         ingredient = locked_ingredients.get(lot.ingredient_id)
         if ingredient is None:
             raise BusinessRuleError("Nguyên liệu không tồn tại.")
@@ -584,6 +616,8 @@ async def consume_hold(
         lot.quantity_remaining = Decimal(str(lot.quantity_remaining)) - quantity
         await sync_lot_status(session, lot)
         ingredient.stock_qty = Decimal(str(ingredient.stock_qty)) - quantity
+        if ingredient.id not in unit_costs:
+            unit_costs[ingredient.id] = await current_unit_cost(session, ingredient.id)
         session.add(
             StockMovement(
                 ingredient_id=ingredient.id,
@@ -593,6 +627,8 @@ async def consume_hold(
                 business_date=business_date_value,
                 order_line_id=order_line_id,
                 performed_by=actor_id,
+                # FR-INV-03: valued at the unit cost in force when the dish is sent, once.
+                value=movement_value(-quantity, unit_costs[ingredient.id]),
             )
         )
     reservation.status = HOLD_SENT

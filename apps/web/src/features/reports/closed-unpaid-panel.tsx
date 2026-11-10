@@ -9,7 +9,6 @@ import {
   LoadingState,
   StatCard,
 } from "@/components/page-states";
-import { Bars } from "@/features/reports/chart";
 import { ReportTable } from "@/features/reports/report-table";
 import { apiFetch } from "@/lib/api-client";
 import { formatDateTime, formatNumber, formatVnd } from "@/lib/format";

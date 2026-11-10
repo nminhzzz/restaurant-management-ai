@@ -9,17 +9,24 @@ import { useResource } from "@/lib/use-resource";
 
 type DishRank = { MaMon: number; TenMon: string; SoLuong: number };
 
-export function TopDishes({ granularity }: { granularity: string }) {
+/** Ranked over the same period as the revenue beside it, never the current one by default. */
+export function TopDishes({
+  granularity,
+  anchor,
+}: {
+  granularity: string;
+  anchor: string;
+}) {
   const fetchRanking = useCallback(
     () =>
       apiFetch<{ items?: DishRank[] }>(
-        `/reports/dishes?granularity=${granularity}&order_by=quantity`,
+        `/reports/dishes?granularity=${granularity}&order_by=quantity&anchor=${anchor}`,
       ).then((d) =>
         (d.items ?? [])
           .filter((item) => typeof item.TenMon === "string")
           .slice(0, 5),
       ),
-    [granularity],
+    [granularity, anchor],
   );
   const ranking = useResource(fetchRanking);
 

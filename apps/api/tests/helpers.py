@@ -350,10 +350,6 @@ async def record_counts(session: AsyncSession) -> dict[str, int]:
     return {}
 
 
-async def monthly_cost_count(session: AsyncSession) -> int:
-    return await _count(session, "GIA_BINH_QUAN_THANG")
-
-
 async def ingredient_ids(session: AsyncSession) -> list[int]:
     from sqlalchemy import text
 

@@ -27,9 +27,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { apiFetch } from "@/lib/api-client";
-import { formatNumber } from "@/lib/format";
+import { formatNumber, formatVnd } from "@/lib/format";
 import { useResource } from "@/lib/use-resource";
 import { cn } from "@/lib/utils";
+import { CostHistory } from "./cost-history";
 import { InventoryHistory } from "./inventory-history";
 
 type StockRow = {
@@ -41,6 +42,9 @@ type StockRow = {
   SoLuongKhaDung?: number;
   ThoiDiemTinh?: string;
   SoLuongTon?: number;
+  // null while the ingredient has no valid receipt: unknown, never 0 (FR-INV-12).
+  DonGiaBinhQuan?: number | null;
+  GiaTriTon?: number | null;
   MucTonToiThieuApDung?: number;
   CanhBaoTonThap: boolean;
   HanSuDungGanNhat?: string | null;
@@ -50,6 +54,18 @@ type StockRow = {
 };
 
 type StockResponse = { items: StockRow[]; total?: number };
+
+function CostCell({ value }: { value: number | null | undefined }) {
+  return (
+    <TableCell className="text-right tabular-nums">
+      {value === null || value === undefined ? (
+        <span className="text-muted">Chưa xác định</span>
+      ) : (
+        formatVnd(value)
+      )}
+    </TableCell>
+  );
+}
 
 type Filter = "all" | "low";
 
@@ -177,6 +193,8 @@ export function StockTable({
                 <TableHead>Nguyên liệu</TableHead>
                 <TableHead>Đơn vị</TableHead>
                 <TableHead className="text-right">Tồn sổ sách</TableHead>
+                <TableHead className="text-right">Đơn giá bình quân</TableHead>
+                <TableHead className="text-right">Giá trị tồn</TableHead>
                 <TableHead className="text-right">Đủ điều kiện</TableHead>
                 <TableHead className="text-right">Đang giữ</TableHead>
                 <TableHead className="text-right">Khả dụng</TableHead>
@@ -207,6 +225,8 @@ export function StockTable({
                   >
                     {formatNumber(it.SoLuongTon)}
                   </TableCell>
+                  <CostCell value={it.DonGiaBinhQuan} />
+                  <CostCell value={it.GiaTriTon} />
                   <TableCell className="text-right tabular-nums">
                     {formatNumber(it.SoLuongDuDieuKien)}
                   </TableCell>
@@ -274,7 +294,7 @@ export function StockTable({
               {items.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={onRestock ? 11 : 10}
+                    colSpan={onRestock ? 13 : 12}
                     className="py-8 text-center text-muted"
                   >
                     Không có nguyên liệu nào khớp bộ lọc.
@@ -303,10 +323,17 @@ export function StockTable({
             <DialogTitle>Lô và lịch sử — {selected?.TenNguyenLieu}</DialogTitle>
           </DialogHeader>
           {selected && (
-            <InventoryHistory
-              key={selected.MaNguyenLieu}
-              ingredientId={selected.MaNguyenLieu}
-            />
+            <div className="space-y-6">
+              <CostHistory
+                key={`cost-${selected.MaNguyenLieu}`}
+                ingredientId={selected.MaNguyenLieu}
+                unit={selected.DonViTinh}
+              />
+              <InventoryHistory
+                key={selected.MaNguyenLieu}
+                ingredientId={selected.MaNguyenLieu}
+              />
+            </div>
           )}
         </DialogContent>
       </Dialog>

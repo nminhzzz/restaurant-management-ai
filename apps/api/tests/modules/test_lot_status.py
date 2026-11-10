@@ -6,12 +6,12 @@ import pytest
 from sqlalchemy import select
 
 from app.modules.catalog.models import Ingredient
+from app.modules.inventory.costing import current_unit_cost
 from app.modules.inventory.lot_status import derive_lot_status
 from app.modules.inventory.models import IngredientLot, StockIssueLine, StockMovement
 from app.modules.inventory.stock import lots_for_fifo
 from app.shared import business_date
 from tests.modules.test_inventory_costing import (
-    MONTH,
     _headers,
     _ingredient,
     _make_client,
@@ -152,11 +152,8 @@ async def test_the_average_price_is_rounded_to_two_decimals_half_up(session):
 
     await _issue(client, h, iid, 3)
 
-    from app.modules.inventory.models import MonthlyAverageCost
-
     session.expire_all()
-    average = await session.get(MonthlyAverageCost, {"ingredient_id": iid, "month": MONTH})
-    assert average.avg_cost == Decimal("3.33")
+    assert await current_unit_cost(session, iid) == Decimal("3.33")
     line = (await session.execute(select(StockIssueLine))).scalars().all()[-1]
     assert line.estimated_cost == Decimal("9.99")
 
@@ -224,48 +221,38 @@ async def test_the_status_order_prefers_cancelled_then_empty_then_expiry():
     assert derive_lot_status(lot, today, 3) == "Đã hủy"  # cancelled is final
 
 
-async def test_cancelling_a_receipt_recomputes_costs_of_both_lines_and_later_months(session):
-    """TC-BR-19: every line's cost and every dependent period follow the cancellation."""
-    from app.modules.inventory.models import MonthlyAverageCost
-
+async def test_cancelling_a_receipt_recalculates_the_unit_cost_of_both_lines(session):
+    """TC-BR-19: each line leaves the average of its own ingredient; nothing else is touched."""
     a_ing, b_ing = await _ingredient(session, "NL kỳ A"), await _ingredient(session, "NL kỳ B")
     a, b = a_ing.id, b_ing.id
     client = await _make_client(session)
     h, _ = await _headers(session)
 
-    async def receive(lines, when):
+    async def receive(lines):
         r = await client.post(
             "/api/v1/inventory/receipts",
             json={
-                "receipt_date": when,
-                "lines": [
-                    {"ingredient_id": i, "quantity": q, "unit_price": p} for i, q, p in lines
-                ],
+                "lines": [{"ingredient_id": i, "quantity": q, "unit_price": p} for i, q, p in lines]
             },
             headers=h,
         )
         assert r.status_code == 201, r.text
         return r.json()["MaPhieuNhap"]
 
-    await receive([(a, 10, 1000)], "2026-08-10T09:00:00")
-    september = await receive([(a, 10, 3000), (b, 5, 2000)], "2026-09-10T09:00:00")
-    await receive([(a, 10, 4500)], "2026-10-05T09:00:00")
+    await receive([(a, 10, 1000)])
+    two_lines = await receive([(a, 10, 3000), (b, 5, 2000)])
+    await receive([(a, 10, 4500)])
+    assert await current_unit_cost(session, a) == Decimal("2833.33")  # (20x2000 + 10x4500) / 30
+    assert await current_unit_cost(session, b) == 2000
 
-    async def average(iid, month):
-        session.expire_all()
-        row = await session.get(MonthlyAverageCost, {"ingredient_id": iid, "month": month})
-        return None if row is None else row.avg_cost
-
-    assert await average(a, 202609) == 2000  # (10x1000 + 10x3000) / 20
-    assert await average(b, 202609) == 2000
-    assert await average(a, 202610) == Decimal("2833.33")  # (20x2000 + 10x4500) / 30
-
-    cancelled = await client.delete(f"/api/v1/inventory/receipts/{september}", headers=h)
+    cancelled = await client.delete(f"/api/v1/inventory/receipts/{two_lines}", headers=h)
     assert cancelled.status_code == 200, cancelled.text
 
-    assert await average(a, 202609) == 1000  # September keeps only the carried stock
-    assert await average(b, 202609) is None  # line B has no basis left
-    assert await average(a, 202610) == 2750  # (10x1000 + 10x4500) / 20 propagates forward
+    session.expire_all()
+    # (30 x 2833,33 - 10 x 3000) / 20 = 2749,995 -> 2750,00
+    assert await current_unit_cost(session, a) == Decimal("2750.00")
+    # Nothing of B is left to divide by, so its unit cost in force stays.
+    assert await current_unit_cost(session, b) == 2000
 
 
 async def test_quantities_keep_six_decimals_while_money_is_rounded(session):
@@ -286,11 +273,9 @@ async def test_quantities_keep_six_decimals_while_money_is_rounded(session):
     assert line.estimated_cost == Decimal("0.37")  # 3,00 x 0,123456 = 0,370368 -> 0,37
 
 
-async def test_recomputing_the_same_data_gives_the_same_cost_and_no_new_movements(session):
-    """TC-BR-23: repeating the calculation neither changes the cost nor moves stock."""
-    from app.modules.inventory.costing import refresh_costing
-
-    ing = await _ingredient(session, "NL tính lại")
+async def test_a_later_receipt_neither_reprices_a_write_off_nor_moves_stock(session):
+    """TC-BR-13/23: the value is written once; a new price only changes the unit cost."""
+    ing = await _ingredient(session, "NL ghi một lần")
     iid = ing.id
     client = await _make_client(session)
     h, _ = await _headers(session)
@@ -304,12 +289,13 @@ async def test_recomputing_the_same_data_gives_the_same_cost_and_no_new_movement
         return cost, len(movements)
 
     first = await snapshot()
-    await refresh_costing(session, MONTH)
-    await refresh_costing(session, MONTH)
-    second = await snapshot()
+    assert first[0] == Decimal("0.51")
+    assert await current_unit_cost(session, iid) == Decimal("1.01")
 
-    assert first == (Decimal("0.51"), first[1])
-    assert second == first
+    await _receive(client, h, iid, 10, 5)
+
+    assert await snapshot() == (Decimal("0.51"), first[1] + 1)  # only the receipt itself
+    assert await current_unit_cost(session, iid) > Decimal("1.01")
 
 
 async def test_the_sweep_moves_lots_with_the_calendar_and_is_repeatable(session):

@@ -64,6 +64,94 @@ describe("stock table", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows the average unit cost and the stock value, and 'Chưa xác định' when unknown", async () => {
+    fetchMock.mockResolvedValue({
+      items: [
+        {
+          MaNguyenLieu: 1,
+          TenNguyenLieu: "Bò",
+          DonViTinh: "kg",
+          SoLuongTon: 20,
+          DonGiaBinhQuan: 230000,
+          GiaTriTon: 4600000,
+          CanhBaoTonThap: false,
+        },
+        {
+          MaNguyenLieu: 2,
+          TenNguyenLieu: "Sả",
+          DonViTinh: "g",
+          SoLuongTon: 200,
+          DonGiaBinhQuan: null,
+          GiaTriTon: null,
+          CanhBaoTonThap: false,
+        },
+      ],
+      total: 2,
+    });
+
+    render(<StockTable />);
+
+    const beef = (await screen.findByText("Bò")).closest("tr")!;
+    expect(
+      screen.getByRole("columnheader", { name: "Đơn giá bình quân" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("columnheader", { name: "Giá trị tồn" }),
+    ).toBeInTheDocument();
+    expect(beef).toHaveTextContent("230.000 ₫");
+    expect(beef).toHaveTextContent("4.600.000 ₫");
+    const lemongrass = screen.getByText("Sả").closest("tr")!;
+    expect(lemongrass.textContent?.match(/Chưa xác định/g)).toHaveLength(2);
+    expect(lemongrass).not.toHaveTextContent("0 ₫");
+  });
+
+  it("opens the cost history of the chosen ingredient", async () => {
+    fetchMock.mockImplementation((path: string) => {
+      if (path.startsWith("/inventory/stock/1/cost-history")) {
+        return Promise.resolve({
+          items: [
+            {
+              ThoiDiemHieuLuc: "2026-10-02T08:00:00",
+              DonGiaBinhQuan: 230000,
+              SoLuongTon: 20,
+              MaGiaoDichKho: 2,
+              ChungTu: "Phiếu nhập #2",
+            },
+            {
+              ThoiDiemHieuLuc: "2026-10-01T08:00:00",
+              DonGiaBinhQuan: 200000,
+              SoLuongTon: 10,
+              MaGiaoDichKho: 1,
+              ChungTu: "Phiếu nhập #1",
+            },
+          ],
+          total: 2,
+        });
+      }
+      if (path.startsWith("/inventory/stock")) {
+        return Promise.resolve({
+          items: [{ ...baseItems[0], DonViTinh: "kg" }],
+          total: 1,
+        });
+      }
+      return Promise.resolve({ items: [], total: 0 });
+    });
+
+    render(<StockTable />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Xem lô và lịch sử Bột mì" }),
+    );
+
+    expect(
+      await screen.findByRole("row", {
+        name: /Phiếu nhập #2 230\.000 ₫\/kg 20/,
+      }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("row", { name: /Phiếu nhập #1 200\.000 ₫\/kg 10/ }),
+    ).toBeVisible();
+  });
+
   it("shows loading then table", async () => {
     render(<StockTable />);
     expect(screen.getByText("Đang tải…")).toBeInTheDocument();

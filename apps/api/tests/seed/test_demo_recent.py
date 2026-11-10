@@ -52,3 +52,31 @@ async def test_only_past_waiting_lines_of_closed_orders_are_marked_served(sessio
         still_open: "Chờ làm",
         cancelled: "Đã hủy",
     }
+
+
+@pytest.mark.asyncio
+async def test_the_top_up_restocks_on_the_same_terms_as_the_seed(session):
+    """Topping up must not fall back to random quantities and prices."""
+    from scripts.seed.catalog import seed_catalog
+    from scripts.seed.config import SeedConfig
+    from scripts.seed.demo_recent import load_ids
+
+    from app.modules.settings.service import seed_reference_data
+
+    await seed_reference_data(session)
+    await session.commit()
+    seeded = await seed_catalog(session, SeedConfig())
+
+    loaded = await load_ids(session)
+
+    assert loaded.dish_ids == seeded.dish_ids
+    assert loaded.manager_id == seeded.manager_id
+    terms = {supply.ingredient_id: supply for supply in seeded.supplies}
+    assert {supply.ingredient_id for supply in loaded.supplies} == set(terms)
+    for supply in loaded.supplies:
+        expected = terms[supply.ingredient_id]
+        assert supply.supplier_id == expected.supplier_id
+        assert supply.unit_price == expected.unit_price
+        assert supply.min_stock_kg == expected.min_stock_kg
+        assert supply.restocked_daily == expected.restocked_daily
+        assert supply.use_per_order_kg > 0

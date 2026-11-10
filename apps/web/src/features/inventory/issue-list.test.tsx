@@ -16,6 +16,13 @@ const ingredients = [
 
 const issues = [{ MaPhieuXuat: 1, LyDo: "Hao hụt", TrangThai: "Nháp" }];
 
+function posted() {
+  return fetchMock.mock.calls.some(
+    ([path, options]) =>
+      path === "/inventory/issues" && options?.method === "POST",
+  );
+}
+
 describe("IssueList", () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -55,11 +62,87 @@ describe("IssueList", () => {
     fireEvent.click(screen.getByRole("combobox", { name: "Nguyên liệu" }));
     fireEvent.click(await screen.findByText("Gạo (kg)"));
 
-    fireEvent.click(screen.getByRole("button", { name: "Ghi nhận xuất kho" }));
+    fireEvent.click(screen.getByRole("button", { name: "Xem trước" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Không đủ tồn kho.",
     );
+  });
+
+  it("previews an ingredient write-off and writes it only once it is confirmed", async () => {
+    fetchMock.mockImplementation(
+      (path: string, options: { method?: string } = {}) => {
+        if (path.startsWith("/catalog/ingredients")) {
+          return Promise.resolve({ items: ingredients });
+        }
+        if (path === "/inventory/issues/preview") {
+          return Promise.resolve({
+            lines: [
+              {
+                MaNguyenLieu: 1,
+                TenNguyenLieu: "Gạo",
+                DonViTinh: "kg",
+                MaLoNguyenLieu: 4,
+                HanSuDung: null,
+                SoLuongHuy: 2,
+                TonLoConLai: 8,
+                GiaTri: null,
+              },
+            ],
+            TongGiaTri: null,
+            LuotGiuBiGiaiPhong: [
+              {
+                MaGiuCho: 3,
+                MaLuotChon: "abc",
+                MaLoNguyenLieu: 4,
+                SoLuongGiu: 1,
+              },
+            ],
+          });
+        }
+        if (path === "/inventory/issues" && options.method === "POST") {
+          return Promise.resolve({ MaPhieuXuat: 9 });
+        }
+        if (path.startsWith("/inventory/issues")) {
+          return Promise.resolve({ items: [], total: 0 });
+        }
+        return Promise.resolve({ items: [], total: 0 });
+      },
+    );
+
+    render(<IssueList />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Tạo phiếu xuất" }),
+    );
+    fireEvent.change(await screen.findByLabelText("Số lượng"), {
+      target: { value: "2" },
+    });
+    fireEvent.click(screen.getByRole("combobox", { name: "Nguyên liệu" }));
+    fireEvent.click(await screen.findByText("Gạo (kg)"));
+    fireEvent.click(screen.getByRole("button", { name: "Xem trước" }));
+
+    // An ingredient without a unit cost reads "Chưa xác định", never 0 ₫.
+    expect(
+      await screen.findByRole("row", {
+        name: /Gạo \(kg\) #4 2 8 Chưa xác định/,
+      }),
+    ).toBeVisible();
+    expect(screen.getByText(/1 lượt giữ món sẽ bị giải phóng/)).toBeVisible();
+    expect(posted()).toBe(false);
+
+    fireEvent.click(screen.getByRole("button", { name: "Quay lại sửa" }));
+    expect(await screen.findByLabelText("Số lượng")).toHaveValue(2);
+    expect(posted()).toBe(false);
+
+    fireEvent.click(screen.getByRole("button", { name: "Xem trước" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Xác nhận" }));
+    await vi.waitFor(() => expect(posted()).toBe(true));
+    expect(
+      fetchMock.mock.calls.filter(
+        ([path, options]) =>
+          path === "/inventory/issues" && options?.method === "POST",
+      ),
+    ).toHaveLength(1);
   });
 
   it("requests page 1 with the default page size and shows the real total", async () => {
@@ -143,6 +226,7 @@ describe("IssueList", () => {
                 ingredient_name: "Gạo",
                 unit: "kg",
                 quantity: 0.5,
+                value: 12500,
               },
             ],
           });
@@ -199,7 +283,14 @@ describe("IssueList", () => {
 
     expect(await screen.findByText("Gạo (kg)")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Ghi nhận xuất kho" }));
+    fireEvent.click(screen.getByRole("button", { name: "Xem trước" }));
+    expect(
+      await screen.findByRole("row", {
+        name: /#11 · 1 suất Gạo \(kg\) 0,5 12\.500/,
+      }),
+    ).toBeVisible();
+    expect(posted()).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Xác nhận" }));
 
     await vi.waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(

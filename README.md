@@ -27,7 +27,7 @@ Next.js (web)  ──HTTP──▶  FastAPI (api)  ──SQL──▶  MySQL
 | `apps/web` | Frontend Next.js (App Router, TypeScript, Tailwind) |
 | `db/views` | Định nghĩa view phân quyền cho trợ lý AI |
 | `data/eval` | Bộ 80 câu hỏi tiếng Việt – SQL chuẩn (`questions.jsonl`, bản đã khóa `questions.locked.jsonl`) và harness A/B/C |
-| `scripts/seed` | Sinh dữ liệu mô phỏng 12 tháng phục vụ báo cáo và thực nghiệm |
+| `scripts/seed` | Sinh dữ liệu mô phỏng 2 tháng phục vụ báo cáo và thực nghiệm |
 | `docs` | Báo cáo, sơ đồ UML (drawio), hình ảnh, kế hoạch triển khai |
 | `docs/plans` | Lộ trình tổng và kế hoạch chi tiết từng phase (`phases/`) |
 
@@ -82,7 +82,7 @@ Nếu bỏ trống ba URL này, chế độ `local` dùng tạm tài khoản ch�
 NFR-05.
 
 ```bash
-make seed       # dữ liệu 12 tháng + tài khoản seed_* (chỉ chạy trên CSDL chưa có món)
+make seed       # dữ liệu 2 tháng + tài khoản seed_* (chỉ chạy trên CSDL chưa có món)
 make api        # http://localhost:8000/docs
 make web        # http://localhost:3000
 ```
@@ -121,7 +121,7 @@ Quyền được kiểm tra ở tầng API (`app.core.dependencies.require_roles
 
 Đã có phần triển khai của **Phase 0 → 7** trong lộ trình ban đầu: migration CSDL, ba view phân quyền
 `vw_ai_*`, tài khoản chỉ-đọc riêng và API/giao diện cho sáu module Cài đặt · Danh mục · Kho · Bán hàng ·
-Báo cáo · Trợ lý AI. Có script sinh dữ liệu 12 tháng (`make seed`), bộ **80 câu hỏi**
+Báo cáo · Trợ lý AI. Có script sinh dữ liệu 2 tháng (`make seed`), bộ **80 câu hỏi**
 (`data/eval/questions.jsonl`, bản đã khóa `data/eval/questions.locked.jsonl`) và harness A/B/C (`data/eval/harness.py`). Điều này không đồng nghĩa
 mọi yêu cầu trong bản báo cáo cập nhật đã được nghiệm thu.
 

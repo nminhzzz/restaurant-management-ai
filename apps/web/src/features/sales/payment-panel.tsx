@@ -38,6 +38,8 @@ import { useResource } from "@/lib/use-resource";
 
 type OrderLine = {
   MaChiTietOrder: number;
+  // Sent by the API so a soft-deleted dish still reads by name (FR-CAT-28).
+  TenMon?: string | null;
   MaMon: number;
   SoLuong: number;
   DonGia: number;
@@ -607,7 +609,7 @@ export function PaymentPanel({
               className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-4 py-2.5"
             >
               <span className="font-medium">
-                {names.get(l.MaMon) ?? `Món #${l.MaMon}`}
+                {l.TenMon ?? names.get(l.MaMon) ?? `Món #${l.MaMon}`}
                 <span className="ml-1.5 font-normal text-muted tabular-nums">
                   × {l.SoLuong}
                 </span>
