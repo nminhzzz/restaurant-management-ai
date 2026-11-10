@@ -557,6 +557,7 @@ Sổ cái biến động kho; mọi thay đổi tồn đều sinh một bản gh
 | ThoiDiem        | LocalDateTime    | –                                                                                   | Thời điểm phát sinh                                                                                                        |
 | NguoiThucHien   | int              | Tham chiếu tới đối tượng NGUOI_DUNG (để trống nếu do hệ thống tự động ghi)          | Người thực hiện                                                                                                            |
 | BusinessDate    | LocalDate        | –                                                                                   | Ngày kinh doanh, ghi tại thời điểm phát sinh giao dịch theo cutoff đang áp dụng                                            |
+| GiaTri          | double           | Để trống khi nguyên liệu chưa có đơn giá bình quân                                  | Giá trị của biến động, cùng dấu với SoLuongThayDoi; ghi một lần khi phát sinh và không tính lại                            |
 
 Bảng 39. Thuộc tính và phương thức của lớp GIAO_DICH_KHO
 
@@ -1058,6 +1059,7 @@ Trạng thái nghiệp vụ: Đang kiểm kê / Đã xác nhận / Đã hủy. C
 | ThoiDiem        | DATETIME(3)    | NOT NULL                                     | Thời điểm phát sinh                                                                                                                                                 |
 | NguoiThucHien   | BIGINT         | FK → NGUOI_DUNG.MaNguoiDung; NULL            | Tham chiếu tới đối tượng NGUOI_DUNG (để trống nếu do hệ thống tự động ghi); Người thực hiện                                                                         |
 | BusinessDate    | DATE           | NOT NULL                                     | Ngày kinh doanh, ghi tại thời điểm phát sinh giao dịch theo cutoff đang áp dụng                                                                                     |
+| GiaTri          | DECIMAL(18,2)  | NULL                                         | Giá trị của biến động, cùng dấu với SoLuongThayDoi. Nhập dùng đơn giá phiếu nhập; hoàn kho dùng đơn giá của giao dịch xuất gốc; xuất bán, xuất hủy và điều chỉnh kiểm kê dùng đơn giá bình quân hiện hành. Ghi một lần, không tính lại; NULL khi nguyên liệu chưa có đơn giá |
 
 ### F.27. LICH_SU_GIA_BINH_QUAN
 
@@ -1265,7 +1267,7 @@ Trong MVP, Bếp kiểm kê theo nguyên liệu và hệ thống tự phân bổ
 
 **Liên quan lớp CHI_TIET_PHIEU_XUAT và LICH_SU_GIA_BINH_QUAN (tài liệu 04, phần D, a23/a27):**
 
-LICH_SU_GIA_BINH_QUAN lưu đơn giá bình quân gia quyền di động của từng nguyên liệu. Mỗi lần nhập kho, sửa số lượng hoặc đơn giá phiếu nhập, hủy phiếu nhập hoặc hoàn kho, hệ thống ghi một bản ghi mới với đơn giá = (lượng tồn trước × đơn giá hiện hành + lượng biến động × đơn giá của biến động) / lượng tồn sau; khi sửa hoặc hủy phiếu, phần lượng và giá trị cũ của phiếu được đảo ra trước khi ghi phần mới. Đơn giá hiện hành là bản ghi có ThoiDiemHieuLuc lớn nhất không vượt thời điểm xét. Khi lượng tồn sau bằng 0, chẳng hạn hủy phiếu nhập làm tồn về 0, không thực hiện phép chia và đơn giá hiện hành được giữ nguyên. Xuất bán, xuất hủy và điều chỉnh kiểm kê dùng đơn giá hiện hành nên không làm thay đổi đơn giá bình quân. Kiểm kê thừa không được đưa vào tổng nhập mua và không tạo thêm chi phí mua hàng.
+LICH_SU_GIA_BINH_QUAN lưu đơn giá bình quân gia quyền di động của từng nguyên liệu. Mỗi lần nhập kho, sửa số lượng hoặc đơn giá phiếu nhập, hủy phiếu nhập hoặc hoàn kho, hệ thống ghi một bản ghi mới với đơn giá = (lượng tồn trước × đơn giá hiện hành + lượng biến động × đơn giá của biến động) / lượng tồn sau; khi sửa hoặc hủy phiếu, phần lượng và giá trị cũ của phiếu được đảo ra trước khi ghi phần mới. Đơn giá hiện hành là bản ghi có ThoiDiemHieuLuc lớn nhất không vượt thời điểm xét. Khi lượng tồn sau bằng 0, chẳng hạn hủy phiếu nhập làm tồn về 0, không thực hiện phép chia và đơn giá hiện hành được giữ nguyên. Đơn giá hiện hành cũng được giữ nguyên khi sửa hoặc hủy phiếu nhập làm tử số của công thức âm: phần đã xuất mang giá trị theo đơn giá bình quân tại thời điểm xuất, nên giá trị còn lại sau khi đảo phần của phiếu có thể nhỏ hơn 0 dù lượng tồn vẫn dương. Xuất bán, xuất hủy và điều chỉnh kiểm kê dùng đơn giá hiện hành nên không làm thay đổi đơn giá bình quân. Kiểm kê thừa không được đưa vào tổng nhập mua và không tạo thêm chi phí mua hàng.
 
 GiaVonUocTinh của dòng xuất và giá trị của giao dịch tiêu hao được xác định một lần tại thời điểm xuất theo đơn giá hiện hành, không tính lại khi phiếu nhập được thêm, sửa hoặc hủy sau đó. Sửa ngày nhập cập nhật ngày lô, hạn dùng và thứ tự FIFO, không làm thay đổi đơn giá bình quân. Không sửa phiếu đã có xuất hoặc giữ còn hiệu lực; không thay đổi hóa đơn, doanh thu hoặc công thức đã lưu trên dòng món. Mỗi lần tính đơn giá được thực hiện trong transaction của nghiệp vụ phát sinh và gắn với GIAO_DICH_KHO tương ứng khi có.
 
