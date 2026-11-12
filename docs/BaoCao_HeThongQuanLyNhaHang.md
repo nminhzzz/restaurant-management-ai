@@ -28,7 +28,76 @@ TRƯỜNG ĐẠI HỌC MỞ HÀ NỘI
 
 **Hà Nội – Năm 2026**
 
+<table>
+<colgroup>
+<col style="width: 49%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th><p><strong>TRƯỜNG ĐẠI HỌC MỞ HÀ NỘI</strong></p>
+<p><strong>KHOA CÔNG NGHỆ THÔNG TIN</strong></p></th>
+<th><p><strong>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</strong></p>
+<p><strong>Độc lập – Tự do – Hạnh phúc</strong></p></th>
+</tr>
+</thead>
+<tbody>
+</tbody>
+</table>
+
+Hà Nội, ngày....tháng....năm.....
+
 **NHIỆM VỤ KHÓA LUẬN TỐT NGHIỆP**
+
+<table>
+<colgroup>
+<col style="width: 49%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th><p>Họ và tên : Lê Nam Khánh</p>
+<p>Ngày sinh : 19/11/2005</p>
+<p>Chuyên ngành : Công nghệ phần mềm</p>
+<p>Lớp hành chính : 2310A02</p></th>
+<th><p>Giới tính : Nam</p>
+<p>Nơi sinh : Hà Tây</p>
+<p>Mã SV : 23A1001D0199</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><p>Họ và tên : Nguyễn Mạnh Hùng</p>
+<p>Ngày sinh : 22/09/2005</p>
+<p>Chuyên ngành : Công nghệ phần mềm</p>
+<p>Lớp hành chính : 2310A02</p></td>
+<td><p>Giới tính : Nam</p>
+<p>Nơi sinh : Bắc Giang</p>
+<p>Mã SV : 23A1001D0164</p></td>
+</tr>
+<tr class="even">
+<td><p>Họ và tên : Lê Nho Minh</p>
+<p>Ngày sinh : 08/07/2005</p>
+<p>Chuyên ngành : Công nghệ phần mềm</p>
+<p>Lớp hành chính : 2310A02</p></td>
+<td><p>Giới tính : Nam</p>
+<p>Nơi sinh : Bắc Ninh</p>
+<p>Mã SV : 23A1001D0252</p></td>
+</tr>
+</tbody>
+</table>
+
+Tên đề tài: Hệ thống quản lý nhà hàng tích hợp AI hỗ trợ hoạt động kinh doanh.
+
+Nội dung nhiệm vụ: khảo sát và xác định yêu cầu; phân tích, thiết kế và xây dựng ứng dụng web; tích hợp hỏi đáp dữ liệu tiếng Việt; kiểm thử, thực nghiệm và đánh giá kết quả.
+
+Giảng viên hướng dẫn: ThS. Trịnh Thị Xuân.
+
+Giảng viên hướng dẫn
+
+(Ký và ghi rõ họ tên)
+
+ThS. Trịnh Thị Xuân
 
 **LỜI CAM ĐOAN**
 
@@ -44,223 +113,219 @@ Lê Nam Khánh – Nguyễn Mạnh Hùng – Lê Nho Minh
 
 **LỜI CẢM ƠN**
 
-Nhóm xin gửi lời cảm ơn chân thành đến ThS. Trịnh Thị Xuân đã tận tình hướng dẫn, góp ý về định hướng và cách trình bày trong suốt quá trình thực hiện khóa luận. Nhóm cảm ơn quý thầy cô Khoa Công nghệ thông tin, Trường Đại học Mở Hà Nội đã trang bị kiến thức nền tảng cho nhóm trong những năm học vừa qua.
+Nhóm xin bày tỏ lòng biết ơn sâu sắc đến ThS. Trịnh Thị Xuân, giảng viên hướng dẫn khóa luận. Trong suốt thời gian thực hiện, cô đã giúp nhóm định hướng đề tài, theo dõi tiến độ qua từng đợt báo cáo và góp ý chi tiết cho từng chương, từ cách đặt vấn đề, xác định yêu cầu đến cách trình bày kết quả. Những góp ý thẳng thắn và cụ thể của cô đã giúp nhóm nhận ra nhiều thiếu sót và từng bước hoàn thiện khóa luận.
 
-Nhóm cũng cảm ơn những người đã dành thời gian tham gia khảo sát, chia sẻ kinh nghiệm làm việc thực tế tại nhà hàng, quán ăn; các ý kiến này là căn cứ quan trọng để xác định yêu cầu của hệ thống. Cuối cùng, nhóm xin cảm ơn gia đình và bạn bè đã động viên, hỗ trợ nhóm hoàn thành khóa luận.
+Nhóm xin trân trọng cảm ơn quý thầy cô Khoa Công nghệ thông tin, Trường Đại học Mở Hà Nội đã truyền đạt kiến thức trong những năm học vừa qua, đặc biệt là các học phần về phân tích thiết kế hệ thống, cơ sở dữ liệu và công nghệ phần mềm, nền tảng để nhóm thực hiện đề tài này. Nhóm cũng cảm ơn các thầy cô trong hội đồng đã dành thời gian nghe các đợt báo cáo tiến độ, đặt câu hỏi và góp ý về nghiệp vụ, giúp nhóm nhìn lại hệ thống từ góc độ của người sử dụng.
+
+Nhóm chân thành cảm ơn các anh chị đang làm quản lý, thu ngân, phục vụ và bếp tại các nhà hàng, quán ăn đã nhận lời tham gia khảo sát và chia sẻ cách công việc diễn ra hằng ngày. Những trải nghiệm thực tế ấy giúp nhóm hiểu đúng khó khăn của người làm nghề và lựa chọn chức năng phù hợp cho hệ thống.
+
+Cuối cùng, nhóm xin cảm ơn gia đình và bạn bè đã luôn động viên, tạo điều kiện để nhóm tập trung hoàn thành khóa luận. Mặc dù đã nhiều cố gắng, khóa luận khó tránh khỏi những thiếu sót; nhóm rất mong nhận được ý kiến đóng góp của quý thầy cô để đề tài được hoàn thiện hơn.
 
 **TÓM TẮT**
 
 Khóa luận xây dựng hệ thống quản lý nhà hàng dạng ứng dụng web cho nhà hàng, quán ăn quy mô vừa và nhỏ, gồm sáu module: danh mục, bán hàng, kho, báo cáo thống kê, cài đặt và AI Assistant. Hệ thống thống nhất dữ liệu từ lúc khách gọi món đến khi đối soát doanh thu, quản lý nguyên liệu theo lô FIFO, thanh toán tiền mặt và QR có đối soát, và phân quyền dữ liệu, chức năng theo từng vai trò. AI Assistant cho phép người dùng hỏi số liệu kinh doanh bằng tiếng Việt; câu SQL do mô hình ngôn ngữ lớn sinh ra chỉ được chạy trên các view chỉ đọc theo vai trò sau khi qua bước kiểm duyệt.
 
-Yêu cầu hệ thống được xác định từ phân tích phần mềm hiện có và khảo sát 51 người từng làm việc hoặc quản lý tại nhà hàng, quán ăn. Hệ thống được mô hình hóa bằng UML, thiết kế cơ sở dữ liệu quan hệ và kiểm thử trên dữ liệu mô phỏng 2 tháng của một nhà hàng nhỏ. Thực nghiệm Text-to-SQL tiếng Việt được thiết kế trên 80 câu hỏi với ba cấu hình, mỗi câu chạy 3 lần (720 lượt); kết quả thực nghiệm chưa được đo trên bộ dữ liệu này. Kiểm thử chức năng trên phiên bản 099191e ngày 03–04/11/2026 cho kết quả 202 đạt, 21 không đạt, 1 bị chặn và 34 chưa kiểm tra trên tổng 258 ca; hiệu năng cơ bản đã có kịch bản và ngưỡng nhưng chưa được đo.
+Yêu cầu hệ thống được xác định từ phân tích phần mềm hiện có và khảo sát 51 người từng làm việc hoặc quản lý tại nhà hàng, quán ăn. Hệ thống được mô hình hóa bằng UML, thiết kế cơ sở dữ liệu quan hệ và kiểm thử trên dữ liệu mô phỏng 2 tháng của một nhà hàng nhỏ. Thực nghiệm Text-to-SQL tiếng Việt được thiết kế trên 80 câu hỏi với ba cấu hình, mỗi câu chạy 3 lần (720 lượt); kết quả thực nghiệm chưa được đo trên bộ dữ liệu này. Kiểm thử chức năng trên phiên bản 6985565 ngày 10/11/2026 cho kết quả 256 đạt và 2 không đạt trên tổng 258 ca; đo hiệu năng cơ bản với 5, 10 và 20 người dùng đồng thời cho p95 lớn nhất 417 ms ở nghiệp vụ và 25 ms ở báo cáo, không có lỗi.
 
 Từ khóa: quản lý nhà hàng, ứng dụng web, Text-to-SQL, mô hình ngôn ngữ lớn, quản lý kho theo lô FIFO.
 
-**ABSTRACT**
-
-This thesis presents a web-based management system for small and medium-sized restaurants, covering menu management, sales, inventory, reporting, system settings and an AI Assistant. The system unifies data from order taking to revenue reconciliation, tracks ingredients by FIFO batch, supports cash and QR payments with reconciliation, and enforces role-based access. The AI Assistant answers business questions in Vietnamese: SQL generated by a large language model is validated and executed only on read-only, role-specific views.
-
-Requirements were derived from a competitor analysis and a survey of 51 people with restaurant work or management experience. The system was modelled in UML, designed with a relational database and tested on two months of simulated data from a small restaurant. A Vietnamese Text-to-SQL experiment was designed with 80 questions, three configurations and three runs per question (720 runs); its results have not yet been measured on this dataset. Functional testing on build 099191e on 3–4 November 2026 gave 202 passed, 21 failed, 1 blocked and 34 not yet tested out of 258 test cases; the basic performance test has a defined scenario and thresholds but has not yet been measured.
-
-Keywords: restaurant management, web application, Text-to-SQL, large language model, FIFO inventory.
-
 **MỤC LỤC**
 
-[DANH MỤC BẢNG](#danh-mục-bảng)
+[DANH MỤC BẢNG [11](#danh-mục-bảng)](#danh-mục-bảng)
 
-[DANH MỤC HÌNH ẢNH](#danh-mục-hình-ảnh)
+[DANH MỤC HÌNH ẢNH [12](#danh-mục-hình-ảnh)](#danh-mục-hình-ảnh)
 
-[DANH MỤC TỪ VIẾT TẮT](#danh-mục-từ-viết-tắt)
+[DANH MỤC TỪ VIẾT TẮT [13](#danh-mục-từ-viết-tắt)](#danh-mục-từ-viết-tắt)
 
-[MỞ ĐẦU](#mở-đầu)
+[MỞ ĐẦU [15](#mở-đầu)](#mở-đầu)
 
-[1. GIỚI THIỆU](#giới-thiệu)
+[1. GIỚI THIỆU [17](#giới-thiệu)](#giới-thiệu)
 
-[1.1. Giới thiệu chung](#giới-thiệu-chung)
+[1.1. Giới thiệu chung [17](#giới-thiệu-chung)](#giới-thiệu-chung)
 
-[1.2. Mục đích đề tài](#mục-đích-đề-tài)
+[1.2. Mục đích đề tài [17](#mục-đích-đề-tài)](#mục-đích-đề-tài)
 
-[1.3. Mục tiêu đề tài](#mục-tiêu-đề-tài)
+[1.3. Mục tiêu đề tài [17](#mục-tiêu-đề-tài)](#mục-tiêu-đề-tài)
 
-[1.3.1. Mục tiêu tổng quát](#mục-tiêu-tổng-quát)
+[1.3.1. Mục tiêu tổng quát [17](#mục-tiêu-tổng-quát)](#mục-tiêu-tổng-quát)
 
-[1.3.2. Mục tiêu cụ thể](#mục-tiêu-cụ-thể)
+[1.3.2. Mục tiêu cụ thể [18](#mục-tiêu-cụ-thể)](#mục-tiêu-cụ-thể)
 
-[1.4. Phạm vi đề tài](#phạm-vi-đề-tài)
+[1.4. Phạm vi đề tài [18](#phạm-vi-đề-tài)](#phạm-vi-đề-tài)
 
-[1.4.1. Phạm vi nghiệp vụ](#phạm-vi-nghiệp-vụ)
+[1.4.1. Phạm vi nghiệp vụ [18](#phạm-vi-nghiệp-vụ)](#phạm-vi-nghiệp-vụ)
 
-[1.4.2. Phạm vi công nghệ](#phạm-vi-công-nghệ)
+[1.4.2. Phạm vi công nghệ [19](#phạm-vi-công-nghệ)](#phạm-vi-công-nghệ)
 
-[1.4.3. Giới hạn phạm vi](#giới-hạn-phạm-vi)
+[1.4.3. Giới hạn phạm vi [19](#giới-hạn-phạm-vi)](#giới-hạn-phạm-vi)
 
-[1.5. Phân công thực hiện](#phân-công-thực-hiện)
+[1.5. Phân công thực hiện [20](#phân-công-thực-hiện)](#phân-công-thực-hiện)
 
-[2. KHẢO SÁT HỆ THỐNG](#khảo-sát-hệ-thống)
+[2. KHẢO SÁT HỆ THỐNG [21](#khảo-sát-hệ-thống)](#khảo-sát-hệ-thống)
 
-[2.1. Phân tích đối thủ cạnh tranh](#phân-tích-đối-thủ-cạnh-tranh)
+[2.1. Phân tích đối thủ cạnh tranh [21](#phân-tích-đối-thủ-cạnh-tranh)](#phân-tích-đối-thủ-cạnh-tranh)
 
-[2.1.1. Khảo sát và đánh giá chung](#khảo-sát-và-đánh-giá-chung)
+[2.1.1. Khảo sát và đánh giá chung [21](#khảo-sát-và-đánh-giá-chung)](#khảo-sát-và-đánh-giá-chung)
 
-[2.1.2. Phân tích chi tiết các đối thủ](#phân-tích-chi-tiết-các-đối-thủ)
+[2.1.2. Phân tích chi tiết các đối thủ [21](#phân-tích-chi-tiết-các-đối-thủ)](#phân-tích-chi-tiết-các-đối-thủ)
 
-[2.1.3. Cơ sở lý thuyết và nghiên cứu liên quan](#cơ-sở-lý-thuyết-và-nghiên-cứu-liên-quan)
+[2.1.3. Cơ sở lý thuyết và nghiên cứu liên quan [21](#cơ-sở-lý-thuyết-và-nghiên-cứu-liên-quan)](#cơ-sở-lý-thuyết-và-nghiên-cứu-liên-quan)
 
-[2.1.4. Đề xuất giải pháp và định hướng phát triển](#đề-xuất-giải-pháp-và-định-hướng-phát-triển)
+[2.1.4. Đề xuất giải pháp và định hướng phát triển [22](#đề-xuất-giải-pháp-và-định-hướng-phát-triển)](#đề-xuất-giải-pháp-và-định-hướng-phát-triển)
 
-[2.2. Khảo sát người dùng](#khảo-sát-người-dùng)
+[2.2. Khảo sát người dùng [22](#khảo-sát-người-dùng)](#khảo-sát-người-dùng)
 
-[2.2.1. Mục đích khảo sát](#mục-đích-khảo-sát)
+[2.2.1. Mục đích khảo sát [22](#mục-đích-khảo-sát)](#mục-đích-khảo-sát)
 
-[2.2.2. Phương pháp khảo sát](#phương-pháp-khảo-sát)
+[2.2.2. Phương pháp khảo sát [22](#phương-pháp-khảo-sát)](#phương-pháp-khảo-sát)
 
-[2.2.3. Câu hỏi khảo sát](#câu-hỏi-khảo-sát)
+[2.2.3. Câu hỏi khảo sát [23](#câu-hỏi-khảo-sát)](#câu-hỏi-khảo-sát)
 
-[2.2.4. Kết quả và phân tích kết quả khảo sát](#kết-quả-và-phân-tích-kết-quả-khảo-sát)
+[2.2.4. Kết quả và phân tích kết quả khảo sát [24](#kết-quả-và-phân-tích-kết-quả-khảo-sát)](#kết-quả-và-phân-tích-kết-quả-khảo-sát)
 
-[2.2.5. Hạn chế của khảo sát](#hạn-chế-của-khảo-sát)
+[2.2.5. Hạn chế của khảo sát [25](#hạn-chế-của-khảo-sát)](#hạn-chế-của-khảo-sát)
 
-[2.2.6. Đối chiếu với nguồn thứ cấp](#đối-chiếu-với-nguồn-thứ-cấp)
+[2.2.6. Đối chiếu với nguồn thứ cấp [26](#đối-chiếu-với-nguồn-thứ-cấp)](#đối-chiếu-với-nguồn-thứ-cấp)
 
-[2.3. Quy trình nghiệp vụ](#quy-trình-nghiệp-vụ)
+[2.3. Quy trình nghiệp vụ [26](#quy-trình-nghiệp-vụ)](#quy-trình-nghiệp-vụ)
 
-[2.3.1. Gọi món tại chỗ](#gọi-món-tại-chỗ)
+[2.3.1. Gọi món tại chỗ [27](#gọi-món-tại-chỗ)](#gọi-món-tại-chỗ)
 
-[2.3.2. Gọi món mang về](#gọi-món-mang-về)
+[2.3.2. Gọi món mang về [28](#gọi-món-mang-về)](#gọi-món-mang-về)
 
-[2.3.3. Kiểm kê và điều chỉnh tồn](#kiểm-kê-và-điều-chỉnh-tồn)
+[2.3.3. Kiểm kê và điều chỉnh tồn [29](#kiểm-kê-và-điều-chỉnh-tồn)](#kiểm-kê-và-điều-chỉnh-tồn)
 
-[2.4. Xác định yêu cầu](#xác-định-yêu-cầu)
+[2.4. Xác định yêu cầu [31](#xác-định-yêu-cầu)](#xác-định-yêu-cầu)
 
-[2.4.1. Yêu cầu chức năng](#yêu-cầu-chức-năng)
+[2.4.1. Yêu cầu chức năng [31](#yêu-cầu-chức-năng)](#yêu-cầu-chức-năng)
 
-[2.4.2. Yêu cầu phi chức năng](#yêu-cầu-phi-chức-năng)
+[2.4.2. Yêu cầu phi chức năng [33](#yêu-cầu-phi-chức-năng)](#yêu-cầu-phi-chức-năng)
 
-[2.5. Xác định đối tượng sử dụng hệ thống](#xác-định-đối-tượng-sử-dụng-hệ-thống)
+[2.5. Xác định đối tượng sử dụng hệ thống [35](#xác-định-đối-tượng-sử-dụng-hệ-thống)](#xác-định-đối-tượng-sử-dụng-hệ-thống)
 
-[2.6. Hiện trạng vận hành và các bên liên quan](#hiện-trạng-vận-hành-và-các-bên-liên-quan)
+[2.6. Hiện trạng vận hành và các bên liên quan [35](#hiện-trạng-vận-hành-và-các-bên-liên-quan)](#hiện-trạng-vận-hành-và-các-bên-liên-quan)
 
-[2.7. Nghiên cứu khả thi và ràng buộc](#nghiên-cứu-khả-thi-và-ràng-buộc)
+[2.7. Nghiên cứu khả thi và ràng buộc [36](#nghiên-cứu-khả-thi-và-ràng-buộc)](#nghiên-cứu-khả-thi-và-ràng-buộc)
 
-[2.7.1. Khả thi kỹ thuật](#khả-thi-kỹ-thuật)
+[2.7.1. Khả thi kỹ thuật [36](#khả-thi-kỹ-thuật)](#khả-thi-kỹ-thuật)
 
-[2.7.2. Khả thi kinh tế](#khả-thi-kinh-tế)
+[2.7.2. Khả thi kinh tế [36](#khả-thi-kinh-tế)](#khả-thi-kinh-tế)
 
-[2.7.3. Khả thi vận hành](#khả-thi-vận-hành)
+[2.7.3. Khả thi vận hành [37](#khả-thi-vận-hành)](#khả-thi-vận-hành)
 
-[2.7.4. Khả thi pháp lý và ràng buộc](#khả-thi-pháp-lý-và-ràng-buộc)
+[2.7.4. Khả thi pháp lý và ràng buộc [37](#khả-thi-pháp-lý-và-ràng-buộc)](#khả-thi-pháp-lý-và-ràng-buộc)
 
-[3. PHÂN TÍCH HỆ THỐNG](#phân-tích-hệ-thống)
+[3. PHÂN TÍCH HỆ THỐNG [38](#phân-tích-hệ-thống)](#phân-tích-hệ-thống)
 
-[3.1. Mô hình hóa chức năng nghiệp vụ](#mô-hình-hóa-chức-năng-nghiệp-vụ)
+[3.1. Mô hình hóa chức năng nghiệp vụ [38](#mô-hình-hóa-chức-năng-nghiệp-vụ)](#mô-hình-hóa-chức-năng-nghiệp-vụ)
 
-[3.1.1. Xác định và gom nhóm chức năng](#xác-định-và-gom-nhóm-chức-năng)
+[3.1.1. Xác định và gom nhóm chức năng [38](#xác-định-và-gom-nhóm-chức-năng)](#xác-định-và-gom-nhóm-chức-năng)
 
-[3.1.2. Sơ đồ Use Case](#sơ-đồ-use-case)
+[3.1.2. Sơ đồ Use Case [39](#sơ-đồ-use-case)](#sơ-đồ-use-case)
 
-[3.2. Mô hình hóa đối tượng (Class Diagram)](#mô-hình-hóa-đối-tượng-class-diagram)
+[3.2. Mô hình hóa đối tượng (Class Diagram) [41](#mô-hình-hóa-đối-tượng-class-diagram)](#mô-hình-hóa-đối-tượng-class-diagram)
 
-[3.3. Mô hình hóa tương tác (Sequence Diagram)](#mô-hình-hóa-tương-tác-sequence-diagram)
+[3.3. Mô hình hóa tương tác (Sequence Diagram) [47](#mô-hình-hóa-tương-tác-sequence-diagram)](#mô-hình-hóa-tương-tác-sequence-diagram)
 
-[3.4. Đặc tả chức năng](#đặc-tả-chức-năng)
+[3.4. Đặc tả chức năng [51](#đặc-tả-chức-năng)](#đặc-tả-chức-năng)
 
-[3.4.1. Gọi món tại chỗ và quản lý lượt giữ](#gọi-món-tại-chỗ-và-quản-lý-lượt-giữ)
+[3.4.1. Gọi món tại chỗ và quản lý lượt giữ [52](#gọi-món-tại-chỗ-và-quản-lý-lượt-giữ)](#gọi-món-tại-chỗ-và-quản-lý-lượt-giữ)
 
-[3.4.2. Thanh toán QR](#thanh-toán-qr)
+[3.4.2. Thanh toán QR [52](#thanh-toán-qr)](#thanh-toán-qr)
 
-[3.4.3. Kiểm kê và điều chỉnh tồn](#kiểm-kê-và-điều-chỉnh-tồn-1)
+[3.4.3. Kiểm kê và điều chỉnh tồn [53](#kiểm-kê-và-điều-chỉnh-tồn-1)](#kiểm-kê-và-điều-chỉnh-tồn-1)
 
-[3.4.4. Hỏi AI Assistant](#hỏi-ai-assistant)
+[3.4.4. Hỏi AI Assistant [54](#hỏi-ai-assistant)](#hỏi-ai-assistant)
 
-[4. THIẾT KẾ HỆ THỐNG](#thiết-kế-hệ-thống)
+[4. THIẾT KẾ HỆ THỐNG [56](#thiết-kế-hệ-thống)](#thiết-kế-hệ-thống)
 
-[4.1. Thiết kế kiến trúc hệ thống](#thiết-kế-kiến-trúc-hệ-thống)
+[4.1. Thiết kế kiến trúc hệ thống [56](#thiết-kế-kiến-trúc-hệ-thống)](#thiết-kế-kiến-trúc-hệ-thống)
 
-[4.1.1. Kiến trúc tổng thể](#kiến-trúc-tổng-thể)
+[4.1.1. Kiến trúc tổng thể [56](#kiến-trúc-tổng-thể)](#kiến-trúc-tổng-thể)
 
-[4.1.2. Kiến trúc phần mềm](#kiến-trúc-phần-mềm)
+[4.1.2. Kiến trúc phần mềm [57](#kiến-trúc-phần-mềm)](#kiến-trúc-phần-mềm)
 
-[4.1.3. Quy trình xử lý câu hỏi AI](#quy-trình-xử-lý-câu-hỏi-ai)
+[4.1.3. Quy trình xử lý câu hỏi AI [58](#quy-trình-xử-lý-câu-hỏi-ai)](#quy-trình-xử-lý-câu-hỏi-ai)
 
-[4.2. Thiết kế cơ sở dữ liệu](#thiết-kế-cơ-sở-dữ-liệu)
+[4.2. Thiết kế cơ sở dữ liệu [60](#thiết-kế-cơ-sở-dữ-liệu)](#thiết-kế-cơ-sở-dữ-liệu)
 
-[4.2.1. Xác định các lớp đối tượng](#xác-định-các-lớp-đối-tượng)
+[4.2.1. Xác định các lớp đối tượng [61](#xác-định-các-lớp-đối-tượng)](#xác-định-các-lớp-đối-tượng)
 
-[4.2.2. Ánh xạ Class Diagram sang lược đồ quan hệ (CSDL)](#ánh-xạ-class-diagram-sang-lược-đồ-quan-hệ-csdl)
+[4.2.2. Ánh xạ Class Diagram sang lược đồ quan hệ (CSDL) [62](#ánh-xạ-class-diagram-sang-lược-đồ-quan-hệ-csdl)](#ánh-xạ-class-diagram-sang-lược-đồ-quan-hệ-csdl)
 
-[4.2.3. Thiết kế chỉ mục](#thiết-kế-chỉ-mục)
+[4.2.3. Thiết kế chỉ mục [67](#thiết-kế-chỉ-mục)](#thiết-kế-chỉ-mục)
 
-[4.3. Thiết kế giao diện](#thiết-kế-giao-diện)
+[4.3. Thiết kế giao diện [68](#thiết-kế-giao-diện)](#thiết-kế-giao-diện)
 
-[4.4. Thiết kế kiểm soát](#thiết-kế-kiểm-soát)
+[4.4. Thiết kế kiểm soát [73](#thiết-kế-kiểm-soát)](#thiết-kế-kiểm-soát)
 
-[4.4.1. Phân định quyền hạn về dữ liệu](#phân-định-quyền-hạn-về-dữ-liệu)
+[4.4.1. Phân định quyền hạn về dữ liệu [73](#phân-định-quyền-hạn-về-dữ-liệu)](#phân-định-quyền-hạn-về-dữ-liệu)
 
-[4.4.2. Phân định quyền hạn về chức năng](#phân-định-quyền-hạn-về-chức-năng)
+[4.4.2. Phân định quyền hạn về chức năng [74](#phân-định-quyền-hạn-về-chức-năng)](#phân-định-quyền-hạn-về-chức-năng)
 
-[4.5. Thiết kế API và lớp xử lý](#thiết-kế-api-và-lớp-xử-lý)
+[4.5. Thiết kế API và lớp xử lý [75](#thiết-kế-api-và-lớp-xử-lý)](#thiết-kế-api-và-lớp-xử-lý)
 
-[4.6. Thiết kế bảo mật tập trung](#thiết-kế-bảo-mật-tập-trung)
+[4.6. Thiết kế bảo mật tập trung [77](#thiết-kế-bảo-mật-tập-trung)](#thiết-kế-bảo-mật-tập-trung)
 
-[5. CÀI ĐẶT VÀ TRIỂN KHAI HỆ THỐNG](#cài-đặt-và-triển-khai-hệ-thống)
+[5. CÀI ĐẶT VÀ TRIỂN KHAI HỆ THỐNG [79](#cài-đặt-và-triển-khai-hệ-thống)](#cài-đặt-và-triển-khai-hệ-thống)
 
-[5.1. Công nghệ sử dụng](#công-nghệ-sử-dụng)
+[5.1. Công nghệ sử dụng [79](#công-nghệ-sử-dụng)](#công-nghệ-sử-dụng)
 
-[5.1.1. Lựa chọn công nghệ và framework](#lựa-chọn-công-nghệ-và-framework)
+[5.1.1. Lựa chọn công nghệ và framework [79](#lựa-chọn-công-nghệ-và-framework)](#lựa-chọn-công-nghệ-và-framework)
 
-[5.1.2. Lựa chọn hệ quản trị cơ sở dữ liệu](#lựa-chọn-hệ-quản-trị-cơ-sở-dữ-liệu)
+[5.1.2. Lựa chọn hệ quản trị cơ sở dữ liệu [79](#lựa-chọn-hệ-quản-trị-cơ-sở-dữ-liệu)](#lựa-chọn-hệ-quản-trị-cơ-sở-dữ-liệu)
 
-[5.1.3. Quy trình phát triển](#quy-trình-phát-triển)
+[5.1.3. Quy trình phát triển [79](#quy-trình-phát-triển)](#quy-trình-phát-triển)
 
-[5.2. Tổ chức cài đặt và các xử lý lõi](#tổ-chức-cài-đặt-và-các-xử-lý-lõi)
+[5.2. Tổ chức cài đặt và các xử lý lõi [80](#tổ-chức-cài-đặt-và-các-xử-lý-lõi)](#tổ-chức-cài-đặt-và-các-xử-lý-lõi)
 
-[5.3. Thiết lập môi trường và chạy thử](#thiết-lập-môi-trường-và-chạy-thử)
+[5.3. Thiết lập môi trường và chạy thử [80](#thiết-lập-môi-trường-và-chạy-thử)](#thiết-lập-môi-trường-và-chạy-thử)
 
-[5.4. Kết quả cài đặt](#kết-quả-cài-đặt)
+[5.4. Kết quả cài đặt [81](#kết-quả-cài-đặt)](#kết-quả-cài-đặt)
 
-[6. KIỂM THỬ VÀ ĐÁNH GIÁ](#kiểm-thử-và-đánh-giá)
+[6. KIỂM THỬ VÀ ĐÁNH GIÁ [81](#kiểm-thử-và-đánh-giá)](#kiểm-thử-và-đánh-giá)
 
-[6.1. Cơ sở và nguyên tắc đánh giá](#cơ-sở-và-nguyên-tắc-đánh-giá)
+[6.1. Cơ sở và nguyên tắc đánh giá [81](#cơ-sở-và-nguyên-tắc-đánh-giá)](#cơ-sở-và-nguyên-tắc-đánh-giá)
 
-[6.2. Dữ liệu và đáp án chuẩn](#dữ-liệu-và-đáp-án-chuẩn)
+[6.2. Dữ liệu và đáp án chuẩn [83](#dữ-liệu-và-đáp-án-chuẩn)](#dữ-liệu-và-đáp-án-chuẩn)
 
-[6.3. Chỉ số và cấu hình thực nghiệm](#chỉ-số-và-cấu-hình-thực-nghiệm)
+[6.3. Chỉ số và cấu hình thực nghiệm [84](#chỉ-số-và-cấu-hình-thực-nghiệm)](#chỉ-số-và-cấu-hình-thực-nghiệm)
 
-[6.4. Kết quả thực nghiệm AI Assistant](#kết-quả-thực-nghiệm-ai-assistant)
+[6.4. Kết quả thực nghiệm AI Assistant [86](#kết-quả-thực-nghiệm-ai-assistant)](#kết-quả-thực-nghiệm-ai-assistant)
 
-[6.5. Kiểm tra chức năng AI Assistant](#kiểm-tra-chức-năng-ai-assistant)
+[6.5. Kiểm tra chức năng AI Assistant [87](#kiểm-tra-chức-năng-ai-assistant)](#kiểm-tra-chức-năng-ai-assistant)
 
-[6.6. Kiểm thử chức năng](#kiểm-thử-chức-năng)
+[6.6. Kiểm thử chức năng [87](#kiểm-thử-chức-năng)](#kiểm-thử-chức-năng)
 
-[6.7. Kiểm thử hiệu năng](#kiểm-thử-hiệu-năng)
+[6.7. Kiểm thử hiệu năng [88](#kiểm-thử-hiệu-năng)](#kiểm-thử-hiệu-năng)
 
-[6.8. Phạm vi và giới hạn kiểm tra](#phạm-vi-và-giới-hạn-kiểm-tra)
+[6.8. Phạm vi và giới hạn kiểm tra [89](#phạm-vi-và-giới-hạn-kiểm-tra)](#phạm-vi-và-giới-hạn-kiểm-tra)
 
-[KẾT LUẬN](#kết-luận)
+[KẾT LUẬN [90](#kết-luận)](#kết-luận)
 
-[Kết quả đạt được so với mục tiêu](#kết-quả-đạt-được-so-với-mục-tiêu)
+[Kết quả đạt được so với mục tiêu [90](#kết-quả-đạt-được-so-với-mục-tiêu)](#kết-quả-đạt-được-so-với-mục-tiêu)
 
-[Hạn chế](#hạn-chế)
+[Hạn chế [90](#hạn-chế)](#hạn-chế)
 
-[Hướng phát triển](#hướng-phát-triển)
+[Hướng phát triển [91](#hướng-phát-triển)](#hướng-phát-triển)
 
-[TÀI LIỆU THAM KHẢO](#tài-liệu-tham-khảo)
+[TÀI LIỆU THAM KHẢO [92](#tài-liệu-tham-khảo)](#tài-liệu-tham-khảo)
 
-[PHỤ LỤC](#phụ-lục)
+[PHỤ LỤC [95](#phụ-lục)](#phụ-lục)
 
-[Tài liệu đi kèm báo cáo](#tài-liệu-đi-kèm-báo-cáo)
+[Tài liệu đi kèm báo cáo [95](#tài-liệu-đi-kèm-báo-cáo)](#tài-liệu-đi-kèm-báo-cáo)
 
-[A. Quy định triển khai cơ sở dữ liệu](#a.-quy-định-triển-khai-cơ-sở-dữ-liệu)
+[A. Quy định triển khai cơ sở dữ liệu [96](#a.-quy-định-triển-khai-cơ-sở-dữ-liệu)](#a.-quy-định-triển-khai-cơ-sở-dữ-liệu)
 
-[A.1. Ràng buộc toàn vẹn và giao dịch](#a.1.-ràng-buộc-toàn-vẹn-và-giao-dịch)
+[A.1. Ràng buộc toàn vẹn và giao dịch [96](#a.1.-ràng-buộc-toàn-vẹn-và-giao-dịch)](#a.1.-ràng-buộc-toàn-vẹn-và-giao-dịch)
 
-[A.2. Chỉ mục và mở rộng](#a.2.-chỉ-mục-và-mở-rộng)
+[A.2. Chỉ mục và mở rộng [97](#a.2.-chỉ-mục-và-mở-rộng)](#a.2.-chỉ-mục-và-mở-rộng)
 
-[B. Quy tắc sinh dữ liệu mô phỏng](#b.-quy-tắc-sinh-dữ-liệu-mô-phỏng)
+[B. Quy tắc sinh dữ liệu mô phỏng [98](#b.-quy-tắc-sinh-dữ-liệu-mô-phỏng)](#b.-quy-tắc-sinh-dữ-liệu-mô-phỏng)
 
-[B.1. Bộ dữ liệu cho thực nghiệm AI Assistant](#b.1.-bộ-dữ-liệu-cho-thực-nghiệm-ai-assistant)
+[B.1. Bộ dữ liệu cho thực nghiệm AI Assistant [98](#b.1.-bộ-dữ-liệu-cho-thực-nghiệm-ai-assistant)](#b.1.-bộ-dữ-liệu-cho-thực-nghiệm-ai-assistant)
 
-[B.2. Bộ dữ liệu cho kiểm thử hiệu năng](#b.2.-bộ-dữ-liệu-cho-kiểm-thử-hiệu-năng)
+[B.2. Bộ dữ liệu cho kiểm thử hiệu năng [99](#b.2.-bộ-dữ-liệu-cho-kiểm-thử-hiệu-năng)](#b.2.-bộ-dữ-liệu-cho-kiểm-thử-hiệu-năng)
 
 # DANH MỤC BẢNG
 
@@ -298,7 +363,7 @@ Bảng 16. Kết quả đánh giá trên tập 80 câu đã khóa 86
 
 Bảng 17. Độ đúng thực thi nới lỏng theo độ khó và vai trò 86
 
-Bảng 18. Các lỗi chức năng ghi nhận ngày 03–04/11/2026 89
+Bảng 18. Các lỗi chức năng ghi nhận ngày 10/11/2026 87
 
 # DANH MỤC HÌNH ẢNH
 
@@ -1535,19 +1600,19 @@ Tài liệu 06 trình bày 258 test case chức năng: 51 ca Danh mục, 101 ca 
 
 Bảng 14 tổng hợp kết quả kiểm chứng yêu cầu phi chức năng theo các phép thử tại Chương 6. Trạng thái và căn cứ phản ánh phạm vi thực nghiệm đã thực hiện.
 
-| **NFR** | **Phép kiểm chứng**                                    | **Kết quả** | **Căn cứ đánh giá**                                        |
-|---------|--------------------------------------------------------|-------------|------------------------------------------------------------|
-| NFR-01  | Tải 5/10/20 người, dữ liệu 2 tháng                     | Chưa đo     | Chưa có kết quả đo trên bộ dữ liệu 2 tháng.                |
-| NFR-02  | 80 câu × 3 lần/cấu hình                                | Chưa đo     | Chưa có kết quả thực nghiệm trên bộ dữ liệu 2 tháng.       |
-| NFR-03  | Tải báo cáo và SQL đối chứng                           |             | Chưa có kết quả đo độ trễ báo cáo trên bộ dữ liệu 2 tháng. |
-| NFR-04  | Băm mật khẩu, HTTPS, API trái quyền, phiên truy cập    |             |                                                            |
-| NFR-05  | Kiểm thử tích hợp an toàn AI và nhật ký CSDL           |             |                                                            |
-| NFR-06  | Tính bất biến và nội dung nhật ký                      | Chưa đạt    | Thiếu nhật ký thao tác giảm món đã gửi.                    |
-| NFR-07  | Rollback, gửi lặp, tranh chấp, kiểm kê                 | Chưa đạt    | Điều kiện mở kiểm kê chưa xử lý đúng lượt chọn hết hạn.    |
-| NFR-08  | Hạn mức và cache sau thay đổi dữ liệu/quyền            |             |                                                            |
-| NFR-09  | Chưa đánh giá khả năng sử dụng với người dùng thực tế. |             |                                                            |
-| NFR-10  | Tablet, Chrome/Safari và INP p75                       |             | Đã có kiểm tra trên Chromium.                              |
-| NFR-11  | Sao lưu và phục hồi CSDL trống                         |             |                                                            |
+| **NFR** | **Phép kiểm chứng**                                    | **Kết quả** | **Căn cứ đánh giá**                                                                                                                                                                                                                                                                        |
+|---------|--------------------------------------------------------|-------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| NFR-01  | Tải 5/10/20 người, dữ liệu 2 tháng                     | Đạt         | p95 lớn nhất 417 ms ở 20 người dùng (ngưỡng 1 giây); 0 lỗi trên 5.040 yêu cầu của ba nhóm đo ngày 11/11/2026.                                                                                                                                                                              |
+| NFR-02  | 80 câu × 3 lần/cấu hình                                | Chưa đo     | Chưa có kết quả thực nghiệm trên bộ dữ liệu 2 tháng.                                                                                                                                                                                                                                       |
+| NFR-03  | Tải báo cáo và SQL đối chứng                           | Đạt         | p95 lớn nhất 25 ms (ngưỡng 10 giây); 0 lỗi trên 752 yêu cầu; doanh thu ngày và tháng khớp bản đối chứng. Trạng thái đang xử lý trên giao diện chưa được kiểm vì không thao tác nào vượt 1 giây.                                                                                            |
+| NFR-04  | Băm mật khẩu, HTTPS, API trái quyền, phiên truy cập    |             |                                                                                                                                                                                                                                                                                            |
+| NFR-05  | Kiểm thử tích hợp an toàn AI và nhật ký CSDL           |             |                                                                                                                                                                                                                                                                                            |
+| NFR-06  | Tính bất biến và nội dung nhật ký                      | Chưa đạt    | TC-SET-09 không đạt: nhật ký sửa món, nguyên liệu, nhà cung cấp, bàn và chuyển bàn không lưu dữ liệu trước và sau; nhật ký hủy phiếu nhập thiếu dữ liệu trước (PH-04). Chưa có ca kiểm thử việc không sửa, không xóa được nhật ký và quét nội dung nhật ký.                                |
+| NFR-07  | Rollback, gửi lặp, tranh chấp, kiểm kê                 | Đạt         | 18 ca gắn NFR-07 đạt ngày 10/11/2026, gồm tranh chấp giữ món, gửi lặp, rollback và mở kiểm kê khi có giao dịch song song; kiểm tra sau đo tải không sai lệch sổ cái, lô hay gửi trùng. Gửi lặp đồng thời cùng mã yêu cầu chỉ tạo một order, nhưng các yêu cầu trùng nhận HTTP 500 (PH-07). |
+| NFR-08  | Hạn mức và cache sau thay đổi dữ liệu/quyền            |             |                                                                                                                                                                                                                                                                                            |
+| NFR-09  | Chưa đánh giá khả năng sử dụng với người dùng thực tế. |             |                                                                                                                                                                                                                                                                                            |
+| NFR-10  | Tablet, Chrome/Safari và INP p75                       |             | Đã có kiểm tra trên Chromium.                                                                                                                                                                                                                                                              |
+| NFR-11  | Sao lưu và phục hồi CSDL trống                         |             |                                                                                                                                                                                                                                                                                            |
 
 Bảng 14. Kết quả đối chiếu yêu cầu phi chức năng
 
@@ -1647,37 +1712,18 @@ Các thành viên tự kiểm tra theo test case, ghi điều kiện và dữ li
 
 Phạm vi gồm danh mục, giữ và gửi món, hủy hoặc giảm món, hoàn kho, thanh toán, kiểm kê, báo cáo và phân quyền. Các trường hợp thiếu nguyên liệu, nhập sai dữ liệu, xử lý lặp và chuyển trạng thái thuộc kiểm tra chức năng.
 
-Đợt kiểm thử ngày 03–04/11/2026 sử dụng bản 099191e (commit 099191e0ecde95bfc209280f55826360e29d0c3c) trong môi trường thử riêng gồm MySQL 8.4.13, FastAPI và giao diện Next.js bản build; ca giao diện được thao tác trực tiếp trên giao diện. Kết quả: 202 đạt, 21 không đạt, 1 bị chặn (TC-BR-21) và 34 chưa kiểm tra trên tổng 258 ca. Các ca chưa kiểm tra thuộc định giá theo bình quân gia quyền di động, xem trước và xác nhận điều chỉnh kiểm kê, xem trước phiếu xuất hủy và hiển thị đơn giá bình quân trên màn hình tồn kho, giá vốn ước tính của món.
+Đợt kiểm thử ngày 10/11/2026 sử dụng bản 6985565 trong môi trường thử riêng với cơ sở dữ liệu QA riêng; ca giao diện được thao tác trực tiếp trên giao diện, các ca còn lại qua API và script. Kết quả: 256 đạt và 2 không đạt (TC-SALE-61, TC-SET-09) trên tổng 258 ca. Ngoài các ca, đợt kiểm thử ghi nhận 10 lỗi phát hiện ngoài test case (tài liệu 06, mục J.2); ba lỗi cần xử lý trước là tồn sau giao dịch luôn bằng 0, gửi lặp đồng thời trả lỗi 500 và phiếu xuất đã xác nhận vẫn ghi trạng thái Nháp.
 
 Ca có đầu ra sai được ghi Không đạt; ca bị chặn do điều kiện môi trường được ghi riêng, không tính là Đạt.
 
 Bảng 18 tóm tắt các lỗi chức năng cần sửa và kiểm tra lại trước khi cập nhật trạng thái.
 
-| Chức năng  | Sai lệch ghi nhận                                                                              |
-|------------|------------------------------------------------------------------------------------------------|
-| TC-INV-09  | Giữ đủ 150 g thành công nhưng gửi chính lượt chọn bị từ chối khi khả dụng chung bằng 0.        |
-| TC-SALE-19 | Order tại chỗ đã rời bàn vẫn giữ được nguyên liệu để gọi thêm.                                 |
-| TC-CAT-03  | Sắp xếp nhóm món bị từ chối; thứ tự không đổi.                                                 |
-| TC-CAT-10  | Xóa mềm món khiến order cũ hiện mã món thay cho tên; hóa đơn vẫn giữ đúng tên và số tiền.      |
-| TC-SALE-32 | Giảm suất hoàn đúng nguyên liệu nhưng không có bước nhập lý do trên giao diện.                 |
-| TC-SET-01  | Tạo tài khoản báo lỗi máy chủ dù bản ghi đã lưu; hộp thoại không đóng.                         |
-| TC-SET-09  | Một số loại nhật ký không lưu dữ liệu trước/sau.                                               |
-| TC-CAT-13  | Hộp thoại thêm nguyên liệu giữ giá trị lần thêm trước.                                         |
-| TC-CAT-16  | Tổng tiền phiếu nhập không được tính; lịch sử nhập của nhà cung cấp hiện 0 ₫.                  |
-| TC-SALE-13 | Thông báo thiếu nguyên liệu không nêu món và số lượng thiếu.                                   |
-| TC-SALE-70 | Chi tiết order không hiển thị lịch sử thanh toán.                                              |
-| TC-BR-06   | Webhook đến sau khi Quản lý đã xác nhận nhận tiền vẫn tạo thêm ngoại lệ thanh toán.            |
-| TC-INV-05  | Hủy phiếu nhập báo lỗi máy chủ; phiếu không hủy được.                                          |
-| TC-REP-08  | So sánh kỳ chỉ ghi tỷ lệ phần trăm, thiếu chênh lệch doanh thu tuyệt đối.                      |
-| TC-REP-09  | Khung Món bán chạy không theo kỳ đang chọn.                                                    |
-| TC-REP-07  | Báo cáo theo ngày trong tuần tính theo ngày lịch thay vì Business Date; doanh thu luôn bằng 0. |
-| TC-BR-14   | Sửa phiếu nhập không lưu dữ liệu trước/sau vào nhật ký.                                        |
-| TC-BR-19   | Hủy phiếu nhập nhiều dòng thất bại, cùng nguyên nhân TC-INV-05.                                |
-| TC-BR-15   | Hủy phiếu nhập đủ điều kiện thất bại, cùng nguyên nhân TC-INV-05.                              |
-| TC-BR-11   | Nguyên liệu chưa có giá tham chiếu bị ngầm tính 0, báo cáo không đánh dấu chưa xác định.       |
-| TC-SALE-61 | Thông báo từ chối gửi phần gọi thêm không chỉ rõ món cần kiểm tra lại.                         |
+| Chức năng  | Sai lệch ghi nhận                                                                                              |
+|------------|----------------------------------------------------------------------------------------------------------------|
+| TC-SALE-61 | Lượt gửi phần gọi thêm bị từ chối toàn bộ đúng nhưng thông báo không chỉ rõ dòng hoặc món cần kiểm tra lại.    |
+| TC-SET-09  | Nhật ký thao tác sửa món, nguyên liệu, nhà cung cấp, bàn và chuyển bàn không lưu dữ liệu trước và sau khi sửa. |
 
-Bảng 18. Các lỗi chức năng ghi nhận ngày 03–04/11/2026
+Bảng 18. Các lỗi chức năng ghi nhận ngày 10/11/2026
 
 Thanh toán QR dùng dữ liệu mô phỏng. Chưa xác nhận thanh toán tiền thật hoặc kết quả in trên máy in vật lý trong đợt này.
 
@@ -1695,7 +1741,7 @@ Bốn nhóm đo gồm nghiệp vụ với 5, 10 và 20 người dùng đồng th
 
 Lỗi kỹ thuật và yêu cầu bị từ chối đúng nghiệp vụ được thống kê riêng.
 
-Kết quả hiệu năng trên bộ dữ liệu 2 tháng chưa được đo.
+Kết quả đo ngày 11/11/2026 trên bản 6985565: ở nghiệp vụ, p95 lớn nhất là 297 ms với 5 người dùng, 319 ms với 10 người dùng và 417 ms với 20 người dùng, đều thuộc thao tác đọc thực đơn; p95 của bốn thao tác chính không quá 238 ms. Trong 5.040 yêu cầu của pha đo không có lỗi kỹ thuật hay yêu cầu bị từ chối; yêu cầu chậm nhất mất 690 ms. Báo cáo với 5 người dùng có p95 lớn nhất 25 ms trên 752 yêu cầu, doanh thu ngày và tháng khớp bản đối chứng. Kiểm tra sau mỗi nhóm không phát hiện sai lệch về sổ cái, tồn theo lô, giữ món, gửi trùng hay doanh thu lịch sử. Mỗi nhóm được đo một lần trên một máy dùng chung cho công cụ tạo tải, API và cơ sở dữ liệu, nên kết quả chưa đủ để kết luận về độ ổn định khi tải kéo dài.
 
 ## 6.8. Phạm vi và giới hạn kiểm tra
 
@@ -1713,19 +1759,19 @@ Dữ liệu là dữ liệu mô phỏng. Kết quả chưa xác nhận vận hà
 
 MT1 – Đạt. Nhóm đã khảo sát 51 người, đặc tả 29 Use Case và 108 yêu cầu chức năng, mô hình hóa 31 lớp đối tượng và thiết kế cơ sở dữ liệu quan hệ.
 
-MT2 – Đạt một phần. Sáu module đã được triển khai; kiểm thử chức năng trên bản 099191e cho kết quả 202 đạt, 21 không đạt, 1 bị chặn và 34 chưa kiểm tra trên tổng 258 ca.
+MT2 – Đạt một phần. Sáu module đã được triển khai; kiểm thử chức năng trên bản 6985565 cho kết quả 256 đạt và 2 không đạt trên tổng 258 ca.
 
-MT3 – Đạt một phần. Đợt kiểm thử ngày 03–04/11/2026 ghi nhận 21 ca không đạt cần sửa và kiểm tra lại, 1 ca bị chặn và 34 ca chưa kiểm tra; chưa kết luận toàn bộ bộ kiểm thử đạt.
+MT3 – Đạt một phần. Đợt kiểm thử ngày 10/11/2026 ghi nhận 2 ca không đạt cần sửa và kiểm tra lại (TC-SALE-61, TC-SET-09) và 10 lỗi phát hiện ngoài test case cần dev xem xét; chưa kết luận toàn bộ bộ kiểm thử đạt.
 
 MT4 – Đạt một phần. AI Assistant hỏi đáp bằng tiếng Việt theo vai trò; SQL do mô hình sinh ra được giới hạn trên view chỉ đọc và qua bộ kiểm duyệt truy vấn. Kết quả từ chối của mô hình chưa đủ để kết luận về toàn bộ các lớp bảo vệ tích hợp.
 
 MT5 – Chưa đánh giá. Thực nghiệm 720 lượt trên 80 câu hỏi với ba cấu hình đã được thiết kế đầy đủ, gồm bộ câu hỏi, đáp án chuẩn, chỉ số và ngưỡng; kết quả trên bộ dữ liệu 2 tháng chưa được đo.
 
-MT6 – Đạt một phần. Nhóm đã kiểm thử chức năng (202 đạt, 21 không đạt, 1 bị chặn và 34 chưa kiểm tra trên tổng 258 ca); hiệu năng cơ bản đã có kịch bản và ngưỡng nhưng chưa được đo trên bộ dữ liệu 2 tháng. Còn 21 ca không đạt chưa sửa và 34 ca chưa kiểm tra.
+MT6 – Đạt. Nhóm đã kiểm thử chức năng (256 đạt và 2 không đạt trên tổng 258 ca) và đo hiệu năng cơ bản trên bộ dữ liệu 2 tháng: cả bốn nhóm đo đạt ngưỡng, không có lỗi. Còn 2 ca không đạt chưa sửa.
 
 ## Hạn chế
 
-Dữ liệu thử nghiệm là dữ liệu mô phỏng. Thanh toán QR và in phiếu bếp mới được kiểm thử bằng dữ liệu mô phỏng, và hóa đơn trong hệ thống là hóa đơn nội bộ, chưa phải hóa đơn điện tử. Thực nghiệm AI và phép đo hiệu năng trên bộ dữ liệu 2 tháng chưa được thực hiện; mỗi cấu hình AI chỉ lặp ba lần và phép đo tải dùng một máy chung cho công cụ tạo tải, API và cơ sở dữ liệu. Các nội dung nằm ngoài phạm vi của đề tài được nêu tại mục 1.4.3.
+Dữ liệu thử nghiệm là dữ liệu mô phỏng. Thanh toán QR và in phiếu bếp mới được kiểm thử bằng dữ liệu mô phỏng, và hóa đơn trong hệ thống là hóa đơn nội bộ, chưa phải hóa đơn điện tử. Thực nghiệm AI trên bộ dữ liệu 2 tháng chưa được thực hiện và mỗi cấu hình AI chỉ lặp ba lần. Phép đo tải dùng một máy chung cho công cụ tạo tải, API và cơ sở dữ liệu, mỗi nhóm đo một lần trong 5 phút. Các nội dung nằm ngoài phạm vi của đề tài được nêu tại mục 1.4.3.
 
 ## Hướng phát triển
 

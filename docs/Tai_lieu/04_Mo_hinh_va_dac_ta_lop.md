@@ -10,27 +10,27 @@ Mô hình lớp mô tả các đối tượng nghiệp vụ, thuộc tính và q
 
 Các lớp tham chiếu từ module khác được thể hiện bằng khung nét đứt nền xám, tên lớp kèm tên module trong ngoặc (ví dụ “(Module Danh mục)”), chỉ trình bày thông tin cần thiết để nhận diện quan hệ giữa các module.
 
-<img src="../images/04_Mo_hinh_va_dac_ta_lop/media/image6.png" width="585" />
+<img src="../images/04_Mo_hinh_va_dac_ta_lop/media/image1.png" width="585" />
 
 Hình 31. Class Diagram - Module Quản lý danh mục
 
-<img src="../images/04_Mo_hinh_va_dac_ta_lop/media/image7.png" width="585" />
+<img src="../images/04_Mo_hinh_va_dac_ta_lop/media/image2.png" width="585" />
 
 Hình 32. Class Diagram - Module Quản lý bán hàng
 
-<img src="../images/04_Mo_hinh_va_dac_ta_lop/media/image34.png" width="563" />
+<img src="../images/04_Mo_hinh_va_dac_ta_lop/media/image3.png" width="563" />
 
 Hình 33. Class Diagram - Giữ chỗ món (Module Quản lý bán hàng)
 
-<img src="../images/04_Mo_hinh_va_dac_ta_lop/media/image8.png" width="585" />
+<img src="../images/04_Mo_hinh_va_dac_ta_lop/media/image4.png" width="585" />
 
 Hình 34. Class Diagram - Module Quản lý kho
 
-<img src="../images/04_Mo_hinh_va_dac_ta_lop/media/image9.png" width="585" />
+<img src="../images/04_Mo_hinh_va_dac_ta_lop/media/image5.png" width="585" />
 
 Hình 35. Class Diagram - Module Cài đặt hệ thống
 
-<img src="../images/04_Mo_hinh_va_dac_ta_lop/media/image10.png" width="579" />
+<img src="../images/04_Mo_hinh_va_dac_ta_lop/media/image6.png" width="579" />
 
 Hình 36. Class Diagram - Module AI Assistant
 
@@ -664,23 +664,23 @@ Phương thức chính: phanBoTheoLo(); tinhLuongGiuHieuLuc().
 
 Kiến trúc, triển khai, lớp xử lý và các lược đồ khóa được trình bày trong [ClassDiagram_HeThongQuanLyNhaHang.drawio](../So_do/ClassDiagram_HeThongQuanLyNhaHang.drawio). Controller tiếp nhận yêu cầu và DTO; Service kiểm tra nghiệp vụ và quản lý transaction; Repository truy cập dữ liệu. Các trách nhiệm này được tổ chức bằng module và hàm trong backend Python.
 
-<img src="../images/04_Mo_hinh_va_dac_ta_lop/media/image1.png" width="567" />
+<img src="../images/04_Mo_hinh_va_dac_ta_lop/media/image7.png" width="567" />
 
 Kiến trúc thành phần
 
-<img src="../images/04_Mo_hinh_va_dac_ta_lop/media/image2.png" width="567" />
+<img src="../images/04_Mo_hinh_va_dac_ta_lop/media/image8.png" width="567" />
 
 Thiết kế triển khai
 
-<img src="../images/04_Mo_hinh_va_dac_ta_lop/media/image3.png" width="567" />
+<img src="../images/04_Mo_hinh_va_dac_ta_lop/media/image9.png" width="567" />
 
 Lược đồ khóa bán hàng và giữ món
 
-<img src="../images/04_Mo_hinh_va_dac_ta_lop/media/image11.png" width="567" />
+<img src="../images/04_Mo_hinh_va_dac_ta_lop/media/image10.png" width="567" />
 
 Lược đồ khóa kho
 
-<img src="../images/04_Mo_hinh_va_dac_ta_lop/media/image5.png" width="567" />
+<img src="../images/04_Mo_hinh_va_dac_ta_lop/media/image11.png" width="567" />
 
 Class Diagram mức thiết kế Controller Service Repository
 
@@ -1044,21 +1044,21 @@ Trạng thái nghiệp vụ: Đang kiểm kê / Đã xác nhận / Đã hủy. C
 
 ### F.26. GIAO_DICH_KHO
 
-| **Cột**         | **Kiểu MySQL** | **Khóa và NULL**                             | **Ý nghĩa và điều kiện**                                                                                                                                            |
-|-----------------|----------------|----------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| MaGiaoDichKho   | BIGINT         | PK; NOT NULL                                 | Định danh giao dịch kho                                                                                                                                             |
-| MaNguyenLieu    | BIGINT         | FK → NGUYEN_LIEU.MaNguyenLieu; NOT NULL      | Tham chiếu tới đối tượng NGUYEN_LIEU; Nguyên liệu biến động                                                                                                         |
-| LoaiGiaoDich    | VARCHAR(30)    | NOT NULL                                     | Nhập / Trừ tự động / Hoàn kho / Xuất thủ công / Điều chỉnh kiểm kê                                                                                                  |
-| SoLuongThayDoi  | DECIMAL(18,6)  | NOT NULL                                     | Lượng tăng (+) hoặc giảm (−)                                                                                                                                        |
-| TonSauGiaoDich  | DECIMAL(18,6)  | NOT NULL                                     | Tồn sau khi ghi nhận                                                                                                                                                |
-| MaChiTietNhap   | BIGINT         | FK → CHI_TIET_PHIEU_NHAP.MaChiTietNhap; NULL | Tham chiếu tới đối tượng CHI_TIET_PHIEU_NHAP (khi LoaiGiaoDich = Nhập); Dòng nhập nguồn NULL khi không thuộc nguồn tương ứng.                                       |
-| MaChiTietOrder  | BIGINT         | FK → CHI_TIET_ORDER.MaChiTietOrder; NULL     | Tham chiếu tới đối tượng CHI_TIET_ORDER (khi LoaiGiaoDich = Trừ tự động / Hoàn kho); Dòng order nguồn NULL khi không thuộc nguồn tương ứng.                         |
-| MaChiTietXuat   | BIGINT         | FK → CHI_TIET_PHIEU_XUAT.MaChiTietXuat; NULL | Tham chiếu tới đối tượng CHI_TIET_PHIEU_XUAT (khi LoaiGiaoDich = Xuất thủ công); Dòng xuất thủ công nguồn NULL khi không thuộc nguồn tương ứng.                     |
-| MaChiTietKiemKe | BIGINT         | FK → CHI_TIET_KIEM_KE.MaChiTietKiemKe; NULL  | Tham chiếu tới đối tượng CHI_TIET_KIEM_KE (khi LoaiGiaoDich = Điều chỉnh kiểm kê); Dòng chênh lệch kiểm kê nguồn NULL khi không thuộc nguồn tương ứng.              |
-| MaLoNguyenLieu  | BIGINT         | FK → LO_NGUYEN_LIEU.MaLoNguyenLieu; NULL     | Tham chiếu tới đối tượng LO_NGUYEN_LIEU; Lô nguyên liệu bị ảnh hưởng - gắn lô mới tạo khi Nhập, hoặc lô bị trừ theo FIFO khi Trừ tự động / Xuất thủ công / Hoàn kho |
-| ThoiDiem        | DATETIME(3)    | NOT NULL                                     | Thời điểm phát sinh                                                                                                                                                 |
-| NguoiThucHien   | BIGINT         | FK → NGUOI_DUNG.MaNguoiDung; NULL            | Tham chiếu tới đối tượng NGUOI_DUNG (để trống nếu do hệ thống tự động ghi); Người thực hiện                                                                         |
-| BusinessDate    | DATE           | NOT NULL                                     | Ngày kinh doanh, ghi tại thời điểm phát sinh giao dịch theo cutoff đang áp dụng                                                                                     |
+| **Cột**         | **Kiểu MySQL** | **Khóa và NULL**                             | **Ý nghĩa và điều kiện**                                                                                                                                                                                                                                                     |
+|-----------------|----------------|----------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| MaGiaoDichKho   | BIGINT         | PK; NOT NULL                                 | Định danh giao dịch kho                                                                                                                                                                                                                                                      |
+| MaNguyenLieu    | BIGINT         | FK → NGUYEN_LIEU.MaNguyenLieu; NOT NULL      | Tham chiếu tới đối tượng NGUYEN_LIEU; Nguyên liệu biến động                                                                                                                                                                                                                  |
+| LoaiGiaoDich    | VARCHAR(30)    | NOT NULL                                     | Nhập / Trừ tự động / Hoàn kho / Xuất thủ công / Điều chỉnh kiểm kê                                                                                                                                                                                                           |
+| SoLuongThayDoi  | DECIMAL(18,6)  | NOT NULL                                     | Lượng tăng (+) hoặc giảm (−)                                                                                                                                                                                                                                                 |
+| TonSauGiaoDich  | DECIMAL(18,6)  | NOT NULL                                     | Tồn sau khi ghi nhận                                                                                                                                                                                                                                                         |
+| MaChiTietNhap   | BIGINT         | FK → CHI_TIET_PHIEU_NHAP.MaChiTietNhap; NULL | Tham chiếu tới đối tượng CHI_TIET_PHIEU_NHAP (khi LoaiGiaoDich = Nhập); Dòng nhập nguồn NULL khi không thuộc nguồn tương ứng.                                                                                                                                                |
+| MaChiTietOrder  | BIGINT         | FK → CHI_TIET_ORDER.MaChiTietOrder; NULL     | Tham chiếu tới đối tượng CHI_TIET_ORDER (khi LoaiGiaoDich = Trừ tự động / Hoàn kho); Dòng order nguồn NULL khi không thuộc nguồn tương ứng.                                                                                                                                  |
+| MaChiTietXuat   | BIGINT         | FK → CHI_TIET_PHIEU_XUAT.MaChiTietXuat; NULL | Tham chiếu tới đối tượng CHI_TIET_PHIEU_XUAT (khi LoaiGiaoDich = Xuất thủ công); Dòng xuất thủ công nguồn NULL khi không thuộc nguồn tương ứng.                                                                                                                              |
+| MaChiTietKiemKe | BIGINT         | FK → CHI_TIET_KIEM_KE.MaChiTietKiemKe; NULL  | Tham chiếu tới đối tượng CHI_TIET_KIEM_KE (khi LoaiGiaoDich = Điều chỉnh kiểm kê); Dòng chênh lệch kiểm kê nguồn NULL khi không thuộc nguồn tương ứng.                                                                                                                       |
+| MaLoNguyenLieu  | BIGINT         | FK → LO_NGUYEN_LIEU.MaLoNguyenLieu; NULL     | Tham chiếu tới đối tượng LO_NGUYEN_LIEU; Lô nguyên liệu bị ảnh hưởng - gắn lô mới tạo khi Nhập, hoặc lô bị trừ theo FIFO khi Trừ tự động / Xuất thủ công / Hoàn kho                                                                                                          |
+| ThoiDiem        | DATETIME(3)    | NOT NULL                                     | Thời điểm phát sinh                                                                                                                                                                                                                                                          |
+| NguoiThucHien   | BIGINT         | FK → NGUOI_DUNG.MaNguoiDung; NULL            | Tham chiếu tới đối tượng NGUOI_DUNG (để trống nếu do hệ thống tự động ghi); Người thực hiện                                                                                                                                                                                  |
+| BusinessDate    | DATE           | NOT NULL                                     | Ngày kinh doanh, ghi tại thời điểm phát sinh giao dịch theo cutoff đang áp dụng                                                                                                                                                                                              |
 | GiaTri          | DECIMAL(18,2)  | NULL                                         | Giá trị của biến động, cùng dấu với SoLuongThayDoi. Nhập dùng đơn giá phiếu nhập; hoàn kho dùng đơn giá của giao dịch xuất gốc; xuất bán, xuất hủy và điều chỉnh kiểm kê dùng đơn giá bình quân hiện hành. Ghi một lần, không tính lại; NULL khi nguyên liệu chưa có đơn giá |
 
 ### F.27. LICH_SU_GIA_BINH_QUAN
@@ -1271,7 +1271,7 @@ LICH_SU_GIA_BINH_QUAN lưu đơn giá bình quân gia quyền di động của t
 
 GiaVonUocTinh của dòng xuất và giá trị của giao dịch tiêu hao được xác định một lần tại thời điểm xuất theo đơn giá hiện hành, không tính lại khi phiếu nhập được thêm, sửa hoặc hủy sau đó. Sửa ngày nhập cập nhật ngày lô, hạn dùng và thứ tự FIFO, không làm thay đổi đơn giá bình quân. Không sửa phiếu đã có xuất hoặc giữ còn hiệu lực; không thay đổi hóa đơn, doanh thu hoặc công thức đã lưu trên dòng món. Mỗi lần tính đơn giá được thực hiện trong transaction của nghiệp vụ phát sinh và gắn với GIAO_DICH_KHO tương ứng khi có.
 
-Đơn giá bình quân được tính bằng số thập phân, sau đó làm tròn đến hai chữ số thập phân theo ROUND_HALF_UP trước khi lưu vào LICH_SU_GIA_BINH_QUAN.DonGiaBinhQuan. GiaVonUocTinh của từng dòng xuất bằng đơn giá bình quân đã làm tròn nhân số lượng theo đơn vị chuẩn, rồi làm tròn đến hai chữ số thập phân theo cùng quy tắc. Không làm tròn số lượng nguyên liệu thành hai chữ số; lượng và hệ số được lưu với sáu chữ số thập phân. Ví dụ, bình quân chưa làm tròn là 10/3 thì đơn giá lưu là 3,33; xuất 3 đơn vị có giá vốn 9,99. Với đơn giá 1,01 và lượng 0,5 đơn vị, giá trị 0,505 được làm tròn thành 0,51.
+Đơn giá bình quân được tính bằng số thập phân, sau đó làm tròn đến hai chữ số thập phân theo ROUND_HALF_UP trước khi lưu vào LICH_SU_GIA_BINH_QUAN.DonGiaBinhQuan. GiaVonUocTinh của từng dòng xuất bằng đơn giá bình quân đã làm tròn nhân số lượng theo đơn vị chuẩn, rồi làm tròn đến hai chữ số thập phân theo cùng quy tắc. Không làm tròn số lượng nguyên liệu thành hai chữ số; lượng và hệ số được lưu với sáu chữ số thập phân. Ví dụ, bình quân chưa làm tròn là 10/3 thì đơn giá lưu là 3,33; xuất 3 đơn vị có giá vốn 9,99. Với đơn giá 1,01 và lượng 0,5 đơn vị, giá trị 0,505 được làm tròn thành 0,51. Khi sửa hoặc hủy phiếu nhập, phần cũ của phiếu được đảo theo đơn giá bình quân đã làm tròn nên đơn giá sau khi đảo có thể lệch 0,01 so với phép tính không làm tròn. Ví dụ, hai phiếu nhập 10 × 5 và 20 × 7 cho đơn giá bình quân 6,33; sau khi hủy phiếu 20 × 7, đơn giá là 4,99 thay vì 5,00. Chênh lệch này phát sinh từ quy tắc làm tròn nêu trên.
 
 Sổ cái và audit giữ được dấu vết dữ liệu trước/sau, người thực hiện và thời điểm của mỗi lần tính đơn giá; báo cáo đọc giá trị đã ghi trên từng giao dịch nên kết quả không phụ thuộc thời điểm truy vấn. Đổi mốc Business Date không tính lại ngày kinh doanh của các chứng từ cũ.
 
