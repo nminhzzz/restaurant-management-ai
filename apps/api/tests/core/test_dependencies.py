@@ -15,6 +15,9 @@ from app.modules.settings.models import User
 from app.modules.settings.service import seed_reference_data
 from app.shared.roles import Role
 
+# create_app() opens the real engine on startup, so these need MySQL on localhost.
+pytestmark = pytest.mark.integration
+
 manager_only = require_roles(Role.MANAGER)
 
 
