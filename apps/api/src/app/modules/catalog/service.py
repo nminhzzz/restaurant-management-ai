@@ -10,7 +10,7 @@ from app.core.errors import BusinessRuleError, NotFoundError
 from app.modules.catalog.availability import is_short_of_ingredients
 from app.modules.catalog.models import Dish, DishGroup, DishPriceVersion, Recipe
 from app.shared import business_date as _bd
-from app.shared.audit import SystemAuditLog
+from app.shared.audit import SystemAuditLog, snapshot
 from app.shared.enums import VersionStatus
 
 
@@ -128,6 +128,7 @@ async def delete_group(session: AsyncSession, actor_id: int, group_id: int) -> N
         await session.delete(g)
     else:
         g.is_deleted = True
+        g.deleted_at = _bd.now()
     await session.flush()
     session.add(
         SystemAuditLog(
@@ -233,6 +234,8 @@ async def update_dish(
     d = await session.get(Dish, dish_id)
     if d is None or d.is_deleted:
         raise NotFoundError("Không tìm thấy món ăn.")
+    dish_fields = ("name", "group_id", "image_url")
+    before = snapshot(d, *dish_fields)
     if name is not None:
         d.name = name
     if group_id is not None:
@@ -245,7 +248,12 @@ async def update_dish(
     await session.flush()
     session.add(
         SystemAuditLog(
-            user_id=actor_id, action="UPDATE_DISH", target_entity="MON_AN", target_id=str(d.id)
+            user_id=actor_id,
+            action="UPDATE_DISH",
+            target_entity="MON_AN",
+            target_id=str(d.id),
+            before=before,
+            after=snapshot(d, *dish_fields),
         )
     )
     await session.flush()
@@ -719,6 +727,8 @@ async def update_ingredient(
     ing = await session.get(_Ing, ing_id)
     if ing is None or ing.is_deleted:
         raise NotFoundError("Không tìm thấy nguyên liệu.")
+    ingredient_fields = ("name", "unit", "min_stock", "shelf_days")
+    before = snapshot(ing, *ingredient_fields)
     if unit is not None and unit != ing.unit:
         if ing.unit_locked:
             raise BusinessRuleError("Không thể đổi đơn vị tính sau khi đã được sử dụng.")
@@ -737,6 +747,8 @@ async def update_ingredient(
             action="UPDATE_INGREDIENT",
             target_entity="NGUYEN_LIEU",
             target_id=str(ing.id),
+            before=before,
+            after=snapshot(ing, *ingredient_fields),
         )
     )
     await session.flush()
@@ -852,6 +864,25 @@ async def create_supplier(
     return s
 
 
+async def supplier_receipts(session: AsyncSession, supplier_id: int) -> list[dict]:
+    from app.modules.inventory.models import GoodsReceipt
+
+    r = await session.execute(
+        select(GoodsReceipt)
+        .where(GoodsReceipt.supplier_id == supplier_id)
+        .order_by(GoodsReceipt.receipt_date.desc(), GoodsReceipt.id.desc())
+    )
+    return [
+        {
+            "MaPhieuNhap": gr.id,
+            "NgayNhap": gr.receipt_date.isoformat(),
+            "TrangThai": gr.status,
+            "TongTien": float(gr.total),
+        }
+        for gr in r.scalars().all()
+    ]
+
+
 async def update_supplier(
     session,
     actor_id: int,
@@ -867,6 +898,8 @@ async def update_supplier(
     s = await session.get(_Sup, sup_id)
     if s is None or s.is_deleted:
         raise NotFoundError("Không tìm thấy nhà cung cấp.")
+    supplier_fields = ("name", "phone", "email", "contact_name", "address")
+    before = snapshot(s, *supplier_fields)
     if name is not None:
         s.name = name
     if phone is not None:
@@ -884,6 +917,8 @@ async def update_supplier(
             action="UPDATE_SUPPLIER",
             target_entity="NHA_CUNG_CAP",
             target_id=str(s.id),
+            before=before,
+            after=snapshot(s, *supplier_fields),
         )
     )
     await session.flush()
@@ -982,6 +1017,8 @@ async def update_table(
     ).scalar_one_or_none()
     if t is None or t.is_deleted:
         raise NotFoundError("Không tìm thấy bàn.")
+    table_fields = ("name", "area", "capacity")
+    before = snapshot(t, *table_fields)
     if name is not None:
         t.name = name
     if area is not None:
@@ -991,7 +1028,12 @@ async def update_table(
     await session.flush()
     session.add(
         SystemAuditLog(
-            user_id=actor_id, action="UPDATE_TABLE", target_entity="BAN", target_id=str(t.id)
+            user_id=actor_id,
+            action="UPDATE_TABLE",
+            target_entity="BAN",
+            target_id=str(t.id),
+            before=before,
+            after=snapshot(t, *table_fields),
         )
     )
     await session.flush()
@@ -1047,7 +1089,7 @@ async def ensure_dish_sellable(session, dish_id: int, *, stock_held: bool = Fals
     if dish.manual_paused:
         reasons.append("tạm dừng phục vụ")
     if reasons:
-        raise BusinessRuleError(f"Món đang {' và '.join(reasons)}.")
+        raise BusinessRuleError(f"Món {dish.name} đang {' và '.join(reasons)}.")
     return dish
 
 

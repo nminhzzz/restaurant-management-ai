@@ -228,6 +228,7 @@ async def apply_stock_movement(
             issue_line_id=change.source_issue_line_id,
             stocktake_line_id=change.source_stocktake_line_id,
             performed_by=actor_id,
+            balance_after=Decimal(str(ing.stock_qty)),
         )
         session.add(m)
         await session.flush()
@@ -275,6 +276,7 @@ async def apply_stock_movement(
 
     unit_cost = await current_unit_cost(session, change.ingredient_id)
     remaining = need
+    running_stock = Decimal(str(ing.stock_qty))
     for lot in lots:
         if remaining <= 0:
             break
@@ -293,6 +295,7 @@ async def apply_stock_movement(
         # present until the hold is consumed or released (FR-INV-11).
         lot.quantity_remaining = Decimal(str(lot.quantity_remaining)) - take
         await sync_lot_status(session, lot)
+        running_stock -= take
         m = StockMovement(
             ingredient_id=change.ingredient_id,
             lot_id=lot.id,
@@ -305,6 +308,7 @@ async def apply_stock_movement(
             stocktake_line_id=change.source_stocktake_line_id,
             performed_by=actor_id,
             value=movement_value(-take, unit_cost),
+            balance_after=running_stock,
         )
         session.add(m)
         movements.append(m)
@@ -346,6 +350,7 @@ async def reverse_movement(
         stocktake_line_id=movement.stocktake_line_id,
         performed_by=actor_id,
         value=None if movement.value is None else -movement.value,
+        balance_after=Decimal(str(ing.stock_qty)),
     )
     # Fallback lineage for Hoan kho (CHECK now allows order/receipt/stocktake)
     if (

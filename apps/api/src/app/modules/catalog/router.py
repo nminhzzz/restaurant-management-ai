@@ -506,27 +506,8 @@ async def get_supplier(
         from fastapi import HTTPException
 
         raise HTTPException(status_code=404, detail="Không tìm thấy nhà cung cấp.")
-    # load receipts
-    from sqlalchemy import select as _sel
-
-    from app.modules.inventory.models import GoodsReceipt
-
-    r = await session.execute(
-        _sel(GoodsReceipt)
-        .where(GoodsReceipt.supplier_id == supplier_id)
-        .order_by(GoodsReceipt.receipt_date.desc(), GoodsReceipt.id.desc())
-    )
-    receipts = [
-        {
-            "MaPhieuNhap": gr.id,
-            "NgayNhap": gr.receipt_date.isoformat(),
-            "TrangThai": gr.status,
-            "TongTien": float(gr.total),
-        }
-        for gr in r.scalars().all()
-    ]
     out = SupplierOut.model_validate(s)
-    out.PhieuNhap = receipts
+    out.PhieuNhap = await svc.supplier_receipts(session, supplier_id)
     return out
 
 
@@ -548,7 +529,9 @@ async def update_supplier(
         payload.DiaChi,
     )
     await session.commit()
-    return SupplierOut.model_validate(s)
+    out = SupplierOut.model_validate(s)
+    out.PhieuNhap = await svc.supplier_receipts(session, supplier_id)
+    return out
 
 
 @router.delete("/suppliers/{supplier_id}", status_code=204)

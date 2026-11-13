@@ -201,6 +201,7 @@ async def cancel_receipt(session: AsyncSession, actor_id: int, receipt_id: int) 
     if receipt.status != "Hiệu lực":
         raise BusinessRuleError("Chỉ được hủy phiếu ở trạng thái Hiệu lực.")
     await _ensure_receipt_untouched(session, receipt_id)
+    before = {"TrangThai": receipt.status, **await _receipt_snapshot(session, receipt)}
     lines = (
         (
             await session.execute(
@@ -245,6 +246,7 @@ async def cancel_receipt(session: AsyncSession, actor_id: int, receipt_id: int) 
                 business_date=_bd(),
                 receipt_line_id=gl.id,
                 performed_by=actor_id,
+                balance_after=Decimal(str(ing.stock_qty)) if ing else Decimal(0),
             )
             session.add(m)
             await record_receipt_correction(
@@ -265,6 +267,8 @@ async def cancel_receipt(session: AsyncSession, actor_id: int, receipt_id: int) 
             action="CANCEL_RECEIPT",
             target_entity="PHIEU_NHAP_KHO",
             target_id=str(receipt_id),
+            before=before,
+            after={"TrangThai": receipt.status},
         )
     )
     await session.flush()
@@ -336,6 +340,7 @@ async def update_receipt(
                 business_date=_bd(),
                 receipt_line_id=gl.id,
                 performed_by=actor_id,
+                balance_after=Decimal(str(ing.stock_qty)),
             )
             session.add(movement)
         if delta != 0 or new_price != old_price:
@@ -647,9 +652,10 @@ async def create_issue(
             )
 
     moment = business_date.now()
+    # The voucher posts its stock movements in the same transaction, so it is never a draft.
     issue = StockIssue(
         reason=reason,
-        status="Nháp",
+        status="Đã xác nhận",
         created_at=moment,
         issue_date=moment,
         created_by=actor_id,
@@ -1099,6 +1105,8 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
             take_total = min(total_avail, need)
             # consume FIFO lots in order
             rem = take_total
+            # Stock is frozen while counting, so the system quantity is the stock before.
+            running_stock = Decimal(str(line.system_qty))
             for _lot in fifo_lots:
                 if rem <= 0:
                     break
@@ -1106,6 +1114,7 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
                 take = min(avail, rem)
                 _lot.quantity_remaining = avail - take
                 await sync_lot_status(session, _lot)
+                running_stock -= take
                 from app.modules.inventory.models import StockMovement as SM2
 
                 m2 = SM2(
@@ -1116,6 +1125,7 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
                     business_date=_bd(),
                     stocktake_line_id=line.id,
                     performed_by=actor_id,
+                    balance_after=running_stock,
                 )
                 session.add(m2)
                 await value_at_current_cost(session, m2)
@@ -1173,6 +1183,7 @@ async def confirm_stocktake(session: AsyncSession, actor_id: int, stocktake_id: 
                 business_date=_bd(),
                 stocktake_line_id=line.id,
                 performed_by=actor_id,
+                balance_after=Decimal(str(line.system_qty)) + diff,
             )
             session.add(m)
             await value_at_current_cost(session, m)

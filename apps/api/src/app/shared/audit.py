@@ -3,11 +3,12 @@
 Append-only: the table is never updated or deleted by application code.
 """
 
-from datetime import datetime
+from datetime import date, datetime
+from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import JSON, ForeignKey, Index, String, func
-from sqlalchemy.orm import Mapped, Session, mapped_column
+from sqlalchemy.orm import Mapped, Session, class_mapper, mapped_column
 
 from app.shared.base import Base, BigInteger, DateTime3, clock_now
 
@@ -57,3 +58,17 @@ def record(
     )
     session.add(entry)
     return entry
+
+
+def _json_value(value: Any) -> Any:
+    if isinstance(value, Decimal):
+        return float(value)
+    if isinstance(value, (date, datetime)):
+        return value.isoformat()
+    return value
+
+
+def snapshot(obj: object, *attrs: str) -> dict[str, Any]:
+    """The named attributes keyed by their column name, for DuLieuTruoc/DuLieuSau."""
+    mapper = class_mapper(type(obj))
+    return {mapper.attrs[attr].columns[0].name: _json_value(getattr(obj, attr)) for attr in attrs}

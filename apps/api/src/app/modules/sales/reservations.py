@@ -320,6 +320,14 @@ async def _owned_active(session: AsyncSession, hold_id: int, user_id: int) -> Re
     return reservation
 
 
+async def _line_label(session: AsyncSession, reservation: Reservation) -> str:
+    """'Món X (n suất)': which line of the submission to look at again (FR-SALE-06)."""
+    from app.modules.catalog.models import Dish
+
+    name = await session.scalar(select(Dish.name).where(Dish.id == reservation.dish_id))
+    return f"Món {name} ({reservation.quantity} suất)"
+
+
 async def get_hold_for_submit(
     session: AsyncSession,
     hold_id: int,
@@ -337,7 +345,10 @@ async def get_hold_for_submit(
     """
     reservation, locked_ids = await _lock_owned_hold(session, hold_id, user_id)
     if reservation.status not in (HOLD_ACTIVE, HOLD_EXPIRED):
-        raise BusinessRuleError("Lượt giữ chỗ không còn hiệu lực.")
+        raise BusinessRuleError(
+            f"{await _line_label(session, reservation)}: lượt giữ chỗ không còn hiệu lực, "
+            "hãy kiểm tra lại dòng này."
+        )
     if expected_order_id is None:
         if reservation.order_id is not None:
             raise BusinessRuleError("Lượt giữ chỗ đã thuộc một order khác.")
@@ -358,7 +369,10 @@ async def get_hold_for_submit(
         return reservation
     if not confirm_expired:
         reason = "Giá hoặc công thức món đã thay đổi." if changed else "Lượt giữ chỗ đã hết hạn."
-        raise BusinessRuleError(f"{reason} Xác nhận dùng giá và định lượng hiện tại để gửi món.")
+        raise BusinessRuleError(
+            f"{await _line_label(session, reservation)}: {reason} "
+            "Xác nhận dùng giá và định lượng hiện tại để gửi món."
+        )
     await ensure_no_open_stocktake(session)
     await ensure_dish_sellable(session, reservation.dish_id)
     if price is None or recipe is None:
@@ -559,7 +573,10 @@ async def consume_hold(
 ) -> None:
     """Convert a hold into stock consumption exactly once (FR-SALE-03, FR-INV-03)."""
     if reservation.status != HOLD_ACTIVE:
-        raise BusinessRuleError("Lượt giữ chỗ không còn hiệu lực.")
+        raise BusinessRuleError(
+            f"{await _line_label(session, reservation)}: lượt giữ chỗ không còn hiệu lực, "
+            "hãy kiểm tra lại dòng này."
+        )
     await ensure_no_open_stocktake(session)
     # FR-INV-10: this hold owns its stock, so "no stock left for anyone else" is no refusal.
     dish = await ensure_dish_sellable(session, reservation.dish_id, stock_held=True)
@@ -629,6 +646,7 @@ async def consume_hold(
                 performed_by=actor_id,
                 # FR-INV-03: valued at the unit cost in force when the dish is sent, once.
                 value=movement_value(-quantity, unit_costs[ingredient.id]),
+                balance_after=Decimal(str(ingredient.stock_qty)),
             )
         )
     reservation.status = HOLD_SENT

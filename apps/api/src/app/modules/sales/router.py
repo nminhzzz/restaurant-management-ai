@@ -523,7 +523,7 @@ async def list_payments(
             "PhuongThuc": p.method,
             "TrangThai": p.status,
             "SoTien": float(p.amount),
-            "ThoiDiemTaoQR": p.created_at.isoformat() if p.created_at else None,
+            "ThoiDiemTaoQR": p.qr_created_at.isoformat() if p.qr_created_at else None,
             "ThoiDiemHetHan": p.deadline.isoformat() if p.deadline else None,
             "ThoiDiemTao": p.created_at.isoformat() if p.created_at else None,
             "MaThamChieuNganHang": p.bank_ref,
@@ -565,7 +565,7 @@ async def start_order_qr(
         "MaGiaoDich": payment.id,
         "TrangThai": payment.status,
         "SoTien": float(payment.amount),
-        "ThoiDiemTaoQR": payment.created_at.isoformat() if payment.created_at else None,
+        "ThoiDiemTaoQR": payment.qr_created_at.isoformat() if payment.qr_created_at else None,
         "ThoiDiemHetHan": payment.deadline.isoformat() if payment.deadline else None,
         **(await payments.qr_fields(session, payment)),
     }

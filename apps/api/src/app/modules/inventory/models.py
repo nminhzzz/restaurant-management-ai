@@ -129,7 +129,7 @@ class StockIssue(Base):
     id: Mapped[int] = mapped_column("MaPhieuXuat", BigInteger, primary_key=True, autoincrement=True)
     reason: Mapped[str] = mapped_column("LyDo", String(50), nullable=False, default="Kh\u00e1c")
     status: Mapped[str] = mapped_column(
-        "TrangThai", String(20), nullable=False, default="Nh\u00e1p"
+        "TrangThai", String(20), nullable=False, default="\u0110\u00e3 x\u00e1c nh\u1eadn"
     )
     created_at: Mapped[datetime] = mapped_column(
         "NgayTao", DateTime3, default=clock_now, server_default=func.now(), nullable=False

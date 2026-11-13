@@ -10,6 +10,7 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from sqlalchemy import func, select, text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import BusinessRuleError, NotFoundError
@@ -283,6 +284,9 @@ async def _return_line_stock(
                 order_line_id=line.id,
                 performed_by=actor_id,
                 value=value,
+                balance_after=Decimal(str(ingredient.stock_qty))
+                if ingredient is not None
+                else Decimal(0),
             )
             session.add(last_return)
             handed_back += take
@@ -344,22 +348,9 @@ async def submit_order(
     request_id = payload.get("request_id")
 
     if request_id:
-        existing_order = (
-            await session.execute(select(Order).where(Order.request_id == str(request_id)))
-        ).scalar_one_or_none()
-        if existing_order is not None:
-            existing_lines = list(
-                (
-                    await session.execute(
-                        select(OrderLine)
-                        .where(OrderLine.order_id == existing_order.id)
-                        .order_by(OrderLine.id)
-                    )
-                )
-                .scalars()
-                .all()
-            )
-            return {"order": existing_order, "lines": existing_lines, "rejected": []}
+        existing = await _existing_submission(session, str(request_id))
+        if existing is not None:
+            return existing
 
     if order_type == "Mang về":
         table_id = None
@@ -425,6 +416,58 @@ async def submit_order(
     if not prepared:
         raise BusinessRuleError("Không có món nào để gửi.")
 
+    try:
+        return await _write_submission(
+            session,
+            prepared,
+            bd=bd,
+            now=now,
+            table_id=table_id,
+            order_type=order_type,
+            request_id=request_id,
+            actor_id=actor_id,
+        )
+    except IntegrityError:
+        if not request_id:
+            raise
+        # A concurrent send with the same request id committed first (uq_ORDER_MaYeuCauGui).
+        # Drop this attempt, holds included, and answer with that order as a replay would.
+        await session.rollback()
+        existing = await _existing_submission(session, str(request_id))
+        if existing is None:
+            raise
+        return existing
+
+
+async def _existing_submission(session: AsyncSession, request_id: str) -> dict | None:
+    order = (
+        await session.execute(select(Order).where(Order.request_id == request_id))
+    ).scalar_one_or_none()
+    if order is None:
+        return None
+    lines = list(
+        (
+            await session.execute(
+                select(OrderLine).where(OrderLine.order_id == order.id).order_by(OrderLine.id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    return {"order": order, "lines": lines, "rejected": []}
+
+
+async def _write_submission(
+    session: AsyncSession,
+    prepared: list[dict],
+    *,
+    bd: date,
+    now: datetime,
+    table_id: int | None,
+    order_type: str,
+    request_id: object,
+    actor_id: int,
+) -> dict:
     display_code = await next_display_code(session, bd)
     async with session.begin_nested():
         order = Order(
@@ -789,6 +832,8 @@ async def move_table(
             action="MOVE_ORDER_TABLE",
             target_entity="ORDER",
             target_id=str(order.id),
+            before={"MaBan": source_id},
+            after={"MaBan": to_table_id},
         )
     )
     await session.flush()
@@ -830,6 +875,7 @@ async def cancel_order(
             line.status = LINE_CANCELLED
     await reservations.release_active_holds(session, order_id=order.id, table_id=order.table_id)
     await _set_order_status(session, order, "Đã hủy")
+    order.closed_at = order.updated_at
     order.cancel_reason = reason
     session.add(
         SystemAuditLog(

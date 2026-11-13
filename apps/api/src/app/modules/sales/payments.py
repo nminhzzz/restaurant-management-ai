@@ -304,6 +304,7 @@ async def start_qr(
         status=QR_PENDING,
         business_date=order.business_date,
         created_at=now,
+        qr_created_at=now,
         deadline=now + QR_LIFETIME,
     )
     session.add(payment)
