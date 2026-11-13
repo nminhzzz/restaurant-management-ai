@@ -304,7 +304,7 @@ async def test_mysql_cancelling_a_receipt_reverses_its_lot_and_records_the_movem
     movements = (
         await session.scalars(
             select(StockMovement).where(
-                StockMovement.ingredient_id == ingredient_id, StockMovement.kind == "Hoàn kho"
+                StockMovement.ingredient_id == ingredient_id, StockMovement.kind == "Hủy nhập"
             )
         )
     ).all()

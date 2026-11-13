@@ -90,7 +90,8 @@ COLUMN_NOTES: dict[str, str] = {
     "MaGiaoDichKho": "mã giao dịch kho",
     "SoLuong": "số lượng của giao dịch kho (nhập/xuất/trừ tự động/điều chỉnh)",
     "LoaiGiaoDich": (
-        "loại giao dịch kho: Nhập, Trừ tự động, Hoàn kho, Xuất thủ công, Điều chỉnh kiểm kê"
+        "loại giao dịch kho: Nhập, Hủy nhập (đảo một dòng phiếu nhập bị hủy), Trừ tự động, "
+        "Hoàn kho (trả lại nguyên liệu của dòng order), Xuất thủ công, Điều chỉnh kiểm kê"
     ),
     "GiaTri": (
         "giá trị biến động của giao dịch kho, cùng dấu với SoLuong, ghi một lần theo đơn giá "

@@ -79,6 +79,7 @@ class StocktakeStatus(StrEnum):
 
 class StockMovementType(StrEnum):
     NHAP = "Nhập"
+    HUY_NHAP = "Hủy nhập"
     TRU_TU_DONG = "Trừ tự động"
     HOAN_KHO = "Hoàn kho"
     XUAT_THU_CONG = "Xuất thủ công"

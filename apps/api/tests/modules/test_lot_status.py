@@ -77,7 +77,7 @@ async def test_cancelling_a_receipt_zeroes_every_lot_and_keeps_the_history(sessi
         assert lot.status == "Đã hủy"
         assert lot.received_quantity > 0  # the lot and its history are kept
     kinds = (await session.execute(select(StockMovement.kind))).scalars().all()
-    assert "Nhập" in kinds and "Hoàn kho" in kinds
+    assert "Nhập" in kinds and "Hủy nhập" in kinds and "Hoàn kho" not in kinds
 
 
 async def test_a_partial_write_off_keeps_the_rest_of_the_lot_usable(session):

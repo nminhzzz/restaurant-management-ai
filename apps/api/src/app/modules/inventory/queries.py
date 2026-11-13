@@ -182,7 +182,7 @@ def _cost_document(
     if kind is None:
         return "Sửa đơn giá phiếu nhập"
     if receipt_id is not None:
-        action = "Hủy phiếu nhập" if kind == "Hoàn kho" else "Phiếu nhập"
+        action = "Hủy phiếu nhập" if kind == "Hủy nhập" else "Phiếu nhập"
         return f"{action} #{receipt_id}"
     if order_id is not None:
         return f"Hoàn kho order {order_code or f'#{order_id}'}"

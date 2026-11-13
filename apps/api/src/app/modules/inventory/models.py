@@ -293,7 +293,8 @@ class StockMovement(Base):
         CheckConstraint(
             "((LoaiGiaoDich = 'Nh\u1eadp' AND MaChiTietNhap IS NOT NULL) OR "
             "(LoaiGiaoDich IN ('Tr\u1eeb t\u1ef1 \u0111\u1ed9ng') AND MaChiTietOrder IS NOT NULL) OR "  # noqa: E501
-            "(LoaiGiaoDich = 'Ho\u00e0n kho' AND (MaChiTietOrder IS NOT NULL OR MaChiTietNhap IS NOT NULL OR MaChiTietKiemKe IS NOT NULL)) OR "  # noqa: E501
+            "(LoaiGiaoDich = 'H\u1ee7y nh\u1eadp' AND MaChiTietNhap IS NOT NULL) OR "
+            "(LoaiGiaoDich = 'Ho\u00e0n kho' AND MaChiTietOrder IS NOT NULL) OR "
             "(LoaiGiaoDich = 'Xu\u1ea5t th\u1ee7 c\u00f4ng' AND MaChiTietXuat IS NOT NULL) OR "
             "(LoaiGiaoDich = '\u0110i\u1ec1u ch\u1ec9nh ki\u1ec3m k\u00ea' AND MaChiTietKiemKe IS NOT NULL))",  # noqa: E501
             name="movement_source_matches_kind",

@@ -51,6 +51,7 @@ type Page<T> = { items: T[]; total: number };
 const PAGE_SIZE = 20;
 const KINDS = [
   "Nhập",
+  "Hủy nhập",
   "Trừ tự động",
   "Hoàn kho",
   "Xuất thủ công",

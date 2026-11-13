@@ -241,7 +241,7 @@ async def cancel_receipt(session: AsyncSession, actor_id: int, receipt_id: int) 
             m = StockMovement(
                 ingredient_id=gl.ingredient_id,
                 lot_id=lot.id,
-                kind=StockMovementType.HOAN_KHO,
+                kind=StockMovementType.HUY_NHAP,
                 qty=-remaining,
                 business_date=_bd(),
                 receipt_line_id=gl.id,
