@@ -15,6 +15,11 @@ make migrate
 make seed
 ```
 
+Mốc sinh dữ liệu được cố định theo Phụ lục B.1: `--now 2026-10-23T12:00:00+07:00` (mặc định của
+`generate.py` và của `make seed`, ghi đè bằng `make seed SEED_NOW=...`). Không dùng đồng hồ hệ thống,
+vì mốc khác nhau làm số order khác nhau giữa các máy dù cùng hạt giống. Bộ B.2 (`scripts/seed_perf.py`)
+cố định hạt giống `20261019` và mốc `2026-10-19T12:00` (giờ Việt Nam).
+
 Mặc định: seed `42`, `2` tháng (60 Business Date trước mốc `--now`), 70 order ngày thường và 110
 order cuối tuần, dao động ±15% (khoảng 4.800 order). Quán mở 10:00–22:00 với hai đỉnh trưa/tối;
 mỗi order có 1–4 món khác nhau, mỗi món 1–2 suất, phân bố món không đồng đều. Truyền `--orders`
@@ -50,6 +55,6 @@ giữ nguyên volume, nên không tạo CSDL sạch. Dùng schema thử mới n�
 View và quyền AI được áp dụng riêng theo [`db/views/README.md`](../../db/views/README.md).
 Kết quả kiểm chứng ở [`docs/testing/results-2026-10-17.md`](../../docs/testing/results-2026-10-17.md).
 
-Có thể truyền `--now` dạng ISO để tái lập mốc thời gian. Seed giữ phân bố theo cuối tuần và
+Có thể truyền `--now` dạng ISO khác để thử một mốc khác. Seed giữ phân bố theo cuối tuần và
 khung giờ, và thử lại có giới hạn khi thiếu tồn. Bản tóm tắt JSON
 không chứa tài khoản/mật khẩu CSDL. Xem [nhật ký trả nợ](../../docs/testing/technical-debt-2026-10-17.md).

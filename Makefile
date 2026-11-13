@@ -42,8 +42,12 @@ check-resources: ## Kiểm tra đĩa/RAM/load trước khi chạy integration (s
 revision: ## Sinh migration mới: make revision m="add order tables"
 	cd $(API) && uv run alembic revision --autogenerate -m "$(m)"
 
-seed: ## Sinh dữ liệu mô phỏng 2 tháng
-	cd $(API) && uv run python ../../scripts/seed/generate.py
+# Phụ lục B.1: hạt giống 42, mốc 12:00 ngày 23/10/2026 (giờ Việt Nam). Mọi lượt nghiệm thu,
+# đo tải và đánh giá AI dùng cùng mốc này để có cùng một bộ dữ liệu trên mọi máy.
+SEED_NOW ?= 2026-10-23T12:00:00+07:00
+
+seed: ## Sinh dữ liệu mô phỏng 2 tháng (Phụ lục B.1, mốc SEED_NOW)
+	cd $(API) && uv run python ../../scripts/seed/generate.py --seed 42 --now $(SEED_NOW)
 
 audit-eval: ## Kiểm tra bộ câu hỏi đánh giá trên CSDL: make audit-eval d=restaurant_demo
 	cd $(API) && uv run python ../../scripts/audit_eval_questions.py --database $(or $(d),restaurant)

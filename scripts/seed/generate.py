@@ -10,7 +10,7 @@ import asyncio
 import json
 import sys
 from dataclasses import asdict
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 # `make seed` runs this file by path, so sys.path[0] is `scripts/seed/` and the
@@ -84,6 +84,11 @@ async def generate(config: SeedConfig) -> None:
         )
 
 
+# Appendix B.1 fixes the reference moment so every machine seeds the same dataset
+# (handoff 2026-11-10 C3: the system clock gave 4.879 orders on one machine, 4.963 on another).
+B1_REFERENCE_TIME = datetime(2026, 10, 23, 12, 0, tzinfo=timezone(timedelta(hours=7)))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Sinh dữ liệu mô phỏng 2 tháng.")
     parser.add_argument("--seed", type=int, default=42)
@@ -96,7 +101,8 @@ def main() -> None:
     parser.add_argument(
         "--now",
         type=datetime.fromisoformat,
-        help="Mốc thời gian ISO để tái lập dữ liệu (mặc định: đồng hồ hệ thống).",
+        default=B1_REFERENCE_TIME,
+        help="Mốc thời gian ISO (mặc định: mốc Phụ lục B.1, 2026-10-23T12:00:00+07:00).",
     )
     args = parser.parse_args()
     asyncio.run(
@@ -105,7 +111,7 @@ def main() -> None:
                 seed=args.seed,
                 months=args.months,
                 orders_target=args.orders,
-                **({"now": args.now} if args.now else {}),
+                now=args.now,
             )
         )
     )
