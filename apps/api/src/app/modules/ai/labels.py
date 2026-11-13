@@ -65,6 +65,7 @@ KNOWN: dict[str, tuple[str, Kind]] = {
     "TrungBinhMoiHoaDon": ("Trung bình mỗi hoá đơn", "money"),
     "TrungBinhHoaDon": ("Trung bình hoá đơn", "money"),
     "TrungBinhMoiNgay": ("Trung bình mỗi ngày", "money"),
+    "LoiNhuanGop": ("Lợi nhuận gộp", "money"),
     "BienLoiNhuan": ("Biên lợi nhuận", "percent"),
     "PhanTramThayDoi": ("Thay đổi (%)", "percent"),
     "TiLePhanTram": ("Tỉ lệ (%)", "percent"),
