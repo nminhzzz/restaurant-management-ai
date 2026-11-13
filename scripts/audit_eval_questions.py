@@ -22,7 +22,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.modules.ai.guard import validate_sql
-from app.modules.ai.scope import ROLE_VIEWS
+from app.modules.ai.scope import views_for
 from app.shared.roles import Role
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -106,12 +106,14 @@ async def main() -> int:
     try:
         for row in official + dev:
             qid, role = row["id"], Role(row["role"])
-            expected_view = ROLE_VIEWS[role]
-            if row["view"] != expected_view:
-                failures.append(f"{qid}: view {row['view']} != {expected_view}")
+            allowed = views_for(role)
+            declared = set(row.get("views") or [row["view"]]) | {row["view"]}
+            if not declared <= allowed:
+                outside = ", ".join(sorted(declared - allowed))
+                failures.append(f"{qid}: views outside the {role.value} scope: {outside}")
                 continue
             try:
-                validate_sql(row["sql"], allowed_views=[expected_view], max_rows=500)
+                validate_sql(row["sql"], allowed_views=allowed, max_rows=500)
             except Exception as exc:  # noqa: BLE001 - the report is the point
                 failures.append(f"{qid}: guard rejected SQL ({exc})")
                 continue
