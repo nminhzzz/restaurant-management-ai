@@ -16,7 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { apiFetch } from "@/lib/api-client";
-import { formatNumber } from "@/lib/format";
+import { formatDate, formatDateTime, formatNumber } from "@/lib/format";
 import { useResource } from "@/lib/use-resource";
 
 export type LotRow = {
@@ -223,8 +223,8 @@ export function InventoryHistory({ ingredientId }: { ingredientId?: number }) {
               {resource.data.items.map((row) =>
                 "MaGiaoDichKho" in row ? (
                   <TableRow key={row.MaGiaoDichKho}>
-                    <TableCell>{row.ThoiDiem}</TableCell>
-                    <TableCell>{row.BusinessDate}</TableCell>
+                    <TableCell>{formatDateTime(row.ThoiDiem)}</TableCell>
+                    <TableCell>{formatDate(row.BusinessDate)}</TableCell>
                     <TableCell>{row.TenNguyenLieu}</TableCell>
                     <TableCell>
                       {row.MaLoNguyenLieu ? `#${row.MaLoNguyenLieu}` : "—"}
@@ -251,9 +251,11 @@ export function InventoryHistory({ ingredientId }: { ingredientId?: number }) {
                     <TableCell>
                       {row.TenNguyenLieu} ({row.DonViTinh})
                     </TableCell>
-                    <TableCell>{row.NgayNhap}</TableCell>
+                    <TableCell>{formatDateTime(row.NgayNhap)}</TableCell>
                     <TableCell>
-                      {row.HanSuDung ?? "Không quản lý hạn"}
+                      {row.HanSuDung
+                        ? formatDate(row.HanSuDung)
+                        : "Không quản lý hạn"}
                     </TableCell>
                     <TableCell>{formatNumber(row.SoLuongConLai)}</TableCell>
                     <TableCell>{formatNumber(row.SoLuongGiu)}</TableCell>

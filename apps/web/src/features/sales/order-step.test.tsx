@@ -121,6 +121,28 @@ describe("OrderStep", () => {
     );
   });
 
+  it("re-reads the remaining servings after a dish is held (TC-SALE-01)", async () => {
+    route();
+    render(
+      <OrderStep
+        tableId={4}
+        orderId={null}
+        onBack={vi.fn()}
+        onSent={vi.fn()}
+      />,
+    );
+    const tile = await screen.findByRole("button", { name: /Phở bò/ });
+    expect(screen.getByText("Còn 10 suất")).toBeInTheDocument();
+    const held = {
+      items: dishes.items.map((d) =>
+        d.MaMon === 5 ? { ...d, SoSuatKhaDung: 9 } : d,
+      ),
+    };
+    route({ "/catalog/dishes": held });
+    fireEvent.click(tile);
+    expect(await screen.findByText("Còn 9 suất")).toBeInTheDocument();
+  });
+
   it("creates a new dine-in order and moves on to payment", async () => {
     const onSent = vi.fn();
     route({

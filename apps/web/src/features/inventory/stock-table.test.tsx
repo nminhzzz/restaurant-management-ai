@@ -58,7 +58,10 @@ describe("stock table", () => {
     }
     expect(screen.getByText("55")).toBeInTheDocument();
     expect(screen.getByText("kg")).toBeInTheDocument();
-    expect(screen.getByText(/Dữ liệu lúc/)).toBeInTheDocument();
+    const stamp = screen.getByText(/Dữ liệu lúc/);
+    // PH-06: the snapshot time is shown as dd/mm/yyyy hh:mm, never as a raw ISO string.
+    expect(stamp).toHaveTextContent(/23\/10\/2026/);
+    expect(stamp).not.toHaveTextContent(/2026-10-23T/);
     expect(
       screen.getByRole("button", { name: "Xem lô và lịch sử Bột mì" }),
     ).toBeInTheDocument();

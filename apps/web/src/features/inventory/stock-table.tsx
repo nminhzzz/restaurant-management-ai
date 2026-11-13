@@ -27,7 +27,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { apiFetch } from "@/lib/api-client";
-import { formatNumber, formatVnd } from "@/lib/format";
+import {
+  formatDate,
+  formatDateTime,
+  formatNumber,
+  formatVnd,
+} from "@/lib/format";
 import { useResource } from "@/lib/use-resource";
 import { cn } from "@/lib/utils";
 import { CostHistory } from "./cost-history";
@@ -131,7 +136,7 @@ export function StockTable({
 
       {items[0]?.ThoiDiemTinh && (
         <p className="text-muted">
-          Dữ liệu lúc {items[0].ThoiDiemTinh}.{" "}
+          Dữ liệu lúc {formatDateTime(items[0].ThoiDiemTinh)}.{" "}
           <Button variant="ghost" size="sm" onClick={stock.reload}>
             Làm mới
           </Button>
@@ -243,7 +248,7 @@ export function StockTable({
                     {it.HanSuDungGanNhat ? (
                       <span className="flex flex-wrap items-center gap-1.5">
                         <span className="tabular-nums">
-                          {it.HanSuDungGanNhat}
+                          {formatDate(it.HanSuDungGanNhat)}
                         </span>
                         {it.SoLoHetHan ? (
                           <Badge tone="danger">

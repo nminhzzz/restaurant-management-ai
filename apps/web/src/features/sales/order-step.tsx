@@ -234,6 +234,17 @@ export function OrderStep({
     );
   }, [restored, selectionCode]);
 
+  // TC-SALE-01: a hold takes stock away from "Còn N suất", so re-read the counts in the
+  // background whenever the held quantities change (the first render already has them).
+  const { refresh: refreshMenu } = menu;
+  const heldKey = cart.map((l) => `${l.MaMon}:${l.SoLuong}`).join(",");
+  const countedHeldKey = useRef(heldKey);
+  useEffect(() => {
+    if (countedHeldKey.current === heldKey) return;
+    countedHeldKey.current = heldKey;
+    refreshMenu();
+  }, [heldKey, refreshMenu]);
+
   if (menu.status === "loading") return <LoadingState rows={6} />;
   if (menu.status === "error")
     return <ErrorState message={menu.message} onRetry={menu.reload} />;
