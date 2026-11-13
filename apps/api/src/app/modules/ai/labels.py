@@ -18,6 +18,7 @@ KNOWN: dict[str, tuple[str, Kind]] = {
     "DonGiaMon": ("Đơn giá món", "money"),
     "DonGiaNhap": ("Đơn giá nhập", "money"),
     "DonViTinh": ("Đơn vị tính", "text"),
+    "GiaTri": ("Giá trị", "money"),
     "HanSuDungLo": ("Hạn sử dụng lô", "date"),
     "LoaiBanGhi": ("Loại bản ghi", "text"),
     "LoaiDon": ("Loại đơn", "text"),

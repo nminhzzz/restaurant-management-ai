@@ -26,6 +26,17 @@ async def test_the_schema_block_lists_the_columns_of_that_view(session, seed_vie
 
 
 @pytest.mark.anyio
+async def test_only_the_manager_sees_the_movement_value(session, seed_views):
+    """Handoff 2026-11-10 C1: GiaTri is the manager's, explained as signed and NULL-unknown."""
+    manager = await schema_block(session, Role.MANAGER)
+    line = next(row for row in manager.splitlines() if row.startswith("- GiaTri"))
+    assert "cùng dấu với SoLuong" in line
+    assert "không coi là 0" in line
+    for role in (Role.CASHIER, Role.WAREHOUSE):
+        assert "- GiaTri" not in await schema_block(session, role)
+
+
+@pytest.mark.anyio
 async def test_each_role_gets_a_different_schema_block(session, seed_views):
     blocks = {role: await schema_block(session, role) for role in Role}
 

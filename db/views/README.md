@@ -12,6 +12,8 @@ Các view theo chủ đề có mức chi tiết riêng: order, dòng món, hóa 
 
 Ngày kinh doanh của phiếu nhập/xuất/kiểm kê và công thức/giá hiện hành dựa vào `LICH_GIO_BUSINESS_DATE`, gồm giờ hiệu lực theo phút và thời điểm chuyển lịch; không suy ra ngày bằng mốc cố định. Cột BusinessDate đã lưu trên order, hóa đơn, thanh toán và giao dịch kho được giữ nguyên.
 
+`vw_ai_quanly_giaodich.GiaTri` là giá trị biến động của giao dịch kho, cùng dấu với `SoLuong` (âm khi xuất, dương khi nhập/hoàn), ghi một lần theo đơn giá hiện hành lúc phát sinh. `NULL` nghĩa là chưa xác định được giá trị (nguyên liệu chưa từng có đơn giá), không coi là 0. Giá vốn nguyên liệu tiêu hao theo kỳ lấy từ tổng `GiaTri` đã ghi, khớp báo cáo FR-REP-11. Chỉ view của Quản lý có cột này; `vw_ai_kho_giaodich` và tập view của Thu ngân không có.
+
 | View | Cột công khai |
 | --- | --- |
 | `vw_ai_kho_giaodich` | `LoaiBanGhi`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `MaGiaoDichKho`, `BusinessDate`, `SoLuong`, `LoaiGiaoDich` |
@@ -25,7 +27,7 @@ Ngày kinh doanh của phiếu nhập/xuất/kiểm kê và công thức/giá hi
 | `vw_ai_quanly_ban` | `MaBan`, `TenBan`, `TrangThai`, `SoChoNgoi` |
 | `vw_ai_quanly_congthuc` | `MaCongThuc`, `MaMon`, `TenMon`, `BusinessDateApDung`, `TrangThai`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `DinhLuong` |
 | `vw_ai_quanly_dongmon` | `LoaiBanGhi`, `MaOrder`, `BusinessDate`, `TrangThaiOrder`, `TenMon`, `TenNhom`, `SoLuongMon`, `DonGiaMon`, `ThanhTienMon` |
-| `vw_ai_quanly_giaodich` | `LoaiBanGhi`, `MaOrder`, `BusinessDate`, `TrangThaiOrder`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `MaGiaoDichKho`, `SoLuong`, `LoaiGiaoDich` |
+| `vw_ai_quanly_giaodich` | `LoaiBanGhi`, `MaOrder`, `BusinessDate`, `TrangThaiOrder`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `MaGiaoDichKho`, `SoLuong`, `LoaiGiaoDich`, `GiaTri` |
 | `vw_ai_quanly_giavon` | `LoaiBanGhi`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `ThoiDiemHieuLuc`, `DonGiaBinhQuan`, `SoLuongTon` |
 | `vw_ai_quanly_hoadon` | `LoaiBanGhi`, `MaOrder`, `BusinessDate`, `MaHoaDon`, `ThoiDiemXuat`, `TongTien` |
 | `vw_ai_quanly_kiemke` | `MaPhieuKiemKe`, `BusinessDate`, `TrangThai`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `TonHeThong`, `TonThucTe`, `ChenhLech` |

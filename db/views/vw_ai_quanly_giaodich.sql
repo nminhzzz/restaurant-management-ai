@@ -10,7 +10,8 @@ SELECT
   n.DonViTinh AS DonViTinh,
   g.MaGiaoDichKho AS MaGiaoDichKho,
   g.SoLuongThayDoi AS SoLuong,
-  g.LoaiGiaoDich AS LoaiGiaoDich
+  g.LoaiGiaoDich AS LoaiGiaoDich,
+  g.GiaTri AS GiaTri
 FROM GIAO_DICH_KHO AS g
 JOIN NGUYEN_LIEU AS n
   ON n.MaNguyenLieu = g.MaNguyenLieu

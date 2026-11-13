@@ -92,6 +92,10 @@ COLUMN_NOTES: dict[str, str] = {
     "LoaiGiaoDich": (
         "loại giao dịch kho: Nhập, Trừ tự động, Hoàn kho, Xuất thủ công, Điều chỉnh kiểm kê"
     ),
+    "GiaTri": (
+        "giá trị biến động của giao dịch kho, cùng dấu với SoLuong, ghi một lần theo đơn giá "
+        "hiện hành lúc phát sinh; NULL là chưa xác định được giá trị, không coi là 0"
+    ),
     "MaPhieuNhap": "mã phiếu nhập kho, ở LoaiBanGhi = 'PHIEU_NHAP'",
     "TenNhaCungCap": "tên nhà cung cấp của phiếu nhập",
     "DonGiaNhap": "đơn giá nhập (giá mua) của nguyên liệu trong phiếu nhập chưa hủy",
