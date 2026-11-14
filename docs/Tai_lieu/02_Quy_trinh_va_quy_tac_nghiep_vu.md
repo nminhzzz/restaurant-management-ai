@@ -1,6 +1,6 @@
 # 02. QUY TRÌNH VÀ QUY TẮC NGHIỆP VỤ
 
-Hệ thống quản lý nhà hàng tích hợp AI hỗ trợ hoạt động kinh doanh
+Xây dựng hệ thống quản lý nhà hàng tích hợp AI hỗ trợ hoạt động kinh doanh
 
 Các quy trình nghiệp vụ QT-01 đến QT-23, sơ đồ hoạt động và bộ quy tắc nghiệp vụ chung của hệ thống quản lý nhà hàng.
 
@@ -196,7 +196,7 @@ Bước 3. Người lập xác nhận; hệ thống lưu phiếu, tạo lô và 
 
 Bước 4. Phiếu chỉ được sửa hoặc hủy khi các lô chưa phát sinh xuất và không có giữ món còn hiệu lực; dữ liệu đã sử dụng được xử lý qua kiểm kê.
 
-Hủy phiếu nhập chỉ được thực hiện khi tất cả lô liên quan chưa phát sinh giao dịch xuất và không có giữ món còn hiệu lực. Khi hủy, hệ thống đảo lượng nhập, đưa số lượng còn lại của các lô sinh từ phiếu về 0 và chuyển các lô này sang Đã hủy; giữ phiếu, lô và lịch sử giao dịch để truy vết. Lô Đã hủy không được phân bổ FIFO, giữ món hoặc nhận điều chỉnh tăng tồn. Thao tác đồng thời loại phiếu khỏi dữ liệu nhập hiệu lực và tính lại đơn giá bình quân hiện hành của nguyên liệu. Xuất hủy nguyên liệu là nghiệp vụ riêng: chỉ trừ lượng được chọn trong lô, phần còn lại tiếp tục được sử dụng nếu đủ điều kiện; không chuyển cả lô sang Đã hủy.
+Hủy phiếu nhập chỉ được thực hiện khi tất cả lô liên quan chưa phát sinh giao dịch xuất và không có giữ món còn hiệu lực. Khi hủy, hệ thống đảo lượng nhập bằng giao dịch kho loại Hủy nhập gắn với dòng nhập nguồn, đưa số lượng còn lại của các lô sinh từ phiếu về 0 và chuyển các lô này sang Đã hủy; giữ phiếu, lô và lịch sử giao dịch để truy vết. Lô Đã hủy không được phân bổ FIFO, giữ món hoặc nhận điều chỉnh tăng tồn. Thao tác đồng thời loại phiếu khỏi dữ liệu nhập hiệu lực và tính lại đơn giá bình quân hiện hành của nguyên liệu. Xuất hủy nguyên liệu là nghiệp vụ riêng: chỉ trừ lượng được chọn trong lô, phần còn lại tiếp tục được sử dụng nếu đủ điều kiện; không chuyển cả lô sang Đã hủy.
 
 <img src="../images/02_Quy_trinh_va_quy_tac_nghiep_vu/media/image26.png" width="567" />
 

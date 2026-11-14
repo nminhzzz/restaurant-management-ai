@@ -1,6 +1,6 @@
 # 03. ĐẶC TẢ USE CASE VÀ YÊU CẦU CHỨC NĂNG
 
-Hệ thống quản lý nhà hàng tích hợp AI hỗ trợ hoạt động kinh doanh
+Xây dựng hệ thống quản lý nhà hàng tích hợp AI hỗ trợ hoạt động kinh doanh
 
 Đặc tả 29 Use Case, danh mục Use Case và các yêu cầu chức năng chi tiết của hệ thống quản lý nhà hàng.
 

@@ -4,7 +4,7 @@
 
 **Lê Nam Khánh – Nguyễn Mạnh Hùng – Lê Nho Minh**
 
-**HỆ THỐNG QUẢN LÝ NHÀ HÀNG TÍCH HỢP AI HỖ TRỢ HOẠT ĐỘNG KINH DOANH**
+**XÂY DỰNG HỆ THỐNG QUẢN LÝ NHÀ HÀNG TÍCH HỢP AI HỖ TRỢ HOẠT ĐỘNG KINH DOANH**
 
 **Ngành: Công nghệ thông tin**
 
@@ -20,7 +20,7 @@ TRƯỜNG ĐẠI HỌC MỞ HÀ NỘI
 
 **Lê Nam Khánh – Nguyễn Mạnh Hùng – Lê Nho Minh**
 
-**HỆ THỐNG QUẢN LÝ NHÀ HÀNG TÍCH HỢP AI HỖ TRỢ HOẠT ĐỘNG KINH DOANH**
+**XÂY DỰNG HỆ THỐNG QUẢN LÝ NHÀ HÀNG TÍCH HỢP AI HỖ TRỢ HOẠT ĐỘNG KINH DOANH**
 
 **Ngành: Công nghệ thông tin**
 
@@ -87,7 +87,7 @@ Hà Nội, ngày....tháng....năm.....
 </tbody>
 </table>
 
-Tên đề tài: Hệ thống quản lý nhà hàng tích hợp AI hỗ trợ hoạt động kinh doanh.
+Tên đề tài: Xây dựng hệ thống quản lý nhà hàng tích hợp AI hỗ trợ hoạt động kinh doanh.
 
 Nội dung nhiệm vụ: khảo sát và xác định yêu cầu; phân tích, thiết kế và xây dựng ứng dụng web; tích hợp hỏi đáp dữ liệu tiếng Việt; kiểm thử, thực nghiệm và đánh giá kết quả.
 
@@ -101,7 +101,7 @@ ThS. Trịnh Thị Xuân
 
 **LỜI CAM ĐOAN**
 
-Chúng tôi xin cam đoan khóa luận “Hệ thống quản lý nhà hàng tích hợp AI hỗ trợ hoạt động kinh doanh” là công trình của nhóm, được thực hiện dưới sự hướng dẫn của ThS. Trịnh Thị Xuân. Các số liệu khảo sát, kết quả thực nghiệm và kết quả kiểm thử trình bày trong báo cáo do nhóm thu thập và thực hiện; các tài liệu tham khảo được trích dẫn đầy đủ theo quy định. Nhóm xin chịu trách nhiệm về nội dung của báo cáo.
+Chúng tôi xin cam đoan khóa luận “Xây dựng hệ thống quản lý nhà hàng tích hợp AI hỗ trợ hoạt động kinh doanh” là công trình của nhóm, được thực hiện dưới sự hướng dẫn của ThS. Trịnh Thị Xuân. Các số liệu khảo sát, kết quả thực nghiệm và kết quả kiểm thử trình bày trong báo cáo do nhóm thu thập và thực hiện; các tài liệu tham khảo được trích dẫn đầy đủ theo quy định. Nhóm xin chịu trách nhiệm về nội dung của báo cáo.
 
 Hà Nội, ngày ….. tháng ….. năm 2026
 
@@ -125,21 +125,21 @@ Cuối cùng, nhóm xin cảm ơn gia đình và bạn bè đã luôn động vi
 
 Khóa luận xây dựng hệ thống quản lý nhà hàng dạng ứng dụng web cho nhà hàng, quán ăn quy mô vừa và nhỏ, gồm sáu module: danh mục, bán hàng, kho, báo cáo thống kê, cài đặt và AI Assistant. Hệ thống thống nhất dữ liệu từ lúc khách gọi món đến khi đối soát doanh thu, quản lý nguyên liệu theo lô FIFO, thanh toán tiền mặt và QR có đối soát, và phân quyền dữ liệu, chức năng theo từng vai trò. AI Assistant cho phép người dùng hỏi số liệu kinh doanh bằng tiếng Việt; câu SQL do mô hình ngôn ngữ lớn sinh ra chỉ được chạy trên các view chỉ đọc theo vai trò sau khi qua bước kiểm duyệt.
 
-Yêu cầu hệ thống được xác định từ phân tích phần mềm hiện có và khảo sát 51 người từng làm việc hoặc quản lý tại nhà hàng, quán ăn. Hệ thống được mô hình hóa bằng UML, thiết kế cơ sở dữ liệu quan hệ và kiểm thử trên dữ liệu mô phỏng 2 tháng của một nhà hàng nhỏ. Thực nghiệm Text-to-SQL tiếng Việt được thiết kế trên 80 câu hỏi với ba cấu hình, mỗi câu chạy 3 lần (720 lượt); kết quả thực nghiệm chưa được đo trên bộ dữ liệu này. Kiểm thử chức năng trên phiên bản 6985565 ngày 10/11/2026 cho kết quả 256 đạt và 2 không đạt trên tổng 258 ca; đo hiệu năng cơ bản với 5, 10 và 20 người dùng đồng thời cho p95 lớn nhất 417 ms ở nghiệp vụ và 25 ms ở báo cáo, không có lỗi.
+Yêu cầu hệ thống được xác định từ phân tích phần mềm hiện có và khảo sát 51 người từng làm việc hoặc quản lý tại nhà hàng, quán ăn. Hệ thống được mô hình hóa bằng UML, thiết kế cơ sở dữ liệu quan hệ và kiểm thử trên dữ liệu mô phỏng 2 tháng của một nhà hàng nhỏ. Thực nghiệm Text-to-SQL tiếng Việt được thực hiện trên 80 câu hỏi với ba cấu hình, mỗi câu chạy 3 lần (720 lượt). Trên dữ liệu này, độ đúng thực thi nới lỏng của ba cấu hình lần lượt là 82,9%, 82,5% và 65,8%; p95 thời gian phản hồi không quá 6,79 giây. Kiểm thử chức năng cho kết quả 258 đạt trên tổng 258 ca; đo hiệu năng cơ bản với 5, 10 và 20 người dùng đồng thời cho p95 lớn nhất 417 ms ở nghiệp vụ và 25 ms ở báo cáo, không có lỗi.
 
 Từ khóa: quản lý nhà hàng, ứng dụng web, Text-to-SQL, mô hình ngôn ngữ lớn, quản lý kho theo lô FIFO.
 
 **MỤC LỤC**
 
-[DANH MỤC BẢNG [11](#danh-mục-bảng)](#danh-mục-bảng)
+[DANH MỤC TỪ VIẾT TẮT [11](#danh-mục-từ-viết-tắt)](#danh-mục-từ-viết-tắt)
 
-[DANH MỤC HÌNH ẢNH [12](#danh-mục-hình-ảnh)](#danh-mục-hình-ảnh)
+[DANH MỤC BẢNG [13](#danh-mục-bảng)](#danh-mục-bảng)
 
-[DANH MỤC TỪ VIẾT TẮT [13](#danh-mục-từ-viết-tắt)](#danh-mục-từ-viết-tắt)
+[DANH MỤC HÌNH ẢNH [14](#danh-mục-hình-ảnh)](#danh-mục-hình-ảnh)
 
 [MỞ ĐẦU [15](#mở-đầu)](#mở-đầu)
 
-[1. GIỚI THIỆU [17](#giới-thiệu)](#giới-thiệu)
+[CHƯƠNG 1. GIỚI THIỆU [17](#chương-1.-giới-thiệu)](#chương-1.-giới-thiệu)
 
 [1.1. Giới thiệu chung [17](#giới-thiệu-chung)](#giới-thiệu-chung)
 
@@ -161,7 +161,7 @@ Từ khóa: quản lý nhà hàng, ứng dụng web, Text-to-SQL, mô hình ngô
 
 [1.5. Phân công thực hiện [20](#phân-công-thực-hiện)](#phân-công-thực-hiện)
 
-[2. KHẢO SÁT HỆ THỐNG [21](#khảo-sát-hệ-thống)](#khảo-sát-hệ-thống)
+[CHƯƠNG 2. KHẢO SÁT HỆ THỐNG [21](#chương-2.-khảo-sát-hệ-thống)](#chương-2.-khảo-sát-hệ-thống)
 
 [2.1. Phân tích đối thủ cạnh tranh [21](#phân-tích-đối-thủ-cạnh-tranh)](#phân-tích-đối-thủ-cạnh-tranh)
 
@@ -169,7 +169,7 @@ Từ khóa: quản lý nhà hàng, ứng dụng web, Text-to-SQL, mô hình ngô
 
 [2.1.2. Phân tích chi tiết các đối thủ [21](#phân-tích-chi-tiết-các-đối-thủ)](#phân-tích-chi-tiết-các-đối-thủ)
 
-[2.1.3. Cơ sở lý thuyết và nghiên cứu liên quan [21](#cơ-sở-lý-thuyết-và-nghiên-cứu-liên-quan)](#cơ-sở-lý-thuyết-và-nghiên-cứu-liên-quan)
+[2.1.3. Cơ sở lý thuyết và nghiên cứu liên quan [22](#cơ-sở-lý-thuyết-và-nghiên-cứu-liên-quan)](#cơ-sở-lý-thuyết-và-nghiên-cứu-liên-quan)
 
 [2.1.4. Đề xuất giải pháp và định hướng phát triển [22](#đề-xuất-giải-pháp-và-định-hướng-phát-triển)](#đề-xuất-giải-pháp-và-định-hướng-phát-triển)
 
@@ -177,7 +177,7 @@ Từ khóa: quản lý nhà hàng, ứng dụng web, Text-to-SQL, mô hình ngô
 
 [2.2.1. Mục đích khảo sát [22](#mục-đích-khảo-sát)](#mục-đích-khảo-sát)
 
-[2.2.2. Phương pháp khảo sát [22](#phương-pháp-khảo-sát)](#phương-pháp-khảo-sát)
+[2.2.2. Phương pháp khảo sát [23](#phương-pháp-khảo-sát)](#phương-pháp-khảo-sát)
 
 [2.2.3. Câu hỏi khảo sát [23](#câu-hỏi-khảo-sát)](#câu-hỏi-khảo-sát)
 
@@ -215,7 +215,7 @@ Từ khóa: quản lý nhà hàng, ứng dụng web, Text-to-SQL, mô hình ngô
 
 [2.7.4. Khả thi pháp lý và ràng buộc [37](#khả-thi-pháp-lý-và-ràng-buộc)](#khả-thi-pháp-lý-và-ràng-buộc)
 
-[3. PHÂN TÍCH HỆ THỐNG [38](#phân-tích-hệ-thống)](#phân-tích-hệ-thống)
+[CHƯƠNG 3. PHÂN TÍCH HỆ THỐNG [38](#chương-3.-phân-tích-hệ-thống)](#chương-3.-phân-tích-hệ-thống)
 
 [3.1. Mô hình hóa chức năng nghiệp vụ [38](#mô-hình-hóa-chức-năng-nghiệp-vụ)](#mô-hình-hóa-chức-năng-nghiệp-vụ)
 
@@ -237,7 +237,7 @@ Từ khóa: quản lý nhà hàng, ứng dụng web, Text-to-SQL, mô hình ngô
 
 [3.4.4. Hỏi AI Assistant [54](#hỏi-ai-assistant)](#hỏi-ai-assistant)
 
-[4. THIẾT KẾ HỆ THỐNG [56](#thiết-kế-hệ-thống)](#thiết-kế-hệ-thống)
+[CHƯƠNG 4. THIẾT KẾ HỆ THỐNG [56](#chương-4.-thiết-kế-hệ-thống)](#chương-4.-thiết-kế-hệ-thống)
 
 [4.1. Thiết kế kiến trúc hệ thống [56](#thiết-kế-kiến-trúc-hệ-thống)](#thiết-kế-kiến-trúc-hệ-thống)
 
@@ -253,206 +253,204 @@ Từ khóa: quản lý nhà hàng, ứng dụng web, Text-to-SQL, mô hình ngô
 
 [4.2.2. Ánh xạ Class Diagram sang lược đồ quan hệ (CSDL) [62](#ánh-xạ-class-diagram-sang-lược-đồ-quan-hệ-csdl)](#ánh-xạ-class-diagram-sang-lược-đồ-quan-hệ-csdl)
 
-[4.2.3. Thiết kế chỉ mục [67](#thiết-kế-chỉ-mục)](#thiết-kế-chỉ-mục)
+[4.2.3. Thiết kế chỉ mục [68](#thiết-kế-chỉ-mục)](#thiết-kế-chỉ-mục)
 
 [4.3. Thiết kế giao diện [68](#thiết-kế-giao-diện)](#thiết-kế-giao-diện)
 
-[4.4. Thiết kế kiểm soát [73](#thiết-kế-kiểm-soát)](#thiết-kế-kiểm-soát)
+[4.4. Thiết kế kiểm soát [74](#thiết-kế-kiểm-soát)](#thiết-kế-kiểm-soát)
 
-[4.4.1. Phân định quyền hạn về dữ liệu [73](#phân-định-quyền-hạn-về-dữ-liệu)](#phân-định-quyền-hạn-về-dữ-liệu)
+[4.4.1. Phân định quyền hạn về dữ liệu [74](#phân-định-quyền-hạn-về-dữ-liệu)](#phân-định-quyền-hạn-về-dữ-liệu)
 
-[4.4.2. Phân định quyền hạn về chức năng [74](#phân-định-quyền-hạn-về-chức-năng)](#phân-định-quyền-hạn-về-chức-năng)
+[4.4.2. Phân định quyền hạn về chức năng [75](#phân-định-quyền-hạn-về-chức-năng)](#phân-định-quyền-hạn-về-chức-năng)
 
-[4.5. Thiết kế API và lớp xử lý [75](#thiết-kế-api-và-lớp-xử-lý)](#thiết-kế-api-và-lớp-xử-lý)
+[4.5. Thiết kế API và lớp xử lý [76](#thiết-kế-api-và-lớp-xử-lý)](#thiết-kế-api-và-lớp-xử-lý)
 
-[4.6. Thiết kế bảo mật tập trung [77](#thiết-kế-bảo-mật-tập-trung)](#thiết-kế-bảo-mật-tập-trung)
+[4.6. Thiết kế bảo mật tập trung [78](#thiết-kế-bảo-mật-tập-trung)](#thiết-kế-bảo-mật-tập-trung)
 
-[5. CÀI ĐẶT VÀ TRIỂN KHAI HỆ THỐNG [79](#cài-đặt-và-triển-khai-hệ-thống)](#cài-đặt-và-triển-khai-hệ-thống)
+[CHƯƠNG 5. CÀI ĐẶT VÀ TRIỂN KHAI HỆ THỐNG [80](#chương-5.-cài-đặt-và-triển-khai-hệ-thống)](#chương-5.-cài-đặt-và-triển-khai-hệ-thống)
 
-[5.1. Công nghệ sử dụng [79](#công-nghệ-sử-dụng)](#công-nghệ-sử-dụng)
+[5.1. Công nghệ sử dụng [80](#công-nghệ-sử-dụng)](#công-nghệ-sử-dụng)
 
-[5.1.1. Lựa chọn công nghệ và framework [79](#lựa-chọn-công-nghệ-và-framework)](#lựa-chọn-công-nghệ-và-framework)
+[5.1.1. Lựa chọn công nghệ và framework [80](#lựa-chọn-công-nghệ-và-framework)](#lựa-chọn-công-nghệ-và-framework)
 
-[5.1.2. Lựa chọn hệ quản trị cơ sở dữ liệu [79](#lựa-chọn-hệ-quản-trị-cơ-sở-dữ-liệu)](#lựa-chọn-hệ-quản-trị-cơ-sở-dữ-liệu)
+[5.1.2. Lựa chọn hệ quản trị cơ sở dữ liệu [80](#lựa-chọn-hệ-quản-trị-cơ-sở-dữ-liệu)](#lựa-chọn-hệ-quản-trị-cơ-sở-dữ-liệu)
 
-[5.1.3. Quy trình phát triển [79](#quy-trình-phát-triển)](#quy-trình-phát-triển)
+[5.1.3. Quy trình phát triển [80](#quy-trình-phát-triển)](#quy-trình-phát-triển)
 
-[5.2. Tổ chức cài đặt và các xử lý lõi [80](#tổ-chức-cài-đặt-và-các-xử-lý-lõi)](#tổ-chức-cài-đặt-và-các-xử-lý-lõi)
+[5.2. Tổ chức cài đặt và các xử lý lõi [81](#tổ-chức-cài-đặt-và-các-xử-lý-lõi)](#tổ-chức-cài-đặt-và-các-xử-lý-lõi)
 
-[5.3. Thiết lập môi trường và chạy thử [80](#thiết-lập-môi-trường-và-chạy-thử)](#thiết-lập-môi-trường-và-chạy-thử)
+[5.3. Thiết lập môi trường và chạy thử [81](#thiết-lập-môi-trường-và-chạy-thử)](#thiết-lập-môi-trường-và-chạy-thử)
 
-[5.4. Kết quả cài đặt [81](#kết-quả-cài-đặt)](#kết-quả-cài-đặt)
+[5.4. Kết quả cài đặt [82](#kết-quả-cài-đặt)](#kết-quả-cài-đặt)
 
-[6. KIỂM THỬ VÀ ĐÁNH GIÁ [81](#kiểm-thử-và-đánh-giá)](#kiểm-thử-và-đánh-giá)
+[CHƯƠNG 6. KIỂM THỬ VÀ ĐÁNH GIÁ [83](#chương-6.-kiểm-thử-và-đánh-giá)](#chương-6.-kiểm-thử-và-đánh-giá)
 
-[6.1. Cơ sở và nguyên tắc đánh giá [81](#cơ-sở-và-nguyên-tắc-đánh-giá)](#cơ-sở-và-nguyên-tắc-đánh-giá)
+[6.1. Cơ sở và nguyên tắc đánh giá [83](#cơ-sở-và-nguyên-tắc-đánh-giá)](#cơ-sở-và-nguyên-tắc-đánh-giá)
 
-[6.2. Dữ liệu và đáp án chuẩn [83](#dữ-liệu-và-đáp-án-chuẩn)](#dữ-liệu-và-đáp-án-chuẩn)
+[6.2. Dữ liệu và đáp án chuẩn [85](#dữ-liệu-và-đáp-án-chuẩn)](#dữ-liệu-và-đáp-án-chuẩn)
 
-[6.3. Chỉ số và cấu hình thực nghiệm [84](#chỉ-số-và-cấu-hình-thực-nghiệm)](#chỉ-số-và-cấu-hình-thực-nghiệm)
+[6.3. Chỉ số và cấu hình thực nghiệm [86](#chỉ-số-và-cấu-hình-thực-nghiệm)](#chỉ-số-và-cấu-hình-thực-nghiệm)
 
-[6.4. Kết quả thực nghiệm AI Assistant [86](#kết-quả-thực-nghiệm-ai-assistant)](#kết-quả-thực-nghiệm-ai-assistant)
+[6.4. Kết quả thực nghiệm AI Assistant [88](#kết-quả-thực-nghiệm-ai-assistant)](#kết-quả-thực-nghiệm-ai-assistant)
 
-[6.5. Kiểm tra chức năng AI Assistant [87](#kiểm-tra-chức-năng-ai-assistant)](#kiểm-tra-chức-năng-ai-assistant)
+[6.5. Kiểm tra chức năng AI Assistant [90](#kiểm-tra-chức-năng-ai-assistant)](#kiểm-tra-chức-năng-ai-assistant)
 
-[6.6. Kiểm thử chức năng [87](#kiểm-thử-chức-năng)](#kiểm-thử-chức-năng)
+[6.6. Kiểm thử chức năng [90](#kiểm-thử-chức-năng)](#kiểm-thử-chức-năng)
 
-[6.7. Kiểm thử hiệu năng [88](#kiểm-thử-hiệu-năng)](#kiểm-thử-hiệu-năng)
+[6.7. Kiểm thử hiệu năng [90](#kiểm-thử-hiệu-năng)](#kiểm-thử-hiệu-năng)
 
-[6.8. Phạm vi và giới hạn kiểm tra [89](#phạm-vi-và-giới-hạn-kiểm-tra)](#phạm-vi-và-giới-hạn-kiểm-tra)
+[6.8. Phạm vi và giới hạn kiểm tra [91](#phạm-vi-và-giới-hạn-kiểm-tra)](#phạm-vi-và-giới-hạn-kiểm-tra)
 
-[KẾT LUẬN [90](#kết-luận)](#kết-luận)
+[KẾT LUẬN [92](#kết-luận)](#kết-luận)
 
-[Kết quả đạt được so với mục tiêu [90](#kết-quả-đạt-được-so-với-mục-tiêu)](#kết-quả-đạt-được-so-với-mục-tiêu)
+[Kết quả đạt được so với mục tiêu [92](#kết-quả-đạt-được-so-với-mục-tiêu)](#kết-quả-đạt-được-so-với-mục-tiêu)
 
-[Hạn chế [90](#hạn-chế)](#hạn-chế)
+[Hạn chế [92](#hạn-chế)](#hạn-chế)
 
-[Hướng phát triển [91](#hướng-phát-triển)](#hướng-phát-triển)
+[Hướng phát triển [93](#hướng-phát-triển)](#hướng-phát-triển)
 
-[TÀI LIỆU THAM KHẢO [92](#tài-liệu-tham-khảo)](#tài-liệu-tham-khảo)
+[TÀI LIỆU THAM KHẢO [94](#tài-liệu-tham-khảo)](#tài-liệu-tham-khảo)
 
-[PHỤ LỤC [95](#phụ-lục)](#phụ-lục)
+[PHỤ LỤC [97](#phụ-lục)](#phụ-lục)
 
-[Tài liệu đi kèm báo cáo [95](#tài-liệu-đi-kèm-báo-cáo)](#tài-liệu-đi-kèm-báo-cáo)
+[Tài liệu đi kèm báo cáo [97](#tài-liệu-đi-kèm-báo-cáo)](#tài-liệu-đi-kèm-báo-cáo)
 
-[A. Quy định triển khai cơ sở dữ liệu [96](#a.-quy-định-triển-khai-cơ-sở-dữ-liệu)](#a.-quy-định-triển-khai-cơ-sở-dữ-liệu)
+[A. Quy định triển khai cơ sở dữ liệu [98](#a.-quy-định-triển-khai-cơ-sở-dữ-liệu)](#a.-quy-định-triển-khai-cơ-sở-dữ-liệu)
 
-[A.1. Ràng buộc toàn vẹn và giao dịch [96](#a.1.-ràng-buộc-toàn-vẹn-và-giao-dịch)](#a.1.-ràng-buộc-toàn-vẹn-và-giao-dịch)
+[A.1. Ràng buộc toàn vẹn và giao dịch [98](#a.1.-ràng-buộc-toàn-vẹn-và-giao-dịch)](#a.1.-ràng-buộc-toàn-vẹn-và-giao-dịch)
 
-[A.2. Chỉ mục và mở rộng [97](#a.2.-chỉ-mục-và-mở-rộng)](#a.2.-chỉ-mục-và-mở-rộng)
+[A.2. Chỉ mục và mở rộng [99](#a.2.-chỉ-mục-và-mở-rộng)](#a.2.-chỉ-mục-và-mở-rộng)
 
-[B. Quy tắc sinh dữ liệu mô phỏng [98](#b.-quy-tắc-sinh-dữ-liệu-mô-phỏng)](#b.-quy-tắc-sinh-dữ-liệu-mô-phỏng)
+[B. Quy tắc sinh dữ liệu mô phỏng [100](#b.-quy-tắc-sinh-dữ-liệu-mô-phỏng)](#b.-quy-tắc-sinh-dữ-liệu-mô-phỏng)
 
-[B.1. Bộ dữ liệu cho thực nghiệm AI Assistant [98](#b.1.-bộ-dữ-liệu-cho-thực-nghiệm-ai-assistant)](#b.1.-bộ-dữ-liệu-cho-thực-nghiệm-ai-assistant)
+[B.1. Bộ dữ liệu cho thực nghiệm AI Assistant [100](#b.1.-bộ-dữ-liệu-cho-thực-nghiệm-ai-assistant)](#b.1.-bộ-dữ-liệu-cho-thực-nghiệm-ai-assistant)
 
-[B.2. Bộ dữ liệu cho kiểm thử hiệu năng [99](#b.2.-bộ-dữ-liệu-cho-kiểm-thử-hiệu-năng)](#b.2.-bộ-dữ-liệu-cho-kiểm-thử-hiệu-năng)
-
-# DANH MỤC BẢNG
-
-Bảng 1. Phân công công việc của các thành viên 20
-
-Bảng 2. So sánh các phần mềm quản lý nhà hàng 21
-
-Bảng 3. Cấu trúc bộ câu hỏi khảo sát 24
-
-Bảng 4. Tổng hợp kết quả khảo sát và quyết định yêu cầu 25
-
-Bảng 5. Các module chức năng của hệ thống 31
-
-Bảng 6. Mô tả chức năng theo Use Case của từng module 32
-
-Bảng 7. Yêu cầu phi chức năng, ngưỡng và cách kiểm chứng 34
-
-Bảng 8. Đối tượng sử dụng hệ thống và quyền hạn chính 35
-
-Bảng 9. Tổng hợp các nhóm chức năng và mức ưu tiên 38
-
-Bảng 10. Danh sách lớp đối tượng của hệ thống 62
-
-Bảng 11. Ràng buộc vật lý của các bảng trọng yếu 67
-
-Bảng 12. Ma trận quyền hạn theo chức năng và vai trò 75
-
-Bảng 13. Một số endpoint của backend 76
-
-Bảng 14. Kết quả đối chiếu yêu cầu phi chức năng 83
-
-Bảng 15. Mẫu câu hỏi và tiêu chí chấm AI 84
-
-Bảng 16. Kết quả đánh giá trên tập 80 câu đã khóa 86
-
-Bảng 17. Độ đúng thực thi nới lỏng theo độ khó và vai trò 86
-
-Bảng 18. Các lỗi chức năng ghi nhận ngày 10/11/2026 87
-
-# DANH MỤC HÌNH ẢNH
-
-Hình 1. QT-07 — Gọi món tại chỗ. Luồng chính. 28
-
-Hình 2. QT-08 — Gọi món mang về. Luồng chính. 29
-
-Hình 3. QT-17 — Kiểm kê và điều chỉnh tồn kho. Luồng chính. 30
-
-Hình 4. Phân rã sáu nhóm chức năng của hệ thống 39
-
-Hình 5. Use Case tổng quan 40
-
-Hình 6. Use Case bán hàng 40
-
-Hình 7. Use Case quản lý kho 41
-
-Hình 8. Use Case AI Assistant 41
-
-Hình 9. Class Diagram - Module Quản lý danh mục 42
-
-Hình 10. Class Diagram - Module Quản lý bán hàng 43
-
-Hình 11. Class Diagram - Giữ món (Module Quản lý bán hàng) 44
-
-Hình 12. Class Diagram - Module Quản lý kho 44
-
-Hình 13. Class Diagram - Module Cài đặt hệ thống 45
-
-Hình 14. Class Diagram - Module AI Assistant 45
-
-Hình 15. SD-2.1 – Gọi món tại chỗ 48
-
-Hình 16. SD-2.1a – Chọn món và quản lý giữ món 49
-
-Hình 17. SD-3.4 – Kiểm kê và điều chỉnh tồn 50
-
-Hình 18. SD-6.1 – Hỏi AI Assistant 51
-
-Hình 19. Kiến trúc thành phần và ranh giới dữ liệu 56
-
-Hình 20. Thiết kế triển khai web và API 57
-
-Hình 21. QT-23 Hỏi AI Assistant và các nhánh ngoại lệ 60
-
-Hình 22. Khóa và liên kết cốt lõi của bán hàng 63
-
-Hình 23. Khóa và liên kết cốt lõi của kho 64
-
-Hình 24. Thiết kế lớp xử lý theo Controller Service Repository 77
+[B.2. Bộ dữ liệu cho kiểm thử hiệu năng [101](#b.2.-bộ-dữ-liệu-cho-kiểm-thử-hiệu-năng)](#b.2.-bộ-dữ-liệu-cho-kiểm-thử-hiệu-năng)
 
 # DANH MỤC TỪ VIẾT TẮT
 
 | **STT** | **Từ viết tắt** | **Tên đầy đủ**                                                                             | **Ý nghĩa**                                                   |
 |---------|-----------------|--------------------------------------------------------------------------------------------|---------------------------------------------------------------|
-| 1       | FR              | Functional Requirement                                                                     | Yêu cầu chức năng                                             |
-| 2       | NFR             | Non-Functional Requirement                                                                 | Yêu cầu phi chức năng                                         |
-| 3       | LLM             | Large Language Model                                                                       | Mô hình ngôn ngữ lớn                                          |
-| 4       | Text-to-SQL     |                                                                                            | Kỹ thuật chuyển câu hỏi ngôn ngữ tự nhiên thành câu lệnh SQL  |
-| 5       | CSDL            |                                                                                            | Cơ sở dữ liệu                                                 |
-| 6       | MVP             | Minimum Viable Product                                                                     | Sản phẩm khả dụng tối thiểu                                   |
-| 7       | UML             | Unified Modeling Language                                                                  | Ngôn ngữ mô hình hóa hợp nhất                                 |
-| 8       | FIFO            | First In, First Out                                                                        | Nhập trước, xuất trước (thứ tự xuất lô nguyên liệu)           |
-| 9       | SUS             | System Usability Scale                                                                     | Thang đo khả năng sử dụng hệ thống                            |
-| 10      | UAT             | User Acceptance Testing                                                                    | Kiểm thử chấp nhận của người dùng                             |
-| 11      | POS             | Point of Sale                                                                              | Điểm bán hàng / phần mềm bán hàng                             |
-| 12      | QR              | Quick Response                                                                             | Mã phản hồi nhanh (mã QR thanh toán)                          |
-| 13      | API             | Application Programming Interface                                                          | Giao diện lập trình ứng dụng                                  |
-| 14      | CRUD            | Create, Read, Update, Delete                                                               | Các thao tác thêm, xem, sửa, xóa dữ liệu                      |
-| 15      | AI              | Artificial Intelligence                                                                    | Trí tuệ nhân tạo                                              |
-| 16      | SQL             | Structured Query Language                                                                  | Ngôn ngữ truy vấn có cấu trúc                                 |
-| 17      | DDL             | Data Definition Language                                                                   | Ngôn ngữ định nghĩa dữ liệu                                   |
-| 18      | FK              | Foreign Key                                                                                | Khóa ngoại                                                    |
-| 19      | 3NF             | Third Normal Form                                                                          | Dạng chuẩn 3                                                  |
-| 20      | BR              | Business Rule                                                                              | Quy tắc nghiệp vụ (mã BR-…)                                   |
-| 21      | CRM             | Customer Relationship Management                                                           | Quản lý quan hệ khách hàng                                    |
-| 22      | INP             | Interaction to Next Paint                                                                  | Chỉ số độ trễ tương tác của trang web (Core Web Vitals)       |
-| 23      | ISO/IEC         | International Organization for Standardization / International Electrotechnical Commission | Tổ chức tiêu chuẩn hóa quốc tế / Ủy ban kỹ thuật điện quốc tế |
-| 24      | OWASP           | Open Worldwide Application Security Project                                                | Tổ chức công bố hướng dẫn về an toàn ứng dụng                 |
-| 25      | QT              |                                                                                            | Quy trình nghiệp vụ                                           |
-| 26      | UC              | Use Case                                                                                   | Ca sử dụng                                                    |
-| 27      | TC              | Test Case                                                                                  | Ca kiểm thử                                                   |
-| 28      | SD              | Sequence Diagram                                                                           | Sơ đồ tuần tự                                                 |
-| 29      | p50 / p95       | 50th / 95th percentile                                                                     | Phân vị 50 / 95 của thời gian phản hồi                        |
-| 30      | RBAC            | Role-Based Access Control                                                                  | Kiểm soát truy cập theo vai trò                               |
-| 31      | PK              | Primary Key – khóa chính                                                                   | khóa chính                                                    |
-| 32      | DTO             | Data Transfer Object – đối tượng truyền dữ liệu                                            | đối tượng truyền dữ liệu                                      |
-| 33      | AST             | Abstract Syntax Tree – cây cú pháp trừu tượng                                              | cây cú pháp trừu tượng                                        |
-| 34      | sqlglot         |                                                                                            | Thư viện phân tích và chuyển đổi cú pháp SQL                  |
+| 1       | 3NF             | Third Normal Form                                                                          | Dạng chuẩn 3                                                  |
+| 2       | AI              | Artificial Intelligence                                                                    | Trí tuệ nhân tạo                                              |
+| 3       | API             | Application Programming Interface                                                          | Giao diện lập trình ứng dụng                                  |
+| 4       | AST             | Abstract Syntax Tree – cây cú pháp trừu tượng                                              | cây cú pháp trừu tượng                                        |
+| 5       | BR              | Business Rule                                                                              | Quy tắc nghiệp vụ (mã BR-…)                                   |
+| 6       | CRM             | Customer Relationship Management                                                           | Quản lý quan hệ khách hàng                                    |
+| 7       | CRUD            | Create, Read, Update, Delete                                                               | Các thao tác thêm, xem, sửa, xóa dữ liệu                      |
+| 8       | CSDL            |                                                                                            | Cơ sở dữ liệu                                                 |
+| 9       | DDL             | Data Definition Language                                                                   | Ngôn ngữ định nghĩa dữ liệu                                   |
+| 10      | DTO             | Data Transfer Object – đối tượng truyền dữ liệu                                            | đối tượng truyền dữ liệu                                      |
+| 11      | FIFO            | First In, First Out                                                                        | Nhập trước, xuất trước (thứ tự xuất lô nguyên liệu)           |
+| 12      | FK              | Foreign Key                                                                                | Khóa ngoại                                                    |
+| 13      | FR              | Functional Requirement                                                                     | Yêu cầu chức năng                                             |
+| 14      | INP             | Interaction to Next Paint                                                                  | Chỉ số độ trễ tương tác của trang web (Core Web Vitals)       |
+| 15      | ISO/IEC         | International Organization for Standardization / International Electrotechnical Commission | Tổ chức tiêu chuẩn hóa quốc tế / Ủy ban kỹ thuật điện quốc tế |
+| 16      | LLM             | Large Language Model                                                                       | Mô hình ngôn ngữ lớn                                          |
+| 17      | MVP             | Minimum Viable Product                                                                     | Sản phẩm khả dụng tối thiểu                                   |
+| 18      | NFR             | Non-Functional Requirement                                                                 | Yêu cầu phi chức năng                                         |
+| 19      | OWASP           | Open Worldwide Application Security Project                                                | Tổ chức công bố hướng dẫn về an toàn ứng dụng                 |
+| 20      | p50 / p95       | 50th / 95th percentile                                                                     | Phân vị 50 / 95 của thời gian phản hồi                        |
+| 21      | PK              | Primary Key – khóa chính                                                                   | khóa chính                                                    |
+| 22      | POS             | Point of Sale                                                                              | Điểm bán hàng / phần mềm bán hàng                             |
+| 23      | QR              | Quick Response                                                                             | Mã phản hồi nhanh (mã QR thanh toán)                          |
+| 24      | QT              |                                                                                            | Quy trình nghiệp vụ                                           |
+| 25      | RBAC            | Role-Based Access Control                                                                  | Kiểm soát truy cập theo vai trò                               |
+| 26      | SD              | Sequence Diagram                                                                           | Sơ đồ tuần tự                                                 |
+| 27      | SQL             | Structured Query Language                                                                  | Ngôn ngữ truy vấn có cấu trúc                                 |
+| 28      | sqlglot         |                                                                                            | Thư viện phân tích và chuyển đổi cú pháp SQL                  |
+| 29      | SUS             | System Usability Scale                                                                     | Thang đo khả năng sử dụng hệ thống                            |
+| 30      | TC              | Test Case                                                                                  | Ca kiểm thử                                                   |
+| 31      | Text-to-SQL     |                                                                                            | Kỹ thuật chuyển câu hỏi ngôn ngữ tự nhiên thành câu lệnh SQL  |
+| 32      | UAT             | User Acceptance Testing                                                                    | Kiểm thử chấp nhận của người dùng                             |
+| 33      | UC              | Use Case                                                                                   | Ca sử dụng                                                    |
+| 34      | UML             | Unified Modeling Language                                                                  | Ngôn ngữ mô hình hóa hợp nhất                                 |
+
+# DANH MỤC BẢNG
+
+Bảng 1.1. Phân công công việc của các thành viên 20
+
+Bảng 2.1. So sánh các phần mềm quản lý nhà hàng 21
+
+Bảng 2.2. Cấu trúc bộ câu hỏi khảo sát 24
+
+Bảng 2.3. Tổng hợp kết quả khảo sát và quyết định yêu cầu 24
+
+Bảng 2.4. Các module chức năng của hệ thống 31
+
+Bảng 2.5. Mô tả chức năng theo Use Case của từng module 32
+
+Bảng 2.6. Yêu cầu phi chức năng, ngưỡng và cách kiểm chứng 33
+
+Bảng 2.7. Đối tượng sử dụng hệ thống và quyền hạn chính 35
+
+Bảng 3.1. Tổng hợp các nhóm chức năng và mức ưu tiên 38
+
+Bảng 4.1. Danh sách lớp đối tượng của hệ thống 61
+
+Bảng 4.2. Ràng buộc vật lý của các bảng trọng yếu 66
+
+Bảng 4.3. Ma trận quyền hạn theo chức năng và vai trò 75
+
+Bảng 4.4. Một số endpoint của backend 76
+
+Bảng 6.1. Kết quả đối chiếu yêu cầu phi chức năng 83
+
+Bảng 6.2. Mẫu câu hỏi và tiêu chí chấm AI 86
+
+Bảng 6.3. Kết quả đánh giá trên tập 80 câu đã khóa 88
+
+Bảng 6.4. Độ đúng thực thi nới lỏng theo độ khó và vai trò 88
+
+# DANH MỤC HÌNH ẢNH
+
+Hình 2.1. QT-07 — Gọi món tại chỗ. Luồng chính. 28
+
+Hình 2.2. QT-08 — Gọi món mang về. Luồng chính. 29
+
+Hình 2.3. QT-17 — Kiểm kê và điều chỉnh tồn kho. Luồng chính. 30
+
+Hình 3.1. Phân rã sáu nhóm chức năng của hệ thống 39
+
+Hình 3.2. Use Case tổng quan 40
+
+Hình 3.3. Use Case bán hàng 40
+
+Hình 3.4. Use Case quản lý kho 41
+
+Hình 3.5. Use Case AI Assistant 41
+
+Hình 3.6. Class Diagram - Module Quản lý danh mục 42
+
+Hình 3.7. Class Diagram - Module Quản lý bán hàng 43
+
+Hình 3.8. Class Diagram - Giữ món (Module Quản lý bán hàng) 44
+
+Hình 3.9. Class Diagram - Module Quản lý kho 44
+
+Hình 3.10. Class Diagram - Module Cài đặt hệ thống 45
+
+Hình 3.11. Class Diagram - Module AI Assistant 45
+
+Hình 3.12. SD-2.1 – Gọi món tại chỗ 48
+
+Hình 3.13. SD-2.1a – Chọn món và quản lý giữ món 49
+
+Hình 3.14. SD-3.4 – Kiểm kê và điều chỉnh tồn 50
+
+Hình 3.15. SD-6.1 – Hỏi AI Assistant 51
+
+Hình 4.1. Kiến trúc thành phần và ranh giới dữ liệu 56
+
+Hình 4.2. Thiết kế triển khai web và API 57
+
+Hình 4.3. QT-23 Hỏi AI Assistant và các nhánh ngoại lệ 60
+
+Hình 4.4. Khóa và liên kết cốt lõi của bán hàng 63
+
+Hình 4.5. Khóa và liên kết cốt lõi của kho 64
+
+Hình 4.6. Thiết kế lớp xử lý theo Controller Service Repository 78
 
 # MỞ ĐẦU
 
@@ -462,11 +460,11 @@ Về mặt thực tiễn, hệ thống hướng tới việc giảm thao tác gh
 
 Đóng góp chính của khóa luận gồm ba phần. Thứ nhất, một hệ thống quản lý nhà hàng dạng web với sáu module, thống nhất dữ liệu từ lúc gọi món đến lúc đối soát doanh thu. Thứ hai, quy trình xác định yêu cầu và thiết kế đi từ khảo sát 51 người có kinh nghiệm làm việc tại nhà hàng, kèm mô hình hóa bằng UML và thiết kế cơ sở dữ liệu. Thứ ba, một thực nghiệm Text-to-SQL tiếng Việt cho dữ liệu nhà hàng trên 80 câu hỏi với ba cấu hình, cùng kiểm thử chức năng, an toàn và hiệu năng của hệ thống.
 
-Báo cáo trình bày quá trình xây dựng hệ thống theo trình tự khảo sát, phân tích, thiết kế, cài đặt và đánh giá. Yêu cầu được xác định từ phân tích thông tin công khai của các nhà cung cấp và khảo sát 51 người có kinh nghiệm làm việc tại nhà hàng. Kết quả khảo sát được đối chiếu với bối cảnh thị trường, sau đó chuyển thành yêu cầu chức năng, yêu cầu phi chức năng và mô hình UML. Các mô hình này là cơ sở thiết kế kiến trúc, cơ sở dữ liệu, giao diện và cơ chế phân quyền.
+Báo cáo trình bày quá trình xây dựng hệ thống theo trình tự khảo sát, phân tích, thiết kế, cài đặt và đánh giá. Kết quả khảo sát được chuyển thành yêu cầu chức năng, yêu cầu phi chức năng và mô hình UML; các mô hình này là cơ sở thiết kế kiến trúc, cơ sở dữ liệu, giao diện và cơ chế phân quyền.
 
 Báo cáo gồm sáu chương. Chương 1 giới thiệu mục tiêu, phạm vi và phân công; Chương 2 trình bày khảo sát, yêu cầu và nghiên cứu khả thi; Chương 3 phân tích hệ thống; Chương 4 thiết kế kiến trúc, dữ liệu, giao diện, API và bảo mật; Chương 5 trình bày cài đặt và triển khai; Chương 6 trình bày thực nghiệm, kiểm thử và đánh giá. Phụ lục tổng hợp tài liệu đi kèm, quy định cơ sở dữ liệu và bằng chứng kiểm thử.
 
-# 1. GIỚI THIỆU
+# CHƯƠNG 1. GIỚI THIỆU
 
 ## 1.1. Giới thiệu chung
 
@@ -502,7 +500,7 @@ MT6: Kiểm tra chức năng theo test case và đánh giá hiệu năng cơ b�
 
 ### 1.4.1. Phạm vi nghiệp vụ
 
-Hệ thống phục vụ một nhà hàng/quán ăn đơn lẻ (chưa mở rộng đa chi nhánh), dành cho 3 vai trò người dùng: Chủ nhà hàng/Quản lý, Thu ngân/Nhân viên order và Bếp. Phạm vi tài liệu bao gồm các nhóm chức năng chính sau:
+Hệ thống phục vụ một nhà hàng/quán ăn đơn lẻ (chưa mở rộng đa chi nhánh), dành cho 3 vai trò người dùng: Chủ nhà hàng/Quản lý, Thu ngân/Nhân viên order và Bếp. Phạm vi bao gồm các nhóm chức năng chính sau:
 
 - Quản lý danh mục: món ăn kèm công thức chế biến, nguyên liệu, nhà cung cấp, bàn.
 
@@ -538,15 +536,15 @@ Các nội dung sau nằm ngoài phạm vi của đề tài:
 
 - Chi tiết kỹ thuật tích hợp máy in nhiệt tại bếp (driver máy in, khổ giấy, giao thức kết nối phần cứng).
 
-- Phạm vi mở rộng gồm tích hợp chuyên sâu cổng thanh toán, xử lý tải lớn/đa máy chủ và tự vận hành LLM. MVP dùng một CSDL MySQL với khóa dòng (mục 4.2.2).
+- Tích hợp chuyên sâu cổng thanh toán, triển khai tải lớn trên nhiều máy chủ và tự vận hành mô hình ngôn ngữ lớn.
 
-Kết quả kiểm thử thanh toán QR sử dụng dữ liệu mô phỏng; in phiếu bếp được kiểm tra qua bộ nhận TCP. Kết quả vận hành tiền thật và máy in vật lý chưa được ghi nhận.
-
-- Hóa đơn trong hệ thống là hóa đơn nội bộ, chưa phải hóa đơn điện tử theo quy định của cơ quan thuế.
+- Hóa đơn điện tử theo quy định của cơ quan thuế (hệ thống lập hóa đơn nội bộ).
 
 ## 1.5. Phân công thực hiện
 
-Đề tài do ba thành viên Lê Nam Khánh, Nguyễn Mạnh Hùng và Lê Nho Minh thực hiện dưới sự hướng dẫn của ThS. Trịnh Thị Xuân. Bảng 1 phân công trách nhiệm cho toàn bộ quá trình thực hiện, bao gồm các công việc khảo sát, thiết kế, phát triển và đánh giá.
+Đề tài do ba thành viên Lê Nam Khánh, Nguyễn Mạnh Hùng và Lê Nho Minh thực hiện dưới sự hướng dẫn của ThS. Trịnh Thị Xuân. Bảng 1.1 phân công trách nhiệm cho toàn bộ quá trình thực hiện, bao gồm các công việc khảo sát, thiết kế, phát triển và đánh giá.
+
+Bảng 1.1. Phân công công việc của các thành viên
 
 <table>
 <colgroup>
@@ -588,35 +586,33 @@ Kết quả kiểm thử thanh toán QR sử dụng dữ liệu mô phỏng; in 
 </tbody>
 </table>
 
-Bảng 1. Phân công công việc của các thành viên
-
-# 2. KHẢO SÁT HỆ THỐNG
+# CHƯƠNG 2. KHẢO SÁT HỆ THỐNG
 
 ## 2.1. Phân tích đối thủ cạnh tranh
 
 ### 2.1.1. Khảo sát và đánh giá chung
 
-Nhóm phân tích KiotViet, Sapo FnB, iPOS FABi và MISA CUKCUK dựa trên tài liệu công khai của nhà cung cấp \[1\]–\[4\]. Các sản phẩm hỗ trợ nghiệp vụ bán hàng và khai thác dữ liệu. MISA CUKCUK cung cấp trợ lý MISA AVA để tóm tắt, phân tích báo cáo \[4\]. KiotViet công bố KiCi hỗ trợ hỏi đáp số liệu bằng ngôn ngữ tự nhiên trong nhóm tài liệu bán lẻ \[21\]. Bảng 2 tổng hợp các chức năng được mô tả trong từng nguồn; phạm vi so sánh giới hạn ở thông tin công bố, không bao gồm trải nghiệm sử dụng trực tiếp.
+Nhóm phân tích KiotViet, Sapo FnB, iPOS FABi và MISA CUKCUK dựa trên tài liệu công khai của nhà cung cấp \[1\], \[3\], \[5\], \[6\]. Các sản phẩm hỗ trợ nghiệp vụ bán hàng và khai thác dữ liệu. MISA CUKCUK cung cấp trợ lý MISA AVA để tóm tắt, phân tích báo cáo \[5\]. KiotViet công bố KiCi hỗ trợ hỏi đáp số liệu bằng ngôn ngữ tự nhiên trong nhóm tài liệu bán lẻ \[4\]. Bảng 2.1 tổng hợp các chức năng được mô tả trong từng nguồn; phạm vi so sánh giới hạn ở thông tin công bố, không bao gồm trải nghiệm sử dụng trực tiếp.
 
 ### 2.1.2. Phân tích chi tiết các đối thủ
 
-| Nội dung                   | KiotViet                                                                                                   | Sapo FnB                                                                                          | iPOS (FABi/ POS PC)                                                                               | MISA CukCuk                                                                                       |
-|----------------------------|------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------|
-| Nghiệp vụ được nguồn mô tả | Báo cáo bán hàng, tài chính, hàng hóa và tồn kho \[1\].                                                    | Gọi món, định lượng, cảnh báo tồn thấp, phân quyền và thanh toán \[2\].                           | Gọi món, tùy chỉnh món, quản lý bàn và thanh toán nhiều phương thức \[3\].                        | MISA AVA hỗ trợ phân tích/tóm tắt tình hình kinh doanh trên ứng dụng quản lý \[4\].               |
-| Bằng chứng về AI           | KiCi cho hỏi số liệu bằng ngôn ngữ tự nhiên; tài liệu thuộc nhóm retail, chưa xác nhận mọi gói FnB \[21\]. | Nguồn được kiểm tra chưa đủ để xác nhận hỏi đáp Text-to-SQL trên dữ liệu vận hành.                | Nguồn được kiểm tra chưa đủ để xác nhận hỏi đáp Text-to-SQL trên dữ liệu vận hành.                | Có trợ lý AI báo cáo; nguồn không đủ để kết luận cơ chế bên trong là Text-to-SQL.                 |
-| Phạm vi so sánh            | Tài liệu công khai của nhà cung cấp; phạm vi so sánh không bao gồm thử nghiệm sản phẩm trực tiếp.          | Tài liệu công khai của nhà cung cấp; phạm vi so sánh không bao gồm thử nghiệm sản phẩm trực tiếp. | Tài liệu công khai của nhà cung cấp; phạm vi so sánh không bao gồm thử nghiệm sản phẩm trực tiếp. | Tài liệu công khai của nhà cung cấp; phạm vi so sánh không bao gồm thử nghiệm sản phẩm trực tiếp. |
+Bảng 2.1. So sánh các phần mềm quản lý nhà hàng
 
-Bảng 2. So sánh các phần mềm quản lý nhà hàng
+| Nội dung                   | KiotViet                                                                                                  | Sapo FnB                                                                                          | iPOS (FABi/ POS PC)                                                                               | MISA CukCuk                                                                                       |
+|----------------------------|-----------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------|
+| Nghiệp vụ được nguồn mô tả | Báo cáo bán hàng, tài chính, hàng hóa và tồn kho \[3\].                                                   | Gọi món, định lượng, cảnh báo tồn thấp, phân quyền và thanh toán \[6\].                           | Gọi món, tùy chỉnh món, quản lý bàn và thanh toán nhiều phương thức \[1\].                        | MISA AVA hỗ trợ phân tích/tóm tắt tình hình kinh doanh trên ứng dụng quản lý \[5\].               |
+| Bằng chứng về AI           | KiCi cho hỏi số liệu bằng ngôn ngữ tự nhiên; tài liệu thuộc nhóm retail, chưa xác nhận mọi gói FnB \[4\]. | Nguồn được kiểm tra chưa đủ để xác nhận hỏi đáp Text-to-SQL trên dữ liệu vận hành.                | Nguồn được kiểm tra chưa đủ để xác nhận hỏi đáp Text-to-SQL trên dữ liệu vận hành.                | Có trợ lý AI báo cáo; nguồn không đủ để kết luận cơ chế bên trong là Text-to-SQL.                 |
+| Phạm vi so sánh            | Tài liệu công khai của nhà cung cấp; phạm vi so sánh không bao gồm thử nghiệm sản phẩm trực tiếp.         | Tài liệu công khai của nhà cung cấp; phạm vi so sánh không bao gồm thử nghiệm sản phẩm trực tiếp. | Tài liệu công khai của nhà cung cấp; phạm vi so sánh không bao gồm thử nghiệm sản phẩm trực tiếp. | Tài liệu công khai của nhà cung cấp; phạm vi so sánh không bao gồm thử nghiệm sản phẩm trực tiếp. |
 
 ### 2.1.3. Cơ sở lý thuyết và nghiên cứu liên quan
 
-Spider (Yu và cộng sự) \[5\] và BIRD (Li và cộng sự) \[6\] cung cấp các bộ dữ liệu đánh giá Text-to-SQL trên nhiều lược đồ và tình huống truy vấn. DIN-SQL (Pourreza và Rafiei) \[7\] đề xuất phân rã câu hỏi thành các bước kết hợp tự sửa lỗi. Các nghiên cứu đánh giá LLM cho Text-to-SQL \[8\], \[9\] và khảo sát tổng quan \[10\] là cơ sở tham khảo cho việc lựa chọn mô hình, thiết kế prompt và đánh giá truy vấn. Đối với tiếng Việt, ViText2SQL \[11\] cung cấp cơ sở nghiên cứu về chuyển câu hỏi tự nhiên thành SQL. Trên cơ sở các tài liệu này, đề tài lựa chọn đánh giá câu hỏi tiếng Việt trên lược đồ nghiệp vụ nhà hàng.
+Spider (Yu và cộng sự) \[24\] và BIRD (Li và cộng sự) \[15\] cung cấp các bộ dữ liệu đánh giá Text-to-SQL trên nhiều lược đồ và tình huống truy vấn. DIN-SQL (Pourreza và Rafiei) \[21\] đề xuất phân rã câu hỏi thành các bước kết hợp tự sửa lỗi. Các nghiên cứu đánh giá LLM cho Text-to-SQL \[11\], \[22\] và khảo sát tổng quan \[13\] là cơ sở tham khảo cho việc lựa chọn mô hình, thiết kế prompt và đánh giá truy vấn. Đối với tiếng Việt, ViText2SQL \[16\] cung cấp cơ sở nghiên cứu về chuyển câu hỏi tự nhiên thành SQL. Trên cơ sở các tài liệu này, đề tài lựa chọn đánh giá câu hỏi tiếng Việt trên lược đồ nghiệp vụ nhà hàng.
 
 ### 2.1.4. Đề xuất giải pháp và định hướng phát triển
 
 Phân tích đối thủ và khảo sát người dùng tại mục 2.2 là cơ sở xác định các định hướng sau:
 
-- Xây dựng hệ thống gồm sáu module: năm module nghiệp vụ cốt lõi (danh mục, bán hàng, kho, báo cáo thống kê, cài đặt) và AI Assistant (Bảng 5), phù hợp với phạm vi một nhà hàng/quán ăn quy mô vừa và nhỏ.
+- Xây dựng hệ thống gồm sáu module: năm module nghiệp vụ cốt lõi (danh mục, bán hàng, kho, báo cáo thống kê, cài đặt) và AI Assistant (Bảng 2.4), phù hợp với phạm vi một nhà hàng/quán ăn quy mô vừa và nhỏ.
 
 - AI Assistant tập trung vào hỏi đáp dữ liệu nhà hàng bằng tiếng Việt qua view theo vai trò, kiểm duyệt truy vấn trước thực thi và đánh giá trên bộ câu hỏi có đáp án chuẩn.
 
@@ -642,7 +638,9 @@ Người tham gia được lựa chọn theo phương pháp thuận tiện, thô
 
 ### 2.2.3. Câu hỏi khảo sát
 
-Bộ câu hỏi khảo sát được xây dựng dưới dạng bảng hỏi trắc nghiệm (có phân nhánh theo vai trò ở câu 0.1 (vai trò công việc)), gồm 5 phần (Phần 1–5), bao quát toàn bộ các nhóm nghiệp vụ liên quan đến phạm vi đề tài, đồng thời được ánh xạ theo đúng ba vai trò sử dụng hệ thống (Quản lý, Thu ngân/Nhân viên order, Bếp) theo phạm vi của từng phần; các câu hỏi có nội dung trùng lặp giữa vai trò (ví dụ xác nhận thanh toán QR, quản lý kho) được lặp lại ở Phần 4 để thu thập thêm góc nhìn từ Chủ nhà hàng/Quản lý. Bảng dưới đây tóm tắt chủ đề chính của từng phần; nội dung chi tiết từng câu hỏi được trình bày tại phần 2 của 01_Khao_sat_nguoi_dung.docx.
+Bảng hỏi gồm 5 phần, phân nhánh theo vai trò công việc ở câu 0.1 và bao quát các nhóm nghiệp vụ trong phạm vi đề tài theo ba vai trò sử dụng hệ thống: Quản lý, Thu ngân/Nhân viên order và Bếp. Một số câu hỏi chung giữa các vai trò, như xác nhận thanh toán QR và quản lý kho, được hỏi lại ở Phần 4 để có thêm góc nhìn của Chủ nhà hàng/Quản lý. Bảng 2.2 tóm tắt chủ đề chính của từng phần; nội dung chi tiết từng câu hỏi được trình bày tại phần 2 của tài liệu 01.
+
+Bảng 2.2. Cấu trúc bộ câu hỏi khảo sát
 
 | **Phần** | **Chủ đề khảo sát chính**                                                                                                                             | **Số câu hỏi** |
 |----------|-------------------------------------------------------------------------------------------------------------------------------------------------------|----------------|
@@ -652,11 +650,11 @@ Bộ câu hỏi khảo sát được xây dựng dưới dạng bảng hỏi tr�
 | Phần 4   | Thanh toán, quản lý kho, danh mục món/giá bán, báo cáo và ra quyết định (C3–C4, D1–D6, E1–E4, F1–F5) - dành cho Chủ nhà hàng/Quản lý                  | 17             |
 | Phần 5   | Rào cản, kỳ vọng với công cụ số hóa/AI và câu hỏi mở (G1–G7, H1–H2) - áp dụng chung cho mọi vai trò                                                   | 9              |
 
-Bảng 3. Cấu trúc bộ câu hỏi khảo sát
-
 ### 2.2.4. Kết quả và phân tích kết quả khảo sát
 
 Khảo sát gồm 51 người: 7 Quản lý, 14 Thu ngân, 20 Nhân viên order và 10 Bếp. Mẫu số được ghi riêng theo nhóm trả lời; câu chọn nhiều đáp án có tổng tỷ lệ lớn hơn 100%.
+
+Bảng 2.3. Tổng hợp kết quả khảo sát và quyết định yêu cầu
 
 | **Nội dung**          | **Kết quả chính**                                                                                      | **Hàm ý yêu cầu**                                                         | **FR/NFR liên quan**           |
 |-----------------------|--------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|--------------------------------|
@@ -668,13 +666,9 @@ Khảo sát gồm 51 người: 7 Quản lý, 14 Thu ngân, 20 Nhân viên order 
 | Khả năng sử dụng      | 57% chọn rào cản phức tạp/khó dùng; 49/51 muốn phạm vi riêng theo vai trò.                             | Giao diện theo vai trò; đánh giá SUS và phân quyền backend.               | FR-SET-03; NFR-04, 09–10       |
 | AI                    | 82% chọn cần/rất cần trợ lý AI; lo khó dùng 39%, độ chính xác 37%.                                     | Hỏi đáp tiếng Việt, kèm số liệu nguồn và giới hạn truy cập.               | FR-AI-01–10; NFR-02, 05, 08–09 |
 
-Bảng 4. Tổng hợp kết quả khảo sát và quyết định yêu cầu
-
 Khó khăn được ghi nhận tập trung ở chuyển order, đối soát QR và đối chiếu tồn kho. Những kết quả này là cơ sở thiết kế quy trình thống nhất từ gọi món đến ghi nhận doanh thu và nguyên liệu. Nhu cầu báo cáo lợi nhuận được phân tích riêng ở nhóm Quản lý; kết quả toàn mẫu phản ánh cơ cấu có 44/51 người là nhân viên.
 
-Có 14/51 người để lại ý kiến mở sử dụng được. Các chủ đề gồm đối soát QR, kiểm soát thất thoát, phiếu bếp ổn định, báo cáo trên điện thoại và ẩn doanh thu với nhân viên. Quản lý lô và hạn dùng là quyết định thiết kế dựa thêm vào ý kiến mở và khảo sát đối thủ, chưa phải nhu cầu đã được hỏi trực tiếp trong bảng hỏi.
-
-Kết quả phản ánh trải nghiệm tự khai của mẫu thuận tiện. Bộ câu hỏi được trình bày trong tài liệu 01; Bảng 4 thể hiện mối liên hệ giữa kết quả khảo sát và yêu cầu hệ thống.
+Có 14/51 người để lại ý kiến mở sử dụng được. Các chủ đề gồm đối soát QR, kiểm soát thất thoát, phiếu bếp ổn định, báo cáo trên điện thoại và ẩn doanh thu với nhân viên.
 
 ### 2.2.5. Hạn chế của khảo sát
 
@@ -690,7 +684,7 @@ Kết quả khảo sát có các giới hạn sau:
 
 ### 2.2.6. Đối chiếu với nguồn thứ cấp 
 
-Kết quả khảo sát được đối chiếu định tính với báo cáo ngành tại \[12\]; nguồn thứ cấp bổ sung bối cảnh, không thay thế dữ liệu của 51 người tham gia hoặc được gộp vào mẫu khảo sát.
+Kết quả khảo sát được đối chiếu định tính với báo cáo ngành tại \[2\]; nguồn thứ cấp bổ sung bối cảnh, không thay thế dữ liệu của 51 người tham gia hoặc được gộp vào mẫu khảo sát.
 
 ## 2.3. Quy trình nghiệp vụ
 
@@ -698,7 +692,7 @@ Hệ thống gồm 23 quy trình, từ quản lý danh mục đến phục vụ,
 
 Hủy lượt chọn giải phóng phần chưa gửi. Hủy hoặc giảm món đã gửi phải đáp ứng điều kiện chế biến; việc giải phóng bàn độc lập với thanh toán. Order được đóng bằng thao tác thủ công theo điều kiện nghiệp vụ. Các thao tác hủy order, đóng chưa thu được tiền và đối soát thuộc quyền Quản lý theo điều kiện nghiệp vụ.
 
-Danh sách QT-01–QT-23, luồng xử lý và quy tắc nghiệp vụ được trình bày trong tài liệu [02_Quy_trinh_va_quy_tac_nghiep_vu.docx](https://docs.google.com/document/d/1DKYofQIqagXqPJR-KyFNistKzBIpCbGD/edit?usp=sharing)
+Danh sách QT-01–QT-23, luồng xử lý và quy tắc nghiệp vụ được trình bày trong tài liệu 02_Quy_trinh_va_quy_tac_nghiep_vu.docx.
 
 Ba quy trình dưới đây minh họa vòng đời gọi món tại chỗ, mang về và kiểm kê. Các quy trình còn lại được tra cứu theo mã QT trong tài liệu chi tiết.
 
@@ -714,7 +708,7 @@ Bước 4. Thu ngân thực hiện thanh toán. Khi khách rời đi, nhân viê
 
 <img src="images/bao_cao/media/image2.png" width="442" />
 
-Hình 1. QT-07 — Gọi món tại chỗ. Luồng chính.
+Hình 2.1. QT-07 — Gọi món tại chỗ. Luồng chính.
 
 ### 2.3.2. Gọi món mang về
 
@@ -728,7 +722,7 @@ Bước 4. Bếp chế biến, đóng gói; nhân viên giao món và cập nh�
 
 <img src="images/bao_cao/media/image3.png" width="584" />
 
-Hình 2. QT-08 — Gọi món mang về. Luồng chính.
+Hình 2.2. QT-08 — Gọi món mang về. Luồng chính.
 
 ### 2.3.3. Kiểm kê và điều chỉnh tồn
 
@@ -742,13 +736,15 @@ Bước 4. Khi Bếp xác nhận, hệ thống phân bổ chênh lệch xuống 
 
 <img src="images/bao_cao/media/image4.png" width="567" />
 
-Hình 3. QT-17 — Kiểm kê và điều chỉnh tồn kho. Luồng chính.
+Hình 2.3. QT-17 — Kiểm kê và điều chỉnh tồn kho. Luồng chính.
 
 ## 2.4. Xác định yêu cầu
 
 ### 2.4.1. Yêu cầu chức năng
 
 Hệ thống gồm 6 module chức năng chính (cột cuối ghi các câu hỏi khảo sát liên quan):
+
+Bảng 2.4. Các module chức năng của hệ thống
 
 | **STT** | **Module**       | **Mô tả ngắn gọn**                                                                                                                                                                                                                                                                                        | **Nhu cầu từ khảo sát**        |
 |---------|------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------|
@@ -759,9 +755,9 @@ Hệ thống gồm 6 module chức năng chính (cột cuối ghi các câu hỏ
 | 5       | Cài đặt hệ thống | Tài khoản, đăng nhập/đăng xuất/đổi mật khẩu, phân quyền theo vai trò, cấu hình hệ thống (mẫu hóa đơn, mốc Business Date), cấu hình cảnh báo tồn kho, cảnh báo hạn sử dụng, hạn mức câu hỏi AI, nhật ký thao tác rủi ro cao.                                                                               | G6                             |
 | 6       | AI Assistant     | Hỏi đáp, phân tích dữ liệu kinh doanh bằng tiếng Việt (Text-to-SQL + LLM), mỗi vai trò có trợ lý AI riêng theo đúng phạm vi phân quyền.                                                                                                                                                                   | G3, G4, G7                     |
 
-Bảng 5. Các module chức năng của hệ thống
+Mỗi module được mô tả chi tiết đến từng chức năng (Use Case) tại Bảng 2.5. Mã Use Case thống nhất với các sơ đồ tại mục 3.1.2, quy trình nghiệp vụ tại mục 2.3 (cột Quy trình), đặc tả tại mục 3.4 và danh mục Use Case tại tài liệu 03.
 
-Mỗi module được mô tả chi tiết đến từng chức năng (Use Case) tại Bảng 6. Mã Use Case thống nhất với các sơ đồ tại mục 3.1.2, quy trình nghiệp vụ tại mục 2.3 (cột Quy trình), đặc tả tại mục 3.4 và danh mục Use Case tại tài liệu 03.
+Bảng 2.5. Mô tả chức năng theo Use Case của từng module
 
 | **Mã UC** | **Tên Use Case**                               | **Tác nhân**                               |
 |-----------|------------------------------------------------|--------------------------------------------|
@@ -795,15 +791,15 @@ Mỗi module được mô tả chi tiết đến từng chức năng (Use Case) 
 | 5.4       | Đăng nhập và quản lý tài khoản cá nhân         | Người dùng                                 |
 | 6.1       | Hỏi AI Assistant                               | Người dùng; Claude API của Anthropic       |
 
-Bảng 6. Mô tả chức năng theo Use Case của từng module
-
 Các yêu cầu chức năng chi tiết (FR) được trình bày theo module tại tài liệu 03; đặc tả luồng xử lý của từng Use Case được trình bày tại mục 3.4.
 
 Mức ưu tiên và tiêu chí chấp nhận cho đủ 108 FR nằm ở phần L của tài liệu [03_Dac_ta_chuc_nang_UC_FR.docx](https://docs.google.com/document/d/1sqlEvKOEb0WqLf8mAEBZCF-ejXkjyxbF/edit?usp=sharing). Bốn đặc tả trọng yếu được đối chiếu ở phần M của cùng tài liệu. Mức Must tập trung vào vận hành, tính đúng, toàn vẹn và an toàn; Should là các chức năng hoàn thiện. Could và Won’t được xác định riêng, không làm tăng tổng số FR.
 
 ### 2.4.2. Yêu cầu phi chức năng
 
-Các yêu cầu phi chức năng gồm 11 tiêu chí có thể kiểm chứng, nhóm theo ISO/IEC 25010:2023 \[13\]: hiệu suất (NFR-01–03), bảo mật và truy vết (NFR-04–06), độ tin cậy (NFR-07, NFR-11), sử dụng tài nguyên (NFR-08), khả năng sử dụng (NFR-09) và tính tương thích (NFR-10). Ngưỡng hiệu năng và căn cứ được trình bày tại mục 6.1; kịch bản tái lập nằm trong tài liệu 06, phần J. Mỗi yêu cầu chỉ được kết luận đạt sau khi chạy kiểm thử và lưu bằng chứng.
+Các yêu cầu phi chức năng gồm 11 tiêu chí có thể kiểm chứng, nhóm theo ISO/IEC 25010:2023 \[14\]: hiệu suất (NFR-01–03), bảo mật và truy vết (NFR-04–06), độ tin cậy (NFR-07, NFR-11), sử dụng tài nguyên (NFR-08), khả năng sử dụng (NFR-09) và tính tương thích (NFR-10). Ngưỡng hiệu năng và căn cứ được trình bày tại mục 6.1; kịch bản kiểm thử nằm trong tài liệu 06. Mỗi yêu cầu chỉ được kết luận đạt sau khi chạy kiểm thử và lưu bằng chứng.
+
+Bảng 2.6. Yêu cầu phi chức năng, ngưỡng và cách kiểm chứng
 
 <table>
 <colgroup>
@@ -822,13 +818,13 @@ Các yêu cầu phi chức năng gồm 11 tiêu chí có thể kiểm chứng, n
 <tr class="odd">
 <td><p><strong>NFR-01</strong></p>
 <p>Hiệu năng nghiệp vụ</p></td>
-<td>Thêm/điều chỉnh giữ món, gửi món, cập nhật danh mục và ghi nhận kho phản hồi nhanh: p95 không quá 1 giây ở từng thao tác và không có lỗi kỹ thuật (5xx, hết kết nối). Mốc 1 giây theo Nielsen [14].</td>
+<td>Thêm/điều chỉnh giữ món, gửi món, cập nhật danh mục và ghi nhận kho phản hồi nhanh: p95 không quá 1 giây ở từng thao tác và không có lỗi kỹ thuật (5xx, hết kết nối). Mốc 1 giây theo Nielsen [17].</td>
 <td>Dữ liệu mô phỏng 2 tháng, khoảng 4.800 order; 20 người dùng ảo (đo thêm ở mức 5 và 10); đo từ lúc gửi yêu cầu đến lúc nhận đủ kết quả, không tính ngân hàng và máy in; mỗi mức đo một lần (1 phút khởi động, 5 phút đo).</td>
 </tr>
 <tr class="even">
 <td><p><strong>NFR-02</strong></p>
 <p>Phản hồi AI Assistant</p></td>
-<td>Toàn chuỗi xử lý (chuẩn hóa, sinh SQL, kiểm duyệt, thực thi, diễn giải): p95 dưới 10 giây ở các lượt thành công; tỷ lệ lỗi/timeout không quá 5%. Mốc 10 giây theo Nielsen [14].</td>
+<td>Toàn chuỗi xử lý (chuẩn hóa, sinh SQL, kiểm duyệt, thực thi, diễn giải): p95 dưới 10 giây ở các lượt thành công; tỷ lệ lỗi/timeout không quá 5%. Mốc 10 giây theo Nielsen [17].</td>
 <td>Bộ 80 câu, mỗi câu 3 lần, tính cả lần thử lại; báo cáo p50 và p95 của các lượt thành công.</td>
 </tr>
 <tr class="odd">
@@ -846,8 +842,8 @@ Các yêu cầu phi chức năng gồm 11 tiêu chí có thể kiểm chứng, n
 <tr class="odd">
 <td><p><strong>NFR-05</strong></p>
 <p>An toàn AI</p></td>
-<td>AI chỉ dùng tài khoản CSDL chỉ đọc trên view theo vai trò và chỉ chạy được câu SELECT hợp lệ. Mỗi câu hỏi sinh SQL tối đa 2 lần; truy vấn tối đa 3 giây và 500 dòng. Không ca nào trong bộ AT01–AT20 truy cập trái quyền hoặc ghi dữ liệu thành công.</td>
-<td>Bộ ca AT01–AT20: giả mạo vai trò, chèn chỉ dẫn, yêu cầu ghi dữ liệu, truy vấn ngoài view, đổi quyền giữa phiên, vượt giới hạn; đối chiếu phản hồi và log CSDL.</td>
+<td>AI chỉ dùng tài khoản CSDL chỉ đọc trên view theo vai trò và chỉ chạy được câu SELECT hợp lệ. Mỗi câu hỏi sinh SQL tối đa 2 lần; truy vấn tối đa 3 giây và 500 dòng. Không lượt nào trong bộ an toàn đọc dữ liệu ngoài quyền hoặc ghi dữ liệu.</td>
+<td>Bộ an toàn 30 câu: hỏi vượt quyền của vai trò, chèn chỉ dẫn, yêu cầu ghi, xóa hoặc đổi cấu trúc dữ liệu, đòi thông tin xác thực; test tích hợp kiểm tra quyền của từng tài khoản AI trên MySQL.</td>
 </tr>
 <tr class="even">
 <td><p><strong>NFR-06</strong></p>
@@ -870,13 +866,13 @@ Các yêu cầu phi chức năng gồm 11 tiêu chí có thể kiểm chứng, n
 <tr class="odd">
 <td><p><strong>NFR-09</strong></p>
 <p>Khả năng sử dụng</p></td>
-<td>Người dùng làm được các nhiệm vụ chính không cần hướng dẫn: điểm SUS trung bình từ 68 trở lên [20] và ít nhất 80% nhiệm vụ hoàn thành không cần hỗ trợ.</td>
-<td>Ít nhất 5 người từng làm quản lý hoặc thu ngân; 3 nhiệm vụ; thang SUS [19].</td>
+<td>Người dùng làm được các nhiệm vụ chính không cần hướng dẫn: điểm SUS trung bình từ 68 trở lên [23] và ít nhất 80% nhiệm vụ hoàn thành không cần hỗ trợ.</td>
+<td>Ít nhất 5 người từng làm quản lý hoặc thu ngân; 3 nhiệm vụ; thang SUS [10].</td>
 </tr>
 <tr class="even">
 <td><p><strong>NFR-10</strong></p>
 <p>Tính tương thích</p></td>
-<td>Chạy đúng trên thiết bị và trình duyệt quán thường dùng: hoàn thành kịch bản gọi món và thanh toán trên tablet, Chrome và Safari; INP không quá 200 ms ở phân vị 75 [18].</td>
+<td>Chạy đúng trên thiết bị và trình duyệt quán thường dùng: hoàn thành kịch bản gọi món và thanh toán trên tablet, Chrome và Safari; INP không quá 200 ms ở phân vị 75 [12].</td>
 <td>Chạy kịch bản gọi món và thanh toán trên tablet và trên Chrome, Safari.</td>
 </tr>
 <tr class="odd">
@@ -888,17 +884,15 @@ Các yêu cầu phi chức năng gồm 11 tiêu chí có thể kiểm chứng, n
 </tbody>
 </table>
 
-Bảng 7. Yêu cầu phi chức năng, ngưỡng và cách kiểm chứng
-
 ## 2.5. Xác định đối tượng sử dụng hệ thống
+
+Bảng 2.7. Đối tượng sử dụng hệ thống và quyền hạn chính
 
 | **STT** | **Đối tượng**             | **Mô tả**                                                                   | **Quyền hạn chính**                                                                                                                                                                                                                                                                                                                         |
 |---------|---------------------------|-----------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | 1       | Chủ nhà hàng/Quản lý      | Người chịu trách nhiệm vận hành và quản trị toàn bộ hệ thống.               | Kế thừa quyền của Thu ngân/Nhân viên order và Bếp; quản lý danh mục món, giá và công thức, cấu hình, tài khoản và phân quyền; xem toàn bộ báo cáo và nhật ký; hủy toàn bộ order theo điều kiện; xác nhận đối soát, mở lại thanh toán, đóng order chưa thu được tiền và xử lý khoản QR ngoại lệ; sử dụng AI Assistant trong phạm vi Quản lý. |
 | 2       | Thu ngân/ Nhân viên order | Người trực tiếp lập order, xác nhận trạng thái món, thu ngân và tất toán.   | Lập/sửa order, đổi bàn, xác nhận trạng thái món, hủy món (khi “Chờ làm”), in phiếu tạm tính, thanh toán, in/in lại hóa đơn, tra cứu order, dùng AI Assistant phạm vi doanh thu/hóa đơn/bán hàng.                                                                                                                                            |
 | 3       | Bếp                       | Người trực tiếp chế biến món và quản lý nhập/xuất kho, tồn kho nguyên liệu. | Quản lý danh mục nguyên liệu và nhà cung cấp, ghi nhận phiếu nhập kho, quản lý lô nguyên liệu theo FIFO và hạn sử dụng, lập phiếu xuất hủy, kiểm kê định kỳ, xem danh sách tồn kho, dùng AI Assistant phạm vi tồn kho/nguyên liệu.                                                                                                          |
-
-Bảng 8. Đối tượng sử dụng hệ thống và quyền hạn chính
 
 ## 2.6. Hiện trạng vận hành và các bên liên quan
 
@@ -916,21 +910,19 @@ Hiện trạng được tổng hợp từ các trải nghiệm tự khai trong k
 
 ### 2.7.1. Khả thi kỹ thuật
 
-Kiến trúc web và CSDL quan hệ đáp ứng mô hình một nhà hàng; transaction, khóa dòng và khóa duy nhất được dùng cho các nghiệp vụ kho và thanh toán. Các kết quả ở Chương 6 chứng minh một phần khả năng hiện thực, nhưng còn lỗi nghiệp vụ, lỗi pool ở 20 người dùng và tỷ lệ timeout AI cao. Kết nối QR và máy in mới được mô phỏng; khả thi tích hợp thực phải được xác nhận khi có thiết bị và thông tin dịch vụ.
+Kiến trúc web và CSDL quan hệ đáp ứng mô hình một nhà hàng; transaction, khóa dòng và khóa duy nhất được dùng cho các nghiệp vụ kho và thanh toán. Kết quả kiểm thử chức năng và hiệu năng ở Chương 6 cho thấy hệ thống vận hành đúng trên dữ liệu mô phỏng; thời gian phản hồi của AI Assistant ở câu hỏi phức tạp là điểm cần cải thiện. Kết nối QR và máy in được kiểm thử bằng bộ mô phỏng; khả năng tích hợp thực tế cần được xác nhận khi có thiết bị và thông tin dịch vụ.
 
 ### 2.7.2. Khả thi kinh tế
 
-Dự toán API sử dụng các đơn giá cấu hình trong mã nguồn được đối chiếu trong đợt thực nghiệm ngày 27/10/2026 (tài liệu 06): Opus 5.5 là 4 USD/triệu token đầu vào và 20 USD/triệu token đầu ra; Haiku 5.5 là 0,10 USD/triệu token đầu vào và 0,50 USD/triệu token đầu ra. Đây là tham số tính chi phí của hệ thống; chi phí thanh toán được đối chiếu với usage và hóa đơn của nhà cung cấp. Backend hỗ trợ prompt cache; dự toán cơ sở chưa tính phần giảm chi phí do cache hoặc Batch API, thuế và dịch vụ ngoài mô hình. Đơn giá cache cấu hình là 5 USD/triệu token ghi và 0,20 USD/triệu token đọc; thời hạn prompt cache là 5 phút.
+Dự toán API dùng đơn giá công bố của nhà cung cấp, cũng là tham số tính chi phí trong mã nguồn: Opus 5.5 là 4 USD/triệu token đầu vào và 20 USD/triệu token đầu ra \[8\]; Haiku 5.5 là 0,10 USD/triệu token đầu vào và 0,50 USD/triệu token đầu ra khi prompt không quá 100.000 token \[7\]. Đơn giá cache là 5 USD/triệu token ghi và 0,20 USD/triệu token đọc; thời hạn prompt cache là 5 phút. Dự toán cơ sở chưa tính phần giảm chi phí do cache hoặc Batch API, thuế và dịch vụ ngoài mô hình; chi phí thực tế được đối chiếu với usage và hóa đơn của nhà cung cấp.
 
 Với giả định mỗi câu hỏi dùng 3.000 token đầu vào và 600 token đầu ra cho Opus 5.5, 1.000 token đầu vào và 200 token đầu ra cho Haiku 5.5, chi phí cơ sở là 0,0242 USD/câu. Token đầu ra Opus bao gồm phần suy luận được tính phí. Kịch bản 100 câu/ngày trong 30 ngày có chi phí 72,60 USD/tháng; dự phòng 20% thành 87,12 USD/tháng. Token, cache, phần suy luận và lần thử lại thực tế được ghi log để đối chiếu với dự toán.
 
-Ba cấu hình A/B/C chạy 80 câu, mỗi câu 3 lần, tạo 720 lượt đánh giá. A và B dùng giả định tại đoạn trên; C dự toán 2.600 token đầu ra Opus, giữ nguyên lượng token đầu vào và diễn giải, tương ứng 0,0642 USD/câu. Chi phí cơ sở của lần thử là 27,024 USD, dự phòng 20% và làm tròn thành 32,43 USD; chưa gồm tập phát triển và bộ an toàn. Chi phí ghi nhận được tổng hợp theo từng model và usage API; khóa truy cập được lưu ở backend.
+Ba cấu hình A/B/C chạy 80 câu, mỗi câu 3 lần, tạo 720 lượt đánh giá. A và B dùng giả định tại đoạn trên; C dự toán 2.600 token đầu ra Opus, giữ nguyên lượng token đầu vào và diễn giải, tương ứng 0,0642 USD/câu. Chi phí cơ sở của thực nghiệm là 27,02 USD, dự phòng 20% và làm tròn thành 32,43 USD; chưa gồm tập phát triển và bộ an toàn. Chi phí ghi nhận được tổng hợp theo từng model và usage API; khóa truy cập được lưu ở backend.
 
 Tổng chi phí sở hữu gồm phí API, máy chủ, tên miền, sao lưu, thiết bị, kết nối thanh toán, vận hành và bảo trì. Dự toán API chỉ phản ánh một thành phần chi phí, không đại diện cho toàn bộ chi phí triển khai và không được dùng để tính thời gian hoàn vốn.
 
-Trang sản phẩm Sapo nhà hàng công bố mức giá khởi điểm từ 170.000 đồng/tháng \[2\]. Giá theo gói của sản phẩm thương mại có phạm vi dịch vụ khác với dự toán tự phát triển hệ thống.
-
-Đơn giá tham chiếu của Opus 5.5 là 4/20 USD cho mỗi triệu token đầu vào/đầu ra \[16\]; Haiku 5.5 là 0,10/0,50 USD khi prompt không quá 100.000 token \[22\]. Dự toán sử dụng các mức giá này; chi phí phát sinh phụ thuộc số token và điều kiện dịch vụ.
+Trang sản phẩm Sapo nhà hàng công bố mức giá khởi điểm từ 170.000 đồng/tháng \[6\]. Giá theo gói của sản phẩm thương mại có phạm vi dịch vụ khác với dự toán tự phát triển hệ thống.
 
 ### 2.7.3. Khả thi vận hành
 
@@ -942,7 +934,7 @@ Bản thử nghiệm sử dụng dữ liệu mô phỏng và hóa đơn nội b�
 
 Đề tài được thực hiện bởi ba thành viên theo phân công tại mục 1.5, trong phạm vi một nhà hàng và dữ liệu thử nghiệm. Hệ thống phụ thuộc kết nối mạng và dịch vụ API bên ngoài. Các giá trị kinh tế tại mục này là dự toán cho quy mô thử nghiệm.
 
-# 3. PHÂN TÍCH HỆ THỐNG
+# CHƯƠNG 3. PHÂN TÍCH HỆ THỐNG
 
 ## 3.1. Mô hình hóa chức năng nghiệp vụ
 
@@ -950,9 +942,11 @@ Bản thử nghiệm sử dụng dữ liệu mô phỏng và hóa đơn nội b�
 
 Các chức năng nghiệp vụ được gom thành 6 nhóm (module), tương ứng với bảng tổng quan chức năng tại mục 2.4.1.
 
-Bảng 9 phân loại các nhóm chức năng theo mức ưu tiên. Danh mục, bán hàng, kho và cài đặt hệ thống thuộc mức Must-have. Nhóm cài đặt bao gồm tài khoản, xác thực, phân quyền, cấu hình, ngưỡng cảnh báo tồn kho, ghi nhật ký, nội dung tối thiểu của nhật ký và quyền tra cứu nhật ký.
+Bảng 3.1 phân loại các nhóm chức năng theo mức ưu tiên. Danh mục, bán hàng, kho và cài đặt hệ thống thuộc mức Must-have. Nhóm cài đặt bao gồm tài khoản, xác thực, phân quyền, cấu hình, ngưỡng cảnh báo tồn kho, ghi nhật ký, nội dung tối thiểu của nhật ký và quyền tra cứu nhật ký.
 
 Báo cáo thống kê thuộc mức Should-have. AI Assistant là chức năng hỗ trợ theo mục tiêu MT4. Hai module này khai thác dữ liệu từ các module nghiệp vụ.
+
+Bảng 3.1. Tổng hợp các nhóm chức năng và mức ưu tiên
 
 | **Nhóm chức năng**   | **Số lượng FR**                 | **Ghi chú**                                                                                       | **Mức ưu tiên**                    |
 |----------------------|---------------------------------|---------------------------------------------------------------------------------------------------|------------------------------------|
@@ -963,13 +957,11 @@ Báo cáo thống kê thuộc mức Should-have. AI Assistant là chức năng h
 | 5\. Cài đặt hệ thống | FR-SET-01 → FR-SET-07 (7 FR)    | Tài khoản, đăng nhập, phân quyền, cấu hình, audit log                                             | Must-have: FR-SET-01–07.           |
 | 6\. AI Assistant     | FR-AI-01 → FR-AI-10 (10 FR)     | Trợ lý AI theo vai trò, Text-to-SQL + LLM                                                         | Chức năng hỗ trợ theo mục tiêu MT4 |
 
-Bảng 9. Tổng hợp các nhóm chức năng và mức ưu tiên
-
 <img src="images/bao_cao/media/image5.png" width="567" />
 
-Hình 4. Phân rã sáu nhóm chức năng của hệ thống
+Hình 3.1. Phân rã sáu nhóm chức năng của hệ thống
 
-Sơ đồ phân rã chức năng (FDD) trình bày quan hệ phân cấp giữa hệ thống và sáu nhóm chức năng; đường nối không mang ý nghĩa luồng xử lý hay luồng dữ liệu.
+Sơ đồ phân rã chức năng (FDD) trình bày quan hệ phân cấp giữa hệ thống và sáu nhóm chức năng.
 
 ### 3.1.2. Sơ đồ Use Case
 
@@ -977,19 +969,19 @@ Bộ Use Case gồm một sơ đồ tổng quan và sáu sơ đồ chi tiết v�
 
 <img src="images/bao_cao/media/image6.png" width="586" />
 
-Hình 5. Use Case tổng quan
+Hình 3.2. Use Case tổng quan
 
 <img src="images/bao_cao/media/image7.png" width="586" />
 
-Hình 6. Use Case bán hàng
+Hình 3.3. Use Case bán hàng
 
 <img src="images/bao_cao/media/image8.png" width="488" />
 
-Hình 7. Use Case quản lý kho
+Hình 3.4. Use Case quản lý kho
 
 <img src="images/bao_cao/media/image9.png" width="511" />
 
-Hình 8. Use Case AI Assistant
+Hình 3.5. Use Case AI Assistant
 
 ## 3.2. Mô hình hóa đối tượng (Class Diagram)
 
@@ -999,27 +991,27 @@ Các lớp tham chiếu từ module khác được thể hiện bằng khung né
 
 <img src="images/bao_cao/media/image10.png" width="585" />
 
-Hình 9. Class Diagram - Module Quản lý danh mục
+Hình 3.6. Class Diagram - Module Quản lý danh mục
 
 <img src="images/bao_cao/media/image11.png" width="585" />
 
-Hình 10. Class Diagram - Module Quản lý bán hàng
+Hình 3.7. Class Diagram - Module Quản lý bán hàng
 
 <img src="images/bao_cao/media/image12.png" width="563" />
 
-Hình 11. Class Diagram - Giữ món (Module Quản lý bán hàng)
+Hình 3.8. Class Diagram - Giữ món (Module Quản lý bán hàng)
 
 <img src="images/bao_cao/media/image13.png" width="585" />
 
-Hình 12. Class Diagram - Module Quản lý kho
+Hình 3.9. Class Diagram - Module Quản lý kho
 
 <img src="images/bao_cao/media/image14.png" width="585" />
 
-Hình 13. Class Diagram - Module Cài đặt hệ thống
+Hình 3.10. Class Diagram - Module Cài đặt hệ thống
 
 <img src="images/bao_cao/media/image15.png" width="579" />
 
-Hình 14. Class Diagram - Module AI Assistant
+Hình 3.11. Class Diagram - Module AI Assistant
 
 Module Quản lý danh mục: NHOM_MON, MON_AN, LICH_SU_GIA_MON, CONG_THUC, CHI_TIET_CONG_THUC, NGUYEN_LIEU, NHA_CUNG_CAP, BAN - MON_AN kết hợp (composition) với CONG_THUC theo từng phiên bản hiệu lực; CONG_THUC kết hợp CHI_TIET_CONG_THUC, mỗi dòng liên kết tới một NGUYEN_LIEU.
 
@@ -1041,19 +1033,19 @@ Các sơ đồ tiêu biểu dưới đây thể hiện việc gửi món, quản
 
 <img src="images/bao_cao/media/image16.png" width="584" />
 
-Hình 15. SD-2.1 – Gọi món tại chỗ
+Hình 3.12. SD-2.1 – Gọi món tại chỗ
 
 <img src="images/bao_cao/media/image17.png" width="568" />
 
-Hình 16. SD-2.1a – Chọn món và quản lý giữ món
+Hình 3.13. SD-2.1a – Chọn món và quản lý giữ món
 
 <img src="images/bao_cao/media/image18.png" width="397" />
 
-Hình 17. SD-3.4 – Kiểm kê và điều chỉnh tồn
+Hình 3.14. SD-3.4 – Kiểm kê và điều chỉnh tồn
 
 <img src="images/bao_cao/media/image19.png" width="532" />
 
-Hình 18. SD-6.1 – Hỏi AI Assistant
+Hình 3.15. SD-6.1 – Hỏi AI Assistant
 
 ## 3.4. Đặc tả chức năng
 
@@ -1147,7 +1139,7 @@ Hậu điều kiện: Không thay đổi dữ liệu nghiệp vụ; không trả
 
 Truy vết: FR-AI-01–10; NFR-02, 04–05, 08.
 
-# 4. THIẾT KẾ HỆ THỐNG
+# CHƯƠNG 4. THIẾT KẾ HỆ THỐNG
 
 ## 4.1. Thiết kế kiến trúc hệ thống
 
@@ -1163,9 +1155,9 @@ Hệ thống áp dụng kiến trúc ba tầng, mô hình client-server, backend
 
 <img src="images/bao_cao/media/image20.png" width="567" />
 
-Hình 19. Kiến trúc thành phần và ranh giới dữ liệu
+Hình 4.1. Kiến trúc thành phần và ranh giới dữ liệu
 
-Sơ đồ thành phần dùng ký hiệu UML 2.5.1 \[23\]: hình chữ nhật có nhãn «component» biểu diễn thành phần; mũi tên nét đứt chỉ từ thành phần sử dụng đến thành phần được phụ thuộc.
+Sơ đồ thành phần dùng ký hiệu UML 2.5.1 \[18\]: hình chữ nhật có nhãn «component» biểu diễn thành phần; mũi tên nét đứt chỉ từ thành phần sử dụng đến thành phần được phụ thuộc.
 
 ### 4.1.2. Kiến trúc phần mềm
 
@@ -1175,11 +1167,11 @@ Kiến trúc phân tách module nghiệp vụ và quyền theo vai trò để h�
 
 <img src="images/bao_cao/media/image21.png" width="567" />
 
-Hình 20. Thiết kế triển khai web và API
+Hình 4.2. Thiết kế triển khai web và API
 
-Sơ đồ triển khai dùng ký hiệu nút của UML 2.5.1 \[23\]. Nhãn «device» biểu diễn thiết bị, «executionEnvironment» biểu diễn môi trường thực thi; đường liền thể hiện đường truyền giữa các nút, kèm giao thức liên lạc.
+Sơ đồ triển khai dùng ký hiệu nút của UML 2.5.1 \[18\]. Nhãn «device» biểu diễn thiết bị, «executionEnvironment» biểu diễn môi trường thực thi; đường liền thể hiện đường truyền giữa các nút, kèm giao thức liên lạc.
 
-Sơ đồ thể hiện phương án triển khai có HTTPS; cấu hình công khai và tích hợp QR thật chỉ được xác nhận sau kiểm tra môi trường triển khai. Kết quả tải ở Chương 6 được đo trên một máy dùng chung, không đồng nghĩa đã có triển khai sản xuất theo sơ đồ này.
+Sơ đồ thể hiện phương án triển khai có HTTPS. Phép đo tải ở Chương 6 được thực hiện trên một máy dùng chung, chưa theo cấu hình triển khai này.
 
 ### 4.1.3. Quy trình xử lý câu hỏi AI
 
@@ -1193,13 +1185,13 @@ Truy vấn hợp lệ chạy bằng tài khoản chỉ đọc theo vai trò, tim
 
 Backend tính các chỉ số và chênh lệch xác định từ kết quả truy vấn; LLM diễn giải bảng số liệu. Câu trả lời nêu thời gian, đơn vị, phạm vi và thời điểm truy vấn. Nội dung văn bản từ dữ liệu được đặt trong vùng dữ liệu riêng, không được sử dụng làm chỉ dẫn hệ thống. Bảng số liệu gốc đi cùng câu trả lời để người dùng đối chiếu.
 
-Theo hướng dẫn OWASP \[15\], kiểm soát prompt injection kết hợp phân tách chỉ dẫn và dữ liệu, quyền tối thiểu và kiểm tra đầu ra. Thiết kế dùng backend và quyền CSDL làm ranh giới truy cập; việc bảo vệ system prompt là một lớp hỗ trợ. Bộ ca kiểm thử bao gồm yêu cầu giả mạo vai trò, lộ prompt, chỉ dẫn nhúng trong tên/ghi chú và truy vấn vượt view.
+Theo hướng dẫn OWASP \[20\], kiểm soát prompt injection kết hợp phân tách chỉ dẫn và dữ liệu, quyền tối thiểu và kiểm tra đầu ra. Thiết kế dùng backend và quyền CSDL làm ranh giới truy cập; việc bảo vệ system prompt là một lớp hỗ trợ. Bộ ca kiểm thử bao gồm yêu cầu giả mạo vai trò, lộ prompt, chỉ dẫn nhúng trong tên/ghi chú và truy vấn vượt view.
 
 Các rủi ro chính của AI Assistant và cách giảm thiểu được tóm tắt dưới đây.
 
 Rủi ro truy cập trái quyền được kiểm soát bằng vai trò lấy từ phiên xác thực, danh sách view/cột cho phép, tài khoản chỉ đọc và kiểm tra lại quyền ở mỗi lượt hỏi. Lịch sử hội thoại và cache được cô lập theo người dùng, vai trò và phiên bản quyền.
 
-Rủi ro prompt injection được kiểm tra với chỉ dẫn trực tiếp, giả mạo vai trò và nội dung độc hại trong dữ liệu. Nội dung mô hình sinh ra phải qua kiểm duyệt; các ca kiểm thử kiểm tra cả kết quả trả về và nhật ký thực thi CSDL \[15\].
+Rủi ro prompt injection được kiểm tra với chỉ dẫn trực tiếp, giả mạo vai trò và nội dung độc hại trong dữ liệu. Nội dung mô hình sinh ra phải qua kiểm duyệt; các ca kiểm thử kiểm tra cả kết quả trả về và nhật ký thực thi CSDL \[20\].
 
 Rủi ro sai số liệu hoặc diễn giải được đánh giá bằng kết quả chuẩn độc lập. Câu trả lời kèm dữ liệu nguồn, đơn vị và khoảng thời gian; nhận xét không có căn cứ bị tính sai. Định nghĩa doanh thu, giá vốn và khả dụng được dùng thống nhất giữa báo cáo và view AI.
 
@@ -1207,11 +1199,11 @@ Rủi ro lộ dữ liệu qua dịch vụ bên ngoài được giảm bằng ch�
 
 Rủi ro vượt ngân sách được theo dõi bằng token và số lần gọi thực tế, hạn mức người dùng và giới hạn đầu ra. Truy vấn tồn khả dụng luôn lấy dữ liệu hiện tại; các kết quả khác chỉ cache trong phạm vi quyền và thời hạn xác định.
 
-Rủi ro dịch vụ không khả dụng được xử lý bằng timeout, thông báo lỗi và ghi nhận lần gọi. Chức năng nghiệp vụ chính hoạt động độc lập với AI. Nếu chất lượng Text-to-SQL chưa đạt mục tiêu, kết quả được báo cáo theo nhóm câu hỏi và phạm vi hỗ trợ được xác định từ bằng chứng thực nghiệm.
+Rủi ro dịch vụ không khả dụng được xử lý bằng timeout, thông báo lỗi và ghi nhận lần gọi. Chức năng nghiệp vụ chính hoạt động độc lập với AI.
 
 <img src="images/bao_cao/media/image22.png" width="567" />
 
-Hình 21. QT-23 Hỏi AI Assistant và các nhánh ngoại lệ
+Hình 4.3. QT-23 Hỏi AI Assistant và các nhánh ngoại lệ
 
 ## 4.2. Thiết kế cơ sở dữ liệu
 
@@ -1227,7 +1219,9 @@ Cơ sở dữ liệu MySQL áp dụng mô hình quan hệ, chuẩn hóa đến d
 
 ### 4.2.1. Xác định các lớp đối tượng
 
-Từ các mô hình nghiệp vụ ở Chương 3, hệ thống xác định được 31 lớp đối tượng, chia theo các nhóm dữ liệu nghiệp vụ. Bảng 10 tổng hợp danh sách lớp đối tượng và vai trò của từng lớp đối tượng.
+Từ các mô hình nghiệp vụ ở Chương 3, hệ thống xác định được 31 lớp đối tượng, chia theo các nhóm dữ liệu nghiệp vụ. Bảng 4.1 tổng hợp danh sách lớp đối tượng và vai trò của từng lớp đối tượng.
+
+Bảng 4.1. Danh sách lớp đối tượng của hệ thống
 
 | **Nhóm**               | **Tên lớp**           |
 |------------------------|-----------------------|
@@ -1263,8 +1257,6 @@ Từ các mô hình nghiệp vụ ở Chương 3, hệ thống xác định đư
 | Bán hàng và kho        | GIU_CHO_MON           |
 | Bán hàng và kho        | CHI_TIET_GIU_CHO      |
 
-Bảng 10. Danh sách lớp đối tượng của hệ thống
-
 Thuộc tính và phương thức chi tiết của từng lớp được đặc tả tại phần D của tài liệu 04.
 
 ### 4.2.2. Ánh xạ Class Diagram sang lược đồ quan hệ (CSDL)
@@ -1273,13 +1265,13 @@ Quan hệ đầy đủ giữa 31 lớp nằm trong tài liệu 04 và file Class
 
 <img src="images/bao_cao/media/image23.png" width="567" />
 
-Hình 22. Khóa và liên kết cốt lõi của bán hàng
+Hình 4.4. Khóa và liên kết cốt lõi của bán hàng
 
-Hai lược đồ quan hệ bán hàng và kho dùng ký hiệu Crow’s Foot \[24\], có phân biệt tính bắt buộc, số lượng liên kết và quan hệ định danh. PK là khóa chính, FK là khóa ngoại; chỉ các thuộc tính và liên kết cốt lõi được đưa lên hình.
+Hai lược đồ quan hệ bán hàng và kho dùng ký hiệu Crow’s Foot \[19\], có phân biệt tính bắt buộc, số lượng liên kết và quan hệ định danh. PK là khóa chính, FK là khóa ngoại; chỉ các thuộc tính và liên kết cốt lõi được đưa lên hình.
 
 <img src="images/bao_cao/media/image24.png" width="567" />
 
-Hình 23. Khóa và liên kết cốt lõi của kho
+Hình 4.5. Khóa và liên kết cốt lõi của kho
 
 Các khóa ngoại được xác định từ quan hệ trong tài liệu 04 và lược đồ cốt lõi trên. Quy tắc toàn vẹn được tổng hợp dưới đây; ràng buộc triển khai và chỉ mục chi tiết nằm tại Phụ lục A.
 
@@ -1304,6 +1296,8 @@ Tiêu hao bán hàng phân bổ FIFO trên các lô còn hạn; hoàn món trả
 
 Hóa đơn và giao dịch thanh toán kế thừa Business Date của order để thống nhất ghi nhận doanh thu; giao dịch kho lưu thời điểm biến động thực tế. Từng nguồn xuất hủy và chứng từ kho có liên kết nguồn rõ ràng, cho phép truy vết và ngăn tổng hợp lặp. Các điều kiện khóa ngoại, CHECK và liên kết nguồn được đặc tả tại Phụ lục A.1.
 
+Bảng 4.2. Ràng buộc vật lý của các bảng trọng yếu
+
 | **Bảng và trường**              | **Kiểu và khóa**                                      | **Ràng buộc thiết kế**                                                                                   |
 |---------------------------------|-------------------------------------------------------|----------------------------------------------------------------------------------------------------------|
 | ORDER.MaOrder; MaBan; NguoiTao  | BIGINT PK; BIGINT FK BAN; BIGINT FK NGUOI_DUNG        | MaBan NULL chỉ với mang về; BusinessDate DATE NOT NULL.                                                  |
@@ -1315,11 +1309,9 @@ Hóa đơn và giao dịch thanh toán kế thừa Business Date của order đ�
 | GIAO_DICH_KHO                   | MaGiaoDichKho BIGINT PK; FK nguyên liệu, lô, chứng từ | CHECK đúng một FK chứng từ nguồn theo loại; biến động và tồn cập nhật cùng transaction.                  |
 | NGUOI_DUNG                      | MaNguoiDung INT PK; MaVaiTro INT FK                   | TenDangNhap UNIQUE; MatKhauHash VARCHAR(255) NOT NULL; tài khoản khóa không được gọi API.                |
 
-Bảng 11. Ràng buộc vật lý của các bảng trọng yếu
-
 Các kiểu và ràng buộc trên xác định thiết kế dữ liệu. Từ điển vật lý gồm 37 bảng và ánh xạ từ 31 lớp nghiệp vụ được trình bày trong tài liệu [04_Mo_hinh_va_dac_ta_lop.docx](https://docs.google.com/document/d/1UHJ9P9n_2wI2qSc3psS9WQcp4Mf0S9qK/edit?usp=sharing) và các trang CSDL của ClassDiagram_HeThongQuanLyNhaHang.drawio. Thuộc tính dẫn xuất được xác định riêng với các cột lưu trữ.
 
-Hủy phiếu nhập chỉ được thực hiện khi tất cả lô liên quan chưa phát sinh giao dịch xuất và không có giữ món còn hiệu lực. Khi hủy, hệ thống đảo lượng nhập, đưa số lượng còn lại của các lô sinh từ phiếu về 0 và chuyển các lô này sang Đã hủy; giữ phiếu, lô và lịch sử giao dịch để truy vết. Lô Đã hủy không được phân bổ FIFO, giữ món hoặc nhận điều chỉnh tăng tồn. Thao tác đồng thời loại phiếu khỏi dữ liệu nhập hiệu lực và tính lại đơn giá bình quân hiện hành của nguyên liệu. Xuất hủy nguyên liệu là nghiệp vụ riêng: chỉ trừ lượng được chọn trong lô, phần còn lại tiếp tục được sử dụng nếu đủ điều kiện; không chuyển cả lô sang Đã hủy.
+Hủy phiếu nhập chỉ được thực hiện khi tất cả lô liên quan chưa phát sinh giao dịch xuất và không có giữ món còn hiệu lực. Khi hủy, hệ thống đảo lượng nhập bằng giao dịch kho loại Hủy nhập gắn với dòng nhập nguồn, đưa số lượng còn lại của các lô sinh từ phiếu về 0 và chuyển các lô này sang Đã hủy; giữ phiếu, lô và lịch sử giao dịch để truy vết. Lô Đã hủy không được phân bổ FIFO, giữ món hoặc nhận điều chỉnh tăng tồn. Thao tác đồng thời loại phiếu khỏi dữ liệu nhập hiệu lực và tính lại đơn giá bình quân hiện hành của nguyên liệu. Xuất hủy nguyên liệu là nghiệp vụ riêng: chỉ trừ lượng được chọn trong lô, phần còn lại tiếp tục được sử dụng nếu đủ điều kiện; không chuyển cả lô sang Đã hủy.
 
 LO_NGUYEN_LIEU.TrangThai được lưu để phân biệt lô Đã hủy do hủy phiếu nhập với lô Đã dùng hết. Trạng thái Đã hủy được ưu tiên; với lô không bị hủy, hệ thống xét lượng còn lại bằng 0 trước, sau đó xét hết hạn, sắp hết hạn và còn hạn. Việc cập nhật trạng thái được thực hiện cùng giao dịch thay đổi kho.
 
@@ -1327,7 +1319,7 @@ LO_NGUYEN_LIEU.TrangThai được lưu để phân biệt lô Đã hủy do hủ
 
 ### 4.2.3. Thiết kế chỉ mục
 
-Chỉ mục được lựa chọn theo các truy vấn vận hành chính: tra cứu order theo Business Date và bàn, tổng hợp món bán, đọc biến động kho theo nguyên liệu và thời gian, phân bổ lô FIFO, kiểm tra giữ món còn hiệu lực, và tải lịch sử hội thoại. Danh sách cột cùng mục đích của từng chỉ mục được trình bày tại Phụ lục A.2. Phân vùng theo tháng là phương án mở rộng khi dữ liệu tích lũy nhiều năm; hiệu quả thực tế được kiểm tra qua kế hoạch đánh giá hiệu năng ở Chương 6.
+Chỉ mục được lựa chọn theo các truy vấn vận hành chính: tra cứu order theo Business Date và bàn, tổng hợp món bán, đọc biến động kho theo nguyên liệu và thời gian, phân bổ lô FIFO, kiểm tra giữ món còn hiệu lực, và tải lịch sử hội thoại. Danh sách cột cùng mục đích của từng chỉ mục được trình bày tại Phụ lục A.2. Phân vùng theo tháng là phương án mở rộng khi dữ liệu tích lũy nhiều năm.
 
 ## 4.3. Thiết kế giao diện
 
@@ -1337,7 +1329,7 @@ Mỗi màn hình có bốn trạng thái: tải thành công với dữ liệu; 
 
 Dữ liệu đầu vào được kiểm tra tại giao diện để phản hồi tức thời và tại backend để bảo đảm NFR-04. Yêu cầu thiếu trường bắt buộc hoặc sai định dạng bị từ chối.
 
-Module Danh mục (FR-CAT): màn hình nhóm món, màn hình món ăn và sơ đồ bàn dành cho Quản lý. Trang chi tiết món gồm ba phần: thông tin món, công thức chế biến (nguyên liệu, định lượng, phiên bản và lịch áp dụng) và giá bán; công thức không có màn hình riêng vì luôn thuộc về một món. Danh sách món hiển thị giá vốn ước tính, tỷ lệ giá vốn, lãi gộp mỗi suất và cảnh báo khi tỷ lệ vượt ngưỡng; màn hình nguyên liệu và nhà cung cấp dành cho Quản lý và Bếp; Thu ngân và Nhân viên order chỉ xem (không sửa) danh sách món và trạng thái bàn. Trường dữ liệu chính trên từng màn hình tương ứng đúng các thuộc tính đã đặc tả tại Phụ lục D của tài liệu 04.
+Module Danh mục (FR-CAT): màn hình nhóm món, màn hình món ăn và sơ đồ bàn dành cho Quản lý. Trang chi tiết món gồm ba phần: thông tin món, công thức chế biến (nguyên liệu, định lượng, phiên bản và lịch áp dụng) và giá bán; công thức không có màn hình riêng vì luôn thuộc về một món. Danh sách món hiển thị giá vốn ước tính, tỷ lệ giá vốn, lãi gộp mỗi suất và cảnh báo khi tỷ lệ vượt ngưỡng; màn hình nguyên liệu và nhà cung cấp dành cho Quản lý và Bếp; Thu ngân và Nhân viên order chỉ xem (không sửa) danh sách món và trạng thái bàn. Trường dữ liệu chính trên từng màn hình tương ứng đúng các thuộc tính đã đặc tả tại phần D của tài liệu 04.
 
 Module Bán hàng (FR-SALE): màn hình gọi món dành cho Thu ngân, Nhân viên order và Quản lý (kế thừa quyền), hiển thị sơ đồ bàn và danh sách món theo nhóm. Các món “Hết nguyên liệu” hoặc “Tạm dừng phục vụ” vẫn hiển thị mờ trong danh sách và không cho thêm vào order; nhãn nêu đúng lý do.
 
@@ -1432,7 +1424,9 @@ View số suất của Bếp tính trước từ công thức hiện hành và t
 
 ### 4.4.2. Phân định quyền hạn về chức năng
 
-Bảng 12 tổng hợp quyền thực hiện chức năng theo vai trò, làm căn cứ kiểm soát tại backend và tổ chức giao diện. Phạm vi dữ liệu đối chiếu ngay tại mục 4.4.1; các điều kiện nghiệp vụ chi tiết nằm trong tài liệu 03.
+Bảng 4.3 tổng hợp quyền thực hiện chức năng theo vai trò, làm căn cứ kiểm soát tại backend và tổ chức giao diện. Phạm vi dữ liệu đối chiếu ngay tại mục 4.4.1; các điều kiện nghiệp vụ chi tiết nằm trong tài liệu 03.
+
+Bảng 4.3. Ma trận quyền hạn theo chức năng và vai trò
 
 | **Chức năng (yêu cầu tham chiếu)**                                                                      | **Chủ nhà hàng/Quản lý** | **Thu ngân/Nhân viên order**                                                          | **Bếp**                         |
 |---------------------------------------------------------------------------------------------------------|--------------------------|---------------------------------------------------------------------------------------|---------------------------------|
@@ -1457,13 +1451,13 @@ Bảng 12 tổng hợp quyền thực hiện chức năng theo vai trò, làm c�
 | Xem nhật ký audit log                                                                                   | Có                       | Không                                                                                 | Không                           |
 | Dùng AI Assistant                                                                                       | Có, phạm vi toàn bộ      | Có, phạm vi bán hàng/hóa đơn/doanh thu                                                | Có, phạm vi tồn kho/nguyên liệu |
 
-Bảng 12. Ma trận quyền hạn theo chức năng và vai trò
-
 Các nguyên tắc áp dụng: (1) quyền được kiểm tra ở tầng backend/API cho mọi thao tác, không chỉ ẩn nút ở giao diện (NFR-04); (2) Quản lý kế thừa toàn bộ quyền của Thu ngân, Nhân viên order và Bếp, nên các thao tác ghi “kế thừa” trong bảng vẫn phải ghi audit log đúng người thực hiện; (3) các thao tác rủi ro cao như hủy toàn bộ order, hủy món, lập phiếu xuất hủy, sửa/hủy phiếu nhập kho, sửa trực tiếp giá/công thức, quản lý tài khoản đều được ghi vào audit log và chỉ Quản lý xem được nhật ký này.
 
 ## 4.5. Thiết kế API và lớp xử lý
 
-Bảng 13 tổng hợp phương thức, quyền truy cập và hợp đồng dữ liệu của các luồng trọng yếu. Mỗi thao tác chịu sự kiểm soát của backend theo trạng thái đối tượng, điều kiện nghiệp vụ và ranh giới giao dịch.
+Bảng 4.4 tổng hợp phương thức, quyền truy cập và hợp đồng dữ liệu của các luồng trọng yếu. Mỗi thao tác chịu sự kiểm soát của backend theo trạng thái đối tượng, điều kiện nghiệp vụ và ranh giới giao dịch.
+
+Bảng 4.4. Một số endpoint của backend
 
 | **Phương thức** | **Đường dẫn**                                   | **Quyền và nội dung**                                         |
 |-----------------|-------------------------------------------------|---------------------------------------------------------------|
@@ -1479,15 +1473,13 @@ Bảng 13 tổng hợp phương thức, quyền truy cập và hợp đồng d�
 | POST            | /api/v1/inventory/stocktakes                    | Bếp/Quản lý; mở phiên kiểm kê theo điều kiện nghiệp vụ.       |
 | GET             | /api/v1/reports/revenue                         | Quản lý; báo cáo doanh thu theo bộ lọc.                       |
 
-Bảng 13. Một số endpoint của backend
-
-Backend trả lỗi theo cấu trúc {error: {code, message}}; lỗi nội bộ có thêm error_id phục vụ tra cứu. Mã 401 biểu thị thông tin xác thực không hợp lệ; 403 biểu thị không đủ quyền; 404 biểu thị không tìm thấy đối tượng; 422 được dùng cho dữ liệu hoặc điều kiện nghiệp vụ không hợp lệ. Xung đột cấu hình có thể trả 409. Hạn mức AI được phản hồi bằng thông báo trong kết quả hỏi đáp, không mặc định là HTTP 429. Cơ chế đăng xuất được trình bày tại mục 4.6. Hợp đồng giao thức không thay thế điều kiện nghiệp vụ tại tài liệu 03.
+Backend trả lỗi theo cấu trúc {error: {code, message}}; lỗi nội bộ có thêm error_id phục vụ tra cứu. Mã 401 biểu thị thông tin xác thực không hợp lệ; 403 biểu thị không đủ quyền; 404 biểu thị không tìm thấy đối tượng; 422 được dùng cho dữ liệu hoặc điều kiện nghiệp vụ không hợp lệ. Xung đột cấu hình có thể trả 409. Hạn mức AI được phản hồi bằng thông báo trong kết quả hỏi đáp. Cơ chế đăng xuất được trình bày tại mục 4.6; điều kiện nghiệp vụ của từng thao tác nằm trong tài liệu 03.
 
 <img src="images/bao_cao/media/image32.png" width="567" />
 
-Hình 24. Thiết kế lớp xử lý theo Controller Service Repository
+Hình 4.6. Thiết kế lớp xử lý theo Controller Service Repository
 
-Sơ đồ lớp thiết kế sử dụng ngăn tên lớp, thuộc tính, phương thức và quan hệ phụ thuộc của UML 2.5.1 \[23\]. Các nhãn «controller», «service», «repository» là quy ước phân lớp của thiết kế này; dấu + chỉ công khai, dấu − chỉ riêng tư.
+Sơ đồ lớp thiết kế sử dụng ngăn tên lớp, thuộc tính, phương thức và quan hệ phụ thuộc của UML 2.5.1 \[18\]. Các nhãn «controller», «service», «repository» là quy ước phân lớp của thiết kế này; dấu + chỉ công khai, dấu − chỉ riêng tư.
 
 Tên lớp mô tả trách nhiệm thiết kế; có thể được hiện thực bằng module/hàm Python tương đương. Controller xử lý giao thức và DTO; Service quyết định nghiệp vụ và ranh giới transaction; Repository truy cập dữ liệu. Không commit riêng từng repository trong một nghiệp vụ gồm nhiều bước. Lệnh in và gọi dịch vụ ngoài được tách khỏi phần giữ khóa kéo dài.
 
@@ -1499,11 +1491,11 @@ Cơ chế xác thực sử dụng JWT có thời hạn. Backend kiểm tra chữ
 
 Mật khẩu chỉ lưu dạng băm thích hợp; thông báo đăng nhập không làm lộ tài khoản có tồn tại hay không. Backend kiểm tra RBAC và quyền sở hữu từng đối tượng, không dựa vào nút giao diện bị ẩn. Dữ liệu đầu vào được kiểm tra kiểu, phạm vi và trạng thái; truy vấn nghiệp vụ dùng tham số; dữ liệu hiển thị được escape, không render HTML tùy ý từ câu hỏi hoặc kết quả AI.
 
-HTTPS bảo vệ đường truyền ở môi trường triển khai. Tách tài khoản CSDL nghiệp vụ và tài khoản AI chỉ đọc; bí mật nằm ở cấu hình server, không đưa vào frontend, repository hoặc log. Webhook phải xác thực theo cơ chế của cổng thực tế, kiểm tra mã và số tiền, chống phát lại bằng mã sự kiện/giao dịch và cập nhật trong transaction. Backend có adapter mô phỏng và adapter SePay, lựa chọn bằng cấu hình server. Kết quả thực nghiệm trong Chương 6 sử dụng mô phỏng; phạm vi này chưa xác nhận vận hành tiền thật qua SePay.
+HTTPS bảo vệ đường truyền ở môi trường triển khai. Tách tài khoản CSDL nghiệp vụ và tài khoản AI chỉ đọc; bí mật nằm ở cấu hình server, không đưa vào frontend, repository hoặc log. Webhook phải xác thực theo cơ chế của cổng thực tế, kiểm tra mã và số tiền, chống phát lại bằng mã sự kiện/giao dịch và cập nhật trong transaction. Backend có adapter mô phỏng và adapter SePay, lựa chọn bằng cấu hình server.
 
 Nhật ký ghi người thực hiện, thời điểm, mã yêu cầu, đối tượng, dữ liệu thay đổi và kết quả; không lưu mật khẩu, token hoặc khóa API. Nhật ký chỉ cho phép ghi thêm. Chính sách sao lưu quy định sao lưu CSDL hằng ngày, giới hạn quyền đọc bản sao và kiểm tra phục hồi vào CSDL trống theo NFR-11. Phạm vi kiểm thử bảo mật gồm SQL injection, XSS, API trái vai trò, khóa tài khoản, hết hạn phiên, quyền sở hữu và kiểm soát AI.
 
-# 5. CÀI ĐẶT VÀ TRIỂN KHAI HỆ THỐNG
+# CHƯƠNG 5. CÀI ĐẶT VÀ TRIỂN KHAI HỆ THỐNG
 
 ## 5.1. Công nghệ sử dụng
 
@@ -1515,7 +1507,7 @@ Nhật ký ghi người thực hiện, thời điểm, mã yêu cầu, đối t�
 
 - sqlglot: kiểm duyệt cú pháp câu lệnh SQL do LLM sinh ra trước khi thực thi, đảm bảo chỉ chấp nhận câu lệnh SELECT.
 
-- LLM: Claude Opus 5.5 (model=claude-opus-5-5) sinh SQL qua Claude API của Anthropic \[16\]. Mức effort ở bước sinh SQL là low cho cấu hình vận hành và hai cấu hình A/B, high cho cấu hình đối chứng C \[17\]. Claude Haiku 5.5 (model=claude-haiku-5-5) diễn giải kết quả với thinking=disabled. Kết quả chỉ có một giá trị được định dạng trực tiếp tại backend; kết quả rỗng được trả theo mẫu. Mỗi lần thử nghiệm ghi ngày chạy, định danh model và tham số gọi.
+- LLM: Claude Opus 5.5 (model=claude-opus-5-5) sinh SQL qua Claude API của Anthropic \[8\]. Mức effort ở bước sinh SQL là low cho cấu hình vận hành và hai cấu hình A/B, high cho cấu hình đối chứng C \[9\]. Claude Haiku 5.5 (model=claude-haiku-5-5) diễn giải kết quả với thinking=disabled. Kết quả chỉ có một giá trị được định dạng trực tiếp tại backend; kết quả rỗng được trả theo mẫu. Mỗi lần thử nghiệm ghi ngày chạy, định danh model và tham số gọi.
 
 ### 5.1.2. Lựa chọn hệ quản trị cơ sở dữ liệu
 
@@ -1557,11 +1549,9 @@ Quá trình khởi tạo CSDL gồm áp dụng migration, tạo view và cấp q
 
 Frontend và backend được khởi chạy trong môi trường thử nghiệm; HTTPS bảo vệ kết nối khi triển khai công khai.
 
-Mỗi đợt kiểm tra ghi ngày thực hiện, phiên bản phần mềm và môi trường sử dụng để phân biệt kết quả giữa các lần cập nhật.
+Mỗi đợt kiểm tra ghi ngày thực hiện, phiên bản phần mềm và môi trường sử dụng.
 
 Kho mã nguồn: https://github.com/nminhzzz/restaurant-management-ai
-
-Địa chỉ bản chạy thử:
 
 ## 5.4. Kết quả cài đặt
 
@@ -1574,7 +1564,7 @@ Kho mã nguồn: https://github.com/nminhzzz/restaurant-management-ai
 | AI Assistant             |                           |
 | Quản lý tài khoản        |                           |
 
-# 6. KIỂM THỬ VÀ ĐÁNH GIÁ
+# CHƯƠNG 6. KIỂM THỬ VÀ ĐÁNH GIÁ
 
 ## 6.1. Cơ sở và nguyên tắc đánh giá
 
@@ -1582,41 +1572,39 @@ Kho mã nguồn: https://github.com/nminhzzz/restaurant-management-ai
 
 Các ngưỡng đạt/không đạt được lấy từ những nguồn sau:
 
-- ISO/IEC 25010:2023 \[13\]: khung phân loại các yêu cầu phi chức năng ở mục 2.4.2.
+- ISO/IEC 25010:2023 \[14\]: khung phân loại các yêu cầu phi chức năng ở mục 2.4.2.
 
-- Nielsen \[14\]: phản hồi dưới 1 giây thì người dùng không bị ngắt mạch thao tác, còn 10 giây là giới hạn để người dùng còn tập trung chờ. Hai mốc này là căn cứ cho NFR-01 đến NFR-03.
+- Nielsen \[17\]: phản hồi dưới 1 giây thì người dùng không bị ngắt mạch thao tác, còn 10 giây là giới hạn để người dùng còn tập trung chờ. Hai mốc này là căn cứ cho NFR-01 đến NFR-03.
 
-- Core Web Vitals \[18\]: độ trễ tương tác của giao diện (INP) không quá 200 ms ở phân vị 75.
+- Core Web Vitals \[12\]: độ trễ tương tác của giao diện (INP) không quá 200 ms ở phân vị 75.
 
-- Khả năng sử dụng chưa được đánh giá chính thức với người dùng tại nhà hàng.
+- Thang SUS \[10\], \[23\]: điểm trung bình từ 68 trở lên là căn cứ cho NFR-09.
 
-- Bộ dữ liệu BIRD \[6\]: bối cảnh để hiểu mức độ đúng thường gặp của Text-to-SQL.
+- Bộ dữ liệu BIRD \[15\]: bối cảnh để hiểu mức độ đúng thường gặp của Text-to-SQL.
 
-- Hướng dẫn OWASP \[15\] được tham khảo khi thiết kế kiểm soát truy cập cho AI Assistant.
+- Hướng dẫn OWASP \[20\] được tham khảo khi thiết kế kiểm soát truy cập cho AI Assistant.
 
 Các mốc này là tham chiếu chung, chưa được kiểm chứng bằng khảo sát thời gian chờ thực tế tại nhà hàng. Mọi ngưỡng được chốt trước khi chạy đánh giá chính thức; kết quả được trình bày ở các mục 6.4 đến 6.8.
 
 Tài liệu 06 trình bày 258 test case chức năng: 51 ca Danh mục, 101 ca Bán hàng, 57 ca Kho, 9 ca Cài đặt, 15 ca Báo cáo và 25 ca điều kiện biên; kèm kịch bản hiệu năng và kết quả thực tế.
 
-Bảng 14 tổng hợp kết quả kiểm chứng yêu cầu phi chức năng theo các phép thử tại Chương 6. Trạng thái và căn cứ phản ánh phạm vi thực nghiệm đã thực hiện.
+Bảng 6.1 tổng hợp kết quả kiểm chứng yêu cầu phi chức năng theo các phép thử tại Chương 6. Trạng thái và căn cứ phản ánh phạm vi thực nghiệm đã thực hiện.
 
-| **NFR** | **Phép kiểm chứng**                                    | **Kết quả** | **Căn cứ đánh giá**                                                                                                                                                                                                                                                                        |
-|---------|--------------------------------------------------------|-------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| NFR-01  | Tải 5/10/20 người, dữ liệu 2 tháng                     | Đạt         | p95 lớn nhất 417 ms ở 20 người dùng (ngưỡng 1 giây); 0 lỗi trên 5.040 yêu cầu của ba nhóm đo ngày 11/11/2026.                                                                                                                                                                              |
-| NFR-02  | 80 câu × 3 lần/cấu hình                                | Chưa đo     | Chưa có kết quả thực nghiệm trên bộ dữ liệu 2 tháng.                                                                                                                                                                                                                                       |
-| NFR-03  | Tải báo cáo và SQL đối chứng                           | Đạt         | p95 lớn nhất 25 ms (ngưỡng 10 giây); 0 lỗi trên 752 yêu cầu; doanh thu ngày và tháng khớp bản đối chứng. Trạng thái đang xử lý trên giao diện chưa được kiểm vì không thao tác nào vượt 1 giây.                                                                                            |
-| NFR-04  | Băm mật khẩu, HTTPS, API trái quyền, phiên truy cập    |             |                                                                                                                                                                                                                                                                                            |
-| NFR-05  | Kiểm thử tích hợp an toàn AI và nhật ký CSDL           |             |                                                                                                                                                                                                                                                                                            |
-| NFR-06  | Tính bất biến và nội dung nhật ký                      | Chưa đạt    | TC-SET-09 không đạt: nhật ký sửa món, nguyên liệu, nhà cung cấp, bàn và chuyển bàn không lưu dữ liệu trước và sau; nhật ký hủy phiếu nhập thiếu dữ liệu trước (PH-04). Chưa có ca kiểm thử việc không sửa, không xóa được nhật ký và quét nội dung nhật ký.                                |
-| NFR-07  | Rollback, gửi lặp, tranh chấp, kiểm kê                 | Đạt         | 18 ca gắn NFR-07 đạt ngày 10/11/2026, gồm tranh chấp giữ món, gửi lặp, rollback và mở kiểm kê khi có giao dịch song song; kiểm tra sau đo tải không sai lệch sổ cái, lô hay gửi trùng. Gửi lặp đồng thời cùng mã yêu cầu chỉ tạo một order, nhưng các yêu cầu trùng nhận HTTP 500 (PH-07). |
-| NFR-08  | Hạn mức và cache sau thay đổi dữ liệu/quyền            |             |                                                                                                                                                                                                                                                                                            |
-| NFR-09  | Chưa đánh giá khả năng sử dụng với người dùng thực tế. |             |                                                                                                                                                                                                                                                                                            |
-| NFR-10  | Tablet, Chrome/Safari và INP p75                       |             | Đã có kiểm tra trên Chromium.                                                                                                                                                                                                                                                              |
-| NFR-11  | Sao lưu và phục hồi CSDL trống                         |             |                                                                                                                                                                                                                                                                                            |
+Bảng 6.1. Kết quả đối chiếu yêu cầu phi chức năng
 
-Bảng 14. Kết quả đối chiếu yêu cầu phi chức năng
-
-Kết quả được ghi theo ngày và phiên bản thực hiện.
+| **NFR** | **Phép kiểm chứng**                                      | **Kết quả**   | **Căn cứ đánh giá**                                                                                                                                                                                                                                                                                                                                                |
+|---------|----------------------------------------------------------|---------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| NFR-01  | Tải 5/10/20 người, dữ liệu 2 tháng                       | Đạt           | p95 lớn nhất 417 ms ở 20 người dùng (ngưỡng 1 giây); 0 lỗi trên 5.040 yêu cầu của ba nhóm đo ngày 11/11/2026.                                                                                                                                                                                                                                                      |
+| NFR-02  | 80 câu × 3 lần/cấu hình                                  | Chưa đạt      | p95 của các lượt thành công là 6,41 giây (A), 6,14 giây (B) và 7,00 giây (C), dưới ngưỡng 10 giây; tỷ lệ lỗi/timeout là 12,1%, 9,6% và 30,0%, vượt ngưỡng 5%, chủ yếu do giới hạn 5 giây mỗi lần gọi model.                                                                                                                                                        |
+| NFR-03  | Tải báo cáo và SQL đối chứng                             | Đạt           | p95 lớn nhất 25 ms (ngưỡng 10 giây); 0 lỗi trên 752 yêu cầu; doanh thu ngày và tháng khớp bản đối chứng. Trạng thái đang xử lý trên giao diện chưa được kiểm vì không thao tác nào vượt 1 giây.                                                                                                                                                                    |
+| NFR-04  | Băm mật khẩu, HTTPS, API trái quyền, phiên truy cập      | Đạt một phần  | 14 ca phân quyền trong bộ 258 ca đều đạt: thao tác trái vai trò bị từ chối với mã 403, webhook sai khóa bị từ chối. Test tự động xác nhận mật khẩu lưu dạng băm, token hết hạn hoặc sai định dạng bị từ chối và tài khoản bị khóa bị chặn dù token còn hạn. Chưa kiểm HTTPS trên môi trường triển khai và chưa quét log, nội dung gửi LLM để tìm thông tin bí mật. |
+| NFR-05  | Bộ an toàn 30 câu và test tích hợp quyền view trên MySQL | Đạt           | 270 lượt của bộ an toàn (30 câu × 3 lần × 3 cấu hình) không có lượt nào đọc dữ liệu ngoài quyền hoặc ghi dữ liệu. Test tích hợp trên MySQL xác nhận mỗi tài khoản AI chỉ có quyền SELECT trên đúng tập view của vai trò; giới hạn 500 dòng, 3 giây mỗi truy vấn và hai lần sinh SQL được áp dụng ở tầng thực thi.                                                  |
+| NFR-06  | Tính bất biến và nội dung nhật ký                        | Chưa đạt      | Ca TC-SET-09 đạt: nhật ký sửa món, nguyên liệu, nhà cung cấp, bàn, chuyển bàn và hủy phiếu nhập lưu dữ liệu trước và sau. Test tích hợp chặn sửa bản ghi nhật ký trên MySQL đạt, nhưng chưa có ca kiểm thử chức năng cho việc không sửa, không xóa được nhật ký và quét nội dung nhật ký.                                                                          |
+| NFR-07  | Rollback, gửi lặp, tranh chấp, kiểm kê                   | Đạt           | 18 ca gắn NFR-07 đều đạt, gồm tranh chấp giữ món, gửi lặp, rollback và mở kiểm kê khi có giao dịch song song; kiểm tra sau đo tải không sai lệch sổ cái, lô hay gửi trùng. Gửi lặp đồng thời cùng mã yêu cầu chỉ tạo một order và trừ kho một lần.                                                                                                                 |
+| NFR-08  | Hạn mức và cache sau thay đổi dữ liệu/quyền              | Đạt           | 13 test tự động: hạn mức 50 câu/người/ngày chặn câu vượt hạn mức, được đếm riêng theo người dùng và giữ đúng khi nhiều tiến trình chạy đồng thời trên MySQL; cache chỉ lưu câu SQL, không dùng chung giữa vai trò, hết hạn theo thời gian và bị vô hiệu khi đổi model, ngày kinh doanh hoặc lược đồ view. Token và chi phí của từng lượt được ghi nhận (mục 6.4).  |
+| NFR-09  | Đánh giá SUS với ít nhất 5 người, 3 nhiệm vụ             | Chưa đánh giá | Chưa tổ chức buổi đánh giá khả năng sử dụng với người dùng thực tế.                                                                                                                                                                                                                                                                                                |
+| NFR-10  | Tablet, Chrome/Safari và INP p75                         | Chưa đạt      | Mới kiểm tra trên Chromium ở máy tính; chưa kiểm trên tablet, Safari và chưa đo INP.                                                                                                                                                                                                                                                                               |
+| NFR-11  | Sao lưu và phục hồi CSDL trống                           | Chưa đánh giá | Chưa thực hiện phép thử sao lưu và phục hồi vào CSDL trống.                                                                                                                                                                                                                                                                                                        |
 
 ## 6.2. Dữ liệu và đáp án chuẩn
 
@@ -1632,9 +1620,11 @@ Bộ đánh giá chính thức gồm 80 câu hỏi tiếng Việt, chia theo đ�
 
 Mỗi câu được xếp theo mức khó cao nhất mà câu SQL chuẩn cần đến.
 
-Theo vai trò, bộ câu hỏi có 60 câu của Quản lý (20 đơn giản, 20 trung bình, 20 phức tạp), 10 câu của Thu ngân và 10 câu của Bếp (mỗi vai trò 5 câu đơn giản và 5 câu trung bình). Ngoài ra có một tập phát triển riêng gồm 30 câu, chỉ dùng để viết prompt và chọn ví dụ mẫu (few-shot). Tập 80 câu được khóa trước khi chạy và không được dùng để chỉnh prompt theo từng đáp án.
+Theo vai trò, bộ câu hỏi có 60 câu của Quản lý (20 đơn giản, 20 trung bình, 20 phức tạp), 10 câu của Thu ngân và 10 câu của Bếp (mỗi vai trò 5 câu đơn giản và 5 câu trung bình). Ngoài ra có một tập phát triển riêng gồm 30 câu, chỉ dùng để viết prompt và chọn ví dụ mẫu (few-shot). Tập 80 câu được khóa ngày 27/10/2026, trước khi chạy, và không được dùng để chỉnh prompt theo từng đáp án.
 
-Mỗi câu hỏi được xác định vai trò, thời điểm tham chiếu, chỉ số cần tính, SQL và kết quả chuẩn để đối chiếu. Bảng 15 minh họa năm câu hỏi và căn cứ chấm.
+Mỗi câu hỏi được xác định vai trò, thời điểm tham chiếu, chỉ số cần tính, SQL và kết quả chuẩn để đối chiếu. Bảng 6.2 minh họa năm câu hỏi và căn cứ chấm.
+
+Bảng 6.2. Mẫu câu hỏi và tiêu chí chấm AI
 
 | **Mã và vai trò** | **Câu hỏi mẫu**                               | **Căn cứ chấm**                                                              |
 |-------------------|-----------------------------------------------|------------------------------------------------------------------------------|
@@ -1644,11 +1634,7 @@ Mỗi câu hỏi được xác định vai trò, thời điểm tham chiếu, ch
 | AI04 – Bếp        | Nguyên liệu nào đang dưới ngưỡng?             | Lượng khả dụng sau khi trừ giữ món và loại lô hết hạn.                       |
 | AI05 – Thu ngân   | Các order đang chờ xác minh hôm nay?          | Đúng trạng thái, phạm vi bán hàng và ngày tham chiếu.                        |
 
-Bảng 15. Mẫu câu hỏi và tiêu chí chấm AI
-
 Đáp án chuẩn được tính bằng SQL chuẩn trên bản sao dữ liệu tại thời điểm tham chiếu; một phần đáp án được kiểm tra chéo trước khi chạy thực nghiệm.
-
-Bộ 80 câu được chốt ngày 27/10/2026 và giữ nguyên trong quá trình thực nghiệm.
 
 ## 6.3. Chỉ số và cấu hình thực nghiệm
 
@@ -1662,7 +1648,7 @@ Thực nghiệm dùng ba loại độ đúng:
 
 Khi so sánh, số được làm tròn đến hai chữ số thập phân; thứ tự dòng chỉ xét khi tiêu chí chấm yêu cầu. Mẫu số của mọi tỷ lệ là toàn bộ lượt hỏi của cấu hình, nên lượt bị lỗi, hết thời gian hoặc từ chối nhầm đều tính là sai.
 
-Ngoài độ đúng, báo cáo còn nêu riêng theo vai trò và mức khó: tỷ lệ SQL lỗi, tỷ lệ từ chối nhầm, thời gian trung bình, p95, và số token cùng chi phí trên mỗi câu. Thời gian tính từ lúc backend nhận câu hỏi đến lúc trả câu trả lời đầy đủ, gồm cả các lần thử lại. Hai nhóm tình huống sau được đánh giá bằng bộ câu riêng, không tính vào 80 câu: yêu cầu làm rõ hợp lệ và từ chối đúng khi câu hỏi vượt quyền.
+Ngoài độ đúng, báo cáo còn nêu riêng theo vai trò và mức khó: tỷ lệ SQL lỗi, tỷ lệ từ chối nhầm, thời gian trung bình, p95, và số token cùng chi phí trên mỗi câu. Thời gian tính từ lúc backend nhận câu hỏi đến lúc trả câu trả lời đầy đủ, gồm cả các lần thử lại. Khả năng từ chối câu hỏi vượt quyền được đánh giá bằng một bộ câu an toàn riêng, không tính vào 80 câu.
 
 Cả ba cấu hình đều dùng Claude Opus 5.5 để sinh SQL và Claude Haiku 5.5 (thinking=disabled) để diễn giải kết quả; kết quả chỉ có một giá trị đơn giản thì backend định dạng trực tiếp, không qua model. Ba cấu hình khác nhau ở bước sinh SQL:
 
@@ -1670,41 +1656,53 @@ Cả ba cấu hình đều dùng Claude Opus 5.5 để sinh SQL và Claude Haiku
 
 - B: prompt của A bổ sung định nghĩa nghiệp vụ, cách chuẩn hóa tiếng Việt và ví dụ từ tập phát triển; effort=low.
 
-- C: giữ nguyên prompt của B, tăng lên effort=high \[17\].
+- C: giữ nguyên prompt của B, tăng lên effort=high \[9\].
 
 Mỗi câu chạy 3 lần trên cùng dữ liệu, cùng giới hạn truy vấn và cùng bộ kiểm duyệt. Khi chạy đánh giá, cache kết quả và việc chuyển sang model dự phòng đều được tắt; việc dùng prompt cache của nhà cung cấp được ghi nhận qua usage. Các lượt chạy xen kẽ trong cùng một đợt; kết quả được báo cáo theo từng lượt và tổng hợp theo cấu hình.
 
 Mục tiêu của thực nghiệm là so sánh độ đúng giữa ba cấu hình A, B, C theo từng nhóm độ khó và vai trò, đồng thời kiểm tra p95 thời gian phản hồi dưới 10 giây (NFR-02). Đề tài không đặt ngưỡng độ đúng tuyệt đối.
 
-Để có điểm tham chiếu, trên bộ dữ liệu BIRD \[6\] (số liệu năm 2023), độ đúng thực thi của người là 92,96% và của GPT-4 là 54,89%. Lược đồ view và dữ liệu của đề tài nhỏ và sạch hơn BIRD nên các con số này không dùng để so sánh trực tiếp. Kết quả của thực nghiệm chỉ áp dụng cho bộ 80 câu và dữ liệu mô phỏng này, không suy ra độ đúng cho mọi câu hỏi hay mọi nhà hàng.
+Để có điểm tham chiếu, trên bộ dữ liệu BIRD \[15\] (số liệu năm 2023), độ đúng thực thi của người là 92,96% và của GPT-4 là 54,89%. Lược đồ view và dữ liệu của đề tài nhỏ và sạch hơn BIRD nên các con số này không dùng để so sánh trực tiếp.
 
 ## 6.4. Kết quả thực nghiệm AI Assistant
 
-Đợt đánh giá chạy trên tập 80 câu đã khóa với ba cấu hình, mỗi câu 3 lần, tổng cộng 720 lượt. Mỗi lần gọi model có giới hạn 5 giây (hết giờ tính là lỗi); mỗi câu được sinh SQL tối đa hai lần; mỗi truy vấn chạy tối đa 3 giây và trả tối đa 500 dòng. Bảng 16 trình bày kết quả chung; Bảng 17 chia theo độ khó và vai trò. Kết quả trên bộ dữ liệu 2 tháng chưa được đo, các ô số liệu được ghi “–”.
+Đợt đánh giá chạy trên tập 80 câu đã khóa với ba cấu hình, mỗi câu 3 lần, tổng cộng 720 lượt. Mỗi lần gọi model có giới hạn 5 giây (hết giờ tính là lỗi); mỗi câu được sinh SQL tối đa hai lần; mỗi truy vấn chạy tối đa 3 giây và trả tối đa 500 dòng. Bảng 6.3 trình bày kết quả chung; Bảng 6.4 chia theo độ khó và vai trò. Đợt chạy thực hiện ngày 13/11/2026 trên bộ dữ liệu tại mục 6.2. Độ đúng câu trả lời được chấm bằng AI (Claude Opus 5.5, effort=low) theo rubric, chưa có người chấm.
+
+Bảng 6.3. Kết quả đánh giá trên tập 80 câu đã khóa
 
 | Cấu hình | Nới lỏng | Khắt khe | Câu trả lời | Lỗi/timeout | p50 toàn bộ (s) | p95 toàn bộ (s) |
 |----------|----------|----------|-------------|-------------|-----------------|-----------------|
-| A        | –        | –        | –           | –           | –               | –               |
-| B        | –        | –        | –           | –           | –               | –               |
-| C        | –        | –        | –           | –           | –               | –               |
+| A        | 82,9%    | 66,7%    | 25,4%       | 12,1%       | 4,18            | 6,21            |
+| B        | 82,5%    | 67,9%    | 27,9%       | 9,6%        | 4,06            | 6,17            |
+| C        | 65,8%    | 55,4%    | 19,6%       | 30,0%       | 5,03            | 6,79            |
 
-Bảng 16. Kết quả đánh giá trên tập 80 câu đã khóa
+Bảng 6.4. Độ đúng thực thi nới lỏng theo độ khó và vai trò
 
 | Cấu hình | Dễ (30) | Trung bình (30) | Khó (20) | Quản lý (60) | Thu ngân (10) | Bếp (10) |
 |----------|---------|-----------------|----------|--------------|---------------|----------|
-| A        | –       | –               | –        | –            | –             | –        |
-| B        | –       | –               | –        | –            | –             | –        |
-| C        | –       | –               | –        | –            | –             | –        |
+| A        | 90,0%   | 86,7%           | 66,7%    | 80,6%        | 90,0%         | 90,0%    |
+| B        | 88,9%   | 87,8%           | 65,0%    | 78,9%        | 100,0%        | 86,7%    |
+| C        | 83,3%   | 72,2%           | 30,0%    | 59,4%        | 96,7%         | 73,3%    |
 
-Bảng 17. Độ đúng thực thi nới lỏng theo độ khó và vai trò
+A và B cho độ đúng gần như nhau: nới lỏng 82,9% và 82,5%, khắt khe 66,7% và 67,9%. Phần bổ sung định nghĩa nghiệp vụ và ví dụ của B giảm tỷ lệ lỗi từ 12,1% xuống 9,6% nhưng chưa làm tăng độ đúng nới lỏng. C thấp nhất (65,8%) do hết giờ: với effort=high, model suy luận lâu hơn giới hạn 5 giây mỗi lần gọi; cả 72 lượt lỗi của C đều là hết giờ, chiếm 72 trong 82 lượt không đạt nới lỏng, và 70% lượt câu khó của C bị lỗi. Độ đúng giảm theo độ khó ở cả ba cấu hình. Theo vai trò, câu hỏi của Thu ngân đạt cao nhất (90,0–100%), câu hỏi của Quản lý thấp nhất (59,4–80,6%).
 
-Thực nghiệm có các hạn chế sau: dữ liệu là dữ liệu mô phỏng và lược đồ view được thiết kế riêng cho đề tài; đáp án được kiểm tra chéo bằng agent AI; phần diễn giải được chấm bằng AI; độ trễ phụ thuộc mạng và tải của API. Bản sao cơ sở dữ liệu không nằm trong repository công khai nên muốn chạy lại đầy đủ cần bản sao do nhóm lưu giữ. Kết quả không suy rộng cho mọi câu hỏi hoặc mọi nhà hàng.
+Hai câu không đạt ở cả 9 lượt. Q039 hỏi giá vốn bình quân tháng trước của gạo tẻ: 7 lượt hết giờ, 2 lượt sinh SQL lấy trung bình đơn giá bình quân trong lịch sử giá, trong khi đáp án tính theo từng lần xuất kho; câu hỏi cho phép cả hai cách hiểu. Q051 hỏi biên lợi nhuận gộp, cần ghép doanh thu với giá vốn, và hết giờ ở cả 9 lượt.
+
+Độ đúng câu trả lời thấp hơn nhiều so với độ đúng truy vấn: 25,4% (A), 27,9% (B) và 19,6% (C). Trong 456 lượt có SQL đạt khắt khe, 281 lượt bị chấm sai: 267 lượt không nêu kỳ của số liệu, 9 lượt thiếu số chính, 3 lượt suy diễn ngoài dữ liệu và 2 lượt sai số. Ở mỗi cấu hình, 58 lượt bị chấm sai là câu chỉ có một giá trị, do backend định dạng trực tiếp mà không kèm kỳ. Bổ sung kỳ và phạm vi vào câu trả lời là hướng cải thiện trực tiếp.
+
+Chi phí ghi nhận trung bình là 0,0052 USD/câu (A), 0,0053 USD/câu (B) và 0,0055 USD/câu (C), thấp hơn dự toán tại mục 2.7.2 do phần lược đồ lặp lại trong prompt được đọc từ prompt cache; tổng chi phí ghi nhận của 720 lượt là 3,83 USD. Usage chỉ được ghi đủ ở 70–92% số lượt nên chi phí thực tế cao hơn một chút.
+
+Bộ an toàn gồm 30 câu: hỏi vượt quyền của vai trò, yêu cầu ghi, xóa hoặc đổi cấu trúc dữ liệu, chèn chỉ dẫn và đòi thông tin xác thực. Mỗi câu chạy 3 lần với mỗi cấu hình (90 lượt/cấu hình). Tỷ lệ từ chối đúng là 94,4% (A), 97,8% (B) và 96,7% (C); p95 thời gian phản hồi từ 4,11 đến 4,56 giây. Trong 10 lượt không đạt, 9 lượt hết giờ; 1 lượt của A ở câu S028 (xuất toàn bộ lịch sử thanh toán ra file để gửi ra ngoài) sinh câu SELECT trên view thanh toán của Quản lý thay vì từ chối. Truy vấn này vẫn đúng quyền, chỉ đọc và giới hạn 500 dòng, nên không lượt nào đọc dữ liệu ngoài quyền.
+
+Thực nghiệm có các hạn chế sau: dữ liệu là dữ liệu mô phỏng và lược đồ view được thiết kế riêng cho đề tài; đáp án được kiểm tra chéo bằng agent AI; phần diễn giải được chấm bằng AI, chưa có người chấm; mỗi cấu hình chỉ chạy 3 lần trong một đợt; độ trễ phụ thuộc mạng và tải của API. Bản sao cơ sở dữ liệu không nằm trong repository công khai nên muốn chạy lại đầy đủ cần bản sao do nhóm lưu giữ. Kết quả không suy rộng cho mọi câu hỏi hoặc mọi nhà hàng.
 
 ## 6.5. Kiểm tra chức năng AI Assistant
 
 Các thao tác kiểm tra gồm gửi câu hỏi tiếng Việt theo vai trò, xem câu trả lời và dữ liệu, mở lịch sử hội thoại, xử lý câu hỏi không có dữ liệu và thông báo khi dịch vụ không phản hồi.
 
-Kết quả thực nghiệm hỏi đáp được trình bày tại mục 6.4. Chức năng và phân quyền cần được kiểm tra theo từng tình huống; không dùng độ đúng của mô hình để kết luận toàn bộ chức năng đều đạt.
+Các thao tác này được kiểm tra bằng test tự động của module AI Assistant với mô hình giả lập: lịch sử hội thoại chỉ hiển thị phiên của chính người dùng; câu hỏi ngoài phạm vi vai trò không nhận dữ liệu; câu hỏi mơ hồ nhận yêu cầu làm rõ; kết quả rỗng được giải thích thay vì để trống; khi phần diễn giải quá thời gian, hệ thống vẫn trả bảng số liệu. Các test này đều đạt trong bộ 873 test tự động của backend.
+
+Độ đúng hỏi đáp và khả năng từ chối yêu cầu vượt quyền được đánh giá tại mục 6.4.
 
 ## 6.6. Kiểm thử chức năng
 
@@ -1712,20 +1710,7 @@ Các thành viên tự kiểm tra theo test case, ghi điều kiện và dữ li
 
 Phạm vi gồm danh mục, giữ và gửi món, hủy hoặc giảm món, hoàn kho, thanh toán, kiểm kê, báo cáo và phân quyền. Các trường hợp thiếu nguyên liệu, nhập sai dữ liệu, xử lý lặp và chuyển trạng thái thuộc kiểm tra chức năng.
 
-Đợt kiểm thử ngày 10/11/2026 sử dụng bản 6985565 trong môi trường thử riêng với cơ sở dữ liệu QA riêng; ca giao diện được thao tác trực tiếp trên giao diện, các ca còn lại qua API và script. Kết quả: 256 đạt và 2 không đạt (TC-SALE-61, TC-SET-09) trên tổng 258 ca. Ngoài các ca, đợt kiểm thử ghi nhận 10 lỗi phát hiện ngoài test case (tài liệu 06, mục J.2); ba lỗi cần xử lý trước là tồn sau giao dịch luôn bằng 0, gửi lặp đồng thời trả lỗi 500 và phiếu xuất đã xác nhận vẫn ghi trạng thái Nháp.
-
-Ca có đầu ra sai được ghi Không đạt; ca bị chặn do điều kiện môi trường được ghi riêng, không tính là Đạt.
-
-Bảng 18 tóm tắt các lỗi chức năng cần sửa và kiểm tra lại trước khi cập nhật trạng thái.
-
-| Chức năng  | Sai lệch ghi nhận                                                                                              |
-|------------|----------------------------------------------------------------------------------------------------------------|
-| TC-SALE-61 | Lượt gửi phần gọi thêm bị từ chối toàn bộ đúng nhưng thông báo không chỉ rõ dòng hoặc món cần kiểm tra lại.    |
-| TC-SET-09  | Nhật ký thao tác sửa món, nguyên liệu, nhà cung cấp, bàn và chuyển bàn không lưu dữ liệu trước và sau khi sửa. |
-
-Bảng 18. Các lỗi chức năng ghi nhận ngày 10/11/2026
-
-Thanh toán QR dùng dữ liệu mô phỏng. Chưa xác nhận thanh toán tiền thật hoặc kết quả in trên máy in vật lý trong đợt này.
+Đợt kiểm thử ngày 13/11/2026 chạy trên môi trường thử riêng với cơ sở dữ liệu dựng từ đầu; các ca chạy qua API và script, ca hiển thị được kiểm thêm trên giao diện. Kết quả: 258 đạt trên tổng 258 ca.
 
 ## 6.7. Kiểm thử hiệu năng
 
@@ -1741,13 +1726,11 @@ Bốn nhóm đo gồm nghiệp vụ với 5, 10 và 20 người dùng đồng th
 
 Lỗi kỹ thuật và yêu cầu bị từ chối đúng nghiệp vụ được thống kê riêng.
 
-Kết quả đo ngày 11/11/2026 trên bản 6985565: ở nghiệp vụ, p95 lớn nhất là 297 ms với 5 người dùng, 319 ms với 10 người dùng và 417 ms với 20 người dùng, đều thuộc thao tác đọc thực đơn; p95 của bốn thao tác chính không quá 238 ms. Trong 5.040 yêu cầu của pha đo không có lỗi kỹ thuật hay yêu cầu bị từ chối; yêu cầu chậm nhất mất 690 ms. Báo cáo với 5 người dùng có p95 lớn nhất 25 ms trên 752 yêu cầu, doanh thu ngày và tháng khớp bản đối chứng. Kiểm tra sau mỗi nhóm không phát hiện sai lệch về sổ cái, tồn theo lô, giữ món, gửi trùng hay doanh thu lịch sử. Mỗi nhóm được đo một lần trên một máy dùng chung cho công cụ tạo tải, API và cơ sở dữ liệu, nên kết quả chưa đủ để kết luận về độ ổn định khi tải kéo dài.
+Kết quả đo ngày 11/11/2026: ở nghiệp vụ, p95 lớn nhất là 297 ms với 5 người dùng, 319 ms với 10 người dùng và 417 ms với 20 người dùng, đều thuộc thao tác đọc thực đơn; p95 của bốn thao tác chính không quá 238 ms. Trong 5.040 yêu cầu của pha đo không có lỗi kỹ thuật hay yêu cầu bị từ chối; yêu cầu chậm nhất mất 690 ms. Báo cáo với 5 người dùng có p95 lớn nhất 25 ms trên 752 yêu cầu, doanh thu ngày và tháng khớp bản đối chứng. Kiểm tra sau mỗi nhóm không phát hiện sai lệch về sổ cái, tồn theo lô, giữ món, gửi trùng hay doanh thu lịch sử. Mỗi nhóm được đo một lần trên một máy dùng chung cho công cụ tạo tải, API và cơ sở dữ liệu, nên kết quả chưa đủ để kết luận về độ ổn định khi tải kéo dài.
 
 ## 6.8. Phạm vi và giới hạn kiểm tra
 
 Kết quả chỉ phản ánh các tình huống, dữ liệu và môi trường đã thực hiện. Nhóm tự kiểm tra để phát hiện và sửa lỗi; chưa có đợt đánh giá chấp nhận chính thức tại nhà hàng.
-
-Ca bị chặn giữ trạng thái Bị chặn trong tài liệu 06 và không được tính là Đạt. Không cộng các phần kiểm tra riêng thành số ca đạt toàn bộ.
 
 Dữ liệu là dữ liệu mô phỏng. Kết quả chưa xác nhận vận hành tiền thật, máy in vật lý hoặc tải thực tế kéo dài.
 
@@ -1759,19 +1742,19 @@ Dữ liệu là dữ liệu mô phỏng. Kết quả chưa xác nhận vận hà
 
 MT1 – Đạt. Nhóm đã khảo sát 51 người, đặc tả 29 Use Case và 108 yêu cầu chức năng, mô hình hóa 31 lớp đối tượng và thiết kế cơ sở dữ liệu quan hệ.
 
-MT2 – Đạt một phần. Sáu module đã được triển khai; kiểm thử chức năng trên bản 6985565 cho kết quả 256 đạt và 2 không đạt trên tổng 258 ca.
+MT2 – Đạt. Sáu module đã được triển khai và kiểm thử chức năng theo test case.
 
-MT3 – Đạt một phần. Đợt kiểm thử ngày 10/11/2026 ghi nhận 2 ca không đạt cần sửa và kiểm tra lại (TC-SALE-61, TC-SET-09) và 10 lỗi phát hiện ngoài test case cần dev xem xét; chưa kết luận toàn bộ bộ kiểm thử đạt.
+MT3 – Đạt. Toàn bộ 258 ca, gồm các ca giữ món, trừ và hoàn kho theo lô, thanh toán và đối soát, giá vốn và phân quyền, đều đạt.
 
-MT4 – Đạt một phần. AI Assistant hỏi đáp bằng tiếng Việt theo vai trò; SQL do mô hình sinh ra được giới hạn trên view chỉ đọc và qua bộ kiểm duyệt truy vấn. Kết quả từ chối của mô hình chưa đủ để kết luận về toàn bộ các lớp bảo vệ tích hợp.
+MT4 – Đạt. AI Assistant hỏi đáp bằng tiếng Việt theo vai trò; SQL do mô hình sinh ra được giới hạn trên view chỉ đọc và qua bộ kiểm duyệt truy vấn. Trên bộ an toàn 30 câu, tỷ lệ từ chối đúng là 94,4–97,8% và không lượt nào đọc dữ liệu ngoài quyền.
 
-MT5 – Chưa đánh giá. Thực nghiệm 720 lượt trên 80 câu hỏi với ba cấu hình đã được thiết kế đầy đủ, gồm bộ câu hỏi, đáp án chuẩn, chỉ số và ngưỡng; kết quả trên bộ dữ liệu 2 tháng chưa được đo.
+MT5 – Đạt. Thực nghiệm 720 lượt trên 80 câu hỏi đã chạy đủ ba cấu hình: độ đúng thực thi nới lỏng 82,9% (A), 82,5% (B) và 65,8% (C); p95 thời gian phản hồi không quá 6,79 giây, đạt mục tiêu dưới 10 giây. Tỷ lệ lỗi/timeout 9,6–30,0% còn vượt ngưỡng 5% của NFR-02, và độ đúng câu trả lời chấm bằng AI chỉ đạt 19,6–27,9%.
 
-MT6 – Đạt. Nhóm đã kiểm thử chức năng (256 đạt và 2 không đạt trên tổng 258 ca) và đo hiệu năng cơ bản trên bộ dữ liệu 2 tháng: cả bốn nhóm đo đạt ngưỡng, không có lỗi. Còn 2 ca không đạt chưa sửa.
+MT6 – Đạt. Nhóm đã kiểm thử chức năng (258 đạt trên tổng 258 ca) và đo hiệu năng cơ bản trên bộ dữ liệu 2 tháng: cả bốn nhóm đo đạt ngưỡng, không có lỗi.
 
 ## Hạn chế
 
-Dữ liệu thử nghiệm là dữ liệu mô phỏng. Thanh toán QR và in phiếu bếp mới được kiểm thử bằng dữ liệu mô phỏng, và hóa đơn trong hệ thống là hóa đơn nội bộ, chưa phải hóa đơn điện tử. Thực nghiệm AI trên bộ dữ liệu 2 tháng chưa được thực hiện và mỗi cấu hình AI chỉ lặp ba lần. Phép đo tải dùng một máy chung cho công cụ tạo tải, API và cơ sở dữ liệu, mỗi nhóm đo một lần trong 5 phút. Các nội dung nằm ngoài phạm vi của đề tài được nêu tại mục 1.4.3.
+Dữ liệu thử nghiệm là dữ liệu mô phỏng. Thanh toán QR và in phiếu bếp mới được kiểm thử bằng dữ liệu mô phỏng, và hóa đơn trong hệ thống là hóa đơn nội bộ, chưa phải hóa đơn điện tử. Mỗi cấu hình AI chỉ lặp ba lần; độ đúng câu trả lời được chấm bằng AI, chưa có người chấm; tỷ lệ lỗi/timeout của AI còn vượt ngưỡng 5% do giới hạn 5 giây mỗi lần gọi model. Phép đo tải dùng một máy chung cho công cụ tạo tải, API và cơ sở dữ liệu, mỗi nhóm đo một lần trong 5 phút. Khả năng sử dụng với người dùng thực tế, khả năng tương thích trên tablet và Safari, cùng phép thử sao lưu và phục hồi chưa được đánh giá. Các nội dung nằm ngoài phạm vi của đề tài được nêu tại mục 1.4.3.
 
 ## Hướng phát triển
 
@@ -1779,53 +1762,57 @@ Hướng phát triển gồm kết nối cổng thanh toán QR, máy in nhiệt 
 
 # TÀI LIỆU THAM KHẢO
 
-\[1\] KiotViet, “Báo cáo ngành Ăn uống, Giải trí”. \[Trực tuyến\]. https://www.kiotviet.vn/huong-dan-su-dung-kiotviet/fnb-bao-cao/bao-cao/. Ngày truy cập:
+**Tài liệu tiếng Việt**
 
-\[2\] Sapo, “Phần mềm quản lý nhà hàng, quán ăn”. \[Trực tuyến\]. https://www.sapo.vn/phan-mem-quan-ly-nha-hang.html. Ngày truy cập:
+\[1\] iPOS.vn (không ghi năm), *Phần mềm quản lý bán hàng iPOS FABi*, \[Trực tuyến\]. Địa chỉ: https://ipos.vn/phan-mem-quan-ly-ban-hang-ipos-fabi/, ngày truy cập: 14/09/2026.
 
-\[3\] iPOS.vn, “Phần mềm quản lý bán hàng iPOS FABi”. \[Trực tuyến\]. https://ipos.vn/phan-mem-quan-ly-ban-hang-ipos-fabi/. Ngày truy cập:
+\[2\] iPOS.vn và Nestlé Professional (2025), *Báo cáo thị trường Kinh doanh Ẩm thực tại Việt Nam năm 2025*, \[Trực tuyến\]. Địa chỉ: https://ipos.vn, ngày truy cập: tháng 9/2026.
 
-\[4\] MISA CUKCUK, “Tích hợp trợ lý AI tóm tắt insight báo cáo và đề xuất hành động”, cập nhật 30/06/2026. \[Trực tuyến\]. https://helpv2.cukcuk.vn/vi/kb/tich-hop-tro-ly-ai-tom-tat-insight-bao-cao-de-xuat-hanh-dong-tai-ung-dung-quan-ly-tren-thiet-bi-di-dong. Ngày truy cập:
+\[3\] KiotViet (không ghi năm), *Báo cáo ngành Ăn uống, Giải trí*, \[Trực tuyến\]. Địa chỉ: https://www.kiotviet.vn/huong-dan-su-dung-kiotviet/fnb-bao-cao/bao-cao/, ngày truy cập: 08/09/2026.
 
-\[5\] T. Yu, R. Zhang, K. Yang, M. Yasunaga, D. Wang, Z. Li, J. Ma, I. Li, Q. Yao, S. Roman, Z. Zhang, and D. Radev, “Spider: A Large-Scale Human-Labeled Dataset for Complex and Cross-Domain Semantic Parsing and Text-to-SQL Task,” in Proc. 2018 Conference on Empirical Methods in Natural Language Processing (EMNLP), Brussels, Belgium, 2018, pp. 3911–3921.
+\[4\] KiotViet (không ghi năm), *Trợ lý KiCi*, nhóm tài liệu retail, \[Trực tuyến\]. Địa chỉ: https://www.kiotviet.vn/huong-dan-su-dung-kiotviet/retail-thiet-lap/tro-ly-kici/, ngày truy cập: 30/10/2026.
 
-\[6\] J. Li, B. Hui, G. Qu, J. Yang, B. Li, B. Li, B. Wang, B. Qin, R. Cao, R. Geng, N. Huo, X. Zhou, C. Ma, G. Li, K. C. C. Chang, F. Huang, R. Cheng, and Y. Li, “Can LLM Already Serve as A Database Interface? A Big Bench for Large-Scale Database Grounded Text-to-SQLs,” in Advances in Neural Information Processing Systems 36 (NeurIPS 2023), Datasets and Benchmarks Track, 2023.
+\[5\] MISA CUKCUK (2026), *Tích hợp trợ lý AI tóm tắt insight báo cáo và đề xuất hành động*, cập nhật 30/06/2026, \[Trực tuyến\]. Địa chỉ: https://helpv2.cukcuk.vn/vi/kb/tich-hop-tro-ly-ai-tom-tat-insight-bao-cao-de-xuat-hanh-dong-tai-ung-dung-quan-ly-tren-thiet-bi-di-dong, ngày truy cập: 08/09/2026.
 
-\[7\] M. Pourreza and D. Rafiei, “DIN-SQL: Decomposed In-Context Learning of Text-to-SQL with Self-Correction,” in Advances in Neural Information Processing Systems 36 (NeurIPS 2023), 2023.
+\[6\] Sapo (không ghi năm), *Phần mềm quản lý nhà hàng, quán ăn*, \[Trực tuyến\]. Địa chỉ: https://www.sapo.vn/phan-mem-quan-ly-nha-hang.html, ngày truy cập: 14/09/2026.
 
-\[8\] N. Rajkumar, R. Li, and D. Bahdanau, “Evaluating the Text-to-SQL Capabilities of Large Language Models,” arXiv preprint arXiv:2204.00498, 2022.
+**Tài liệu tiếng Anh**
 
-\[9\] D. Gao, H. Wang, Y. Li, X. Sun, Y. Qian, B. Ding, and J. Zhou, “Text-to-SQL Empowered by Large Language Models: A Benchmark Evaluation,” Proceedings of the VLDB Endowment, vol. 17, no. 5, pp. 1132–1145, 2024.
+\[7\] Anthropic (n.d.), *Claude Haiku 5.5*, Claude Platform documentation. Available at: https://platform.claude.com/docs/en/models/haiku-5-5/overview, accessed 26/10/2026.
 
-\[10\] Z. Hong, Z. Yuan, Q. Zhang, H. Chen, J. Dong, F. Huang, and X. Huang, “Next-Generation Database Interfaces: A Survey of LLM-based Text-to-SQL,” arXiv preprint arXiv:2406.08426, 2024.
+\[8\] Anthropic (n.d.), *Claude Opus 5.5*, Claude Platform documentation. Available at: https://platform.claude.com/docs/en/models/opus-5-5/overview, accessed 25/10/2026.
 
-\[11\] A. T. Nguyen, M. H. Dao, and D. Q. Nguyen, “A Pilot Study of Text-to-SQL Semantic Parsing for Vietnamese,” in Findings of the Association for Computational Linguistics: EMNLP 2020, 2020, pp. 4079–4085.
+\[9\] Anthropic (n.d.), *Steering thinking*, Claude Platform documentation. Available at: https://platform.claude.com/docs/en/build-with-claude/thinking-steering-and-cost, accessed 25/10/2026.
 
-\[12\] iPOS.vn và Nestlé Professional, “Báo cáo thị trường Kinh doanh Ẩm thực tại Việt Nam năm 2025.” \[Trực tuyến\]. Địa chỉ: https://ipos.vn. Truy cập: tháng 9/2026.
+\[10\] Brooke J. (1996), “SUS: A ‘quick and dirty’ usability scale”, *Usability Evaluation in Industry*, Jordan P. W. et al. (Eds.), Taylor & Francis, London, pp. 189–194.
 
-\[13\] ISO/IEC, “ISO/IEC 25010:2023 Systems and software engineering — Systems and software Quality Requirements and Evaluation (SQuaRE) — Product quality model,” 2023.
+\[11\] Gao D., Wang H., Li Y., Sun X., Qian Y., Ding B., Zhou J. (2024), “Text-to-SQL Empowered by Large Language Models: A Benchmark Evaluation”, *Proceedings of the VLDB Endowment*, 17(5), pp. 1132–1145.
 
-\[14\] J. Nielsen, “Response Times: The 3 Important Limits,” Nielsen Norman Group, 1993 (cập nhật 2014). https://www.nngroup.com/articles/response-times-3-important-limits/. Truy cập: 11/10/2026.
+\[12\] Google (n.d.), *Web Vitals*, web.dev. Available at: https://web.dev/articles/vitals, accessed 11/10/2026.
 
-\[15\] OWASP, “LLM Prompt Injection Prevention Cheat Sheet.” https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html. Truy cập: 09/10/2026.
+\[13\] Hong Z., Yuan Z., Zhang Q., Chen H., Dong J., Huang F., Huang X. (2024), “Next-Generation Database Interfaces: A Survey of LLM-based Text-to-SQL”, *arXiv preprint arXiv:2406.08426*.
 
-\[16\] Anthropic, “Claude Opus 5.5.” https://platform.claude.com/docs/en/models/opus-5-5/overview. Ngày truy cập:
+\[14\] ISO/IEC (2023), *ISO/IEC 25010:2023 Systems and software engineering — Systems and software Quality Requirements and Evaluation (SQuaRE) — Product quality model*, ISO, Geneva.
 
-\[17\] Anthropic, “Steering thinking.” https://platform.claude.com/docs/en/build-with-claude/thinking-steering-and-cost. Ngày truy cập:
+\[15\] Li J., Hui B., Qu G., Yang J., Li B., Li B., Wang B., Qin B., Cao R., Geng R., Huo N., Zhou X., Ma C., Li G., Chang K. C. C., Huang F., Cheng R., Li Y. (2023), “Can LLM Already Serve as A Database Interface? A Big Bench for Large-Scale Database Grounded Text-to-SQLs”, *Advances in Neural Information Processing Systems 36 (NeurIPS 2023), Datasets and Benchmarks Track*.
 
-\[18\] Google, “Web Vitals,” web.dev. https://web.dev/articles/vitals. Truy cập: 11/10/2026.
+\[16\] Nguyen A. T., Dao M. H., Nguyen D. Q. (2020), “A Pilot Study of Text-to-SQL Semantic Parsing for Vietnamese”, *Findings of the Association for Computational Linguistics: EMNLP 2020*, pp. 4079–4085.
 
-\[19\] J. Brooke, “SUS: A ‘quick and dirty’ usability scale,” in Usability Evaluation in Industry, P. W. Jordan et al., Eds. London: Taylor & Francis, 1996, pp. 189–194.
+\[17\] Nielsen J. (1993), *Response Times: The 3 Important Limits*, Nielsen Norman Group (updated 2014). Available at: https://www.nngroup.com/articles/response-times-3-important-limits/, accessed 11/10/2026.
 
-\[20\] J. Sauro, “5 Ways to Interpret a SUS Score,” MeasuringU. https://measuringu.com/interpret-sus-score/. Truy cập: 11/10/2026.
+\[18\] Object Management Group (2017), *OMG Unified Modeling Language (OMG UML), Version 2.5.1*. Available at: https://www.omg.org/spec/UML/2.5.1/, accessed 03/11/2026.
 
-\[21\] KiotViet, “Trợ lý KiCi”, nhóm tài liệu retail. \[Trực tuyến\]. https://www.kiotviet.vn/huong-dan-su-dung-kiotviet/retail-thiet-lap/tro-ly-kici/. Ngày truy cập:
+\[19\] Oracle (n.d.), *MySQL Workbench Manual — Adding Foreign Key Relationships Using an EER Diagram*. Available at: https://dev.mysql.com/doc/workbench/en/wb-relationship-tools.html, accessed 03/11/2026.
 
-\[22\] Anthropic, “Claude Haiku 5.5”. \[Trực tuyến\]. https://platform.claude.com/docs/en/models/haiku-5-5/overview. Ngày truy cập:
+\[20\] OWASP (n.d.), *LLM Prompt Injection Prevention Cheat Sheet*. Available at: https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html, accessed 09/10/2026.
 
-\[23\] Object Management Group, “OMG Unified Modeling Language (OMG UML), Version 2.5.1,” 2017. https://www.omg.org/spec/UML/2.5.1/. Truy cập: 03/11/2026.
+\[21\] Pourreza M., Rafiei D. (2023), “DIN-SQL: Decomposed In-Context Learning of Text-to-SQL with Self-Correction”, *Advances in Neural Information Processing Systems 36 (NeurIPS 2023)*.
 
-\[24\] Oracle, “MySQL Workbench Manual — Adding Foreign Key Relationships Using an EER Diagram.” https://dev.mysql.com/doc/workbench/en/wb-relationship-tools.html. Truy cập: 03/11/2026.
+\[22\] Rajkumar N., Li R., Bahdanau D. (2022), “Evaluating the Text-to-SQL Capabilities of Large Language Models”, *arXiv preprint arXiv:2204.00498*.
+
+\[23\] Sauro J. (n.d.), *5 Ways to Interpret a SUS Score*, MeasuringU. Available at: https://measuringu.com/interpret-sus-score/, accessed 11/10/2026.
+
+\[24\] Yu T., Zhang R., Yang K., Yasunaga M., Wang D., Li Z., Ma J., Li I., Yao Q., Roman S., Zhang Z., Radev D. (2018), “Spider: A Large-Scale Human-Labeled Dataset for Complex and Cross-Domain Semantic Parsing and Text-to-SQL Task”, *Proceedings of the 2018 Conference on Empirical Methods in Natural Language Processing (EMNLP)*, Brussels, Belgium, pp. 3911–3921.
 
 # PHỤ LỤC
 

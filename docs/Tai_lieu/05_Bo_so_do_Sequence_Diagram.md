@@ -1,6 +1,6 @@
 # 05. SƠ ĐỒ TUẦN TỰ
 
-Hệ thống quản lý nhà hàng tích hợp AI hỗ trợ hoạt động kinh doanh
+Xây dựng hệ thống quản lý nhà hàng tích hợp AI hỗ trợ hoạt động kinh doanh
 
 Hai mươi chín sơ đồ tuần tự chính tương ứng 29 Use Case và sáu sơ đồ con của hệ thống quản lý nhà hàng.
 
