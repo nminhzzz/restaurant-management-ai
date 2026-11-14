@@ -44,6 +44,17 @@ VIEW_LOAIBANGHI_VALUES: dict[str, tuple[str, ...]] = {
     "vw_ai_kho": ("TON_KHO", "GIAO_DICH_KHO", "LO_NGUYEN_LIEU"),
 }
 
+# Ready-made metric groups (v2); each role is only told about the ones it may read.
+PRECOMPUTED_VIEWS: dict[str, str] = {
+    "vw_ai_quanly_doanhthu": "mỗi hóa đơn kèm bàn, loại đơn, giờ, tháng",
+    "vw_ai_thungan_doanhthu": "mỗi hóa đơn kèm bàn, loại đơn, giờ, tháng",
+    "vw_ai_quanly_loinhuanthang": "doanh thu, giá vốn, lợi nhuận gộp theo tháng",
+    "vw_ai_quanly_xuatnhapngay": (
+        "nhập, tiêu hao, xuất, điều chỉnh, giá vốn theo ngày và nguyên liệu"
+    ),
+    "vw_ai_kho_xuatnhapngay": "nhập, tiêu hao, xuất, điều chỉnh theo ngày và nguyên liệu",
+}
+
 COLUMN_NOTES: dict[str, str] = {
     "LoaiBanGhi": (
         "loại bản ghi của dòng này — luôn lọc bằng WHERE LoaiBanGhi = '...' trước, "
@@ -100,7 +111,27 @@ COLUMN_NOTES: dict[str, str] = {
     "MaPhieuNhap": "mã phiếu nhập kho, ở LoaiBanGhi = 'PHIEU_NHAP'",
     "TenNhaCungCap": "tên nhà cung cấp của phiếu nhập",
     "DonGiaNhap": "đơn giá nhập (giá mua) của nguyên liệu trong phiếu nhập chưa hủy",
-    "SoLuongNhap": "số lượng nhập trong dòng phiếu nhập",
+    "SoLuongNhap": "số lượng nhập (dòng phiếu nhập, hoặc tổng trong ngày ở *_xuatnhapngay)",
+    "Thang": "tháng kinh doanh dạng 'YYYY-MM'",
+    "Gio": "giờ xuất hóa đơn, từ 0 đến 23",
+    "DoanhThu": "doanh thu: của một hóa đơn, hoặc của cả tháng ở view lợi nhuận theo tháng",
+    "GiaVon": (
+        "giá vốn bằng tiền (FR-REP-04): tiêu hao/hoàn kho của order đã kết thúc, xuất thủ "
+        "công và điều chỉnh kiểm kê, theo đơn giá bình quân di động lúc phát sinh"
+    ),
+    "LoiNhuanGop": "lợi nhuận gộp bằng tiền = DoanhThu - GiaVon của tháng",
+    "BienLoiNhuan": (
+        "biên lợi nhuận gộp (%) của một tháng; nhiều tháng thì tính lại "
+        "SUM(LoiNhuanGop) * 100 / SUM(DoanhThu), không cộng hay lấy trung bình cột này"
+    ),
+    "SoLuongHuyNhap": "số lượng của các dòng phiếu nhập bị hủy trong ngày",
+    "SoLuongTieuHao": "số lượng trừ tự động theo món đã bán/đang làm trong ngày",
+    "SoLuongHoanKho": "số lượng trả lại kho từ dòng order trong ngày",
+    "SoLuongXuatThuCong": "số lượng xuất thủ công (hủy, hư hỏng) trong ngày",
+    "SoLuongDieuChinh": "chênh lệch kiểm kê trong ngày, âm khi thiếu, dương khi thừa",
+    "SoLuongGiaVon": (
+        "số lượng ứng với GiaVon; đơn giá vốn bình quân của kỳ = SUM(GiaVon) / SUM(SoLuongGiaVon)"
+    ),
     "MaLo": "mã lô nguyên liệu, ở LoaiBanGhi = 'LO_NGUYEN_LIEU'",
     "SoLuongConLai": "số lượng còn lại của lô",
     "TrangThaiLo": "trạng thái lô (Còn hạn, Hết hạn, ...)",
@@ -133,7 +164,15 @@ async def schema_block(session: AsyncSession, role: Role) -> str:
         "View *_suat chỉ có số suất khả dụng đã tính tại ThoiDiemTinh; dùng view này "
         "để hỏi món còn phục vụ, không suy ngược công thức.",
     ]
-    for view in sorted(views_for(role)):
+    allowed = views_for(role)
+    ready = [f"{view} ({what})" for view, what in PRECOMPUTED_VIEWS.items() if view in allowed]
+    if ready:
+        lines.append(
+            "View tính sẵn: "
+            + "; ".join(ready)
+            + ". Ưu tiên các view này khi chúng có sẵn số liệu, thay vì tự JOIN hay CASE."
+        )
+    for view in sorted(allowed):
         lines.append(f"View được phép truy vấn: {view}")
         for name, type_name in await _columns_of(session, view):
             note = COLUMN_NOTES.get(name)

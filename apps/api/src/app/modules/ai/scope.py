@@ -32,9 +32,23 @@ ROLE_TOPICS: MappingProxyType[Role, tuple[str, ...]] = MappingProxyType(
             "nguyenlieu",
             "nhacungcap",
             "congthuc",
+            # Precomputed metric groups (v2): no join or CASE for the common analyses.
+            "doanhthu",
+            "loinhuanthang",
+            "xuatnhapngay",
         ),
-        Role.CASHIER: ("order", "dongmon", "hoadon", "thanhtoan", "mon", "ban"),
-        Role.WAREHOUSE: ("ton", "giaodich", "lo", "nhap", "xuat", "kiemke", "suat", "nguyenlieu"),
+        Role.CASHIER: ("order", "dongmon", "hoadon", "thanhtoan", "mon", "ban", "doanhthu"),
+        Role.WAREHOUSE: (
+            "ton",
+            "giaodich",
+            "lo",
+            "nhap",
+            "xuat",
+            "kiemke",
+            "suat",
+            "nguyenlieu",
+            "xuatnhapngay",
+        ),
     }
 )
 
