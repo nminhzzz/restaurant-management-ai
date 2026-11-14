@@ -1,3 +1,5 @@
+import pytest
+
 from app.modules.ai.labels import describe_columns
 
 
@@ -34,10 +36,11 @@ def test_unknown_names_are_guessed_from_the_name():
     assert _one("ThoiDiemMo", [{"ThoiDiemMo": "2026-09-01T10:00:00"}])["kind"] == "datetime"
 
 
-def test_unknown_numeric_values_are_numbers_and_labels_split_camel_case():
+def test_unknown_numeric_values_are_numbers_and_labels_get_their_accents_back():
+    """BA review 14/11/2026: a model alias such as SoDonHang was shown as "So Don Hang"."""
     assert _one("TongSoDonMoi", [{"TongSoDonMoi": 4}]) == {
         "key": "TongSoDonMoi",
-        "label": "Tong So Don Moi",
+        "label": "Tổng số đơn mới",
         "kind": "number",
     }
     assert _one("GhiChuKhac", [{"GhiChuKhac": "x"}])["kind"] == "text"
@@ -57,3 +60,21 @@ def test_a_transaction_count_is_not_money():
     assert _one("SoGiaoDichKho", [{"SoGiaoDichKho": 485}])["kind"] == "number"
     assert _one("SoGiaoDich", [{"SoGiaoDich": 12}])["kind"] == "number"
     assert _one("GiaNhapMoi", [{"GiaNhapMoi": 120000}])["kind"] == "money"
+
+
+@pytest.mark.parametrize(
+    ("column", "label"),
+    [
+        ("SoDonHang", "Số đơn hàng"),
+        ("TrungBinhMoiNgay", "Trung bình mỗi ngày"),
+        ("SoLuongBan", "Số lượng bán"),
+        ("SoBan", "Số bàn"),
+        ("ThuTrongTuan", "Thứ trong tuần"),
+        ("TyTrongDoanhThu", "Tỷ trọng doanh thu"),
+        ("PhuongThucThanhToan", "Phương thức thanh toán"),
+        ("SoLuotKhachQR", "Số lượt khách QR"),
+        ("XyzAbc", "Xyz Abc"),
+    ],
+)
+def test_ambiguous_syllables_are_read_from_their_neighbours(column, label):
+    assert _one(column, [{column: 1}])["label"] == label

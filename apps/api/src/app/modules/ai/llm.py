@@ -82,7 +82,7 @@ def generation_options(
 def _provider_timeout() -> float:
     settings = get_settings()
     # Reserve time for the fallback-model retry and SQL within the outer deadline.
-    # Leave room for the interpretation call inside the 8s turn budget.
+    # Leave room for the interpretation call inside the turn budget (NFR-02).
     return min(
         settings.ai_llm_timeout_seconds,
         max(1.0, settings.ai_response_budget_seconds - 2.5),
@@ -137,6 +137,7 @@ class CommercialClient:
         base_url: str = "",
         fallback_model: str = "",
         reasoning_effort: Effort | None = None,
+        speed: Literal["standard", "fast"] = "standard",
         transport: httpx2.BaseTransport | None = None,
     ) -> None:
         self._api_key = api_key
@@ -144,11 +145,12 @@ class CommercialClient:
         self._base_url = base_url.rstrip("/")
         self._fallback_model = fallback_model
         self._reasoning_effort = reasoning_effort
+        self._speed = speed
         self._sdk = anthropic.Anthropic(
             # Empty key/URL defer to ANTHROPIC_API_KEY / ANTHROPIC_BASE_URL.
             api_key=api_key or None,
             base_url=self._base_url or None,
-            # Retries and fallbacks are owned here so they fit the 8s budget (NFR-02).
+            # Retries and fallbacks are owned here so they fit the turn budget (NFR-02).
             max_retries=0,
             http_client=httpx2.Client(transport=transport) if transport else None,
         )
@@ -163,6 +165,8 @@ class CommercialClient:
             messages=[{"role": "user", "content": _content(prompt)}],
             output_config={"effort": effort} if effort else anthropic.omit,
             thinking={"type": "disabled"} if options and not options.thinking else anthropic.omit,
+            # Fast mode exists only for the SQL model; the interpretation model rejects it.
+            speed="fast" if self._speed == "fast" and model == self.model else anthropic.omit,
             betas=[REFUSAL_FALLBACK_BETA],
             fallbacks="default",
         )
@@ -260,6 +264,7 @@ def _build_client() -> LlmClient:
         base_url=settings.llm_base_url,
         fallback_model=settings.llm_fallback_model or settings.ai_config_c_model,
         reasoning_effort=settings.llm_reasoning_effort,
+        speed=settings.llm_speed,
     )
 
 

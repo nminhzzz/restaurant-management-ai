@@ -14,6 +14,7 @@ class ProviderAttempt:
     cache_write_tokens: int = 0
     cache_read_tokens: int = 0
     output_tokens: int = 0
+    speed: str = "standard"
     usage_reported: bool = False
     succeeded: bool = False
 
@@ -27,6 +28,8 @@ class Usage:
     # (input, output) per million for models billed differently from the main one;
     # their cache tokens are billed at the input price.
     model_prices: dict[str, tuple[float, float]] = field(default_factory=dict)
+    # Fast mode bills every token of the call, cache included, at a multiple of the rate.
+    fast_multiplier: float = 1.0
     attempts: list[ProviderAttempt] = field(default_factory=list)
 
     @property
@@ -58,12 +61,17 @@ class Usage:
             input_price, output_price = self.model_prices[item.model]
             prompt = item.input_tokens + item.cache_write_tokens + item.cache_read_tokens
             return (prompt * input_price + item.output_tokens * output_price) / 1e6
+        multiplier = self.fast_multiplier if item.speed == "fast" else 1.0
         return (
-            item.input_tokens * self.input_price
-            + item.cache_write_tokens * self.cache_write_price
-            + item.cache_read_tokens * self.cache_read_price
-            + item.output_tokens * self.output_price
-        ) / 1e6
+            multiplier
+            * (
+                item.input_tokens * self.input_price
+                + item.cache_write_tokens * self.cache_write_price
+                + item.cache_read_tokens * self.cache_read_price
+                + item.output_tokens * self.output_price
+            )
+            / 1e6
+        )
 
     @property
     def cost_usd(self) -> float:
@@ -82,9 +90,15 @@ def collect_usage(
     cache_write_price: float = 0.0,
     cache_read_price: float = 0.0,
     model_prices: dict[str, tuple[float, float]] | None = None,
+    fast_multiplier: float = 1.0,
 ) -> Iterator[Usage]:
     usage = Usage(
-        input_price, output_price, cache_write_price, cache_read_price, dict(model_prices or {})
+        input_price,
+        output_price,
+        cache_write_price,
+        cache_read_price,
+        dict(model_prices or {}),
+        fast_multiplier,
     )
     token = _current.set(usage)
     try:
@@ -132,4 +146,5 @@ def finish_attempt(attempt: ProviderAttempt, payload: dict[str, Any]) -> None:
         attempt.cache_read_tokens = max(0, int(usage.get("cache_read_input_tokens") or 0))
         # output_tokens already includes thinking tokens; never double-count them.
         attempt.output_tokens = max(0, int(usage.get("output_tokens") or 0))
+        attempt.speed = str(usage.get("speed") or "standard")
     attempt.succeeded = True

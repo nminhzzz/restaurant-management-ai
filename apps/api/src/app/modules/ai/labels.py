@@ -1,8 +1,9 @@
 """Human labels and value kinds for the assistant's result columns.
 
 Column names come from the `vw_ai_*` views or from aliases the model writes. Known
-names get a Vietnamese label; anything else is split on CamelCase (no accents are
-guessed) and typed from its name, then from its values.
+names get a Vietnamese label; anything else is split on CamelCase, each syllable gets its
+accents back from a domain dictionary, and the column is typed from its name, then from
+its values.
 """
 
 import re
@@ -98,6 +99,164 @@ _DATETIME = ("thoidiem",)
 _DATE = ("ngay", "date", "hansudung")
 _CAMEL = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
 
+# Unaccented syllables of the restaurant's column aliases. A syllable with two readings
+# in this domain is resolved by its neighbour in `_accent`; anything unknown is kept.
+_SYLLABLES = {
+    "ban": "bán",
+    "bao": "báo",
+    "bien": "biên",
+    "binh": "bình",
+    "canh": "cảnh",
+    "cao": "cao",
+    "cap": "cấp",
+    "chenh": "chênh",
+    "chi": "chi",
+    "cho": "chờ",
+    "chua": "chưa",
+    "con": "còn",
+    "cuoi": "cuối",
+    "cung": "cung",
+    "dang": "đang",
+    "dau": "đầu",
+    "dich": "dịch",
+    "diem": "điểm",
+    "doanh": "doanh",
+    "doi": "đổi",
+    "don": "đơn",
+    "dong": "dòng",
+    "dung": "dụng",
+    "gia": "giá",
+    "gian": "gian",
+    "giam": "giảm",
+    "giao": "giao",
+    "gio": "giờ",
+    "giu": "giữ",
+    "gop": "gộp",
+    "han": "hạn",
+    "hang": "hàng",
+    "hao": "hao",
+    "het": "hết",
+    "hien": "hiện",
+    "hoa": "hoá",
+    "hom": "hôm",
+    "huy": "hủy",
+    "kha": "khả",
+    "khach": "khách",
+    "kho": "kho",
+    "ke": "kế",
+    "ky": "kỳ",
+    "lai": "lại",
+    "lan": "lần",
+    "le": "lệ",
+    "lech": "lệch",
+    "lieu": "liệu",
+    "lo": "lô",
+    "loai": "loại",
+    "loi": "lợi",
+    "luong": "lượng",
+    "luot": "lượt",
+    "luy": "luỹ",
+    "ma": "mã",
+    "mang": "mang",
+    "mat": "mặt",
+    "mo": "mở",
+    "moi": "mới",
+    "mon": "món",
+    "muc": "mức",
+    "nam": "năm",
+    "nay": "nay",
+    "ngay": "ngày",
+    "nguoi": "người",
+    "nguyen": "nguyên",
+    "nha": "nhà",
+    "nhap": "nhập",
+    "nhat": "nhất",
+    "nhom": "nhóm",
+    "nhuan": "nhuận",
+    "phan": "phần",
+    "phi": "phí",
+    "phieu": "phiếu",
+    "phuc": "phục",
+    "phuong": "phương",
+    "phut": "phút",
+    "qua": "qua",
+    "quan": "quân",
+    "ra": "ra",
+    "sau": "sau",
+    "so": "số",
+    "su": "sử",
+    "tai": "tại",
+    "tang": "tăng",
+    "te": "tế",
+    "ten": "tên",
+    "theo": "theo",
+    "thai": "thái",
+    "thang": "tháng",
+    "thanh": "thành",
+    "thap": "thấp",
+    "thay": "thay",
+    "thieu": "thiểu",
+    "thoi": "thời",
+    "thu": "thu",
+    "thuc": "thực",
+    "ti": "tỉ",
+    "tien": "tiền",
+    "tieu": "tiêu",
+    "toan": "toán",
+    "toi": "tối",
+    "ton": "tồn",
+    "tong": "tổng",
+    "tram": "trăm",
+    "trang": "trạng",
+    "tri": "trị",
+    "trong": "trong",
+    "truoc": "trước",
+    "trung": "trung",
+    "tu": "từ",
+    "tuan": "tuần",
+    "tung": "từng",
+    "ty": "tỷ",
+    "vao": "vào",
+    "ve": "về",
+    "vi": "vị",
+    "von": "vốn",
+    "vu": "vụ",
+    "xuat": "xuất",
+}
+_WEEKDAY_AFTER_THU = {"trong", "hai", "ba", "tu", "nam", "sau", "bay"}
+
+
+def _accent(column: str) -> str:
+    """'TongSoDonMoi' -> 'Tổng số đơn mới'; unknown syllables are kept as written."""
+    tokens = _CAMEL.sub(" ", column).split()
+    lower = [token.lower() for token in tokens]
+    words = []
+    for i, token in enumerate(lower):
+        before = lower[i - 1] if i else ""
+        after = lower[i + 1] if i + 1 < len(lower) else ""
+        word = _SYLLABLES.get(token)
+        if token == "ban" and before in ("so", "ma"):
+            word = "bàn"
+        elif token == "thu" and after in _WEEKDAY_AFTER_THU:
+            word = "thứ"
+        elif token == "tu" and before == "thu":
+            word = "tự"
+        elif token == "trong" and before in ("ty", "ti"):
+            word = "trọng"
+        elif token == "doi" and before == "tuong":
+            word = "đối"
+        elif token == "thanh" and after == "toan":
+            word = "thanh"
+        elif token == "thuc" and before == "phuong":
+            word = "thức"
+        elif token == "moi" and after:
+            word = "mỗi"
+        elif token == "da" and after in ("ban", "thanh", "huy", "nhap", "xuat", "het"):
+            word = "đã"
+        words.append(word or tokens[i])
+    text = " ".join(words)
+    return text[:1].upper() + text[1:]
+
 
 def _is_number(value: Any) -> bool:
     if isinstance(value, bool) or value is None:
@@ -133,6 +292,6 @@ def _guess(column: str, rows: list[dict[str, Any]]) -> Kind:
 def describe_columns(columns: list[str], rows: list[dict[str, Any]]) -> list[dict[str, str]]:
     out = []
     for column in columns:
-        label, kind = KNOWN.get(column, (_CAMEL.sub(" ", column), _guess(column, rows)))
+        label, kind = KNOWN.get(column, (_accent(column), _guess(column, rows)))
         out.append({"key": column, "label": label, "kind": kind})
     return out
