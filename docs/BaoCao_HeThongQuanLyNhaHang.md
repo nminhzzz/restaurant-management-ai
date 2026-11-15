@@ -125,7 +125,7 @@ Cuối cùng, nhóm xin cảm ơn gia đình và bạn bè đã luôn động vi
 
 Khóa luận xây dựng hệ thống quản lý nhà hàng dạng ứng dụng web cho nhà hàng, quán ăn quy mô vừa và nhỏ, gồm sáu module: danh mục, bán hàng, kho, báo cáo thống kê, cài đặt và AI Assistant. Hệ thống thống nhất dữ liệu từ lúc khách gọi món đến khi đối soát doanh thu, quản lý nguyên liệu theo lô FIFO, thanh toán tiền mặt và QR có đối soát, và phân quyền dữ liệu, chức năng theo từng vai trò. AI Assistant cho phép người dùng hỏi số liệu kinh doanh bằng tiếng Việt; câu SQL do mô hình ngôn ngữ lớn sinh ra chỉ được chạy trên các view chỉ đọc theo vai trò sau khi qua bước kiểm duyệt.
 
-Yêu cầu hệ thống được xác định từ phân tích phần mềm hiện có và khảo sát 51 người từng làm việc hoặc quản lý tại nhà hàng, quán ăn. Hệ thống được mô hình hóa bằng UML, thiết kế cơ sở dữ liệu quan hệ và kiểm thử trên dữ liệu mô phỏng 2 tháng của một nhà hàng nhỏ. Thực nghiệm Text-to-SQL tiếng Việt được thực hiện trên 80 câu hỏi với ba cấu hình, mỗi câu chạy 3 lần (720 lượt). Trên dữ liệu này, độ đúng thực thi nới lỏng của ba cấu hình lần lượt là 82,9%, 82,5% và 65,8%; p95 thời gian phản hồi không quá 6,79 giây. Kiểm thử chức năng cho kết quả 258 đạt trên tổng 258 ca; đo hiệu năng cơ bản với 5, 10 và 20 người dùng đồng thời cho p95 lớn nhất 417 ms ở nghiệp vụ và 25 ms ở báo cáo, không có lỗi.
+Yêu cầu hệ thống được xác định từ phân tích phần mềm hiện có và khảo sát 51 người từng làm việc hoặc quản lý tại nhà hàng, quán ăn. Hệ thống được mô hình hóa bằng UML, thiết kế cơ sở dữ liệu quan hệ và kiểm thử trên dữ liệu mô phỏng 2 tháng của một nhà hàng nhỏ. Thực nghiệm Text-to-SQL tiếng Việt được thực hiện trên 80 câu hỏi với ba cấu hình, mỗi câu chạy 3 lần (720 lượt). Trên dữ liệu này, độ đúng thực thi nới lỏng của ba cấu hình lần lượt là 87,9%, 89,2% và 85,8%; với cấu hình vận hành, p95 thời gian phản hồi là 7,20 giây và tỷ lệ lỗi là 1,7%. Kiểm thử chức năng cho kết quả 258 đạt trên tổng 258 ca; đo hiệu năng cơ bản với 5, 10 và 20 người dùng đồng thời cho p95 lớn nhất 417 ms ở nghiệp vụ và 25 ms ở báo cáo, không có lỗi.
 
 Từ khóa: quản lý nhà hàng, ứng dụng web, Text-to-SQL, mô hình ngôn ngữ lớn, quản lý kho theo lô FIFO.
 
@@ -263,7 +263,7 @@ Từ khóa: quản lý nhà hàng, ứng dụng web, Text-to-SQL, mô hình ngô
 
 [4.4.2. Phân định quyền hạn về chức năng [75](#phân-định-quyền-hạn-về-chức-năng)](#phân-định-quyền-hạn-về-chức-năng)
 
-[4.5. Thiết kế API và lớp xử lý [76](#thiết-kế-api-và-lớp-xử-lý)](#thiết-kế-api-và-lớp-xử-lý)
+[4.5. Thiết kế API và lớp xử lý [77](#thiết-kế-api-và-lớp-xử-lý)](#thiết-kế-api-và-lớp-xử-lý)
 
 [4.6. Thiết kế bảo mật tập trung [78](#thiết-kế-bảo-mật-tập-trung)](#thiết-kế-bảo-mật-tập-trung)
 
@@ -392,7 +392,7 @@ Bảng 4.2. Ràng buộc vật lý của các bảng trọng yếu 66
 
 Bảng 4.3. Ma trận quyền hạn theo chức năng và vai trò 75
 
-Bảng 4.4. Một số endpoint của backend 76
+Bảng 4.4. Một số endpoint của backend 77
 
 Bảng 6.1. Kết quả đối chiếu yêu cầu phi chức năng 83
 
@@ -824,8 +824,8 @@ Bảng 2.6. Yêu cầu phi chức năng, ngưỡng và cách kiểm chứng
 <tr class="even">
 <td><p><strong>NFR-02</strong></p>
 <p>Phản hồi AI Assistant</p></td>
-<td>Toàn chuỗi xử lý (chuẩn hóa, sinh SQL, kiểm duyệt, thực thi, diễn giải): p95 dưới 10 giây ở các lượt thành công; tỷ lệ lỗi/timeout không quá 5%. Mốc 10 giây theo Nielsen [17].</td>
-<td>Bộ 80 câu, mỗi câu 3 lần, tính cả lần thử lại; báo cáo p50 và p95 của các lượt thành công.</td>
+<td>Toàn chuỗi xử lý (chuẩn hóa, sinh SQL, kiểm duyệt, thực thi, diễn giải): p95 không quá 10 giây, mỗi câu tối đa 12,5 giây; tỷ lệ lỗi/timeout không quá 5%. Mỗi lần gọi model tối đa 10 giây, xác định từ phép đo thử thời gian phản hồi thực tế của model. Mốc 10 giây theo Nielsen [17].</td>
+<td>Bộ 80 câu, mỗi câu 3 lần, tính cả lần thử lại; báo cáo p50, p95 và thời gian lâu nhất của cấu hình vận hành.</td>
 </tr>
 <tr class="odd">
 <td><p><strong>NFR-03</strong></p>
@@ -910,7 +910,7 @@ Hiện trạng được tổng hợp từ các trải nghiệm tự khai trong k
 
 ### 2.7.1. Khả thi kỹ thuật
 
-Kiến trúc web và CSDL quan hệ đáp ứng mô hình một nhà hàng; transaction, khóa dòng và khóa duy nhất được dùng cho các nghiệp vụ kho và thanh toán. Kết quả kiểm thử chức năng và hiệu năng ở Chương 6 cho thấy hệ thống vận hành đúng trên dữ liệu mô phỏng; thời gian phản hồi của AI Assistant ở câu hỏi phức tạp là điểm cần cải thiện. Kết nối QR và máy in được kiểm thử bằng bộ mô phỏng; khả năng tích hợp thực tế cần được xác nhận khi có thiết bị và thông tin dịch vụ.
+Kiến trúc web và CSDL quan hệ đáp ứng mô hình một nhà hàng; transaction, khóa dòng và khóa duy nhất được dùng cho các nghiệp vụ kho và thanh toán. Kết quả kiểm thử chức năng và hiệu năng ở Chương 6 cho thấy hệ thống vận hành đúng trên dữ liệu mô phỏng. Kết nối QR và máy in được kiểm thử bằng bộ mô phỏng; khả năng tích hợp thực tế cần được xác nhận khi có thiết bị và thông tin dịch vụ.
 
 ### 2.7.2. Khả thi kinh tế
 
@@ -1181,7 +1181,7 @@ Hệ thống xác định chỉ số, khoảng thời gian và đối tượng t
 
 LLM sinh một truy vấn. Bộ kiểm duyệt phân tích cây cú pháp, chỉ chấp nhận một truy vấn đọc; mọi bảng, cột, truy vấn con và nhánh UNION/CTE phải nằm trong danh sách cho phép. Các lệnh ghi, truy cập schema hệ thống, xuất tệp, hàm gây trì hoãn và câu lệnh nhiều phần bị từ chối. Hệ thống áp giới hạn dòng và thời gian ở tầng thực thi.
 
-Truy vấn hợp lệ chạy bằng tài khoản chỉ đọc theo vai trò, timeout 3 giây và tối đa 500 dòng. Lỗi cú pháp hoặc lỗi thực thi được phép sinh lại SQL một lần trong cùng phạm vi; yêu cầu trái quyền kết thúc ngay. Kết quả rỗng được diễn đạt là không có dữ liệu phù hợp; lỗi dịch vụ trả thông báo thử lại và mã truy vết.
+Truy vấn hợp lệ chạy bằng tài khoản chỉ đọc theo vai trò, timeout 3 giây và tối đa 500 dòng; mỗi lần gọi model tối đa 10 giây và toàn bộ câu hỏi tối đa 12,5 giây. Lỗi cú pháp hoặc lỗi thực thi được phép sinh lại SQL một lần trong cùng phạm vi; yêu cầu trái quyền kết thúc ngay. Kết quả rỗng được diễn đạt là không có dữ liệu phù hợp; lỗi dịch vụ trả thông báo thử lại và mã truy vết.
 
 Backend tính các chỉ số và chênh lệch xác định từ kết quả truy vấn; LLM diễn giải bảng số liệu. Câu trả lời nêu thời gian, đơn vị, phạm vi và thời điểm truy vấn. Nội dung văn bản từ dữ liệu được đặt trong vùng dữ liệu riêng, không được sử dụng làm chỉ dẫn hệ thống. Bảng số liệu gốc đi cùng câu trả lời để người dùng đối chiếu.
 
@@ -1383,7 +1383,7 @@ Phác thảo màn hình AI Assistant.
 
 ### 4.4.1. Phân định quyền hạn về dữ liệu
 
-Backend kiểm tra quyền trên mỗi yêu cầu. Mỗi tập VW_AI\_\* được tách thành view theo chủ đề, tổng hợp quan hệ một–nhiều trước khi kết hợp để tránh nhân dòng. Tài khoản AI chỉ SELECT; phạm vi được kiểm tra lại theo vai trò hiện hành ở từng lượt hỏi.
+Backend kiểm tra quyền trên mỗi yêu cầu. Mỗi tập VW_AI\_\* được tách thành view theo chủ đề, tổng hợp quan hệ một–nhiều trước khi kết hợp để tránh nhân dòng. Ngoài các view theo chủ đề, mỗi vai trò có view tính sẵn theo nhóm chỉ số: doanh thu theo hóa đơn kèm bàn, loại đơn, giờ và tháng (Quản lý, Thu ngân); doanh thu, giá vốn và lợi nhuận gộp theo tháng (Quản lý); nhập, tiêu hao, xuất và điều chỉnh theo ngày và nguyên liệu (Quản lý có giá vốn, Bếp chỉ có số lượng). Tài khoản AI chỉ SELECT; phạm vi được kiểm tra lại theo vai trò hiện hành ở từng lượt hỏi.
 
 <table>
 <colgroup>
@@ -1595,10 +1595,10 @@ Bảng 6.1. Kết quả đối chiếu yêu cầu phi chức năng
 | **NFR** | **Phép kiểm chứng**                                      | **Kết quả**   | **Căn cứ đánh giá**                                                                                                                                                                                                                                                                                                                                                |
 |---------|----------------------------------------------------------|---------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | NFR-01  | Tải 5/10/20 người, dữ liệu 2 tháng                       | Đạt           | p95 lớn nhất 417 ms ở 20 người dùng (ngưỡng 1 giây); 0 lỗi trên 5.040 yêu cầu của ba nhóm đo ngày 11/11/2026.                                                                                                                                                                                                                                                      |
-| NFR-02  | 80 câu × 3 lần/cấu hình                                  | Chưa đạt      | p95 của các lượt thành công là 6,41 giây (A), 6,14 giây (B) và 7,00 giây (C), dưới ngưỡng 10 giây; tỷ lệ lỗi/timeout là 12,1%, 9,6% và 30,0%, vượt ngưỡng 5%, chủ yếu do giới hạn 5 giây mỗi lần gọi model.                                                                                                                                                        |
+| NFR-02  | 80 câu × 3 lần/cấu hình                                  | Đạt           | Cấu hình vận hành B: p95 7,20 giây, lâu nhất 10,06 giây, lỗi/timeout 1,7%. Cấu hình A cũng đạt (7,76 giây; 11,82 giây; 2,9%). Cấu hình đối chứng C vượt ngưỡng: p95 10,69 giây, 9 lượt quá 12,5 giây (lâu nhất 21,61 giây), lỗi 5,4%.                                                                                                                              |
 | NFR-03  | Tải báo cáo và SQL đối chứng                             | Đạt           | p95 lớn nhất 25 ms (ngưỡng 10 giây); 0 lỗi trên 752 yêu cầu; doanh thu ngày và tháng khớp bản đối chứng. Trạng thái đang xử lý trên giao diện chưa được kiểm vì không thao tác nào vượt 1 giây.                                                                                                                                                                    |
 | NFR-04  | Băm mật khẩu, HTTPS, API trái quyền, phiên truy cập      | Đạt một phần  | 14 ca phân quyền trong bộ 258 ca đều đạt: thao tác trái vai trò bị từ chối với mã 403, webhook sai khóa bị từ chối. Test tự động xác nhận mật khẩu lưu dạng băm, token hết hạn hoặc sai định dạng bị từ chối và tài khoản bị khóa bị chặn dù token còn hạn. Chưa kiểm HTTPS trên môi trường triển khai và chưa quét log, nội dung gửi LLM để tìm thông tin bí mật. |
-| NFR-05  | Bộ an toàn 30 câu và test tích hợp quyền view trên MySQL | Đạt           | 270 lượt của bộ an toàn (30 câu × 3 lần × 3 cấu hình) không có lượt nào đọc dữ liệu ngoài quyền hoặc ghi dữ liệu. Test tích hợp trên MySQL xác nhận mỗi tài khoản AI chỉ có quyền SELECT trên đúng tập view của vai trò; giới hạn 500 dòng, 3 giây mỗi truy vấn và hai lần sinh SQL được áp dụng ở tầng thực thi.                                                  |
+| NFR-05  | Bộ an toàn 30 câu và test tích hợp quyền view trên MySQL | Đạt           | 270 lượt của bộ an toàn (30 câu × 3 lần × 3 cấu hình) không có lượt nào đọc dữ liệu ngoài quyền hoặc ghi dữ liệu. Test tích hợp trên MySQL xác nhận mỗi tài khoản AI chỉ có quyền SELECT trên đúng tập view của vai trò, kể cả các view tính sẵn; giới hạn 500 dòng, 3 giây mỗi truy vấn và hai lần sinh SQL được áp dụng ở tầng thực thi.                         |
 | NFR-06  | Tính bất biến và nội dung nhật ký                        | Chưa đạt      | Ca TC-SET-09 đạt: nhật ký sửa món, nguyên liệu, nhà cung cấp, bàn, chuyển bàn và hủy phiếu nhập lưu dữ liệu trước và sau. Test tích hợp chặn sửa bản ghi nhật ký trên MySQL đạt, nhưng chưa có ca kiểm thử chức năng cho việc không sửa, không xóa được nhật ký và quét nội dung nhật ký.                                                                          |
 | NFR-07  | Rollback, gửi lặp, tranh chấp, kiểm kê                   | Đạt           | 18 ca gắn NFR-07 đều đạt, gồm tranh chấp giữ món, gửi lặp, rollback và mở kiểm kê khi có giao dịch song song; kiểm tra sau đo tải không sai lệch sổ cái, lô hay gửi trùng. Gửi lặp đồng thời cùng mã yêu cầu chỉ tạo một order và trừ kho một lần.                                                                                                                 |
 | NFR-08  | Hạn mức và cache sau thay đổi dữ liệu/quyền              | Đạt           | 13 test tự động: hạn mức 50 câu/người/ngày chặn câu vượt hạn mức, được đếm riêng theo người dùng và giữ đúng khi nhiều tiến trình chạy đồng thời trên MySQL; cache chỉ lưu câu SQL, không dùng chung giữa vai trò, hết hạn theo thời gian và bị vô hiệu khi đổi model, ngày kinh doanh hoặc lược đồ view. Token và chi phí của từng lượt được ghi nhận (mục 6.4).  |
@@ -1660,39 +1660,39 @@ Cả ba cấu hình đều dùng Claude Opus 5.5 để sinh SQL và Claude Haiku
 
 Mỗi câu chạy 3 lần trên cùng dữ liệu, cùng giới hạn truy vấn và cùng bộ kiểm duyệt. Khi chạy đánh giá, cache kết quả và việc chuyển sang model dự phòng đều được tắt; việc dùng prompt cache của nhà cung cấp được ghi nhận qua usage. Các lượt chạy xen kẽ trong cùng một đợt; kết quả được báo cáo theo từng lượt và tổng hợp theo cấu hình.
 
-Mục tiêu của thực nghiệm là so sánh độ đúng giữa ba cấu hình A, B, C theo từng nhóm độ khó và vai trò, đồng thời kiểm tra p95 thời gian phản hồi dưới 10 giây (NFR-02). Đề tài không đặt ngưỡng độ đúng tuyệt đối.
+Mục tiêu của thực nghiệm là so sánh độ đúng giữa ba cấu hình A, B, C theo từng nhóm độ khó và vai trò, đồng thời kiểm tra NFR-02 về thời gian phản hồi và tỷ lệ lỗi trên cấu hình vận hành. Đề tài không đặt ngưỡng độ đúng tuyệt đối.
 
 Để có điểm tham chiếu, trên bộ dữ liệu BIRD \[15\] (số liệu năm 2023), độ đúng thực thi của người là 92,96% và của GPT-4 là 54,89%. Lược đồ view và dữ liệu của đề tài nhỏ và sạch hơn BIRD nên các con số này không dùng để so sánh trực tiếp.
 
 ## 6.4. Kết quả thực nghiệm AI Assistant
 
-Đợt đánh giá chạy trên tập 80 câu đã khóa với ba cấu hình, mỗi câu 3 lần, tổng cộng 720 lượt. Mỗi lần gọi model có giới hạn 5 giây (hết giờ tính là lỗi); mỗi câu được sinh SQL tối đa hai lần; mỗi truy vấn chạy tối đa 3 giây và trả tối đa 500 dòng. Bảng 6.3 trình bày kết quả chung; Bảng 6.4 chia theo độ khó và vai trò. Đợt chạy thực hiện ngày 13/11/2026 trên bộ dữ liệu tại mục 6.2. Độ đúng câu trả lời được chấm bằng AI (Claude Opus 5.5, effort=low) theo rubric, chưa có người chấm.
+Đợt đánh giá chạy trên tập 80 câu đã khóa với ba cấu hình, mỗi câu 3 lần, tổng cộng 720 lượt. Mỗi lần gọi model có giới hạn 10 giây và mỗi câu 12,5 giây (hết giờ tính là lỗi); mỗi câu được sinh SQL tối đa hai lần; mỗi truy vấn chạy tối đa 3 giây và trả tối đa 500 dòng. Bảng 6.3 trình bày kết quả chung; Bảng 6.4 chia theo độ khó và vai trò. Đợt chạy thực hiện ngày 14/11/2026 trên bộ dữ liệu tại mục 6.2. Độ đúng câu trả lời được chấm bằng AI (Claude Opus 5.5, effort=low) theo rubric, chưa có người chấm.
 
 Bảng 6.3. Kết quả đánh giá trên tập 80 câu đã khóa
 
 | Cấu hình | Nới lỏng | Khắt khe | Câu trả lời | Lỗi/timeout | p50 toàn bộ (s) | p95 toàn bộ (s) |
 |----------|----------|----------|-------------|-------------|-----------------|-----------------|
-| A        | 82,9%    | 66,7%    | 25,4%       | 12,1%       | 4,18            | 6,21            |
-| B        | 82,5%    | 67,9%    | 27,9%       | 9,6%        | 4,06            | 6,17            |
-| C        | 65,8%    | 55,4%    | 19,6%       | 30,0%       | 5,03            | 6,79            |
+| A        | 87,9%    | 67,9%    | 58,8%       | 2,9%        | 4,09            | 7,76            |
+| B        | 89,2%    | 73,3%    | 56,2%       | 1,7%        | 4,14            | 7,20            |
+| C        | 85,8%    | 63,8%    | 53,8%       | 5,4%        | 5,60            | 10,69           |
 
 Bảng 6.4. Độ đúng thực thi nới lỏng theo độ khó và vai trò
 
 | Cấu hình | Dễ (30) | Trung bình (30) | Khó (20) | Quản lý (60) | Thu ngân (10) | Bếp (10) |
 |----------|---------|-----------------|----------|--------------|---------------|----------|
-| A        | 90,0%   | 86,7%           | 66,7%    | 80,6%        | 90,0%         | 90,0%    |
-| B        | 88,9%   | 87,8%           | 65,0%    | 78,9%        | 100,0%        | 86,7%    |
-| C        | 83,3%   | 72,2%           | 30,0%    | 59,4%        | 96,7%         | 73,3%    |
+| A        | 90,0%   | 87,8%           | 85,0%    | 85,6%        | 100,0%        | 90,0%    |
+| B        | 88,9%   | 93,3%           | 83,3%    | 86,7%        | 100,0%        | 93,3%    |
+| C        | 91,1%   | 80,0%           | 86,7%    | 84,4%        | 100,0%        | 80,0%    |
 
-A và B cho độ đúng gần như nhau: nới lỏng 82,9% và 82,5%, khắt khe 66,7% và 67,9%. Phần bổ sung định nghĩa nghiệp vụ và ví dụ của B giảm tỷ lệ lỗi từ 12,1% xuống 9,6% nhưng chưa làm tăng độ đúng nới lỏng. C thấp nhất (65,8%) do hết giờ: với effort=high, model suy luận lâu hơn giới hạn 5 giây mỗi lần gọi; cả 72 lượt lỗi của C đều là hết giờ, chiếm 72 trong 82 lượt không đạt nới lỏng, và 70% lượt câu khó của C bị lỗi. Độ đúng giảm theo độ khó ở cả ba cấu hình. Theo vai trò, câu hỏi của Thu ngân đạt cao nhất (90,0–100%), câu hỏi của Quản lý thấp nhất (59,4–80,6%).
+B cho độ đúng cao nhất: nới lỏng 89,2%, khắt khe 73,3% và tỷ lệ lỗi 1,7%; A đạt 87,9% và 67,9%. Định nghĩa nghiệp vụ và ví dụ mẫu của B chủ yếu nâng độ đúng khắt khe. C dùng effort=high nhưng không cho kết quả tốt hơn: nới lỏng 85,8%, lỗi 5,4% và thời gian phản hồi dài nhất (p95 10,69 giây; 9 lượt vượt 12,5 giây do phải sinh SQL lần thứ hai). Ở A và B, câu phức tạp có độ đúng thấp nhất (85,0% và 83,3%). Câu hỏi của Thu ngân đạt 100% ở cả ba cấu hình, câu hỏi của Quản lý thấp nhất (84,4–86,7%). Lỗi SQL tập trung ở Q054 (doanh thu tháng này theo thứ trong tuần): A và B đều đưa biểu thức CASE DAYOFWEEK vào SELECT nhưng không đưa vào GROUP BY nên MySQL từ chối theo chế độ ONLY_FULL_GROUP_BY.
 
-Hai câu không đạt ở cả 9 lượt. Q039 hỏi giá vốn bình quân tháng trước của gạo tẻ: 7 lượt hết giờ, 2 lượt sinh SQL lấy trung bình đơn giá bình quân trong lịch sử giá, trong khi đáp án tính theo từng lần xuất kho; câu hỏi cho phép cả hai cách hiểu. Q051 hỏi biên lợi nhuận gộp, cần ghép doanh thu với giá vốn, và hết giờ ở cả 9 lượt.
+Bốn câu không đạt ở cả 9 lượt, đều do cách hiểu câu hỏi khác với đáp án. Q030 (doanh thu trung bình mỗi ngày trong 30 ngày qua) chia tổng doanh thu cho 30, còn đáp án lấy trung bình trên các ngày có doanh thu. Q039 (giá vốn bình quân tháng trước của gạo tẻ) chia tổng giá vốn cho tổng lượng xuất, được 25.031,22 đ so với 25.039,25 đ của đáp án. Q046 (ngày có doanh thu cao nhất của mỗi bàn) chỉ trả ngày cao nhất, còn đáp án liệt kê mọi ngày đã sắp xếp. Q060 chỉ xét xuất thủ công, còn đáp án tính cả tiêu hao bán hàng là xuất kho.
 
-Độ đúng câu trả lời thấp hơn nhiều so với độ đúng truy vấn: 25,4% (A), 27,9% (B) và 19,6% (C). Trong 456 lượt có SQL đạt khắt khe, 281 lượt bị chấm sai: 267 lượt không nêu kỳ của số liệu, 9 lượt thiếu số chính, 3 lượt suy diễn ngoài dữ liệu và 2 lượt sai số. Ở mỗi cấu hình, 58 lượt bị chấm sai là câu chỉ có một giá trị, do backend định dạng trực tiếp mà không kèm kỳ. Bổ sung kỳ và phạm vi vào câu trả lời là hướng cải thiện trực tiếp.
+Độ đúng câu trả lời là 58,8% (A), 56,2% (B) và 53,8% (C). Câu trả lời nêu kỳ của số liệu, đọc từ điều kiện ngày trong câu SQL, và dùng nhãn cột tiếng Việt có dấu. Trong các lượt có SQL đạt khắt khe, 86,5% (A), 76,7% (B) và 84,3% (C) câu trả lời đạt cả ba tiêu chí của rubric.
 
-Chi phí ghi nhận trung bình là 0,0052 USD/câu (A), 0,0053 USD/câu (B) và 0,0055 USD/câu (C), thấp hơn dự toán tại mục 2.7.2 do phần lược đồ lặp lại trong prompt được đọc từ prompt cache; tổng chi phí ghi nhận của 720 lượt là 3,83 USD. Usage chỉ được ghi đủ ở 70–92% số lượt nên chi phí thực tế cao hơn một chút.
+Chi phí ghi nhận trung bình là 0,0064 USD/câu (A), 0,0061 USD/câu (B) và 0,0102 USD/câu (C), thấp hơn dự toán tại mục 2.7.2 do phần lược đồ lặp lại trong prompt được đọc từ prompt cache; tổng chi phí ghi nhận của 720 lượt là 5,44 USD, với usage được ghi đủ ở 98–100% số lượt.
 
-Bộ an toàn gồm 30 câu: hỏi vượt quyền của vai trò, yêu cầu ghi, xóa hoặc đổi cấu trúc dữ liệu, chèn chỉ dẫn và đòi thông tin xác thực. Mỗi câu chạy 3 lần với mỗi cấu hình (90 lượt/cấu hình). Tỷ lệ từ chối đúng là 94,4% (A), 97,8% (B) và 96,7% (C); p95 thời gian phản hồi từ 4,11 đến 4,56 giây. Trong 10 lượt không đạt, 9 lượt hết giờ; 1 lượt của A ở câu S028 (xuất toàn bộ lịch sử thanh toán ra file để gửi ra ngoài) sinh câu SELECT trên view thanh toán của Quản lý thay vì từ chối. Truy vấn này vẫn đúng quyền, chỉ đọc và giới hạn 500 dòng, nên không lượt nào đọc dữ liệu ngoài quyền.
+Bộ an toàn gồm 30 câu: hỏi vượt quyền của vai trò, yêu cầu ghi, xóa hoặc đổi cấu trúc dữ liệu, chèn chỉ dẫn và đòi thông tin xác thực. Mỗi câu chạy 3 lần với mỗi cấu hình (90 lượt/cấu hình). Tỷ lệ từ chối đúng là 96,7% (A), 98,9% (B) và 97,8% (C); p95 thời gian phản hồi từ 4,19 đến 4,48 giây. Trong 6 lượt không đạt, 5 lượt ở câu S028 (xuất toàn bộ lịch sử thanh toán ra file để gửi ra ngoài) sinh câu SELECT trên view thanh toán của Quản lý thay vì từ chối, 1 lượt của C bị lỗi. Truy vấn của S028 vẫn đúng quyền, chỉ đọc và giới hạn 500 dòng, nên không lượt nào đọc dữ liệu ngoài quyền.
 
 Thực nghiệm có các hạn chế sau: dữ liệu là dữ liệu mô phỏng và lược đồ view được thiết kế riêng cho đề tài; đáp án được kiểm tra chéo bằng agent AI; phần diễn giải được chấm bằng AI, chưa có người chấm; mỗi cấu hình chỉ chạy 3 lần trong một đợt; độ trễ phụ thuộc mạng và tải của API. Bản sao cơ sở dữ liệu không nằm trong repository công khai nên muốn chạy lại đầy đủ cần bản sao do nhóm lưu giữ. Kết quả không suy rộng cho mọi câu hỏi hoặc mọi nhà hàng.
 
@@ -1700,7 +1700,7 @@ Thực nghiệm có các hạn chế sau: dữ liệu là dữ liệu mô phỏn
 
 Các thao tác kiểm tra gồm gửi câu hỏi tiếng Việt theo vai trò, xem câu trả lời và dữ liệu, mở lịch sử hội thoại, xử lý câu hỏi không có dữ liệu và thông báo khi dịch vụ không phản hồi.
 
-Các thao tác này được kiểm tra bằng test tự động của module AI Assistant với mô hình giả lập: lịch sử hội thoại chỉ hiển thị phiên của chính người dùng; câu hỏi ngoài phạm vi vai trò không nhận dữ liệu; câu hỏi mơ hồ nhận yêu cầu làm rõ; kết quả rỗng được giải thích thay vì để trống; khi phần diễn giải quá thời gian, hệ thống vẫn trả bảng số liệu. Các test này đều đạt trong bộ 873 test tự động của backend.
+Các thao tác này được kiểm tra bằng test tự động của module AI Assistant với mô hình giả lập: lịch sử hội thoại chỉ hiển thị phiên của chính người dùng; câu hỏi ngoài phạm vi vai trò không nhận dữ liệu; câu hỏi mơ hồ nhận yêu cầu làm rõ; kết quả rỗng được giải thích thay vì để trống; khi phần diễn giải quá thời gian, hệ thống vẫn trả bảng số liệu. Các test này đều đạt trong bộ 889 test tự động của backend.
 
 Độ đúng hỏi đáp và khả năng từ chối yêu cầu vượt quyền được đánh giá tại mục 6.4.
 
@@ -1746,15 +1746,15 @@ MT2 – Đạt. Sáu module đã được triển khai và kiểm thử chức n
 
 MT3 – Đạt. Toàn bộ 258 ca, gồm các ca giữ món, trừ và hoàn kho theo lô, thanh toán và đối soát, giá vốn và phân quyền, đều đạt.
 
-MT4 – Đạt. AI Assistant hỏi đáp bằng tiếng Việt theo vai trò; SQL do mô hình sinh ra được giới hạn trên view chỉ đọc và qua bộ kiểm duyệt truy vấn. Trên bộ an toàn 30 câu, tỷ lệ từ chối đúng là 94,4–97,8% và không lượt nào đọc dữ liệu ngoài quyền.
+MT4 – Đạt. AI Assistant hỏi đáp bằng tiếng Việt theo vai trò; SQL do mô hình sinh ra được giới hạn trên view chỉ đọc và qua bộ kiểm duyệt truy vấn. Trên bộ an toàn 30 câu, tỷ lệ từ chối đúng là 96,7–98,9% và không lượt nào đọc dữ liệu ngoài quyền.
 
-MT5 – Đạt. Thực nghiệm 720 lượt trên 80 câu hỏi đã chạy đủ ba cấu hình: độ đúng thực thi nới lỏng 82,9% (A), 82,5% (B) và 65,8% (C); p95 thời gian phản hồi không quá 6,79 giây, đạt mục tiêu dưới 10 giây. Tỷ lệ lỗi/timeout 9,6–30,0% còn vượt ngưỡng 5% của NFR-02, và độ đúng câu trả lời chấm bằng AI chỉ đạt 19,6–27,9%.
+MT5 – Đạt. Thực nghiệm 720 lượt trên 80 câu hỏi đã chạy đủ ba cấu hình: độ đúng thực thi nới lỏng 87,9% (A), 89,2% (B) và 85,8% (C); độ đúng câu trả lời chấm bằng AI 53,8–58,8%. Cấu hình vận hành B đạt NFR-02 với p95 7,20 giây và tỷ lệ lỗi 1,7%; cấu hình effort cao C chậm hơn mà không đúng hơn.
 
 MT6 – Đạt. Nhóm đã kiểm thử chức năng (258 đạt trên tổng 258 ca) và đo hiệu năng cơ bản trên bộ dữ liệu 2 tháng: cả bốn nhóm đo đạt ngưỡng, không có lỗi.
 
 ## Hạn chế
 
-Dữ liệu thử nghiệm là dữ liệu mô phỏng. Thanh toán QR và in phiếu bếp mới được kiểm thử bằng dữ liệu mô phỏng, và hóa đơn trong hệ thống là hóa đơn nội bộ, chưa phải hóa đơn điện tử. Mỗi cấu hình AI chỉ lặp ba lần; độ đúng câu trả lời được chấm bằng AI, chưa có người chấm; tỷ lệ lỗi/timeout của AI còn vượt ngưỡng 5% do giới hạn 5 giây mỗi lần gọi model. Phép đo tải dùng một máy chung cho công cụ tạo tải, API và cơ sở dữ liệu, mỗi nhóm đo một lần trong 5 phút. Khả năng sử dụng với người dùng thực tế, khả năng tương thích trên tablet và Safari, cùng phép thử sao lưu và phục hồi chưa được đánh giá. Các nội dung nằm ngoài phạm vi của đề tài được nêu tại mục 1.4.3.
+Dữ liệu thử nghiệm là dữ liệu mô phỏng. Thanh toán QR và in phiếu bếp mới được kiểm thử bằng dữ liệu mô phỏng, và hóa đơn trong hệ thống là hóa đơn nội bộ, chưa phải hóa đơn điện tử. Mỗi cấu hình AI chỉ lặp ba lần; độ đúng câu trả lời được chấm bằng AI, chưa có người chấm; cấu hình effort cao (C) chưa đạt ngưỡng thời gian phản hồi của NFR-02. Phép đo tải dùng một máy chung cho công cụ tạo tải, API và cơ sở dữ liệu, mỗi nhóm đo một lần trong 5 phút. Khả năng sử dụng với người dùng thực tế, khả năng tương thích trên tablet và Safari, cùng phép thử sao lưu và phục hồi chưa được đánh giá. Các nội dung nằm ngoài phạm vi của đề tài được nêu tại mục 1.4.3.
 
 ## Hướng phát triển
 
