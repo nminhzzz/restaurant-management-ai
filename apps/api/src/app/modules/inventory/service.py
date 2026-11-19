@@ -858,20 +858,31 @@ async def propose_expiry_write_off(session: AsyncSession) -> StockIssue | None:
     """
     # Serialise with other proposals and stock changes: a second caller waits here, then
     # sees the first voucher, and the stocktake check below cannot race a stocktake opening.
+    # An earlier plain read in this transaction (the business-date schedule, the token's user)
+    # fixes the InnoDB snapshot before the wait, so every read below is a locking read: it
+    # sees what was committed while we waited.
     await lock_stock_operations(session)
     open_id = await session.scalar(
-        select(Stocktake.id).where(Stocktake.status == "Đang kiểm kê").limit(1)
+        select(Stocktake.id).where(Stocktake.status == "Đang kiểm kê").limit(1).with_for_update()
     )
     if open_id is not None:
         return None
     today = business_date.business_date_of(business_date.now())
-    decided_lots = (
-        select(StockIssueLine.lot_id)
-        .join(StockIssue, StockIssue.id == StockIssueLine.issue_id)
-        .where(
-            StockIssue.status.in_([ISSUE_PENDING, ISSUE_REJECTED]),
-            StockIssueLine.lot_id.is_not(None),
+    # Fetched on its own: a subquery inside a locking SELECT is still read from the snapshot.
+    decided_lots = list(
+        (
+            await session.execute(
+                select(StockIssueLine.lot_id)
+                .join(StockIssue, StockIssue.id == StockIssueLine.issue_id)
+                .where(
+                    StockIssue.status.in_([ISSUE_PENDING, ISSUE_REJECTED]),
+                    StockIssueLine.lot_id.is_not(None),
+                )
+                .with_for_update()
+            )
         )
+        .scalars()
+        .all()
     )
     lots = list(
         (
@@ -885,6 +896,8 @@ async def propose_expiry_write_off(session: AsyncSession) -> StockIssue | None:
                     IngredientLot.id.not_in(decided_lots),
                 )
                 .order_by(IngredientLot.ingredient_id, IngredientLot.received_at, IngredientLot.id)
+                .with_for_update()
+                .execution_options(populate_existing=True)
             )
         )
         .scalars()
@@ -952,6 +965,9 @@ async def approve_issue(session: AsyncSession, issue_id: int, actor_id: int) -> 
         .all()
     )
     posted = 0
+    proposed: list[dict[str, object]] = []
+    drawn: list[dict[str, object]] = []
+    dropped: list[int] = []
     for line in lines:
         lot = await session.get(IngredientLot, line.lot_id) if line.lot_id else None
         left = (
@@ -959,11 +975,16 @@ async def approve_issue(session: AsyncSession, issue_id: int, actor_id: int) -> 
             if lot is not None and lot.status != LotStatus.DA_HUY.value
             else Decimal(0)
         )
-        quantity = min(Decimal(str(line.quantity)), left)
+        proposed_quantity = Decimal(str(line.quantity))
+        quantity = min(proposed_quantity, left)
         if lot is None or quantity <= 0:
             # The lot was used up or cancelled since the proposal; nothing is left to destroy.
+            if line.lot_id is not None:
+                dropped.append(line.lot_id)
             await session.delete(line)
             continue
+        proposed.append({"MaLoNguyenLieu": lot.id, "SoLuong": float(proposed_quantity)})
+        drawn.append({"MaLoNguyenLieu": lot.id, "SoLuong": float(quantity)})
         line.quantity = quantity
         line.estimated_cost = movement_value(
             quantity, await current_unit_cost(session, line.ingredient_id)
@@ -996,7 +1017,8 @@ async def approve_issue(session: AsyncSession, issue_id: int, actor_id: int) -> 
             action="APPROVE_STOCK_ISSUE",
             target_entity="PHIEU_XUAT_KHO",
             target_id=str(issue.id),
-            after={"TrangThai": ISSUE_CONFIRMED},
+            before={"TrangThai": ISSUE_PENDING, "lines": proposed},
+            after={"TrangThai": ISSUE_CONFIRMED, "lines": drawn, "MaLoBiBo": dropped},
         )
     )
     await session.flush()

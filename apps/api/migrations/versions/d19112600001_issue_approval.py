@@ -47,6 +47,8 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    # Vouchers already in 'Chờ duyệt' / 'Đã từ chối' keep those statuses: this only drops the
+    # columns, so it is a development rollback, not a production one.
     op.drop_constraint(
         "fk_CHI_TIET_PHIEU_XUAT_MaLoNguyenLieu", "CHI_TIET_PHIEU_XUAT", type_="foreignkey"
     )

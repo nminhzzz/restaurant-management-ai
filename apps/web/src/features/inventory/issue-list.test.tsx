@@ -428,6 +428,77 @@ describe("IssueList", () => {
       nativeConfirm.mockRestore();
     });
 
+    it("reloads the list when approving fails because someone else decided first", async () => {
+      fetchMock.mockImplementation(
+        (path: string, options: { method?: string } = {}) => {
+          if (path.startsWith("/catalog/ingredients")) {
+            return Promise.resolve({ items: ingredients });
+          }
+          if (options.method === "POST") {
+            return Promise.reject(
+              new ApiError(
+                422,
+                "business_rule",
+                "Chỉ duyệt hoặc từ chối phiếu đang chờ duyệt.",
+              ),
+            );
+          }
+          return Promise.resolve({ items: [pending, confirmed], total: 2 });
+        },
+      );
+      render(<IssueList />);
+      const row = (await screen.findByText("#5")).closest("tr")!;
+      const before = listLoads();
+
+      fireEvent.click(within(row).getByRole("button", { name: "Duyệt" }));
+      fireEvent.click(
+        await screen.findByRole("button", { name: "Duyệt phiếu" }),
+      );
+
+      await vi.waitFor(() =>
+        expect(fetchMock).toHaveBeenCalledWith("/inventory/issues/5/approve", {
+          method: "POST",
+        }),
+      );
+      await vi.waitFor(() => expect(listLoads()).toBeGreaterThan(before));
+    });
+
+    it("reloads the list when rejecting fails because someone else decided first", async () => {
+      fetchMock.mockImplementation(
+        (path: string, options: { method?: string } = {}) => {
+          if (path.startsWith("/catalog/ingredients")) {
+            return Promise.resolve({ items: ingredients });
+          }
+          if (options.method === "POST") {
+            return Promise.reject(
+              new ApiError(
+                422,
+                "business_rule",
+                "Chỉ duyệt hoặc từ chối phiếu đang chờ duyệt.",
+              ),
+            );
+          }
+          return Promise.resolve({ items: [pending, confirmed], total: 2 });
+        },
+      );
+      render(<IssueList />);
+      const row = (await screen.findByText("#5")).closest("tr")!;
+      const before = listLoads();
+
+      fireEvent.click(within(row).getByRole("button", { name: "Từ chối" }));
+      fireEvent.click(
+        await screen.findByRole("button", { name: "Từ chối phiếu" }),
+      );
+
+      await vi.waitFor(() =>
+        expect(fetchMock).toHaveBeenCalledWith("/inventory/issues/5/reject", {
+          method: "POST",
+          body: {},
+        }),
+      );
+      await vi.waitFor(() => expect(listLoads()).toBeGreaterThan(before));
+    });
+
     it("rejects with the optional reason typed in a dialog, then reloads", async () => {
       serve();
       render(<IssueList />);

@@ -35,6 +35,7 @@ type IssueDetail = {
   MaPhieuKiemKe: number | null;
   GhiChu: string | null;
   NguoiLap: number | null;
+  TenNguoiLap: string | null;
   TenNguoiDuyet: string | null;
   NgayDuyet: string | null;
   lines: {
@@ -84,12 +85,12 @@ export function IssueDetailDialog({
               <dd>{formatDateTime(detail.data.NgayTao)}</dd>
               <dt className="text-muted">Trạng thái</dt>
               <dd>{detail.data.TrangThai}</dd>
-              {detail.data.NguoiLap === null && (
-                <>
-                  <dt className="text-muted">Người lập</dt>
-                  <dd>Hệ thống</dd>
-                </>
-              )}
+              <dt className="text-muted">Người lập</dt>
+              <dd>
+                {detail.data.NguoiLap === null
+                  ? "Hệ thống"
+                  : (detail.data.TenNguoiLap ?? `#${detail.data.NguoiLap}`)}
+              </dd>
               {detail.data.TenNguoiDuyet && (
                 <>
                   <dt className="text-muted">Người duyệt</dt>

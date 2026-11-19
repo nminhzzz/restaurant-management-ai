@@ -783,10 +783,9 @@ export function IssueList() {
         }),
       "Đã duyệt phiếu xuất.",
     );
-    if (result !== undefined) {
-      setApproveTarget(null);
-      issues.reload();
-    }
+    if (result !== undefined) setApproveTarget(null);
+    // Also after a failure: someone else may already have decided it, so the row is stale.
+    issues.reload();
   }
 
   async function reject(reason: string) {
@@ -799,10 +798,8 @@ export function IssueList() {
         }),
       "Đã từ chối phiếu xuất.",
     );
-    if (result !== undefined) {
-      setRejectTarget(null);
-      issues.reload();
-    }
+    if (result !== undefined) setRejectTarget(null);
+    issues.reload();
   }
 
   const filtersActive =

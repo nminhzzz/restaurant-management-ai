@@ -19,6 +19,7 @@ const base = {
   MaPhieuKiemKe: null,
   GhiChu: "Hệ thống đề xuất hủy các lô đã quá hạn sử dụng.",
   NguoiLap: null,
+  TenNguoiLap: null,
   NguoiDuyet: null,
   TenNguoiDuyet: null,
   NgayDuyet: null,
@@ -70,16 +71,20 @@ describe("IssueDetailDialog", () => {
     ).toHaveTextContent(/09:30.*19\/11\/2026/);
   });
 
-  it("does not claim the system wrote a manual voucher, and tolerates a lot-less line", async () => {
+  it("names the staff member who wrote a manual voucher, and tolerates a lot-less line", async () => {
     fetchMock.mockResolvedValue({
       ...base,
       NguoiLap: 2,
+      TenNguoiLap: "Thu ngân A",
       TrangThai: "Đã xác nhận",
       lines: [{ ...base.lines[0], MaLoNguyenLieu: null, HanSuDung: null }],
     });
     render(<IssueDetailDialog issueId={5} onClose={() => {}} />);
 
     expect(await screen.findByText("Thịt bò (kg)")).toBeInTheDocument();
+    expect(screen.getByText("Người lập").nextElementSibling).toHaveTextContent(
+      "Thu ngân A",
+    );
     expect(screen.queryByText("Hệ thống")).not.toBeInTheDocument();
   });
 });

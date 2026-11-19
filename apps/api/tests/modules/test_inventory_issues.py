@@ -1053,6 +1053,7 @@ async def test_proposed_issue_detail_shows_lot_and_expiry(session):
     detail = (await client.get(f"/api/v1/inventory/issues/{issue_id}", headers=kitchen)).json()
 
     assert detail["NguoiLap"] is None
+    assert detail["TenNguoiLap"] is None
     assert detail["TenNguoiDuyet"] is None
     assert detail["NgayDuyet"] is None
     [line] = detail["lines"]
@@ -1084,12 +1085,14 @@ async def test_tick_proposes_once_and_survives_a_proposal_failure(
     from sqlalchemy import select as sel
 
     from app.modules.inventory import lot_status, service
-    from app.modules.inventory.models import StockIssue
+    from app.modules.inventory.models import IngredientLot, StockIssue
 
     ing = await _ingredient(session)
     client = await _make_client(session)
     kitchen, *_ = await _roles(session)
-    await _expired_lot(session, client, kitchen, ing, 4)
+    lot = await _expired_lot(session, client, kitchen, ing, 4)
+    lot_id = lot.id
+    assert lot.status != "Hết hạn"
 
     async def boom(_session):
         raise RuntimeError("proposal failed")
@@ -1097,6 +1100,10 @@ async def test_tick_proposes_once_and_survives_a_proposal_failure(
     with monkeypatch.context() as patched:
         patched.setattr(service, "propose_expiry_write_off", boom)
         await lot_status.lot_status_tick(factory=session_factory)  # must not raise
+
+    session.expire_all()
+    # The status refresh committed even though the proposal step failed.
+    assert (await session.get(IngredientLot, lot_id)).status == "Hết hạn"
 
     await lot_status.lot_status_tick(factory=session_factory)
     await lot_status.lot_status_tick(factory=session_factory)  # idempotent
@@ -1132,16 +1139,139 @@ async def test_waste_counts_in_the_month_the_proposal_was_approved(session, monk
 
 
 @pytest.mark.anyio
-async def test_proposal_takes_the_stock_operations_lock(session, monkeypatch):
-    from app.modules.inventory import service
+async def test_proposal_skips_cancelled_undated_and_empty_lots(session):
+    from sqlalchemy import select as sel
 
-    calls = []
-    real = service.lock_stock_operations
+    from app.modules.inventory.models import IngredientLot, StockIssueLine
 
-    async def spy(s):
-        calls.append(1)
-        await real(s)
+    ing = await _ingredient(session)
+    client = await _make_client(session)
+    kitchen, *_ = await _roles(session)
+    cancelled = await _expired_lot(session, client, kitchen, ing, 1)
+    undated = await _expired_lot(session, client, kitchen, ing, 2)
+    empty = await _expired_lot(session, client, kitchen, ing, 3)
+    proposed = await _expired_lot(session, client, kitchen, ing, 4)
+    cancelled.status = "Đã hủy"
+    undated.expiry_date = None
+    empty.quantity_remaining = 0
+    proposed_id = proposed.id
+    await session.commit()
 
-    monkeypatch.setattr(service, "lock_stock_operations", spy)
-    assert await service.propose_expiry_write_off(session) is None
-    assert calls == [1]
+    issue_id = await _propose(client, kitchen)
+
+    lines = (
+        (await session.execute(sel(StockIssueLine).where(StockIssueLine.issue_id == issue_id)))
+        .scalars()
+        .all()
+    )
+    assert [ln.lot_id for ln in lines] == [proposed_id]
+    assert await session.get(IngredientLot, proposed_id) is not None
+
+
+@pytest.mark.anyio
+async def test_mixed_approval_drops_the_emptied_line_and_draws_the_other(session):
+    from sqlalchemy import select as sel
+
+    from app.modules.inventory.models import StockIssue, StockIssueLine
+
+    ing = await _ingredient(session)
+    other_ing = await _ingredient(session, "Cá")
+    client = await _make_client(session)
+    kitchen, *_ = await _roles(session)
+    emptied_id = (await _expired_lot(session, client, kitchen, ing, 5)).id
+    other_id = (await _expired_lot(session, client, kitchen, other_ing, 2)).id
+    ing_id, other_ing_id = ing.id, other_ing.id
+    issue_id = await _propose(client, kitchen)
+    r = await client.post(
+        "/api/v1/inventory/issues",
+        json={
+            "reason": "Hết hạn",
+            "lines": [{"ingredient_id": ing_id, "quantity": 5, "lot_id": emptied_id}],
+        },
+        headers=kitchen,
+    )
+    assert r.status_code == 201, r.text
+
+    r = await client.post(f"/api/v1/inventory/issues/{issue_id}/approve", headers=kitchen)
+
+    assert r.status_code == 200, r.text
+    session.expire_all()
+    assert (await session.get(StockIssue, issue_id)).status == "Đã xác nhận"
+    lines = (
+        (await session.execute(sel(StockIssueLine).where(StockIssueLine.issue_id == issue_id)))
+        .scalars()
+        .all()
+    )
+    assert [(ln.ingredient_id, ln.lot_id, float(ln.quantity)) for ln in lines] == [
+        (other_ing_id, other_id, 2.0)
+    ]
+
+
+@pytest.mark.anyio
+async def test_approval_audit_records_proposed_and_drawn_quantities(session):
+    from sqlalchemy import select as sel
+
+    from app.shared.audit import SystemAuditLog
+
+    ing = await _ingredient(session)
+    other_ing = await _ingredient(session, "Cá")
+    client = await _make_client(session)
+    kitchen, *_ = await _roles(session)
+    partial_id = (await _expired_lot(session, client, kitchen, ing, 5)).id
+    emptied_id = (await _expired_lot(session, client, kitchen, other_ing, 2)).id
+    ing_id, other_ing_id = ing.id, other_ing.id
+    issue_id = await _propose(client, kitchen)
+    for ingredient_id, quantity, lot_id in (
+        (ing_id, 3, partial_id),
+        (other_ing_id, 2, emptied_id),
+    ):
+        r = await client.post(
+            "/api/v1/inventory/issues",
+            json={
+                "reason": "Hết hạn",
+                "lines": [{"ingredient_id": ingredient_id, "quantity": quantity, "lot_id": lot_id}],
+            },
+            headers=kitchen,
+        )
+        assert r.status_code == 201, r.text
+
+    r = await client.post(f"/api/v1/inventory/issues/{issue_id}/approve", headers=kitchen)
+
+    assert r.status_code == 200, r.text
+    log = (
+        await session.execute(
+            sel(SystemAuditLog).where(
+                SystemAuditLog.action == "APPROVE_STOCK_ISSUE",
+                SystemAuditLog.target_id == str(issue_id),
+            )
+        )
+    ).scalar_one()
+    assert log.before["TrangThai"] == "Chờ duyệt"
+    assert sorted((ln["MaLoNguyenLieu"], ln["SoLuong"]) for ln in log.before["lines"]) == [
+        (partial_id, 5.0)
+    ]
+    assert log.after["TrangThai"] == "Đã xác nhận"
+    assert [(ln["MaLoNguyenLieu"], ln["SoLuong"]) for ln in log.after["lines"]] == [
+        (partial_id, 2.0)
+    ]
+    assert log.after["MaLoBiBo"] == [emptied_id]
+
+
+@pytest.mark.anyio
+async def test_manual_issue_detail_returns_the_creator_name(session):
+    ing = await _ingredient(session)
+    client = await _make_client(session)
+    kitchen, kitchen_user, *_ = await _roles(session)
+    await _receipt(session, client, kitchen, ing, 5)
+    created = await client.post(
+        "/api/v1/inventory/issues",
+        json={"reason": "Hao hụt", "lines": [{"ingredient_id": ing.id, "quantity": 1}]},
+        headers=kitchen,
+    )
+    assert created.status_code == 201, created.text
+    issue_id = created.json()["MaPhieuXuat"]
+
+    detail = (await client.get(f"/api/v1/inventory/issues/{issue_id}", headers=kitchen)).json()
+
+    assert detail["NguoiLap"] == kitchen_user.id
+    assert detail["TenNguoiLap"] == kitchen_user.full_name

@@ -495,6 +495,7 @@ async def get_issue(
         "TrangThai": issue.status,
         "NgayTao": issue.created_at.isoformat() if issue.created_at else None,
         "NguoiLap": issue.created_by,
+        "TenNguoiLap": await _user_name(session, issue.created_by),
         "MaPhieuKiemKe": issue.stocktake_id,
         "Nguon": issue.source,
         "GhiChu": issue.note,

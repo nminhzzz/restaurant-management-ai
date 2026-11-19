@@ -1,6 +1,6 @@
 """Races that only a real MySQL can show: SQLite ignores `SELECT ... FOR UPDATE`.
 
-Both cases need a migrated, disposable MySQL database with no dishes waiting in the kitchen
+All cases need a migrated, disposable MySQL database with no dishes waiting in the kitchen
 and no unsent selections (a stocktake cannot open otherwise):
 
     MYSQL_TEST_DATABASE_URL=mysql+asyncmy://.../restaurant_test pytest -m integration \
@@ -10,11 +10,12 @@ and no unsent selections (a stocktake cannot open otherwise):
 import asyncio
 import os
 from contextlib import asynccontextmanager
+from datetime import timedelta
 from decimal import Decimal
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import create_async_engine
 
@@ -23,9 +24,10 @@ from app.core.errors import BusinessRuleError
 from app.modules.catalog import service as catalog
 from app.modules.catalog.models import DiningTable, Ingredient
 from app.modules.inventory import service as inventory
-from app.modules.inventory.models import Stocktake
+from app.modules.inventory.models import IngredientLot, StockIssue, StockIssueLine, Stocktake
 from app.modules.sales import orders
 from app.modules.settings import service as settings
+from app.shared import business_date
 from app.shared.roles import Role
 
 pytestmark = pytest.mark.integration
@@ -33,6 +35,7 @@ pytestmark = pytest.mark.integration
 DISPOSABLE_PREFIXES = ("restaurant_test", "restaurant_acceptance", "restaurant_verify")
 SEND_ROUNDS = 20
 STOCKTAKE_ROUNDS = 100
+PROPOSAL_ROUNDS = 20
 
 
 @asynccontextmanager
@@ -223,3 +226,86 @@ async def test_a_receipt_racing_a_stocktake_is_either_counted_or_refused():
             async with factory() as session:
                 assert (await session.get(Stocktake, stocktake_id)).status == "Đã xác nhận"
         assert sum(outcomes.values()) == STOCKTAKE_ROUNDS
+
+
+@pytest.mark.asyncio
+async def test_two_concurrent_expiry_proposals_make_one_voucher_per_lot():
+    """Both callers read before either proposes, so each InnoDB snapshot predates the lock wait."""
+    async with _application_on_test_database() as factory:
+        await _reference_data(factory)
+        tag = uuid4().hex[:8]
+        async with factory() as session:
+            ingredient_id = (
+                await catalog.create_ingredient(session, None, f"NL hết hạn {tag}", "g", 0, None)
+            ).id
+            keeper_id = (
+                await settings.create_user(
+                    session, None, f"bep_{tag}", "mat-khau-thu", "Bếp", None, Role.WAREHOUSE
+                )
+            ).id
+            await session.commit()
+
+        async def expired_lot() -> int:
+            async with factory() as session:
+                await inventory.create_receipt(
+                    session,
+                    keeper_id,
+                    None,
+                    None,
+                    [{"ingredient_id": ingredient_id, "quantity": 1, "unit_price": 1000}],
+                )
+                lot = (
+                    await session.execute(
+                        select(IngredientLot)
+                        .where(IngredientLot.ingredient_id == ingredient_id)
+                        .order_by(IngredientLot.id.desc())
+                        .limit(1)
+                    )
+                ).scalar_one()
+                today = business_date.business_date_of(business_date.now())
+                lot.expiry_date = today - timedelta(days=2)
+                await session.commit()
+                return lot.id
+
+        async def propose(barrier: asyncio.Barrier) -> int | None:
+            async with factory() as session:
+                # The schedule read is what the real tick does first; it opens the snapshot.
+                schedule = await business_date.load_business_date_schedule(session)
+                await barrier.wait()
+                with business_date.business_date_schedule(schedule):
+                    issue = await inventory.propose_expiry_write_off(session)
+                await session.commit()
+                return None if issue is None else issue.id
+
+        proposed: list[int] = []
+        try:
+            for _ in range(PROPOSAL_ROUNDS):
+                lot_id = await expired_lot()
+                barrier = asyncio.Barrier(2)
+                results = await asyncio.gather(propose(barrier), propose(barrier))
+                proposed.extend(issue_id for issue_id in results if issue_id is not None)
+                async with factory() as session:
+                    waiting = (
+                        await session.execute(
+                            select(func.count(func.distinct(StockIssue.id)))
+                            .join(StockIssueLine, StockIssueLine.issue_id == StockIssue.id)
+                            .where(
+                                StockIssueLine.lot_id == lot_id,
+                                StockIssue.status == "Chờ duyệt",
+                            )
+                        )
+                    ).scalar_one()
+                assert waiting == 1, f"lot {lot_id}: {results}"
+                # A rejection is final for the lot, so the next round starts from a clean slate.
+                async with factory() as session:
+                    for issue_id in {i for i in results if i is not None}:
+                        await inventory.reject_issue(session, issue_id, keeper_id)
+                    await session.commit()
+        finally:
+            # Leave no proposal waiting for approval on the shared test database.
+            async with factory() as session:
+                for issue_id in proposed:
+                    issue = await session.get(StockIssue, issue_id)
+                    if issue is not None and issue.status == "Chờ duyệt":
+                        await inventory.reject_issue(session, issue_id, keeper_id)
+                await session.commit()
