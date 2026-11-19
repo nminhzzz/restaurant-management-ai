@@ -1,0 +1,567 @@
+diff --git a/apps/api/migrations/versions/d19112600001_issue_approval.py b/apps/api/migrations/versions/d19112600001_issue_approval.py
+new file mode 100644
+index 0000000..0bb5373
+--- /dev/null
++++ b/apps/api/migrations/versions/d19112600001_issue_approval.py
+@@ -0,0 +1,56 @@
++"""A system-proposed write-off waits for approval (supervisor review 2026-11-19).
++
++The system proposes a voucher for expired lots in 'Chờ duyệt'; it moves no stock until a
++manager or the kitchen approves it ('Đã xác nhận') or rejects it ('Đã từ chối'). The voucher
++keeps who decided and when, and each proposed line keeps the lot it will draw.
++
++Revision ID: d19112600001
++Revises: d13112600001
++"""
++
++from collections.abc import Sequence
++
++import sqlalchemy as sa
++from alembic import op
++from sqlalchemy.dialects import mysql
++
++revision: str = "d19112600001"
++down_revision: str | None = "d13112600001"
++branch_labels: str | Sequence[str] | None = None
++depends_on: str | Sequence[str] | None = None
++
++
++def upgrade() -> None:
++    op.add_column("PHIEU_XUAT_KHO", sa.Column("NguoiDuyet", sa.BigInteger(), nullable=True))
++    op.add_column("PHIEU_XUAT_KHO", sa.Column("NgayDuyet", mysql.DATETIME(fsp=3), nullable=True))
++    op.create_foreign_key(
++        "fk_PHIEU_XUAT_KHO_NguoiDuyet",
++        "PHIEU_XUAT_KHO",
++        "NGUOI_DUNG",
++        ["NguoiDuyet"],
++        ["MaNguoiDung"],
++        ondelete="RESTRICT",
++        onupdate="RESTRICT",
++    )
++    op.add_column(
++        "CHI_TIET_PHIEU_XUAT", sa.Column("MaLoNguyenLieu", sa.BigInteger(), nullable=True)
++    )
++    op.create_foreign_key(
++        "fk_CHI_TIET_PHIEU_XUAT_MaLoNguyenLieu",
++        "CHI_TIET_PHIEU_XUAT",
++        "LO_NGUYEN_LIEU",
++        ["MaLoNguyenLieu"],
++        ["MaLoNguyenLieu"],
++        ondelete="RESTRICT",
++        onupdate="RESTRICT",
++    )
++
++
++def downgrade() -> None:
++    op.drop_constraint(
++        "fk_CHI_TIET_PHIEU_XUAT_MaLoNguyenLieu", "CHI_TIET_PHIEU_XUAT", type_="foreignkey"
++    )
++    op.drop_column("CHI_TIET_PHIEU_XUAT", "MaLoNguyenLieu")
++    op.drop_constraint("fk_PHIEU_XUAT_KHO_NguoiDuyet", "PHIEU_XUAT_KHO", type_="foreignkey")
++    op.drop_column("PHIEU_XUAT_KHO", "NgayDuyet")
++    op.drop_column("PHIEU_XUAT_KHO", "NguoiDuyet")
+diff --git a/apps/api/src/app/modules/inventory/models.py b/apps/api/src/app/modules/inventory/models.py
+index ca3b6c4..571b5cd 100644
+--- a/apps/api/src/app/modules/inventory/models.py
++++ b/apps/api/src/app/modules/inventory/models.py
+@@ -142,6 +142,15 @@ class StockIssue(Base):
+         nullable=True,
+     )
+     note: Mapped[str | None] = mapped_column("GhiChu", String(500), nullable=True)
++    # A voucher the system proposes (expired lots) waits in "Chờ duyệt" until a manager or the
++    # kitchen approves or rejects it; who decided and when are kept on the voucher.
++    approved_by: Mapped[int | None] = mapped_column(
++        "NguoiDuyet",
++        BigInteger,
++        ForeignKey("NGUOI_DUNG.MaNguoiDung", ondelete="RESTRICT", onupdate="RESTRICT"),
++        nullable=True,
++    )
++    approved_at: Mapped[datetime | None] = mapped_column("NgayDuyet", DateTime3, nullable=True)
+     stocktake_id: Mapped[int | None] = mapped_column(
+         "MaPhieuKiemKe",
+         BigInteger,
+@@ -188,6 +197,12 @@ class StockIssueLine(Base):
+         nullable=True,
+     )
+     servings: Mapped[int | None] = mapped_column("SoSuatHuy", Integer, nullable=True)
++    # The lot a proposed expiry write-off will draw once approved.
++    lot_id: Mapped[int | None] = mapped_column(
++        "MaLoNguyenLieu",
++        ForeignKey("LO_NGUYEN_LIEU.MaLoNguyenLieu", ondelete="RESTRICT", onupdate="RESTRICT"),
++        nullable=True,
++    )
+     __table_args__ = (CheckConstraint("SoLuong > 0", name="quantity_positive"),)
+ 
+ 
+diff --git a/apps/api/src/app/modules/inventory/queries.py b/apps/api/src/app/modules/inventory/queries.py
+index 32968c2..902444d 100644
+--- a/apps/api/src/app/modules/inventory/queries.py
++++ b/apps/api/src/app/modules/inventory/queries.py
+@@ -195,6 +195,7 @@ async def list_lots(
+     status: str | None = None,
+     page: int = 1,
+     page_size: int = 20,
++    in_stock: bool = False,
+ ) -> tuple[list[dict], int]:
+     moment = business_date.now()
+     today = business_date.business_date_of(moment)
+@@ -219,6 +220,12 @@ async def list_lots(
+         statement = statement.where(IngredientLot.ingredient_id == ingredient_id)
+     if status:
+         statement = statement.where(state == status)
++    if in_stock:
++        # The lots that make up the book stock (SoLuongTon): something left and not cancelled,
++        # expired ones included, so a stocktake can reconcile them with the system quantity.
++        statement = statement.where(
++            remaining > 0, IngredientLot.status != LotStatus.DA_HUY.value
++        )
+     total = int(
+         (await session.execute(select(func.count()).select_from(statement.subquery()))).scalar_one()
+     )
+diff --git a/apps/api/src/app/modules/inventory/router.py b/apps/api/src/app/modules/inventory/router.py
+index 7c36103..f7488c5 100644
+--- a/apps/api/src/app/modules/inventory/router.py
++++ b/apps/api/src/app/modules/inventory/router.py
+@@ -161,6 +161,49 @@ async def create_issue(
+     return {"MaPhieuXuat": iss.id}
+ 
+ 
++async def _user_name(session: AsyncSession, user_id: int | None) -> str | None:
++    if user_id is None:
++        return None
++    from app.modules.settings.models import User
++
++    return await session.scalar(select(User.full_name).where(User.id == user_id))
++
++
++@router.post("/issues/propose-expired")
++async def propose_expired_issue(
++    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
++    session: AsyncSession = Depends(get_session),
++):
++    """Propose now what the schedule would: one voucher for the expired lots, waiting."""
++    issue = await svc.propose_expiry_write_off(session)
++    await session.commit()
++    return {"MaPhieuXuat": issue.id if issue else None}
++
++
++@router.post("/issues/{issue_id}/approve")
++async def approve_issue(
++    issue_id: int,
++    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
++    session: AsyncSession = Depends(get_session),
++):
++    """A manager or the kitchen posts a proposed write-off; the approver is recorded."""
++    issue = await svc.approve_issue(session, issue_id, user.user_id)
++    await session.commit()
++    return {"MaPhieuXuat": issue.id, "TrangThai": issue.status}
++
++
++@router.post("/issues/{issue_id}/reject")
++async def reject_issue(
++    issue_id: int,
++    payload: IssueReject,
++    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
++    session: AsyncSession = Depends(get_session),
++):
++    issue = await svc.reject_issue(session, issue_id, user.user_id, payload.note)
++    await session.commit()
++    return {"MaPhieuXuat": issue.id, "TrangThai": issue.status}
++
++
+ @router.post("/issues/preview")
+ async def preview_issue(
+     payload: IssueCreate,
+@@ -317,6 +360,7 @@ async def list_issues(
+     reason: str | None = None,
+     date_from: date | None = None,
+     date_to: date | None = None,
++    status: str | None = None,
+     user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+     session: AsyncSession = Depends(get_session),
+ ):
+@@ -329,6 +373,7 @@ async def list_issues(
+         reason=reason,
+         date_from=date_from,
+         date_to=date_to,
++        status=status,
+     )
+     from app.modules.inventory.models import StockIssueLine
+ 
+@@ -357,6 +402,8 @@ async def list_issues(
+                 "MaPhieuKiemKe": r.stocktake_id,
+                 "Nguon": r.source,
+                 "GhiChu": r.note,
++                "NguoiDuyet": r.approved_by,
++                "NgayDuyet": r.approved_at.isoformat() if r.approved_at else None,
+                 "TongSoLuong": totals.get(r.id, (0.0, 0))[0],
+                 "SoDong": totals.get(r.id, (0.0, 0))[1],
+             }
+@@ -424,6 +471,9 @@ async def get_issue(
+         "MaPhieuKiemKe": issue.stocktake_id,
+         "Nguon": issue.source,
+         "GhiChu": issue.note,
++        "NguoiDuyet": issue.approved_by,
++        "TenNguoiDuyet": await _user_name(session, issue.approved_by),
++        "NgayDuyet": issue.approved_at.isoformat() if issue.approved_at else None,
+         "lines": [
+             {
+                 "MaChiTietXuat": line.id,
+@@ -440,7 +490,7 @@ async def get_issue(
+                         for movement in movements
+                         if movement.issue_line_id == line.id
+                     ),
+-                    None,
++                    line.lot_id,
+                 ),
+                 "MaChiTietOrder": line.order_line_id,
+                 "SoSuat": line.servings,
+@@ -454,6 +504,7 @@ async def get_issue(
+ async def list_lots(
+     ingredient_id: int | None = None,
+     status: str | None = None,
++    in_stock: bool = False,
+     page: int = 1,
+     page_size: int = 20,
+     user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+@@ -461,7 +512,12 @@ async def list_lots(
+ ):
+     page, page_size = max(1, page), min(max(1, page_size), 100)
+     items, total = await queries.list_lots(
+-        session, ingredient_id=ingredient_id, status=status, page=page, page_size=page_size
++        session,
++        ingredient_id=ingredient_id,
++        status=status,
++        page=page,
++        page_size=page_size,
++        in_stock=in_stock,
+     )
+     return {"items": items, "total": total, "page": page, "page_size": page_size}
+ 
+diff --git a/apps/api/src/app/modules/inventory/service.py b/apps/api/src/app/modules/inventory/service.py
+index 0c27cbc..64815f6 100644
+--- a/apps/api/src/app/modules/inventory/service.py
++++ b/apps/api/src/app/modules/inventory/service.py
+@@ -818,10 +818,13 @@ async def list_issues(
+     reason: str | None = None,
+     date_from: date | None = None,
+     date_to: date | None = None,
++    status: str | None = None,
+ ) -> tuple[list[StockIssue], int]:
+     filters = []
+     if reason is not None:
+         filters.append(StockIssue.reason == reason)
++    if status is not None:
++        filters.append(StockIssue.status == status)
+     if date_from is not None:
+         filters.append(func.date(StockIssue.created_at) >= date_from)
+     if date_to is not None:
+@@ -838,6 +841,186 @@ async def list_issues(
+     return list(r.scalars().all()), total
+ 
+ 
++# Proposed expiry write-offs (supervisor review 2026-11-19)
++ISSUE_PENDING = "Chờ duyệt"
++ISSUE_CONFIRMED = "Đã xác nhận"
++ISSUE_REJECTED = "Đã từ chối"
++EXPIRY_REASON = "Hết hạn"
++
++
++async def propose_expiry_write_off(session: AsyncSession) -> StockIssue | None:
++    """Propose one voucher for the expired lots that still hold stock; it moves nothing.
++
++    A lot already on a voucher waiting for approval is left out, so running this again
++    (the schedule, or the button) never proposes the same lot twice. Nothing is proposed
++    while a stocktake is open, since the count may change what is left.
++    """
++    open_id = await session.scalar(
++        select(Stocktake.id).where(Stocktake.status == "Đang kiểm kê").limit(1)
++    )
++    if open_id is not None:
++        return None
++    today = business_date.business_date_of(business_date.now())
++    pending_lots = (
++        select(StockIssueLine.lot_id)
++        .join(StockIssue, StockIssue.id == StockIssueLine.issue_id)
++        .where(StockIssue.status == ISSUE_PENDING, StockIssueLine.lot_id.is_not(None))
++    )
++    lots = list(
++        (
++            await session.execute(
++                select(IngredientLot)
++                .where(
++                    IngredientLot.status != LotStatus.DA_HUY.value,
++                    IngredientLot.quantity_remaining > 0,
++                    IngredientLot.expiry_date.is_not(None),
++                    IngredientLot.expiry_date < today,
++                    IngredientLot.id.not_in(pending_lots),
++                )
++                .order_by(IngredientLot.ingredient_id, IngredientLot.received_at, IngredientLot.id)
++            )
++        )
++        .scalars()
++        .all()
++    )
++    if not lots:
++        return None
++    issue = StockIssue(
++        reason=EXPIRY_REASON,
++        status=ISSUE_PENDING,
++        created_at=business_date.now(),
++        issue_date=None,
++        created_by=None,
++        source="Nguyên liệu",
++        note="Hệ thống đề xuất hủy các lô đã quá hạn sử dụng.",
++    )
++    session.add(issue)
++    await session.flush()
++    for lot in lots:
++        session.add(
++            StockIssueLine(
++                issue_id=issue.id,
++                ingredient_id=lot.ingredient_id,
++                quantity=Decimal(str(lot.quantity_remaining)),
++                lot_id=lot.id,
++            )
++        )
++    session.add(
++        SystemAuditLog(
++            user_id=None,
++            action="PROPOSE_EXPIRY_WRITE_OFF",
++            target_entity="PHIEU_XUAT_KHO",
++            target_id=str(issue.id),
++            after={"MaLoNguyenLieu": [lot.id for lot in lots]},
++        )
++    )
++    await session.flush()
++    return issue
++
++
++async def _pending_issue(session: AsyncSession, issue_id: int) -> StockIssue:
++    issue = (
++        await session.execute(
++            select(StockIssue).where(StockIssue.id == issue_id).with_for_update()
++        )
++    ).scalar_one_or_none()
++    if issue is None:
++        raise NotFoundError("Không tìm thấy phiếu xuất kho.")
++    if issue.status != ISSUE_PENDING:
++        raise BusinessRuleError("Chỉ duyệt hoặc từ chối phiếu đang chờ duyệt.")
++    return issue
++
++
++async def approve_issue(session: AsyncSession, issue_id: int, actor_id: int) -> StockIssue:
++    """Post a proposed write-off: each line draws its own lot, up to what the lot still holds."""
++    await ensure_no_open_stocktake(session)
++    issue = await _pending_issue(session, issue_id)
++    lines = list(
++        (
++            await session.execute(
++                select(StockIssueLine)
++                .where(StockIssueLine.issue_id == issue.id)
++                .order_by(StockIssueLine.id)
++            )
++        )
++        .scalars()
++        .all()
++    )
++    posted = 0
++    for line in lines:
++        lot = await session.get(IngredientLot, line.lot_id) if line.lot_id else None
++        left = (
++            Decimal(0)
++            if lot is None or lot.status == LotStatus.DA_HUY.value
++            else Decimal(str(lot.quantity_remaining))
++        )
++        quantity = min(Decimal(str(line.quantity)), left)
++        if quantity <= 0:
++            # The lot was used up or cancelled since the proposal; nothing is left to destroy.
++            await session.delete(line)
++            continue
++        line.quantity = quantity
++        line.estimated_cost = movement_value(
++            quantity, await current_unit_cost(session, line.ingredient_id)
++        )
++        await session.flush()
++        await apply_stock_movement(
++            session,
++            StockChange(
++                ingredient_id=line.ingredient_id,
++                delta=-quantity,
++                kind="Xuất thủ công",
++                allow_expired=True,
++                business_date=_bd(),
++                source_issue_line_id=line.id,
++                lot_ids=[line.lot_id],
++            ),
++            actor_id=actor_id,
++        )
++        posted += 1
++    if posted == 0:
++        raise BusinessRuleError("Các lô trong phiếu không còn hàng; hãy từ chối phiếu này.")
++    moment = business_date.now()
++    issue.status = ISSUE_CONFIRMED
++    issue.approved_by = actor_id
++    issue.approved_at = moment
++    issue.issue_date = moment
++    session.add(
++        SystemAuditLog(
++            user_id=actor_id,
++            action="APPROVE_STOCK_ISSUE",
++            target_entity="PHIEU_XUAT_KHO",
++            target_id=str(issue.id),
++            after={"TrangThai": ISSUE_CONFIRMED},
++        )
++    )
++    await session.flush()
++    return issue
++
++
++async def reject_issue(
++    session: AsyncSession, issue_id: int, actor_id: int, note: str | None = None
++) -> StockIssue:
++    """Reject a proposed write-off; stock is untouched and the decision is kept."""
++    issue = await _pending_issue(session, issue_id)
++    issue.status = ISSUE_REJECTED
++    issue.approved_by = actor_id
++    issue.approved_at = business_date.now()
++    if note:
++        issue.note = f"{issue.note or ''} Lý do từ chối: {note}".strip()[:500]
++    session.add(
++        SystemAuditLog(
++            user_id=actor_id,
++            action="REJECT_STOCK_ISSUE",
++            target_entity="PHIEU_XUAT_KHO",
++            target_id=str(issue.id),
++            after={"TrangThai": ISSUE_REJECTED, "LyDo": note},
++        )
++    )
++    await session.flush()
++    return issue
++
++
+ # Stocktakes
+ async def create_stocktake(session: AsyncSession, actor_id: int) -> Stocktake:
+     await lock_stock_operations(session)
+diff --git a/apps/api/tests/modules/test_inventory_issues.py b/apps/api/tests/modules/test_inventory_issues.py
+index 6fc74ba..d72566d 100644
+--- a/apps/api/tests/modules/test_inventory_issues.py
++++ b/apps/api/tests/modules/test_inventory_issues.py
+@@ -585,3 +585,33 @@ async def test_prepared_issue_sums_duplicate_rows_in_the_same_request(session):
+     )
+ 
+     assert response.status_code == 422
++
++
++@pytest.mark.anyio
++async def test_in_stock_lots_add_up_to_the_book_stock(session):
++    """Stocktake review 19/11: only lots with something left, never a cancelled one."""
++    ing = await _ingredient(session)
++    client = await _make_client(session)
++    h, _ = await _headers(session)
++    await _receipt(session, client, h, ing, 5)
++    await _receipt(session, client, h, ing, 5)
++    cancelled = await _receipt(session, client, h, ing, 3)
++    r = await client.delete(f"/api/v1/inventory/receipts/{cancelled}", headers=h)
++    assert r.status_code in (200, 204), r.text
++    r = await client.post(
++        "/api/v1/inventory/issues",
++        json={"reason": "Hao hụt", "lines": [{"ingredient_id": ing.id, "quantity": 5}]},
++        headers=h,
++    )
++    assert r.status_code == 201, r.text
++
++    everything = await client.get(f"/api/v1/inventory/lots?ingredient_id={ing.id}", headers=h)
++    assert everything.json()["total"] == 3
++    r = await client.get(
++        f"/api/v1/inventory/lots?ingredient_id={ing.id}&in_stock=true", headers=h
++    )
++    assert r.status_code == 200, r.text
++    lots = r.json()["items"]
++    assert r.json()["total"] == 1
++    await session.refresh(ing)
++    assert sum(float(lot["SoLuongConLai"]) for lot in lots) == float(ing.stock_qty) == 5
+diff --git a/apps/web/src/features/inventory/stocktake-panel.test.tsx b/apps/web/src/features/inventory/stocktake-panel.test.tsx
+index ec51171..6e503d4 100644
+--- a/apps/web/src/features/inventory/stocktake-panel.test.tsx
++++ b/apps/web/src/features/inventory/stocktake-panel.test.tsx
+@@ -313,4 +313,51 @@ describe("StocktakePanel", () => {
+       ),
+     );
+   });
++  it("lists only the in-stock lots of every page, matching the book stock", async () => {
++    const lotsPage = (page: number) =>
++      page === 1
++        ? {
++            items: [
++              { MaLoNguyenLieu: 11, MaNguyenLieu: 1, SoLuongConLai: 6, TrangThai: "Còn hạn" },
++            ],
++            total: 2,
++          }
++        : {
++            items: [
++              { MaLoNguyenLieu: 12, MaNguyenLieu: 1, SoLuongConLai: 4, TrangThai: "Hết hạn" },
++            ],
++            total: 2,
++          };
++    fetchMock.mockImplementation(
++      (path: string, options: { method?: string } = {}) => {
++        if (path === "/inventory/stocktakes" && options.method === "POST") {
++          return Promise.resolve({ MaPhieuKiemKe: 1 });
++        }
++        if (path.startsWith("/inventory/lots")) {
++          return Promise.resolve(lotsPage(path.includes("page=2") ? 2 : 1));
++        }
++        if (path.startsWith("/inventory/stocktakes")) {
++          return Promise.resolve({ items: [], total: 0 });
++        }
++        if (path.startsWith("/inventory/stock")) {
++          return Promise.resolve({ items: stockItems });
++        }
++        return Promise.resolve({});
++      },
++    );
++
++    render(<StocktakePanel />);
++    fireEvent.click(
++      await screen.findByRole("button", { name: "Tạo phiếu kiểm kê" }),
++    );
++
++    expect(await screen.findByText(/Lô #12/)).toBeInTheDocument();
++    expect(screen.getByText(/Lô #11/)).toBeInTheDocument();
++    expect(fetchMock).toHaveBeenCalledWith(
++      "/inventory/lots?in_stock=true&page=1&page_size=100",
++    );
++    expect(fetchMock).toHaveBeenCalledWith(
++      "/inventory/lots?in_stock=true&page=2&page_size=100",
++    );
++  });
+ });
+diff --git a/apps/web/src/features/inventory/stocktake-panel.tsx b/apps/web/src/features/inventory/stocktake-panel.tsx
+index 6206bdf..4341abc 100644
+--- a/apps/web/src/features/inventory/stocktake-panel.tsx
++++ b/apps/web/src/features/inventory/stocktake-panel.tsx
+@@ -114,10 +114,19 @@ function DraftStocktake({
+   // FR-INV-08: the counter checks stock before and after, and only then confirms.
+   const [preview, setPreview] = useState<PreviewRow[] | null>(null);
+   const { run, pending, error } = useAction();
+-  const loadLots = useCallback(
+-    () => apiFetch<{ items: LotRow[] }>("/inventory/lots?page_size=100"),
+-    [],
+-  );
++  // Only the lots that make up the book stock (something left, not cancelled), every page of
++  // them, so the lots listed under an ingredient add up to its "Tồn hệ thống".
++  const loadLots = useCallback(async () => {
++    const items: LotRow[] = [];
++    for (let page = 1; ; page += 1) {
++      const res = await apiFetch<{ items: LotRow[]; total: number }>(
++        `/inventory/lots?in_stock=true&page=${page}&page_size=100`,
++      );
++      items.push(...(res.items ?? []));
++      if (!res.items?.length || items.length >= (res.total ?? 0)) break;
++    }
++    return { items };
++  }, []);
+   const lots = useResource(loadLots);
+   const lotsByIngredient = new Map<number, LotRow[]>();
+   if (lots.status === "ready") {
