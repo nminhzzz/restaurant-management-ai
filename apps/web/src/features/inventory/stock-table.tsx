@@ -34,6 +34,7 @@ import {
   formatVnd,
 } from "@/lib/format";
 import { useResource } from "@/lib/use-resource";
+import { useVisibleInterval } from "@/lib/use-visible-interval";
 import { cn } from "@/lib/utils";
 import { CostHistory } from "./cost-history";
 import { InventoryHistory } from "./inventory-history";
@@ -107,6 +108,7 @@ export function StockTable({
     [query, filter, page],
   );
   const stock = useResource(fetchStock);
+  useVisibleInterval(stock.refresh, 5000);
 
   function updateFilter(next: Filter) {
     setFilter(next);
@@ -136,10 +138,7 @@ export function StockTable({
 
       {items[0]?.ThoiDiemTinh && (
         <p className="text-muted">
-          Dữ liệu lúc {formatDateTime(items[0].ThoiDiemTinh)}.{" "}
-          <Button variant="ghost" size="sm" onClick={stock.reload}>
-            Làm mới
-          </Button>
+          Dữ liệu lúc {formatDateTime(items[0].ThoiDiemTinh)}.
         </p>
       )}
 
