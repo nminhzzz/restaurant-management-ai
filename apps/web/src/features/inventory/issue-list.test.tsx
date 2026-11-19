@@ -454,6 +454,41 @@ describe("IssueList", () => {
       await vi.waitFor(() => expect(listLoads()).toBeGreaterThan(before));
     });
 
+    it("opens the next reject dialog with an empty reason", async () => {
+      fetchMock.mockImplementation(
+        (path: string, options: { method?: string } = {}) => {
+          if (path.startsWith("/catalog/ingredients")) {
+            return Promise.resolve({ items: ingredients });
+          }
+          if (options.method === "POST") {
+            return Promise.resolve({ MaPhieuXuat: 5 });
+          }
+          return Promise.resolve({
+            items: [pending, { ...pending, MaPhieuXuat: 6 }],
+            total: 2,
+          });
+        },
+      );
+      render(<IssueList />);
+      const rowA = (await screen.findByText("#5")).closest("tr")!;
+      fireEvent.click(within(rowA).getByRole("button", { name: "Từ chối" }));
+      fireEvent.change(
+        within(screen.getByRole("dialog")).getByLabelText("Lý do"),
+        { target: { value: "Còn dùng được" } },
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Từ chối phiếu" }));
+      await vi.waitFor(() =>
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+      );
+
+      const rowB = screen.getByText("#6").closest("tr")!;
+      fireEvent.click(within(rowB).getByRole("button", { name: "Từ chối" }));
+
+      expect(
+        within(await screen.findByRole("dialog")).getByLabelText("Lý do"),
+      ).toHaveValue("");
+    });
+
     it("rejects without a reason by omitting the note", async () => {
       serve();
       render(<IssueList />);

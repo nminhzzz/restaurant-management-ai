@@ -856,6 +856,9 @@ async def propose_expiry_write_off(session: AsyncSession) -> StockIssue | None:
     a rejection is final for that lot. Nothing is proposed
     while a stocktake is open, since the count may change what is left.
     """
+    # Serialise with other proposals and stock changes: a second caller waits here, then
+    # sees the first voucher, and the stocktake check below cannot race a stocktake opening.
+    await lock_stock_operations(session)
     open_id = await session.scalar(
         select(Stocktake.id).where(Stocktake.status == "Đang kiểm kê").limit(1)
     )

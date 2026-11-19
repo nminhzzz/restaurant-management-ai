@@ -575,6 +575,7 @@ async def _r_issue(session, *, bd, ingredient, quantity, cost):
         reason="Hao hụt",
         status="Đã xác nhận",
         created_at=datetime(bd.year, bd.month, bd.day, 12, 0),
+        issue_date=datetime(bd.year, bd.month, bd.day, 12, 0),
     )
     session.add(issue)
     await session.flush()

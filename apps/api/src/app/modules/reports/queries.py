@@ -507,8 +507,9 @@ async def waste_cost(session: AsyncSession, month: int) -> tuple[Decimal, int]:
     # original draw, and a stocktake voucher only documents the adjustment below; counting
     # either here as well would double the cost.
     manual = (
-        StockIssue.created_at >= start,
-        StockIssue.created_at < end,
+        # Waste belongs to the month the stock left: a proposal's NgayXuat is its approval.
+        StockIssue.issue_date >= start,
+        StockIssue.issue_date < end,
         StockIssue.stocktake_id.is_(None),
         StockIssueLine.order_line_id.is_(None),
         # A proposed ("Chờ duyệt") or rejected write-off has not moved any stock.

@@ -46,6 +46,14 @@ export function ConfirmDialog({
 }) {
   const [reason, setReason] = useState("");
 
+  // The parent closes the dialog by flipping `open` after a successful action, which
+  // does not go through onOpenChange; clear here so the next target starts empty.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (wasOpen !== open) {
+    setWasOpen(open);
+    if (!open) setReason("");
+  }
+
   return (
     <Dialog
       open={open}

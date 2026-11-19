@@ -1103,3 +1103,45 @@ async def test_tick_proposes_once_and_survives_a_proposal_failure(
     session.expire_all()
     count = (await session.execute(sel(func.count()).select_from(StockIssue))).scalar_one()
     assert count == 1
+
+
+@pytest.mark.anyio
+async def test_waste_counts_in_the_month_the_proposal_was_approved(session, monkeypatch):
+    from datetime import timedelta
+
+    from app.modules.reports.queries import waste_cost
+    from tests.helpers import FIXED_NOW
+
+    ing = await _ingredient(session)
+    client = await _make_client(session)
+    kitchen, *_ = await _roles(session)
+    await _expired_lot(session, client, kitchen, ing, 3)
+    issue_id = await _propose(client, kitchen)
+    proposed = business_date.business_date_of(business_date.now())
+    later = FIXED_NOW + timedelta(days=40)
+    approved = business_date.business_date_of(later)
+    assert (approved.year, approved.month) != (proposed.year, proposed.month)
+
+    monkeypatch.setattr(business_date, "now", lambda: later)
+    r = await client.post(f"/api/v1/inventory/issues/{issue_id}/approve", headers=kitchen)
+    assert r.status_code == 200, r.text
+
+    first, _ = await waste_cost(session, proposed.year * 100 + proposed.month)
+    second, _ = await waste_cost(session, approved.year * 100 + approved.month)
+    assert (float(first), float(second)) == (0.0, 3000.0)
+
+
+@pytest.mark.anyio
+async def test_proposal_takes_the_stock_operations_lock(session, monkeypatch):
+    from app.modules.inventory import service
+
+    calls = []
+    real = service.lock_stock_operations
+
+    async def spy(s):
+        calls.append(1)
+        await real(s)
+
+    monkeypatch.setattr(service, "lock_stock_operations", spy)
+    assert await service.propose_expiry_write_off(session) is None
+    assert calls == [1]
