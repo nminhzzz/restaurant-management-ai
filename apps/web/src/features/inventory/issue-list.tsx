@@ -3,6 +3,7 @@
 import { PackageMinus, Plus, Trash2 } from "lucide-react";
 import { useCallback, useId, useState } from "react";
 
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { DataPagination } from "@/components/data-pagination";
 import {
   DateRangeFilter,
@@ -52,15 +53,28 @@ import type { IngredientOption, StockIssue, Stocktake } from "./types";
 
 const PAGE_SIZE = 20;
 
-type IssueFilters = { reason: string; dateFrom: string; dateTo: string };
+type IssueFilters = {
+  reason: string;
+  dateFrom: string;
+  dateTo: string;
+  status: string;
+};
 
-const INITIAL_FILTERS: IssueFilters = { reason: "", dateFrom: "", dateTo: "" };
+const INITIAL_FILTERS: IssueFilters = {
+  reason: "",
+  dateFrom: "",
+  dateTo: "",
+  status: "",
+};
+
+const ISSUE_STATUSES = ["Chờ duyệt", "Đã xác nhận", "Đã từ chối"] as const;
 
 function queryOf(filters: IssueFilters, page: number): string {
   const params = new URLSearchParams();
   if (filters.reason) params.set("reason", filters.reason);
   if (filters.dateFrom) params.set("date_from", filters.dateFrom);
   if (filters.dateTo) params.set("date_to", filters.dateTo);
+  if (filters.status) params.set("status", filters.status);
   params.set("page", String(page));
   params.set("page_size", String(PAGE_SIZE));
   return `/inventory/issues?${params.toString()}`;
@@ -735,14 +749,67 @@ export function IssueList() {
   const issues = useResource(fetchIssues);
   const ingredients = useResource(loadIngredients);
   const [open, setOpen] = useState(false);
+  const decision = useAction();
+  const proposal = useAction();
+  const [approveTarget, setApproveTarget] = useState<number | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<number | null>(null);
 
   function updateFilters(patch: Partial<IssueFilters>) {
     setFilters((previous) => ({ ...previous, ...patch }));
     setPage(1);
   }
 
+  async function proposeExpired() {
+    const result = await proposal.run(
+      () =>
+        apiFetch<{ MaPhieuXuat: number | null }>(
+          "/inventory/issues/propose-expired",
+          { method: "POST" },
+        ),
+      (r) =>
+        r.MaPhieuXuat === null
+          ? "Không có lô hết hạn nào cần đề xuất hủy."
+          : `Đã lập phiếu đề xuất #${r.MaPhieuXuat}.`,
+    );
+    if (result !== undefined) issues.reload();
+  }
+
+  async function approve() {
+    if (approveTarget === null) return;
+    const result = await decision.run(
+      () =>
+        apiFetch(`/inventory/issues/${approveTarget}/approve`, {
+          method: "POST",
+        }),
+      "Đã duyệt phiếu xuất.",
+    );
+    if (result !== undefined) {
+      setApproveTarget(null);
+      issues.reload();
+    }
+  }
+
+  async function reject(reason: string) {
+    if (rejectTarget === null) return;
+    const result = await decision.run(
+      () =>
+        apiFetch(`/inventory/issues/${rejectTarget}/reject`, {
+          method: "POST",
+          body: reason ? { note: reason } : {},
+        }),
+      "Đã từ chối phiếu xuất.",
+    );
+    if (result !== undefined) {
+      setRejectTarget(null);
+      issues.reload();
+    }
+  }
+
   const filtersActive =
-    filters.reason !== "" || filters.dateFrom !== "" || filters.dateTo !== "";
+    filters.reason !== "" ||
+    filters.dateFrom !== "" ||
+    filters.dateTo !== "" ||
+    filters.status !== "";
   const items = issues.status === "ready" ? issues.data.items : [];
   const [detailId, setDetailId] = useState<number | null>(null);
   const total = issues.status === "ready" ? issues.data.total : 0;
@@ -753,10 +820,19 @@ export function IssueList() {
         title="Phiếu xuất"
         description="Xuất kho thủ công cho hao hụt, hết hạn hoặc hàng hỏng."
         actions={
-          <Button onClick={() => setOpen(true)}>
-            <PackageMinus aria-hidden />
-            Tạo phiếu xuất
-          </Button>
+          <>
+            <Button
+              variant="secondary"
+              onClick={proposeExpired}
+              disabled={proposal.pending}
+            >
+              Kiểm tra lô hết hạn
+            </Button>
+            <Button onClick={() => setOpen(true)}>
+              <PackageMinus aria-hidden />
+              Tạo phiếu xuất
+            </Button>
+          </>
         }
       />
 
@@ -770,6 +846,13 @@ export function IssueList() {
           onChange={(v) => updateFilters({ reason: v })}
           allLabel="Mọi lý do"
           options={ISSUE_REASONS.map((r) => ({ value: r, label: r }))}
+        />
+        <SelectFilter
+          label="Trạng thái"
+          value={filters.status}
+          onChange={(v) => updateFilters({ status: v })}
+          allLabel="Mọi trạng thái"
+          options={ISSUE_STATUSES.map((s) => ({ value: s, label: s }))}
         />
         <DateRangeFilter
           from={filters.dateFrom}
@@ -808,7 +891,14 @@ export function IssueList() {
             </TableHeader>
             <TableBody>
               {items.map((it) => (
-                <TableRow key={it.MaPhieuXuat}>
+                <TableRow
+                  key={it.MaPhieuXuat}
+                  className={
+                    it.TrangThai === "Chờ duyệt"
+                      ? "bg-warning-subtle"
+                      : undefined
+                  }
+                >
                   <TableCell className="font-medium tabular-nums">
                     #{it.MaPhieuXuat}
                   </TableCell>
@@ -823,7 +913,24 @@ export function IssueList() {
                   <TableCell>
                     <StatusBadge status={it.TrangThai} />
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="space-x-2 text-right">
+                    {it.TrangThai === "Chờ duyệt" ? (
+                      <>
+                        <Button
+                          size="sm"
+                          onClick={() => setApproveTarget(it.MaPhieuXuat)}
+                        >
+                          Duyệt
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setRejectTarget(it.MaPhieuXuat)}
+                        >
+                          Từ chối
+                        </Button>
+                      </>
+                    ) : null}
                     <Button
                       variant="secondary"
                       size="sm"
@@ -855,6 +962,32 @@ export function IssueList() {
           />
         </>
       )}
+
+      <ConfirmDialog
+        open={approveTarget !== null}
+        onOpenChange={(next) => {
+          if (!next) setApproveTarget(null);
+        }}
+        title={`Duyệt phiếu xuất #${approveTarget ?? ""}?`}
+        description="Kho sẽ bị trừ đúng các lô ghi trên phiếu, theo lượng còn lại của từng lô."
+        confirmLabel="Duyệt phiếu"
+        pending={decision.pending}
+        onConfirm={approve}
+      />
+      <ConfirmDialog
+        open={rejectTarget !== null}
+        onOpenChange={(next) => {
+          if (!next) setRejectTarget(null);
+        }}
+        title={`Từ chối phiếu xuất #${rejectTarget ?? ""}?`}
+        description="Kho không đổi và các lô trong phiếu sẽ không được đề xuất lại."
+        confirmLabel="Từ chối phiếu"
+        danger
+        optionalReason
+        reasonMaxLength={300}
+        pending={decision.pending}
+        onConfirm={reject}
+      />
 
       {detailId !== null && (
         <IssueDetailDialog

@@ -511,6 +511,8 @@ async def waste_cost(session: AsyncSession, month: int) -> tuple[Decimal, int]:
         StockIssue.created_at < end,
         StockIssue.stocktake_id.is_(None),
         StockIssueLine.order_line_id.is_(None),
+        # A proposed ("Chờ duyệt") or rejected write-off has not moved any stock.
+        StockIssue.status == "Đã xác nhận",
     )
     manual_waste = await _scalar_sum(
         session,

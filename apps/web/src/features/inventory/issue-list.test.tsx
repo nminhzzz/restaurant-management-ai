@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/api-client", async (importOriginal) => {
@@ -304,5 +304,172 @@ describe("IssueList", () => {
         }),
       ),
     );
+  });
+
+  describe("system-proposed write-offs", () => {
+    const pending = {
+      MaPhieuXuat: 5,
+      LyDo: "Hết hạn",
+      TrangThai: "Chờ duyệt",
+      NgayTao: "2026-11-19T06:00:00",
+      NguoiLap: null,
+      TongSoLuong: 4,
+      SoDong: 1,
+    };
+    const confirmed = {
+      MaPhieuXuat: 4,
+      LyDo: "Hao hụt",
+      TrangThai: "Đã xác nhận",
+      TongSoLuong: 1,
+      SoDong: 1,
+    };
+
+    function serve() {
+      fetchMock.mockImplementation(
+        (path: string, options: { method?: string } = {}) => {
+          if (path.startsWith("/catalog/ingredients")) {
+            return Promise.resolve({ items: ingredients });
+          }
+          if (options.method === "POST") {
+            return Promise.resolve({ MaPhieuXuat: 5 });
+          }
+          if (path.startsWith("/inventory/issues")) {
+            return Promise.resolve({ items: [pending, confirmed], total: 2 });
+          }
+          return Promise.resolve({});
+        },
+      );
+    }
+
+    function listLoads() {
+      return fetchMock.mock.calls.filter(
+        ([path, options]) =>
+          String(path).startsWith("/inventory/issues?") && !options,
+      ).length;
+    }
+
+    it("offers Duyệt and Từ chối only on a pending voucher, highlighted", async () => {
+      serve();
+      render(<IssueList />);
+      const pendingRow = (await screen.findByText("#5")).closest("tr")!;
+      const confirmedRow = screen.getByText("#4").closest("tr")!;
+
+      expect(
+        within(pendingRow).getByRole("button", { name: "Duyệt" }),
+      ).toBeInTheDocument();
+      expect(
+        within(pendingRow).getByRole("button", { name: "Từ chối" }),
+      ).toBeInTheDocument();
+      expect(pendingRow.className).toContain("bg-warning-subtle");
+      expect(
+        within(confirmedRow).queryByRole("button", { name: "Duyệt" }),
+      ).not.toBeInTheDocument();
+      expect(confirmedRow.className).not.toContain("bg-warning-subtle");
+    });
+
+    it("sends the status filter and resets paging", async () => {
+      serve();
+      render(<IssueList />);
+      await screen.findByText("#5");
+
+      fireEvent.change(screen.getByLabelText("Trạng thái"), {
+        target: { value: "Chờ duyệt" },
+      });
+
+      await vi.waitFor(() =>
+        expect(fetchMock).toHaveBeenLastCalledWith(
+          "/inventory/issues?status=Ch%E1%BB%9D+duy%E1%BB%87t&page=1&page_size=20",
+        ),
+      );
+    });
+
+    it("checks expired lots on demand and reloads the list", async () => {
+      serve();
+      render(<IssueList />);
+      await screen.findByText("#5");
+      const before = listLoads();
+
+      fireEvent.click(
+        screen.getByRole("button", { name: "Kiểm tra lô hết hạn" }),
+      );
+
+      await vi.waitFor(() =>
+        expect(fetchMock).toHaveBeenCalledWith(
+          "/inventory/issues/propose-expired",
+          { method: "POST" },
+        ),
+      );
+      await vi.waitFor(() => expect(listLoads()).toBeGreaterThan(before));
+    });
+
+    it("asks for confirmation before approving, then reloads", async () => {
+      const nativeConfirm = vi.spyOn(window, "confirm");
+      serve();
+      render(<IssueList />);
+      const row = (await screen.findByText("#5")).closest("tr")!;
+      const before = listLoads();
+
+      fireEvent.click(within(row).getByRole("button", { name: "Duyệt" }));
+      expect(fetchMock).not.toHaveBeenCalledWith(
+        "/inventory/issues/5/approve",
+        expect.anything(),
+      );
+      fireEvent.click(
+        await screen.findByRole("button", { name: "Duyệt phiếu" }),
+      );
+
+      await vi.waitFor(() =>
+        expect(fetchMock).toHaveBeenCalledWith("/inventory/issues/5/approve", {
+          method: "POST",
+        }),
+      );
+      await vi.waitFor(() => expect(listLoads()).toBeGreaterThan(before));
+      expect(nativeConfirm).not.toHaveBeenCalled();
+      nativeConfirm.mockRestore();
+    });
+
+    it("rejects with the optional reason typed in a dialog, then reloads", async () => {
+      serve();
+      render(<IssueList />);
+      const row = (await screen.findByText("#5")).closest("tr")!;
+      const before = listLoads();
+
+      fireEvent.click(within(row).getByRole("button", { name: "Từ chối" }));
+      const confirmButton = await screen.findByRole("button", {
+        name: "Từ chối phiếu",
+      });
+      expect(confirmButton).toBeEnabled();
+      fireEvent.change(
+        within(screen.getByRole("dialog")).getByLabelText("Lý do"),
+        { target: { value: "Còn dùng được" } },
+      );
+      fireEvent.click(confirmButton);
+
+      await vi.waitFor(() =>
+        expect(fetchMock).toHaveBeenCalledWith("/inventory/issues/5/reject", {
+          method: "POST",
+          body: { note: "Còn dùng được" },
+        }),
+      );
+      await vi.waitFor(() => expect(listLoads()).toBeGreaterThan(before));
+    });
+
+    it("rejects without a reason by omitting the note", async () => {
+      serve();
+      render(<IssueList />);
+      const row = (await screen.findByText("#5")).closest("tr")!;
+
+      fireEvent.click(within(row).getByRole("button", { name: "Từ chối" }));
+      fireEvent.click(
+        await screen.findByRole("button", { name: "Từ chối phiếu" }),
+      );
+
+      await vi.waitFor(() =>
+        expect(fetchMock).toHaveBeenCalledWith("/inventory/issues/5/reject", {
+          method: "POST",
+          body: {},
+        }),
+      );
+    });
   });
 });

@@ -27,6 +27,8 @@ const TONES: Record<string, StatusTone> = {
   "Hiệu lực": "success",
   "Đang kiểm kê": "primary",
   "Đã xác nhận": "success",
+  "Chờ duyệt": "warning",
+  "Đã từ chối": "danger",
 };
 
 export function statusTone(status: string | null | undefined): StatusTone {
