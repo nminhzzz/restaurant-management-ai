@@ -585,3 +585,67 @@ async def test_prepared_issue_sums_duplicate_rows_in_the_same_request(session):
     )
 
     assert response.status_code == 422
+
+
+@pytest.mark.anyio
+async def test_in_stock_lots_add_up_to_the_book_stock(session):
+    """Stocktake review 19/11: only lots with something left, never a cancelled one."""
+    ing = await _ingredient(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    await _receipt(session, client, h, ing, 5)
+    await _receipt(session, client, h, ing, 5)
+    cancelled = await _receipt(session, client, h, ing, 3)
+    r = await client.delete(f"/api/v1/inventory/receipts/{cancelled}", headers=h)
+    assert r.status_code in (200, 204), r.text
+    r = await client.post(
+        "/api/v1/inventory/issues",
+        json={"reason": "Hao hụt", "lines": [{"ingredient_id": ing.id, "quantity": 5}]},
+        headers=h,
+    )
+    assert r.status_code == 201, r.text
+
+    everything = await client.get(f"/api/v1/inventory/lots?ingredient_id={ing.id}", headers=h)
+    assert everything.json()["total"] == 3
+    r = await client.get(f"/api/v1/inventory/lots?ingredient_id={ing.id}&in_stock=true", headers=h)
+    assert r.status_code == 200, r.text
+    lots = r.json()["items"]
+    assert r.json()["total"] == 1
+    await session.refresh(ing)
+    assert sum(float(lot["SoLuongConLai"]) for lot in lots) == float(ing.stock_qty) == 5
+
+
+@pytest.mark.anyio
+async def test_in_stock_lots_keep_expired_and_fifo_order(session):
+    from datetime import timedelta
+
+    from sqlalchemy import select as sel
+
+    from app.modules.inventory.models import IngredientLot
+
+    ing = await _ingredient(session)
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    await _receipt(session, client, h, ing, 4)
+    await _receipt(session, client, h, ing, 6)
+    rows = (
+        (
+            await session.execute(
+                sel(IngredientLot)
+                .where(IngredientLot.ingredient_id == ing.id)
+                .order_by(IngredientLot.received_at, IngredientLot.id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    older, newer = rows
+    older.expiry_date = business_date.business_date_of(business_date.now()) - timedelta(days=2)
+    await session.commit()
+
+    r = await client.get(f"/api/v1/inventory/lots?ingredient_id={ing.id}&in_stock=true", headers=h)
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["total"] == 2
+    assert [lot["MaLoNguyenLieu"] for lot in body["items"]] == [older.id, newer.id]
+    assert body["items"][0]["TrangThai"] == "Hết hạn"

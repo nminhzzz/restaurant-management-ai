@@ -454,6 +454,7 @@ async def get_issue(
 async def list_lots(
     ingredient_id: int | None = None,
     status: str | None = None,
+    in_stock: bool = False,
     page: int = 1,
     page_size: int = 20,
     user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
@@ -461,7 +462,12 @@ async def list_lots(
 ):
     page, page_size = max(1, page), min(max(1, page_size), 100)
     items, total = await queries.list_lots(
-        session, ingredient_id=ingredient_id, status=status, page=page, page_size=page_size
+        session,
+        ingredient_id=ingredient_id,
+        status=status,
+        page=page,
+        page_size=page_size,
+        in_stock=in_stock,
     )
     return {"items": items, "total": total, "page": page, "page_size": page_size}
 

@@ -195,6 +195,7 @@ async def list_lots(
     status: str | None = None,
     page: int = 1,
     page_size: int = 20,
+    in_stock: bool = False,
 ) -> tuple[list[dict], int]:
     moment = business_date.now()
     today = business_date.business_date_of(moment)
@@ -219,6 +220,10 @@ async def list_lots(
         statement = statement.where(IngredientLot.ingredient_id == ingredient_id)
     if status:
         statement = statement.where(state == status)
+    if in_stock:
+        # The lots that make up the book stock (SoLuongTon): something left and not cancelled,
+        # expired ones included, so a stocktake can reconcile them with the system quantity.
+        statement = statement.where(remaining > 0, IngredientLot.status != LotStatus.DA_HUY.value)
     total = int(
         (await session.execute(select(func.count()).select_from(statement.subquery()))).scalar_one()
     )
