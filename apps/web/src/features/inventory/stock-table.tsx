@@ -108,7 +108,7 @@ export function StockTable({
     [query, filter, page],
   );
   const stock = useResource(fetchStock);
-  useVisibleInterval(stock.refresh, 5000);
+  useVisibleInterval(stock.refresh, 5000, stock.status === "ready");
 
   function updateFilter(next: Filter) {
     setFilter(next);

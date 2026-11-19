@@ -459,6 +459,40 @@ describe("OrderStep", () => {
     expect(screen.getByText("Đã gửi bếp")).toBeInTheDocument();
   });
 
+  it("does not poll while the first load is pending, so a slow failure still shows the error", async () => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    try {
+      let fail: (reason: Error) => void = () => {};
+      fetchMock.mockImplementation((path: string) =>
+        path === "/catalog/tables"
+          ? new Promise((_, reject) => {
+              fail = reject;
+            })
+          : Promise.resolve({}),
+      );
+      render(
+        <OrderStep
+          tableId={4}
+          orderId={null}
+          onBack={vi.fn()}
+          onSent={vi.fn()}
+        />,
+      );
+      await act(async () => {
+        vi.advanceTimersByTime(6000);
+      });
+      const tableCalls = () =>
+        fetchMock.mock.calls.filter(([p]) => p === "/catalog/tables").length;
+      expect(tableCalls()).toBe(1);
+      await act(async () => {
+        fail(new Error("timeout"));
+      });
+      expect(await screen.findByRole("alert")).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("re-reads the menu every 5 seconds and keeps the cart and search", async () => {
     vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
     try {

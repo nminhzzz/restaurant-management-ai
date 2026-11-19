@@ -245,7 +245,7 @@ export function OrderStep({
     countedHeldKey.current = heldKey;
     refreshMenu();
   }, [heldKey, refreshMenu]);
-  useVisibleInterval(refreshMenu, 5000);
+  useVisibleInterval(refreshMenu, 5000, menu.status === "ready");
 
   if (menu.status === "loading") return <LoadingState rows={6} />;
   if (menu.status === "error")

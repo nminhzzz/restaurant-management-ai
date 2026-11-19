@@ -8,7 +8,10 @@ import {
 import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 import { StockTable } from "./stock-table";
 
-vi.mock("@/lib/api-client", () => ({ apiFetch: vi.fn() }));
+vi.mock("@/lib/api-client", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/api-client")>();
+  return { ...actual, apiFetch: vi.fn() };
+});
 import { apiFetch } from "@/lib/api-client";
 
 const fetchMock = apiFetch as unknown as ReturnType<typeof vi.fn>;
@@ -234,6 +237,29 @@ describe("stock table", () => {
 
   describe("auto refresh", () => {
     afterEach(() => vi.useRealTimers());
+
+    it("does not poll while the first load is pending, so a slow failure still shows the error", async () => {
+      vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+      let fail: (reason: Error) => void = () => {};
+      fetchMock.mockReset();
+      fetchMock.mockReturnValueOnce(
+        new Promise((_, reject) => {
+          fail = reject;
+        }),
+      );
+      render(<StockTable />);
+      await act(async () => {
+        vi.advanceTimersByTime(6000);
+      });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      await act(async () => {
+        fail(new Error("timeout"));
+      });
+      expect(await screen.findByRole("alert")).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /Thử lại/ }),
+      ).toBeInTheDocument();
+    });
 
     it("refetches every 5 seconds without a manual refresh button and keeps the typed search", async () => {
       vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
