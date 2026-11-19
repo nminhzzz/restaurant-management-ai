@@ -95,6 +95,21 @@ describe("IngredientList", () => {
     expect(sugar).toHaveTextContent("0");
   });
 
+  it("explains which unit to pick under Đơn vị tính", async () => {
+    mockFetch.mockResolvedValue({ items: [] });
+    render(<IngredientList />);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Thêm nguyên liệu" }),
+    );
+
+    expect(
+      screen.getByText(
+        "Chọn đơn vị dùng trong công thức: lon, hộp, quả nếu dùng nguyên đơn vị; g, kg, ml, l nếu dùng một phần.",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("opens the add dialog empty after a previous ingredient was saved", async () => {
     mockFetch.mockResolvedValue({ items: [] });
     render(<IngredientList />);

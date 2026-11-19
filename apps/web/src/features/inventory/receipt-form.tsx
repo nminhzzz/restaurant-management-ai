@@ -22,21 +22,77 @@ import type { IngredientOption, SupplierOption } from "./types";
 type DraftLine = {
   key: string;
   ingredientId: string;
-  purchaseUnit: string;
-  conversionFactor: string;
   quantity: string;
   unitPrice: string;
+  total: string;
+  /** Which of price / total the user typed last; quantity edits recompute the other. */
+  anchor: "price" | "total";
 };
 
 function emptyLine(ingredientId = ""): DraftLine {
   return {
     key: Math.random().toString(36).slice(2),
     ingredientId,
-    purchaseUnit: "",
-    conversionFactor: "1",
     quantity: "",
     unitPrice: "",
+    total: "",
+    anchor: "price",
   };
+}
+
+type Decimal = { digits: bigint; scale: number };
+
+function parseDecimal(value: string): Decimal | null {
+  const match = /^(\d*)(?:\.(\d+))?$/.exec(value.trim());
+  if (!match || (match[1] === "" && match[2] === undefined)) return null;
+  const fraction = match[2] ?? "";
+  return {
+    digits: BigInt(`${match[1] || "0"}${fraction}`),
+    scale: fraction.length,
+  };
+}
+
+const ZERO = BigInt(0);
+const TWO = BigInt(2);
+const HUNDRED = BigInt(100);
+const TEN = BigInt(10);
+
+/** Exact half-up division of non-negative bigints, mirroring the API's `money()`. */
+function divideHalfUp(numerator: bigint, denominator: bigint): bigint {
+  return (TWO * numerator + denominator) / (TWO * denominator);
+}
+
+function centsToString(cents: bigint): string {
+  const whole = cents / HUNDRED;
+  const fraction = (cents % HUNDRED)
+    .toString()
+    .padStart(2, "0")
+    .replace(/0+$/, "");
+  return fraction ? `${whole}.${fraction}` : String(whole);
+}
+
+/** quantity x unit price, rounded half-up to 2 decimals; "" when not computable. */
+function computeTotal(quantity: string, unitPrice: string): string {
+  const q = parseDecimal(quantity);
+  const p = parseDecimal(unitPrice);
+  if (!q || !p) return "";
+  const product = q.digits * p.digits;
+  const scale = q.scale + p.scale;
+  const cents =
+    scale >= 2
+      ? divideHalfUp(product, TEN ** BigInt(scale - 2))
+      : product * TEN ** BigInt(2 - scale);
+  return centsToString(cents);
+}
+
+/** line total / quantity, rounded half-up to 2 decimals; "" when quantity is not above 0. */
+function computeUnitPrice(quantity: string, total: string): string {
+  const q = parseDecimal(quantity);
+  const t = parseDecimal(total);
+  if (!q || !t || q.digits === ZERO) return "";
+  const numerator = t.digits * TEN ** BigInt(q.scale + 2);
+  const denominator = q.digits * TEN ** BigInt(t.scale);
+  return centsToString(divideHalfUp(numerator, denominator));
 }
 
 /** Dialog body for creating a goods receipt (FR-INV-01). */
@@ -68,14 +124,23 @@ export function ReceiptForm({
     );
   }
 
-  function lineTotal(line: DraftLine): number {
-    const qty = Number(line.quantity) || 0;
-    const factor = Number(line.conversionFactor) || 0;
-    const price = Number(line.unitPrice) || 0;
-    return qty * factor * price;
+  function unitOf(line: DraftLine): string {
+    return (
+      ingredients.find((i) => String(i.MaNguyenLieu) === line.ingredientId)
+        ?.DonViTinh ?? ""
+    );
   }
 
-  const total = lines.reduce((sum, l) => sum + lineTotal(l), 0);
+  function editQuantity(line: DraftLine, quantity: string) {
+    updateLine(
+      line.key,
+      line.anchor === "price"
+        ? { quantity, total: computeTotal(quantity, line.unitPrice) }
+        : { quantity, unitPrice: computeUnitPrice(quantity, line.total) },
+    );
+  }
+
+  const total = lines.reduce((sum, l) => sum + (Number(l.total) || 0), 0);
 
   async function submit() {
     setError(null);
@@ -102,10 +167,6 @@ export function ReceiptForm({
               ingredient_id: Number(l.ingredientId),
               quantity: Number(l.quantity),
               unit_price: Number(l.unitPrice),
-              purchase_unit: l.purchaseUnit || null,
-              conversion_factor: l.conversionFactor
-                ? Number(l.conversionFactor)
-                : null,
             })),
           },
         }),
@@ -162,60 +223,67 @@ export function ReceiptForm({
                         key={ing.MaNguyenLieu}
                         value={String(ing.MaNguyenLieu)}
                       >
-                        {ing.TenNguyenLieu} ({ing.DonViTinh})
+                        {ing.TenNguyenLieu}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </FormField>
             </div>
-            <FormField id={`${formId}-unit-${line.key}`} label="Đơn vị mua">
-              <Input
-                id={`${formId}-unit-${line.key}`}
-                placeholder="bao, thùng…"
-                value={line.purchaseUnit}
-                onChange={(e) =>
-                  updateLine(line.key, { purchaseUnit: e.target.value })
-                }
-              />
-            </FormField>
             <FormField
-              id={`${formId}-factor-${line.key}`}
-              label="Hệ số quy đổi"
+              id={`${formId}-qty-${line.key}`}
+              label={unitOf(line) ? `Số lượng (${unitOf(line)})` : "Số lượng"}
             >
-              <Input
-                id={`${formId}-factor-${line.key}`}
-                type="number"
-                inputMode="decimal"
-                min={0}
-                value={line.conversionFactor}
-                onChange={(e) =>
-                  updateLine(line.key, { conversionFactor: e.target.value })
-                }
-              />
-            </FormField>
-            <FormField id={`${formId}-qty-${line.key}`} label="Số lượng">
               <Input
                 id={`${formId}-qty-${line.key}`}
                 type="number"
                 inputMode="decimal"
                 min={0}
                 value={line.quantity}
+                onChange={(e) => editQuantity(line, e.target.value)}
+              />
+            </FormField>
+            <FormField
+              id={`${formId}-price-${line.key}`}
+              label={
+                unitOf(line) ? `Đơn giá (đ/${unitOf(line)})` : "Đơn giá (đ)"
+              }
+            >
+              <Input
+                id={`${formId}-price-${line.key}`}
+                type="number"
+                inputMode="decimal"
+                min={0}
+                value={line.unitPrice}
                 onChange={(e) =>
-                  updateLine(line.key, { quantity: e.target.value })
+                  updateLine(line.key, {
+                    unitPrice: e.target.value,
+                    total: computeTotal(line.quantity, e.target.value),
+                    anchor: "price",
+                  })
                 }
               />
             </FormField>
-            <div className="col-span-2 flex items-end gap-2 sm:col-span-1">
-              <FormField id={`${formId}-price-${line.key}`} label="Đơn giá">
+            <div className="col-span-2 flex items-end gap-2 sm:col-span-2">
+              <FormField
+                id={`${formId}-total-${line.key}`}
+                label="Thành tiền (đ)"
+              >
                 <Input
-                  id={`${formId}-price-${line.key}`}
+                  id={`${formId}-total-${line.key}`}
                   type="number"
                   inputMode="decimal"
                   min={0}
-                  value={line.unitPrice}
+                  value={line.total}
                   onChange={(e) =>
-                    updateLine(line.key, { unitPrice: e.target.value })
+                    updateLine(line.key, {
+                      total: e.target.value,
+                      unitPrice: computeUnitPrice(
+                        line.quantity,
+                        e.target.value,
+                      ),
+                      anchor: "total",
+                    })
                   }
                 />
               </FormField>
@@ -232,9 +300,6 @@ export function ReceiptForm({
                 <Trash2 aria-hidden />
               </Button>
             </div>
-            <p className="col-span-2 text-xs text-muted tabular-nums sm:col-span-6">
-              Thành tiền: {formatVnd(lineTotal(line))}
-            </p>
           </div>
         ))}
         <Button
