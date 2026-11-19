@@ -14,7 +14,7 @@ Tỷ lệ được tính trên số người trả lời từng câu và từng 
 
 Bộ câu hỏi dưới đây giữ nguyên cấu trúc phân nhánh và mã câu của đợt khảo sát. Kết quả tổng hợp và ánh xạ sang FR/NFR được trình bày tại mục 2.2.4 của báo cáo chính; tài liệu này cung cấp công cụ khảo sát để đối chiếu.
 
-> **Phần 1 - Thông tin chung**
+- **Phần 1 - Thông tin chung**
 
 - 0.1. Vị trí làm nhiều nhất tại nhà hàng/quán ăn? (Chủ nhà hàng/Quản lý; Thu ngân; Nhân viên order; Nhân viên bếp; Chưa từng làm - trắc nghiệm một lựa chọn, phân nhánh sang Phần tương ứng)
 
@@ -30,7 +30,7 @@ Bộ câu hỏi dưới đây giữ nguyên cấu trúc phân nhánh và mã câ
 
 - A3. Khung giờ cao điểm thường gặp (chọn nhiều: sáng, trưa, chiều, tối, cuối tuần, ngày lễ)
 
-> **Phần 2 - Dành cho Thu ngân và Nhân viên order**
+- **Phần 2 - Dành cho Thu ngân và Nhân viên order**
 
 - B1. Hình thức ghi order hiện tại (ghi sổ giấy; phiếu giấy chuyển bếp; nhập máy/tablet; nói miệng; khác)
 
@@ -56,7 +56,7 @@ Bộ câu hỏi dưới đây giữ nguyên cấu trúc phân nhánh và mã câ
 
 - C6. Khi nào phải in lại hóa đơn (chọn nhiều: khách yêu cầu, máy in lỗi, sai thông tin, khách lấy hóa đơn VAT, chưa từng phải in lại)
 
-> **Phần 3 - Dành cho Nhân viên bếp**
+- **Phần 3 - Dành cho Nhân viên bếp**
 
 - D1. Nhập nguyên liệu từ nhà cung cấp được ghi chép thế nào (sổ tay, Excel, phần mềm quản lý kho, không ghi chép chính thức, khác)
 
@@ -72,7 +72,7 @@ Bộ câu hỏi dưới đây giữ nguyên cấu trúc phân nhánh và mã câ
 
 - E1. Công thức chế biến (định lượng nguyên liệu) được ghi chép thế nào (ghi chép chính thức có hệ thống, ghi sổ tay nội bộ, chỉ trong đầu bếp, không có công thức cố định)
 
-> **Phần 4 - Dành cho Chủ nhà hàng/Quản lý**
+- **Phần 4 - Dành cho Chủ nhà hàng/Quản lý**
 
 - C3 (QL). Xác nhận thanh toán QR hiện nay bằng cách nào (xem tin nhắn/app ngân hàng thủ công, xem thông báo ví điện tử, hệ thống tự xác nhận, khác)
 
@@ -108,7 +108,7 @@ Bộ câu hỏi dưới đây giữ nguyên cấu trúc phân nhánh và mã câ
 
 - F5. Mất bao lâu để so sánh doanh thu giữa các tháng (dưới 5 phút đến trên 30 phút, hoặc không thực hiện)
 
-> **Phần 5 - Kỳ vọng về công cụ số hóa/AI và câu hỏi mở (áp dụng chung)**
+- **Phần 5 - Kỳ vọng về công cụ số hóa/AI và câu hỏi mở (áp dụng chung)**
 
 - G1. Tình trạng sử dụng và rào cản khi áp dụng phần mềm quản lý (chọn nhiều: chi phí cao, phức tạp khó dùng, nhân viên lớn tuổi khó làm quen, không thấy cần thiết, đã dùng rồi)
 
