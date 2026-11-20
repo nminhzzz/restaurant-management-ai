@@ -649,3 +649,63 @@ async def test_an_old_order_still_names_a_dish_that_was_deleted_since(session):
 
     assert detail.status_code == 200, detail.text
     assert [line["TenMon"] for line in detail.json()["lines"]] == ["Ốc xào"]
+
+
+@pytest.mark.anyio
+async def test_released_open_order_can_be_reseated_and_grow_again(session):
+    d, ing = await _setup_dish_with_stock(session)
+    t = await _table(session, "Bàn A")
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    oid, _ = await _submit(session, client, h, d, t)
+    released = await client.post(
+        f"/api/v1/sales/tables/{t.id}/release", json={"order_id": oid}, headers=h
+    )
+    assert released.status_code == 200, released.text
+    blocked = await client.post(
+        f"/api/v1/sales/orders/{oid}/lines", json={"MaMon": d.id, "SoLuong": 1}, headers=h
+    )
+    assert blocked.status_code == 422
+
+    r = await client.post(f"/api/v1/sales/orders/{oid}/move", json={"MaBanDich": t.id}, headers=h)
+    assert r.status_code == 200, r.text
+    assert await table_status(session, t.id) == "Đang phục vụ"
+    again = await client.post(
+        f"/api/v1/sales/orders/{oid}/lines", json={"MaMon": d.id, "SoLuong": 1}, headers=h
+    )
+    assert again.status_code in (200, 201), again.text
+
+
+@pytest.mark.anyio
+async def test_reseating_leaves_the_old_table_with_its_new_party(session):
+    d, ing = await _setup_dish_with_stock(session)
+    t = await _table(session, "Bàn A")
+    t2 = await _table(session, "Bàn B")
+    client = await _make_client(session)
+    h, _ = await _headers(session)
+    first, _ = await _submit(session, client, h, d, t)
+    released = await client.post(
+        f"/api/v1/sales/tables/{t.id}/release", json={"order_id": first}, headers=h
+    )
+    assert released.status_code == 200, released.text
+    second, _ = await _submit(session, client, h, d, t)
+
+    taken = await client.post(
+        f"/api/v1/sales/orders/{first}/move", json={"MaBanDich": t.id}, headers=h
+    )
+    assert taken.status_code == 422
+    r = await client.post(
+        f"/api/v1/sales/orders/{first}/move", json={"MaBanDich": t2.id}, headers=h
+    )
+    assert r.status_code == 200, r.text
+
+    rows = (
+        await session.execute(
+            select(DiningTable.id, DiningTable.status, DiningTable.current_order_id)
+            .where(DiningTable.id.in_([t.id, t2.id]))
+            .execution_options(populate_existing=True)
+        )
+    ).all()
+    state = {row.id: (row.status, row.current_order_id) for row in rows}
+    assert state[t.id] == ("Đang phục vụ", second)
+    assert state[t2.id] == ("Đang phục vụ", first)

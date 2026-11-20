@@ -812,14 +812,19 @@ async def move_table(
         raise BusinessRuleError("Bàn đích đang bận.")
 
     source_id = order.table_id
+    reattached = False
     if source_id is not None:
         source = tables.get(source_id)
-        if source is None or source.current_order_id != order.id:
-            raise BusinessRuleError("Order không còn gắn với bàn đang phục vụ.")
-        source.status = "Trống"
-        source.current_order_id = None
-        # Release the unique order pointer before assigning it to a lower-ID table.
-        await session.flush()
+        if source is not None and source.current_order_id == order.id:
+            source.status = "Trống"
+            source.current_order_id = None
+            # Release the unique order pointer before assigning it to a lower-ID table.
+            await session.flush()
+        else:
+            # The table was released while the order is still open (released by mistake or
+            # the party sat down again): re-seat the order on a free table. The old table is
+            # left alone because it may already serve another party.
+            reattached = True
     destination.status = "Đang phục vụ"
     destination.current_order_id = order.id
     order.table_id = to_table_id
@@ -833,7 +838,7 @@ async def move_table(
             target_entity="ORDER",
             target_id=str(order.id),
             before={"MaBan": source_id},
-            after={"MaBan": to_table_id},
+            after={"MaBan": to_table_id, **({"GanLaiBan": True} if reattached else {})},
         )
     )
     await session.flush()

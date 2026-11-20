@@ -10,6 +10,8 @@ import uuid
 from typing import Any
 
 from fastapi import FastAPI, Request, status
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
@@ -116,6 +118,25 @@ def register_error_handlers(app: FastAPI) -> None:
         return JSONResponse(
             status_code=exc.status_code,
             content={"error": {"code": exc.code, "message": exc.message}},
+        )
+
+    @app.exception_handler(RequestValidationError)
+    async def _handle_validation(request: Request, exc: RequestValidationError) -> JSONResponse:
+        # FastAPI's default 422 has no Vietnamese message, so the UI could only say
+        # "Yêu cầu không thực hiện được". Keep `detail` for clients that read it.
+        errors = exc.errors()
+        fields = {str(e.get("loc", ())[-1]) for e in errors if e.get("loc")}
+        if "SoLuong" in fields:
+            message = "Số lượng phải là số lớn hơn 0 (dùng dấu chấm cho số thập phân)."
+        else:
+            message = "Dữ liệu nhập chưa hợp lệ. Hãy kiểm tra lại các ô vừa nhập."
+        logger.warning("VALIDATION_ERROR %s: %s", _describe(request), sorted(fields))
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content={
+                "detail": jsonable_encoder(errors),
+                "error": {"code": "VALIDATION_ERROR", "message": message},
+            },
         )
 
     @app.exception_handler(Exception)

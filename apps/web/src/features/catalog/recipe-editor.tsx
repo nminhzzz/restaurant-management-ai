@@ -55,10 +55,10 @@ export function RecipeEditor({
   history: RecipeVersion[];
   onChanged: () => void;
 }) {
+  const [editing, setEditing] = useState(false);
   const [lines, setLines] = useState<Line[]>([emptyLine()]);
   const [date, setDate] = useState("");
   const [cancelOpen, setCancelOpen] = useState(false);
-  const assignAction = useAction();
   const scheduleAction = useAction();
   const applyNowAction = useAction();
   const cancelAction = useAction();
@@ -75,6 +75,34 @@ export function RecipeEditor({
     );
   }
 
+  function startEditing() {
+    const base = pendingRecipe ?? currentRecipe;
+    setLines(
+      base && base.items.length > 0
+        ? base.items.map((it) => ({
+            id: nextLineId++,
+            MaNguyenLieu: String(it.MaNguyenLieu),
+            SoLuong: String(it.SoLuong),
+          }))
+        : [emptyLine()],
+    );
+    setDate("");
+    setEditing(true);
+  }
+
+  function stopEditing() {
+    setLines([emptyLine()]);
+    setDate("");
+    setEditing(false);
+  }
+
+  function unitOf(ingredientId: string): string {
+    return (
+      ingredients.find((i) => String(i.MaNguyenLieu) === ingredientId)
+        ?.DonViTinh ?? ""
+    );
+  }
+
   function items(): RecipeItem[] {
     return lines
       .filter((l) => l.MaNguyenLieu && l.SoLuong.trim() !== "")
@@ -84,21 +112,16 @@ export function RecipeEditor({
       }));
   }
 
-  const busy =
-    assignAction.pending || scheduleAction.pending || applyNowAction.pending;
-  const canSubmit = items().length > 0 && !busy;
-
-  function handleAssign() {
-    const payload = items();
-    void assignAction.run(async () => {
-      await apiFetch(`/catalog/dishes/${dishId}/recipes/assign`, {
-        method: "POST",
-        body: { items: payload },
-      });
-      setLines([emptyLine()]);
-      onChanged();
-    }, "Đã gán công thức.");
-  }
+  const busy = scheduleAction.pending || applyNowAction.pending;
+  const chosen = lines.map((l) => l.MaNguyenLieu).filter((v) => v !== "");
+  const hasDuplicate = new Set(chosen).size !== chosen.length;
+  const hasBadQuantity = lines.some((l) => {
+    if (l.MaNguyenLieu === "") return false;
+    const qty = Number(l.SoLuong);
+    return l.SoLuong.trim() === "" || !Number.isFinite(qty) || qty <= 0;
+  });
+  const canSubmit =
+    items().length > 0 && !busy && !hasDuplicate && !hasBadQuantity;
 
   function handleSchedule() {
     const payload = items();
@@ -110,8 +133,7 @@ export function RecipeEditor({
           ...(date ? { BusinessDateApDung: date } : {}),
         },
       });
-      setLines([emptyLine()]);
-      setDate("");
+      stopEditing();
       onChanged();
     }, "Đã lên lịch thay đổi công thức.");
   }
@@ -123,7 +145,7 @@ export function RecipeEditor({
         method: "POST",
         body: { items: payload },
       });
-      setLines([emptyLine()]);
+      stopEditing();
       onChanged();
     }, "Đã áp dụng công thức ngay.");
   }
@@ -185,7 +207,13 @@ export function RecipeEditor({
         </ul>
       )}
 
-      {canWrite && (
+      {canWrite && !editing && (
+        <Button variant="secondary" size="sm" onClick={startEditing}>
+          {currentRecipe || pendingRecipe ? "Sửa công thức" : "Thêm công thức"}
+        </Button>
+      )}
+
+      {canWrite && editing && (
         <div className="space-y-3">
           <div className="space-y-2">
             {lines.map((line) => (
@@ -216,6 +244,9 @@ export function RecipeEditor({
                     updateLine(line.id, { SoLuong: e.target.value })
                   }
                 />
+                <span className="min-w-8 text-sm text-subtle">
+                  {unitOf(line.MaNguyenLieu)}
+                </span>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -230,36 +261,47 @@ export function RecipeEditor({
               <Plus />
               Thêm nguyên liệu
             </Button>
+            {hasBadQuantity && (
+              <p role="alert" className="text-sm text-danger">
+                Mỗi nguyên liệu cần số lượng lớn hơn 0; số thập phân dùng dấu
+                chấm, ví dụ 0.15.
+              </p>
+            )}
+            {hasDuplicate && (
+              <p role="alert" className="text-sm text-danger">
+                Có nguyên liệu bị chọn hai lần. Hãy gộp số lượng vào một dòng.
+              </p>
+            )}
           </div>
 
           <div className="flex flex-wrap items-end gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="recipe-date">
-                Business Date áp dụng (lên lịch)
-              </Label>
-              <Input
-                id="recipe-date"
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-              />
-            </div>
-            <Button
-              variant="secondary"
-              disabled={!canSubmit}
-              onClick={handleAssign}
-            >
-              Gán công thức lần đầu
-            </Button>
-            <Button
-              variant="secondary"
-              disabled={!canSubmit}
-              onClick={handleSchedule}
-            >
-              Lên lịch thay đổi
-            </Button>
+            {currentRecipe && (
+              <div className="space-y-1.5">
+                <Label htmlFor="recipe-date">
+                  Business Date áp dụng (lên lịch)
+                </Label>
+                <Input
+                  id="recipe-date"
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                />
+              </div>
+            )}
+            {currentRecipe && (
+              <Button
+                variant="secondary"
+                disabled={!canSubmit}
+                onClick={handleSchedule}
+              >
+                Lên lịch thay đổi
+              </Button>
+            )}
             <Button disabled={!canSubmit} onClick={handleApplyNow}>
               Áp dụng ngay
+            </Button>
+            <Button variant="ghost" disabled={busy} onClick={stopEditing}>
+              Hủy
             </Button>
           </div>
         </div>
