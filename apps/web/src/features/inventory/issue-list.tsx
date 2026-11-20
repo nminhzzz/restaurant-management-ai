@@ -880,7 +880,6 @@ export function IssueList() {
                 <TableHead>Mã phiếu</TableHead>
                 <TableHead>Thời điểm</TableHead>
                 <TableHead>Lý do</TableHead>
-                <TableHead className="text-right">Tổng SL</TableHead>
                 <TableHead className="text-right">Số dòng</TableHead>
                 <TableHead>Trạng thái</TableHead>
                 <TableHead className="text-right">Thao tác</TableHead>
@@ -901,9 +900,6 @@ export function IssueList() {
                   </TableCell>
                   <TableCell>{formatDateTime(it.NgayTao)}</TableCell>
                   <TableCell>{it.LyDo}</TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatNumber(it.TongSoLuong)}
-                  </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {it.SoDong ?? 0}
                   </TableCell>
@@ -941,7 +937,7 @@ export function IssueList() {
               {items.length === 0 && (
                 <TableRow>
                   <TableCell
-                    colSpan={7}
+                    colSpan={6}
                     className="py-8 text-center text-muted"
                   >
                     Không có phiếu xuất nào khớp bộ lọc.
