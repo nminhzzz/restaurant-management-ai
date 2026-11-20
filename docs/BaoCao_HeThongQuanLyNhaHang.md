@@ -80,7 +80,7 @@ Cuối cùng, nhóm xin cảm ơn gia đình và bạn bè đã luôn động vi
 
 Khóa luận xây dựng hệ thống quản lý nhà hàng dạng ứng dụng web cho nhà hàng, quán ăn quy mô vừa và nhỏ, gồm sáu module: danh mục, bán hàng, kho, báo cáo thống kê, cài đặt và AI Assistant. Hệ thống thống nhất dữ liệu từ lúc khách gọi món đến khi đối soát doanh thu, quản lý nguyên liệu theo lô FIFO, thanh toán tiền mặt và QR có đối soát, và phân quyền dữ liệu, chức năng theo từng vai trò. AI Assistant cho phép người dùng hỏi số liệu kinh doanh bằng tiếng Việt; câu SQL do mô hình ngôn ngữ lớn sinh ra chỉ được chạy trên các view chỉ đọc theo vai trò sau khi qua bước kiểm duyệt.
 
-Yêu cầu hệ thống được xác định từ phân tích phần mềm hiện có và khảo sát 51 người từng làm việc hoặc quản lý tại nhà hàng, quán ăn. Hệ thống được mô hình hóa bằng UML, thiết kế cơ sở dữ liệu quan hệ và kiểm thử trên dữ liệu mô phỏng 2 tháng của một nhà hàng nhỏ. Thực nghiệm Text-to-SQL tiếng Việt được thực hiện trên 80 câu hỏi với ba cấu hình, mỗi câu chạy 3 lần (720 lượt). Trên dữ liệu này, độ đúng thực thi nới lỏng của ba cấu hình lần lượt là 87,9%, 89,2% và 85,8%; với cấu hình vận hành, p95 thời gian phản hồi là 7,20 giây và tỷ lệ lỗi là 1,7%. Kiểm thử chức năng cho kết quả 268 đạt trên tổng 268 ca; đo hiệu năng cơ bản với 5, 10 và 20 người dùng đồng thời cho p95 lớn nhất 417 ms ở nghiệp vụ và 25 ms ở báo cáo, không có lỗi.
+Yêu cầu hệ thống được xác định từ phân tích phần mềm hiện có và khảo sát 51 người từng làm việc hoặc quản lý tại nhà hàng, quán ăn. Hệ thống được mô hình hóa bằng UML, thiết kế cơ sở dữ liệu quan hệ và kiểm thử trên dữ liệu mô phỏng 2 tháng của một nhà hàng nhỏ. Thực nghiệm Text-to-SQL tiếng Việt được thực hiện trên 80 câu hỏi với ba cấu hình, mỗi câu chạy 3 lần (720 lượt). Trên dữ liệu này, độ đúng thực thi nới lỏng của ba cấu hình lần lượt là 87,9%, 89,2% và 85,8%; với cấu hình vận hành, p95 thời gian phản hồi là 7,20 giây và tỷ lệ lỗi là 1,7%. Kiểm thử chức năng cho kết quả 270 đạt trên tổng 270 ca; đo hiệu năng cơ bản với 5, 10 và 20 người dùng đồng thời cho p95 lớn nhất 417 ms ở nghiệp vụ và 25 ms ở báo cáo, không có lỗi.
 
 Từ khóa: quản lý nhà hàng, ứng dụng web, Text-to-SQL, mô hình ngôn ngữ lớn, quản lý kho theo lô FIFO.
 
@@ -1190,7 +1190,7 @@ Các ngưỡng đạt/không đạt được lấy từ những nguồn sau:
 
 Các mốc này là tham chiếu chung, chưa được kiểm chứng bằng khảo sát thời gian chờ thực tế tại nhà hàng. Mọi ngưỡng được chốt trước khi chạy đánh giá chính thức; kết quả được trình bày ở các mục 6.4 đến 6.8.
 
-Tài liệu 06 trình bày 268 test case chức năng: 51 ca Danh mục, 101 ca Bán hàng, 67 ca Kho, 9 ca Cài đặt, 15 ca Báo cáo và 25 ca điều kiện biên; kèm kịch bản hiệu năng, các ca kiểm thử NFR-06, NFR-09 và kết quả thực tế.
+Tài liệu 06 trình bày 270 test case chức năng: 52 ca Danh mục, 102 ca Bán hàng, 67 ca Kho, 9 ca Cài đặt, 15 ca Báo cáo và 25 ca điều kiện biên; kèm kịch bản hiệu năng, các ca kiểm thử NFR-06, NFR-09 và kết quả thực tế.
 
 Bảng 6.1 tổng hợp kết quả kiểm chứng yêu cầu phi chức năng theo các phép thử tại Chương 6. Trạng thái và căn cứ phản ánh phạm vi thực nghiệm đã thực hiện.
 
@@ -1201,7 +1201,7 @@ Bảng 6.1. Kết quả đối chiếu yêu cầu phi chức năng
 | NFR-01 | Tải 5/10/20 người, dữ liệu 2 tháng | Đạt | p95 lớn nhất 417 ms ở 20 người dùng (ngưỡng 1 giây); 0 lỗi trên 5.040 yêu cầu của ba nhóm đo ngày 11/11/2026. |
 | NFR-02 | 80 câu × 3 lần/cấu hình | Đạt | Cấu hình vận hành B: p95 7,20 giây, lâu nhất 10,06 giây, lỗi/timeout 1,7%. Cấu hình A cũng đạt (7,76 giây; 11,82 giây; 2,9%). Cấu hình đối chứng C vượt ngưỡng: p95 10,69 giây, 9 lượt quá 12,5 giây (lâu nhất 21,61 giây), lỗi 5,4%. |
 | NFR-03 | Tải báo cáo và SQL đối chứng | Đạt | p95 lớn nhất 25 ms (ngưỡng 10 giây); 0 lỗi trên 752 yêu cầu; doanh thu ngày và tháng khớp bản đối chứng. Trạng thái đang xử lý trên giao diện chưa được kiểm vì không thao tác nào vượt 1 giây. |
-| NFR-04 | Băm mật khẩu, HTTPS, API trái quyền, phiên truy cập | Đạt một phần | 15 ca phân quyền trong bộ 268 ca đều đạt: thao tác trái vai trò bị từ chối với mã 403, webhook sai khóa bị từ chối. Test tự động xác nhận mật khẩu lưu dạng băm, token hết hạn hoặc sai định dạng bị từ chối và tài khoản bị khóa bị chặn dù token còn hạn. Chưa kiểm HTTPS trên môi trường triển khai và chưa quét log, nội dung gửi LLM để tìm thông tin bí mật. |
+| NFR-04 | Băm mật khẩu, HTTPS, API trái quyền, phiên truy cập | Đạt một phần | 15 ca phân quyền trong bộ 270 ca đều đạt: thao tác trái vai trò bị từ chối với mã 403, webhook sai khóa bị từ chối. Test tự động xác nhận mật khẩu lưu dạng băm, token hết hạn hoặc sai định dạng bị từ chối và tài khoản bị khóa bị chặn dù token còn hạn. Chưa kiểm HTTPS trên môi trường triển khai và chưa quét log, nội dung gửi LLM để tìm thông tin bí mật. |
 | NFR-05 | Bộ an toàn 30 câu và test tích hợp quyền view trên MySQL | Đạt | 270 lượt của bộ an toàn (30 câu × 3 lần × 3 cấu hình) không có lượt nào đọc dữ liệu ngoài quyền hoặc ghi dữ liệu. Test tích hợp trên MySQL xác nhận mỗi tài khoản AI chỉ có quyền SELECT trên đúng tập view của vai trò, kể cả các view tính sẵn; giới hạn 500 dòng, 3 giây mỗi truy vấn và hai lần sinh SQL được áp dụng ở tầng thực thi. |
 | NFR-06 | Tính bất biến và nội dung nhật ký | Đạt | Các ca TC-SET-09 và NF-01 đến NF-04 (tài liệu 06 mục 4) đạt: không vai trò nào sửa hoặc xóa được nhật ký thao tác và nhật ký câu hỏi AI qua API (404/405); lệnh UPDATE, DELETE trực tiếp bằng tài khoản CSDL của ứng dụng bị trigger chặn; quét 4.671 bản ghi không thấy mật khẩu, mã băm, token hay khóa API. Sáu thao tác rủi ro cao mẫu đều có bản ghi đủ thời điểm, người thực hiện, thao tác và đối tượng. |
 | NFR-07 | Rollback, gửi lặp, tranh chấp, kiểm kê | Đạt | 18 ca gắn NFR-07 đều đạt, gồm tranh chấp giữ món, gửi lặp, rollback và mở kiểm kê khi có giao dịch song song; kiểm tra sau đo tải không sai lệch sổ cái, lô hay gửi trùng. Gửi lặp đồng thời cùng mã yêu cầu chỉ tạo một order và trừ kho một lần. |
@@ -1333,7 +1333,7 @@ Các thành viên tự kiểm tra theo test case, ghi điều kiện và dữ li
 
 Phạm vi gồm danh mục, giữ và gửi món, hủy hoặc giảm món, hoàn kho, thanh toán, kiểm kê, báo cáo và phân quyền. Các trường hợp thiếu nguyên liệu, nhập sai dữ liệu, xử lý lặp và chuyển trạng thái thuộc kiểm tra chức năng.
 
-Kiểm thử chạy trên môi trường thử riêng với cơ sở dữ liệu dựng từ đầu; các ca chạy qua API, script và test tự động, ca hiển thị được kiểm thêm trên giao diện. Kết quả: 268 đạt trên tổng 268 ca.
+Kiểm thử chạy trên môi trường thử riêng với cơ sở dữ liệu dựng từ đầu; các ca chạy qua API, script và test tự động, ca hiển thị được kiểm thêm trên giao diện. Kết quả: 270 đạt trên tổng 270 ca.
 
 ## 6.7. Kiểm thử hiệu năng
 
@@ -1367,13 +1367,13 @@ MT1 – Đạt. Nhóm đã khảo sát 51 người, đặc tả 29 Use Case và 
 
 MT2 – Đạt. Sáu module đã được triển khai và kiểm thử chức năng theo test case.
 
-MT3 – Đạt. Toàn bộ 268 ca, gồm các ca giữ món, trừ và hoàn kho theo lô, thanh toán và đối soát, giá vốn và phân quyền, đều đạt.
+MT3 – Đạt. Toàn bộ 270 ca, gồm các ca giữ món, trừ và hoàn kho theo lô, thanh toán và đối soát, giá vốn và phân quyền, đều đạt.
 
 MT4 – Đạt. AI Assistant hỏi đáp bằng tiếng Việt theo vai trò; SQL do mô hình sinh ra được giới hạn trên view chỉ đọc và qua bộ kiểm duyệt truy vấn. Trên bộ an toàn 30 câu, tỷ lệ từ chối đúng là 96,7–98,9% và không lượt nào đọc dữ liệu ngoài quyền.
 
 MT5 – Đạt. Thực nghiệm 720 lượt trên 80 câu hỏi đã chạy đủ ba cấu hình: độ đúng thực thi nới lỏng 87,9% (A), 89,2% (B) và 85,8% (C); độ đúng câu trả lời chấm bằng AI 53,8–58,8%. Cấu hình vận hành B đạt NFR-02 với p95 7,20 giây và tỷ lệ lỗi 1,7%; cấu hình effort cao C chậm hơn mà không đúng hơn.
 
-MT6 – Đạt. Nhóm đã kiểm thử chức năng (268 đạt trên tổng 268 ca) và đo hiệu năng cơ bản trên bộ dữ liệu 2 tháng: cả bốn nhóm đo đạt ngưỡng, không có lỗi.
+MT6 – Đạt. Nhóm đã kiểm thử chức năng (270 đạt trên tổng 270 ca) và đo hiệu năng cơ bản trên bộ dữ liệu 2 tháng: cả bốn nhóm đo đạt ngưỡng, không có lỗi.
 
 ## Hạn chế
 

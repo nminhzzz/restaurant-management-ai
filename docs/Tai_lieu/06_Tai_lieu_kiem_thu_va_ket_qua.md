@@ -27,9 +27,9 @@ Bảng 1. Cấu trúc bản ghi test case
 
 **1.2. Bộ ca kiểm thử**
 
-Bộ kiểm thử gồm 268 ca chức năng: 51 Danh mục, 101 Bán hàng, 67 Kho, 9 Cài đặt, 15 Báo cáo và 25 điều kiện biên. Bốn bảng dưới gồm 228 ca; mục 3 trình bày các ca Báo cáo và điều kiện biên.
+Bộ kiểm thử gồm 270 ca chức năng: 52 Danh mục, 102 Bán hàng, 67 Kho, 9 Cài đặt, 15 Báo cáo và 25 điều kiện biên. Bốn bảng dưới gồm 230 ca; mục 3 trình bày các ca Báo cáo và điều kiện biên.
 
-Kết quả chạy trong môi trường thử riêng với cơ sở dữ liệu dựng từ đầu; các ca chạy qua API, script và test tự động (ca giả lập thời điểm, lỗi hoặc tải đồng thời chạy qua tầng service), ca hiển thị được kiểm thêm trên giao diện: 268 đạt trên tổng 268 ca. Theo nhóm: Danh mục 51/51; Bán hàng 101/101; Kho 67/67; Cài đặt 9/9; Báo cáo 15/15; điều kiện biên 25/25.
+Kết quả chạy trong môi trường thử riêng với cơ sở dữ liệu dựng từ đầu; các ca chạy qua API, script và test tự động (ca giả lập thời điểm, lỗi hoặc tải đồng thời chạy qua tầng service), ca hiển thị được kiểm thêm trên giao diện: 270 đạt trên tổng 270 ca. Theo nhóm: Danh mục 52/52; Bán hàng 102/102; Kho 67/67; Cài đặt 9/9; Báo cáo 15/15; điều kiện biên 25/25.
 
 Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác. Các ca gọi món do Nhân viên order thực hiện; ca thanh toán do Thu ngân thực hiện; ca Kho do Bếp thực hiện, trừ ca phân quyền. Mọi tài khoản phải còn hiệu lực. Dữ liệu ngày, giờ dùng thời gian server; mốc Business Date trong ca hiệu lực là 06:00. Bò xào dùng 150 g thịt bò mỗi suất, không có nguyên liệu giới hạn khác, trừ khi ca quy định riêng.
 
@@ -114,6 +114,10 @@ Các ca Danh mục do Quản lý thực hiện, trừ ca ghi rõ vai trò khác.
 | TC-CAT-49 | FR-CAT-29 | Bò xào giá bán 80.000 đ; công thức 150 g bò (đơn giá bình quân 230.000 đ/kg) và 50 g hành (40.000 đ/kg); TyLeGiaVonCanhBao = 40%. | 1. Đăng nhập Quản lý, mở danh sách món.2. Chọn Bò xào để xem chi tiết giá vốn. | Giá vốn ước tính 36.500 đ (34.500 + 2.000); tỷ lệ giá vốn 45,6%; lãi gộp 43.500 đ/suất; món được đánh dấu cảnh báo; chi tiết hiển thị hai nguyên liệu với định lượng, đơn giá và thành tiền. | Trọng yếu | API: Bò xào hành 80.000, ngưỡng 40.0%: giá vốn 36500.0, tỷ lệ 45.63%, lãi gộp 43500.0, CanhBao=True; chi tiết [('Bò thăn C49', 150.0, 230.0, 34500.0), ('Hành tây C49', 50.0, 40.0, 2000.0)]; Thu ngân xem giá vốn → 403 | Đạt |
 | TC-CAT-50 | FR-CAT-29, FR-INV-02 | Như TC-CAT-49 nhưng đơn giá bình quân của bò là 180.000 đ/kg: giá vốn 29.000 đ, tỷ lệ 36,25%, chưa cảnh báo. | 1. Nhập kho bò với giá cao hơn để đơn giá bình quân tăng lên 230.000 đ/kg.2. Mở lại danh sách món. | Giá vốn của Bò xào cập nhật thành 36.500 đ, tỷ lệ 45,6% và có cảnh báo; giá bán vẫn 80.000 đ, hệ thống không tự đổi giá bán. | Trọng yếu | API: Bò thăn 1.000 g × 180 đ: giá vốn 29000.0, tỷ lệ 36.25%, CanhBao=False. Nhập thêm 1.000 g × 280 đ (bình quân 230): giá vốn 36500.0, tỷ lệ 45.63%, CanhBao=True; giá bán vẫn [80000.0] | Đạt |
 | TC-CAT-51 | FR-CAT-29 | Công thức Gỏi gà có Sả, nguyên liệu chưa có đơn giá bình quân. | 1. Mở danh sách món, tìm Gỏi gà. | Cột giá vốn hiển thị “Chưa đủ dữ liệu” kèm tên Sả; không tính Sả bằng 0; không hiển thị tỷ lệ giá vốn hay cảnh báo cho món. | Thường | API: Gỏi gà: Gà 100 g (đơn giá 90) + Sả 10 g (chưa nhập): TinhTrang 'Chưa đủ dữ liệu', GiaVonUocTinh None, TyLe None, CanhBao False, thiếu giá ['Sả C51']; ThanhTien của Sả None | Đạt |
+| TC-CAT-52 | FR-CAT-07, FR-CAT-08 | Món đã có công thức đang áp dụng gồm hai nguyên liệu; một món Nháp chưa có công thức. | 1. Mở chi tiết món, chọn Sửa công thức.
+2. Đổi định lượng một dòng, chọn Áp dụng ngay.
+3. Thử chọn một nguyên liệu ở hai dòng, hoặc nhập định lượng 0.
+4. Với món Nháp, chọn Thêm công thức rồi Áp dụng ngay. | Bước 1 nạp sẵn đủ các dòng của công thức hiện hành kèm đơn vị tính; bước 2 tạo phiên bản mới, dòng không sửa giữ nguyên; bước 3 bị chặn với thông báo, không ghi dữ liệu; bước 4 đưa món ra khỏi Nháp. Món luôn chỉ có một phiên bản đang áp dụng. | Trọng yếu | Test tự động: recipe-editor.test.tsx (5 ca: nạp sẵn và gửi đúng hai dòng 180 và 10; chặn trùng nguyên liệu; chặn định lượng 0; món chưa có công thức mở khung trống); test_the_first_recipe_activates_the_dish, test_the_first_recipe_applied_now_is_labelled_new, test_assigning_again_cannot_create_a_second_active_recipe, test_a_recipe_cannot_list_the_same_ingredient_twice (Áp dụng ngay và Lên lịch → 422) đạt. | Đạt |
 
 Bảng 2. Ca kiểm thử module Quản lý danh mục
 
@@ -245,6 +249,10 @@ Gà xào S04 x1 - 80000; trừ -150 g | Đạt |
 | TC-SALE-99 | FR-SALE-27 | Quản lý. Chuẩn bị hai order: (a) Chờ xác minh thanh toán, (b) Đã thanh toán. | 1. Thử hủy toàn bộ từng order. | Cả hai bị từ chối với thông báo lý do. Không đổi trạng thái, kho, hóa đơn hay doanh thu. | Trọng yếu | API: Order (a) 'Chờ xác minh thanh toán' và (b) 'Đã thanh toán': hủy toàn bộ → 422 'Order đã đóng.', 422 'Order đã đóng.'; (b) 1 hóa đơn | Đạt |
 | TC-SALE-100 | FR-SALE-27, NFR-04 | Tài khoản Thu ngân và tài khoản Quản lý; order Đang mở hợp lệ. | 1. Thu ngân thử hủy toàn bộ (giao diện và gọi API trực tiếp). 2. Quản lý hủy nhưng để trống lý do. 3. Quản lý nhập lý do và hủy. | Thu ngân bị từ chối ở cả giao diện và API. Bước 2 bị từ chối vì thiếu lý do. Bước 3 thành công. | Trọng yếu | API: Thu ngân gọi API hủy toàn bộ → 403; Quản lý hủy với lý do rỗng → 422 'Cần lý do hủy order.', order 'Đang mở'; Quản lý nhập lý do → 200 'Đã hủy' | Đạt |
 | TC-SALE-101 | FR-SALE-26 | Order đã thanh toán, đã có hóa đơn chốt; tài khoản Thu ngân và Quản lý. | 1. Mở hóa đơn đã chốt và chọn in lại hai lần. 2. Đối chiếu nội dung với hóa đơn gốc. 3. Thử chỉnh sửa nội dung khi in lại. | Nội dung in lại đúng nguyên nội dung hóa đơn gốc; không cho chỉnh sửa; không tạo thêm hóa đơn hoặc giao dịch, không đổi doanh thu. | Thường | API: Order đã thanh toán, hóa đơn HD-20261113-0012 100000. In lại hai lần (Thu ngân, rồi Quản lý gửi kèm TongTien=1) → 200, 200; vẫn 1 hóa đơn, TongTien 100000, NoiDungChup không đổi (True), SoLanIn 1→3; 1 giao dịch | Đạt |
+| TC-SALE-102 | FR-SALE-12, FR-CAT-18 | Order tại chỗ Đang mở ở bàn A đã được giải phóng bàn; bàn B Trống. | 1. Thử gọi thêm cho order.
+2. Chọn Đổi bàn, chọn bàn A (đang Trống).
+3. Gọi thêm một món.
+4. Lặp lại khi bàn A đã nhận order mới: thử đổi về bàn A, sau đó đổi sang bàn B. | Bước 1 bị từ chối vì order đã rời bàn; bước 2 gắn order vào bàn A, bàn chuyển Đang phục vụ; bước 3 gọi thêm thành công. Ở bước 4, đổi về bàn A bị từ chối vì bàn bận; đổi sang bàn B thành công, bàn A vẫn gắn order mới. | Trọng yếu | Test tự động: test_released_open_order_can_be_reseated_and_grow_again (gọi thêm trước khi gắn → 422, đổi về bàn A → 200, gọi thêm sau đó → thành công), test_reseating_leaves_the_old_table_with_its_new_party (bàn A bận → 422; sang bàn B → 200; bàn A giữ order mới) đạt. | Đạt |
 
 Bảng 3. Ca kiểm thử module Quản lý bán hàng
 
@@ -461,4 +469,4 @@ Các ca dưới đây kiểm chứng NFR-06 và NFR-09 trên bộ dữ liệu th
 
 ## 5. Nhận xét
 
-Toàn bộ 268 ca đạt. Hiệu năng cơ bản đo trên bộ dữ liệu 2 tháng đạt ngưỡng ở cả bốn nhóm, không có lỗi và dữ liệu giữ đúng bất biến (mục 2). Ở mục 4, nhật ký không sửa, không xóa được và không chứa thông tin bí mật, bản sao lưu phục hồi đúng vào CSDL trống.
+Toàn bộ 270 ca đạt. Hiệu năng cơ bản đo trên bộ dữ liệu 2 tháng đạt ngưỡng ở cả bốn nhóm, không có lỗi và dữ liệu giữ đúng bất biến (mục 2). Ở mục 4, nhật ký không sửa, không xóa được và không chứa thông tin bí mật, bản sao lưu phục hồi đúng vào CSDL trống.

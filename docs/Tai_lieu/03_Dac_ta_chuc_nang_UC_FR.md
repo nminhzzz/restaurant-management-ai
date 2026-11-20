@@ -60,9 +60,9 @@ Yêu cầu chức năng liên quan: FR-CAT-02, FR-CAT-04, FR-CAT-05, FR-CAT-06, 
 
 **Nội dung xử lý:**
 
-Bước 1. Trong chi tiết món (UC 1.2), Quản lý mở phần Công thức, khai báo nguyên liệu và định lượng hoặc chọn lịch công thức cần xử lý. Công thức không có màn hình quản lý riêng; mỗi công thức luôn thuộc về đúng một món.
+Bước 1. Trong chi tiết món (UC 1.2), Quản lý mở phần Công thức; hệ thống nạp sẵn nguyên liệu và định lượng của công thức hiện hành, hoặc khung trống nếu món chưa có công thức, để Quản lý chỉnh; Quản lý cũng có thể chọn lịch công thức cần xử lý. Công thức không có màn hình quản lý riêng; mỗi công thức luôn thuộc về đúng một món.
 
-Bước 2. Hệ thống kiểm tra dữ liệu; Quản lý xác nhận áp dụng công thức đầu tiên, sửa trực tiếp, lên lịch, thay hoặc hủy lịch theo trường hợp tương ứng.
+Bước 2. Hệ thống kiểm tra dữ liệu, mỗi nguyên liệu chỉ một dòng và định lượng lớn hơn 0; Quản lý xác nhận áp dụng công thức đầu tiên, sửa trực tiếp, lên lịch, thay hoặc hủy lịch theo trường hợp tương ứng.
 
 Bước 3. Hệ thống lưu phiên bản và lịch sử thao tác; công thức đầu tiên đưa món ra khỏi trạng thái Nháp. Các lượt gửi món tiếp theo sử dụng phiên bản có hiệu lực.
 
@@ -186,7 +186,7 @@ Yêu cầu chức năng liên quan: FR-SALE-01–06, 08, 24, 31–32; FR-INV-13;
 
 **Tác nhân:** Thu ngân/Nhân viên order
 
-**Đầu vào:** Order tại chỗ hoặc mang về và trạng thái hiện tại; yêu cầu gọi thêm, giảm/hủy món, cập nhật phục vụ, đổi bàn hoặc xác nhận khách đã rời; xác nhận thực tế của Bếp. Gọi thêm dành cho order tại chỗ hoặc mang về Đang mở; riêng tại chỗ phải còn gắn đúng bàn. Đổi bàn chỉ dành cho order tại chỗ Đang mở còn gắn đúng bàn. Giảm/hủy chỉ khi order còn cho phép sửa; cập nhật phục vụ và giải phóng bàn áp dụng theo điều kiện riêng của từng nhánh.
+**Đầu vào:** Order tại chỗ hoặc mang về và trạng thái hiện tại; yêu cầu gọi thêm, giảm/hủy món, cập nhật phục vụ, đổi bàn hoặc xác nhận khách đã rời; xác nhận thực tế của Bếp. Gọi thêm dành cho order tại chỗ hoặc mang về Đang mở; riêng tại chỗ phải còn gắn đúng bàn. Đổi bàn dành cho order tại chỗ Đang mở và bàn đích Trống; order đã rời bàn được gắn vào bàn đích như một lượt ngồi mới. Giảm/hủy chỉ khi order còn cho phép sửa; cập nhật phục vụ và giải phóng bàn áp dụng theo điều kiện riêng của từng nhánh.
 
 **Đầu ra:** Order được bổ sung, điều chỉnh hoặc cập nhật trạng thái; nguyên liệu được trừ hoặc hoàn; liên kết bàn–order được cập nhật; hoặc thông báo từ chối.
 
@@ -636,7 +636,7 @@ Danh mục gồm 29 Use Case thuộc sáu nhóm: Quản lý danh mục (1.1–1.
 
 Nhóm 1: UC 1.2 bao gồm cập nhật, tra cứu, xóa mềm và tạm dừng/mở lại phục vụ món. UC 1.2 gồm nghiệp vụ con 1.2a: thiết lập công thức của từng món, gồm phiên bản và lịch áp dụng, ngay trong chi tiết món; UC 1.3 quản lý giá bán, lịch sử và lịch thay đổi. Xem thực đơn và sơ đồ bàn để gọi món được thực hiện trong luồng bán hàng.
 
-Nhóm 2: UC 2.3 — Quản lý order và phục vụ gồm gọi thêm cho order tại chỗ hoặc mang về Đang mở, riêng tại chỗ phải còn gắn đúng bàn; đổi bàn chỉ cho order tại chỗ Đang mở còn gắn bàn; giảm/hủy món khi được phép sửa và Bếp xác nhận chưa làm; cập nhật phục vụ cho cả tại chỗ và mang về, kể cả sau thanh toán; giải phóng bàn khi khách rời, độc lập trạng thái order. Các nhánh tuân theo điều kiện tại mục 1.2. UC 2.4 bao gồm phiếu tạm tính, chọn phương thức, thanh toán tiền mặt và phát hành hóa đơn. UC 2.5 mở rộng UC 2.4 khi chọn QR, gồm tạo/hủy mã, nhận kết quả và các nhánh quét lỗi, hết hạn hoặc yêu cầu xác minh. UC 2.6 gồm đối soát, xác nhận đã nhận tiền, tiếp tục chờ, mở lại thanh toán, đóng chưa thu và xử lý khoản QR ngoại lệ. UC 2.8 gồm tra cứu order, hóa đơn, phiếu bếp và in lại chứng từ hợp lệ.
+Nhóm 2: UC 2.3 — Quản lý order và phục vụ gồm gọi thêm cho order tại chỗ hoặc mang về Đang mở, riêng tại chỗ phải còn gắn đúng bàn; đổi bàn cho order tại chỗ Đang mở sang bàn Trống, kể cả order đã rời bàn; giảm/hủy món khi được phép sửa và Bếp xác nhận chưa làm; cập nhật phục vụ cho cả tại chỗ và mang về, kể cả sau thanh toán; giải phóng bàn khi khách rời, độc lập trạng thái order. Các nhánh tuân theo điều kiện tại mục 1.2. UC 2.4 bao gồm phiếu tạm tính, chọn phương thức, thanh toán tiền mặt và phát hành hóa đơn. UC 2.5 mở rộng UC 2.4 khi chọn QR, gồm tạo/hủy mã, nhận kết quả và các nhánh quét lỗi, hết hạn hoặc yêu cầu xác minh. UC 2.6 gồm đối soát, xác nhận đã nhận tiền, tiếp tục chờ, mở lại thanh toán, đóng chưa thu và xử lý khoản QR ngoại lệ. UC 2.8 gồm tra cứu order, hóa đơn, phiếu bếp và in lại chứng từ hợp lệ.
 
 Nhóm 3: UC 3.1 ghi nhận phiếu nhập và lô nguyên liệu; UC 3.2 cho phép Bếp tra cứu xuất, hoàn và đối chiếu lô, với tiêu hao được hệ thống ghi khi gửi món, không có thao tác xác nhận xuất thêm; UC 3.3 lập chứng từ xuất hủy; UC 3.4 ghi nhận kiểm kê và điều chỉnh tồn. UC 3.5 hiển thị tồn sổ sách, lượng đang giữ, lượng khả dụng, chi tiết lô và cảnh báo tồn thấp/hạn sử dụng. Phân bổ FIFO và giữ nguyên liệu là quy tắc xử lý của các luồng liên quan.
 
@@ -678,7 +678,7 @@ Các yêu cầu chức năng được tổ chức theo sáu module và gắn v�
 
 **FR-CAT-29 – Giá vốn ước tính và cảnh báo tỷ lệ giá vốn: Danh sách món của Quản lý hiển thị giá bán hiện hành, giá vốn ước tính, tỷ lệ giá vốn (giá vốn ước tính chia giá bán) và lãi gộp mỗi suất. Giá vốn ước tính bằng tổng của định lượng từng nguyên liệu trong công thức hiện hành nhân đơn giá bình quân hiện hành của nguyên liệu đó, sau khi quy đổi về đơn vị chuẩn. Món chưa có công thức hiển thị “Chưa có công thức”; khi một nguyên liệu trong công thức chưa có đơn giá, hệ thống hiển thị “Chưa đủ dữ liệu” kèm tên nguyên liệu thiếu giá, không tính phần thiếu bằng 0. Món có tỷ lệ giá vốn lớn hơn TyLeGiaVonCanhBao (FR-SET-04, mặc định 40%) được đánh dấu cảnh báo. Chọn một món để xem từng nguyên liệu: định lượng, đơn giá bình quân và thành tiền. Hệ thống không tự đổi giá bán; Quản lý quyết định cập nhật giá theo FR-CAT-20 hoặc FR-CAT-23. Giá vốn ước tính phản ánh giá hiện tại để ra quyết** **định giá bán, khác giá vốn thực tế trong báo cáo (FR-REP-11) được ghi theo đơn giá tại thời điểm xuất.**
 
-**FR-CAT-07 – Gán công thức chế biến:** Mỗi món ăn gắn với một công thức chế biến, gồm danh sách nguyên liệu và định lượng tương ứng theo đúng đơn vị tính.
+**FR-CAT-07 – Gán công thức chế biến:** Mỗi món ăn gắn với một công thức chế biến, gồm danh sách nguyên liệu và định lượng tương ứng theo đúng đơn vị tính. Mỗi nguyên liệu xuất hiện một lần trong công thức với định lượng lớn hơn 0; tại mỗi thời điểm, món chỉ có một phiên bản công thức đang áp dụng.
 
 **FR-CAT-08 – Lên lịch áp dụng thay đổi công thức theo Business Date:** Quản lý chọn Business Date áp dụng cho thay đổi công thức; mặc định là Business Date kế tiếp, Quản lý có thể chọn sang bất kỳ Business Date nào trong tương lai nhưng không được chọn Business Date đã bắt đầu hoặc đã kết thúc. Phiên bản mới có hiệu lực từ đúng mốc giờ bắt đầu của Business Date được chọn, áp dụng cho các dòng món được gửi từ thời điểm đó trở đi và không ảnh hưởng đến các dòng món đã ghi nhận trước thời điểm hiệu lực; hệ thống lưu lịch sử các phiên bản công thức.
 
@@ -744,7 +744,7 @@ Các yêu cầu chức năng được tổ chức theo sáu module và gắn v�
 
 **FR-SALE-11 – Xử lý order khi toàn bộ món đã gửi bị hủy:** Order tiếp tục “Đang mở” để tiếp nhận gọi thêm theo FR-SALE-06. Quản lý hủy toàn bộ order theo FR-SALE-27; nguyên liệu được xử lý theo FR-SALE-28. Bàn chỉ về Trống khi khách đã rời đi theo FR-CAT-18.
 
-**FR-SALE-12 – Đổi bàn cho order đang mở:** Chuyển order từ bàn hiện tại sang bàn Trống khác, khi order ở trạng thái “Đang mở”, bàn nguồn còn Đang phục vụ và BAN.MaOrderDangPhucVu trỏ tới đúng order này; sau khi giải phóng bàn thì không được đổi bàn cho order cũ; bàn đích chuyển Đang phục vụ, bàn nguồn về Trống. Thao tác đổi bàn được ghi vào audit log (FR-SET-06).
+**FR-SALE-12 – Đổi bàn cho order đang mở:** Chuyển order ở trạng thái “Đang mở” sang một bàn Trống. Nếu bàn nguồn còn Đang phục vụ và BAN.MaOrderDangPhucVu trỏ tới đúng order này, bàn nguồn về Trống. Nếu bàn đã được giải phóng, order được gắn vào bàn đích và bàn cũ giữ nguyên trạng thái, kể cả khi đang phục vụ order khác; sau đó order được gọi thêm như order còn gắn bàn. Bàn đích chuyển Đang phục vụ. Thao tác đổi bàn được ghi vào audit log (FR-SET-06).
 
 **FR-SALE-13 – Chọn phương thức thanh toán:** Sau khi đưa phiếu tạm tính cho khách kiểm tra theo FR-SALE-21 và chốt nội dung order, Thu ngân chọn phương thức: tiền mặt hoặc quét mã QR do hệ thống tạo cho order; hóa đơn chỉ phát hành sau khi thanh toán thành công. Với tiền mặt, Thu ngân xác nhận đã nhận đủ tiền; hệ thống tạo giao dịch tiền mặt ở trạng thái “Thành công”, phát hành hóa đơn và chuyển order sang “Đã thanh toán” trong cùng transaction, không có trạng thái chờ. Trước khi chốt thanh toán, nhân viên xử lý toàn bộ lượt chọn gọi thêm gắn order bằng gửi hoặc bỏ lượt; hệ thống kiểm tra điều kiện này tại backend.
 
@@ -939,7 +939,7 @@ Hệ thống có 29 yêu cầu Danh mục, 35 Bán hàng, 14 Kho, 13 Báo cáo, 
 | FR-SALE-09 | Must | Trạng thái xử lý của món | Trạng thái món đi đúng luồng; sau thanh toán chỉ đổi trạng thái phục vụ, không đổi tiền. |
 | FR-SALE-10 | Must | Hủy một món trong order | Hủy món Chờ làm có người, thời điểm, số lượng và lý do trong audit. |
 | FR-SALE-11 | Must | Xử lý order khi toàn bộ món đã gửi bị hủy | Hủy hết món không tự đóng order/giải phóng bàn; còn tiếp nhận gọi thêm nếu hợp lệ. |
-| FR-SALE-12 | Must | Đổi bàn cho order đang mở | Đổi sang bàn trống nguyên tử; sai bàn nguồn/order hoặc bàn đích bận bị chặn; có audit. |
+| FR-SALE-12 | Must | Đổi bàn cho order đang mở | Đổi sang bàn trống nguyên tử, kể cả order đã rời bàn; bàn đích bận hoặc order không còn Đang mở bị chặn; không đổi trạng thái bàn của order khác; có audit. |
 | FR-SALE-13 | Must | Chọn phương thức thanh toán | Tiền mặt xác nhận đủ tiền mới ghi thành công, hóa đơn và order nguyên tử. |
 | FR-SALE-14 | Must | Thanh toán QR | Tạo QR cho đúng order và số tiền; trạng thái chờ và hạn dùng được hiển thị. |
 | FR-SALE-15 | Must | Xác nhận thanh toán QR qua webhook | Xác nhận hợp lệ hoàn tất một lần; callback lặp không cộng tiền/doanh thu lần nữa. |
@@ -1152,8 +1152,8 @@ Các dòng dưới áp dụng sau khi webhook đã xác thực và xác định 
 
 | Trạng thái/điều kiện | Sửa nội dung hoặc gọi thêm | Cập nhật món và bàn |
 |---|---|---|
-| Đang mở, tại chỗ còn gắn đúng bàn; hoặc mang về | Cho gọi thêm; giảm/hủy chỉ dòng Chờ làm và sau xác nhận Bếp chưa chế biến | Cho cập nhật phục vụ; đổi bàn chỉ tại chỗ còn gắn bàn, bàn đích trống |
-| Đang mở, tại chỗ đã giải phóng bàn | Không gọi thêm hoặc đổi bàn cho order cũ; các điều chỉnh khác vẫn theo FR-SALE-07 và điều kiện thanh toán | Không gắn lại bàn; không tác động order mới đang dùng bàn cũ |
+| Đang mở, tại chỗ còn gắn đúng bàn; hoặc mang về | Cho gọi thêm; giảm/hủy chỉ dòng Chờ làm và sau xác nhận Bếp chưa chế biến | Cho cập nhật phục vụ; đổi bàn sang bàn đích Trống |
+| Đang mở, tại chỗ đã giải phóng bàn | Gọi thêm sau khi được gắn vào bàn Trống bằng đổi bàn; các điều chỉnh khác vẫn theo FR-SALE-07 và điều kiện thanh toán | Gắn vào bàn Trống khi đổi bàn; không tác động order mới đang dùng bàn cũ |
 | Chờ xác nhận / Chờ xác minh / Đã thanh toán / Đóng chưa thu | Khóa món và số tiền; không tạo lần thu mới trừ luồng mở lại được phép | Cho cập nhật chế biến/phục vụ của dòng chưa hủy; được giải phóng đúng bàn còn phục vụ order |
 | Toàn bộ dòng bị hủy nhưng order chưa hủy toàn phần | Order vẫn Đang mở; gọi thêm phải thỏa điều kiện bàn/loại đơn | Không tự giải phóng bàn |
 | Đã hủy toàn bộ order | Không gọi thêm, sửa món, đổi bàn hoặc thu tiền cho order hủy; tiền muộn vào ngoại lệ | Không cập nhật tiếp các dòng đã hủy; bàn được giải phóng khi khách rời theo đúng liên kết order |
