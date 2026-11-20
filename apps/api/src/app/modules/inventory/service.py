@@ -818,10 +818,13 @@ async def list_issues(
     reason: str | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
+    status: str | None = None,
 ) -> tuple[list[StockIssue], int]:
     filters = []
     if reason is not None:
         filters.append(StockIssue.reason == reason)
+    if status is not None:
+        filters.append(StockIssue.status == status)
     if date_from is not None:
         filters.append(func.date(StockIssue.created_at) >= date_from)
     if date_to is not None:
@@ -836,6 +839,213 @@ async def list_issues(
     )
     r = await session.execute(q)
     return list(r.scalars().all()), total
+
+
+# Proposed expiry write-offs (supervisor review 2026-11-19)
+ISSUE_PENDING = "Chờ duyệt"
+ISSUE_CONFIRMED = "Đã xác nhận"
+ISSUE_REJECTED = "Đã từ chối"
+EXPIRY_REASON = "Hết hạn"
+
+
+async def propose_expiry_write_off(session: AsyncSession) -> StockIssue | None:
+    """Propose one voucher for the expired lots that still hold stock; it moves nothing.
+
+    A lot already on a voucher waiting for approval, or on one that was rejected, is left out,
+    so running this again (the schedule, or the button) never proposes the same lot twice and
+    a rejection is final for that lot. Nothing is proposed
+    while a stocktake is open, since the count may change what is left.
+    """
+    # Serialise with other proposals and stock changes: a second caller waits here, then
+    # sees the first voucher, and the stocktake check below cannot race a stocktake opening.
+    # An earlier plain read in this transaction (the business-date schedule, the token's user)
+    # fixes the InnoDB snapshot before the wait, so every read below is a locking read: it
+    # sees what was committed while we waited.
+    await lock_stock_operations(session)
+    open_id = await session.scalar(
+        select(Stocktake.id).where(Stocktake.status == "Đang kiểm kê").limit(1).with_for_update()
+    )
+    if open_id is not None:
+        return None
+    today = business_date.business_date_of(business_date.now())
+    # Fetched on its own: a subquery inside a locking SELECT is still read from the snapshot.
+    decided_lots = list(
+        (
+            await session.execute(
+                select(StockIssueLine.lot_id)
+                .join(StockIssue, StockIssue.id == StockIssueLine.issue_id)
+                .where(
+                    StockIssue.status.in_([ISSUE_PENDING, ISSUE_REJECTED]),
+                    StockIssueLine.lot_id.is_not(None),
+                )
+                .with_for_update()
+            )
+        )
+        .scalars()
+        .all()
+    )
+    lots = list(
+        (
+            await session.execute(
+                select(IngredientLot)
+                .where(
+                    IngredientLot.status != LotStatus.DA_HUY.value,
+                    IngredientLot.quantity_remaining > 0,
+                    IngredientLot.expiry_date.is_not(None),
+                    IngredientLot.expiry_date < today,
+                    IngredientLot.id.not_in(decided_lots),
+                )
+                .order_by(IngredientLot.ingredient_id, IngredientLot.received_at, IngredientLot.id)
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    if not lots:
+        return None
+    issue = StockIssue(
+        reason=EXPIRY_REASON,
+        status=ISSUE_PENDING,
+        created_at=business_date.now(),
+        issue_date=None,
+        created_by=None,
+        source="Nguyên liệu",
+        note="Hệ thống đề xuất hủy các lô đã quá hạn sử dụng.",
+    )
+    session.add(issue)
+    await session.flush()
+    for lot in lots:
+        session.add(
+            StockIssueLine(
+                issue_id=issue.id,
+                ingredient_id=lot.ingredient_id,
+                quantity=Decimal(str(lot.quantity_remaining)),
+                lot_id=lot.id,
+            )
+        )
+    session.add(
+        SystemAuditLog(
+            user_id=None,
+            action="PROPOSE_EXPIRY_WRITE_OFF",
+            target_entity="PHIEU_XUAT_KHO",
+            target_id=str(issue.id),
+            after={"MaLoNguyenLieu": [lot.id for lot in lots]},
+        )
+    )
+    await session.flush()
+    return issue
+
+
+async def _pending_issue(session: AsyncSession, issue_id: int) -> StockIssue:
+    issue = (
+        await session.execute(select(StockIssue).where(StockIssue.id == issue_id).with_for_update())
+    ).scalar_one_or_none()
+    if issue is None:
+        raise NotFoundError("Không tìm thấy phiếu xuất kho.")
+    if issue.status != ISSUE_PENDING:
+        raise BusinessRuleError("Chỉ duyệt hoặc từ chối phiếu đang chờ duyệt.")
+    return issue
+
+
+async def approve_issue(session: AsyncSession, issue_id: int, actor_id: int) -> StockIssue:
+    """Post a proposed write-off: each line draws its own lot, up to what the lot still holds."""
+    await ensure_no_open_stocktake(session)
+    issue = await _pending_issue(session, issue_id)
+    lines = list(
+        (
+            await session.execute(
+                select(StockIssueLine)
+                .where(StockIssueLine.issue_id == issue.id)
+                .order_by(StockIssueLine.id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    posted = 0
+    proposed: list[dict[str, object]] = []
+    drawn: list[dict[str, object]] = []
+    dropped: list[int] = []
+    for line in lines:
+        lot = await session.get(IngredientLot, line.lot_id) if line.lot_id else None
+        left = (
+            Decimal(str(lot.quantity_remaining))
+            if lot is not None and lot.status != LotStatus.DA_HUY.value
+            else Decimal(0)
+        )
+        proposed_quantity = Decimal(str(line.quantity))
+        quantity = min(proposed_quantity, left)
+        if lot is None or quantity <= 0:
+            # The lot was used up or cancelled since the proposal; nothing is left to destroy.
+            if line.lot_id is not None:
+                dropped.append(line.lot_id)
+            await session.delete(line)
+            continue
+        proposed.append({"MaLoNguyenLieu": lot.id, "SoLuong": float(proposed_quantity)})
+        drawn.append({"MaLoNguyenLieu": lot.id, "SoLuong": float(quantity)})
+        line.quantity = quantity
+        line.estimated_cost = movement_value(
+            quantity, await current_unit_cost(session, line.ingredient_id)
+        )
+        await session.flush()
+        await apply_stock_movement(
+            session,
+            StockChange(
+                ingredient_id=line.ingredient_id,
+                delta=-quantity,
+                kind="Xuất thủ công",
+                allow_expired=True,
+                business_date=_bd(),
+                source_issue_line_id=line.id,
+                lot_ids=[lot.id],
+            ),
+            actor_id=actor_id,
+        )
+        posted += 1
+    if posted == 0:
+        raise BusinessRuleError("Các lô trong phiếu không còn hàng; hãy từ chối phiếu này.")
+    moment = business_date.now()
+    issue.status = ISSUE_CONFIRMED
+    issue.approved_by = actor_id
+    issue.approved_at = moment
+    issue.issue_date = moment
+    session.add(
+        SystemAuditLog(
+            user_id=actor_id,
+            action="APPROVE_STOCK_ISSUE",
+            target_entity="PHIEU_XUAT_KHO",
+            target_id=str(issue.id),
+            before={"TrangThai": ISSUE_PENDING, "lines": proposed},
+            after={"TrangThai": ISSUE_CONFIRMED, "lines": drawn, "MaLoBiBo": dropped},
+        )
+    )
+    await session.flush()
+    return issue
+
+
+async def reject_issue(
+    session: AsyncSession, issue_id: int, actor_id: int, note: str | None = None
+) -> StockIssue:
+    """Reject a proposed write-off; stock is untouched and the decision is kept."""
+    issue = await _pending_issue(session, issue_id)
+    issue.status = ISSUE_REJECTED
+    issue.approved_by = actor_id
+    issue.approved_at = business_date.now()
+    if note:
+        issue.note = f"{issue.note or ''} Lý do từ chối: {note}".strip()[:500]
+    session.add(
+        SystemAuditLog(
+            user_id=actor_id,
+            action="REJECT_STOCK_ISSUE",
+            target_entity="PHIEU_XUAT_KHO",
+            target_id=str(issue.id),
+            after={"TrangThai": ISSUE_REJECTED, "LyDo": note},
+        )
+    )
+    await session.flush()
+    return issue
 
 
 # Stocktakes

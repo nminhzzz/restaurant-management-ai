@@ -178,9 +178,6 @@ export function InventoryHistory({ ingredientId }: { ingredientId?: number }) {
             )}
           </>
         )}
-        <Button variant="secondary" onClick={resource.reload}>
-          Làm mới
-        </Button>
       </div>
       {resource.status === "loading" ? (
         <LoadingState />

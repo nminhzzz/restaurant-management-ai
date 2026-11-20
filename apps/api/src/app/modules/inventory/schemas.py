@@ -57,6 +57,10 @@ class IssueCreate(BaseModel):
     lines: list[IssueLineIn] = Field(min_length=1, max_length=100)
 
 
+class IssueReject(BaseModel):
+    note: str | None = Field(default=None, max_length=300)
+
+
 class StocktakeCreate(BaseModel):
     pass
 

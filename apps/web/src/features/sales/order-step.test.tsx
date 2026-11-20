@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/api-client", async (importOriginal) => {
@@ -457,5 +457,73 @@ describe("OrderStep", () => {
     );
     // The two portions already sent to the kitchen remain on the order.
     expect(screen.getByText("Đã gửi bếp")).toBeInTheDocument();
+  });
+
+  it("does not poll while the first load is pending, so a slow failure still shows the error", async () => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    try {
+      let fail: (reason: Error) => void = () => {};
+      fetchMock.mockImplementation((path: string) =>
+        path === "/catalog/tables"
+          ? new Promise((_, reject) => {
+              fail = reject;
+            })
+          : Promise.resolve({}),
+      );
+      render(
+        <OrderStep
+          tableId={4}
+          orderId={null}
+          onBack={vi.fn()}
+          onSent={vi.fn()}
+        />,
+      );
+      await act(async () => {
+        vi.advanceTimersByTime(6000);
+      });
+      const tableCalls = () =>
+        fetchMock.mock.calls.filter(([p]) => p === "/catalog/tables").length;
+      expect(tableCalls()).toBe(1);
+      await act(async () => {
+        fail(new Error("timeout"));
+      });
+      expect(await screen.findByRole("alert")).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("re-reads the menu every 5 seconds and keeps the cart and search", async () => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    try {
+      route();
+      render(
+        <OrderStep
+          tableId={4}
+          orderId={null}
+          onBack={vi.fn()}
+          onSent={vi.fn()}
+        />,
+      );
+      fireEvent.click(await screen.findByRole("button", { name: /Phở bò/ }));
+      await vi.waitFor(() =>
+        expect(screen.getByTestId("cart-total")).toHaveTextContent("65.000 ₫"),
+      );
+      fireEvent.change(screen.getByLabelText("Tìm món"), {
+        target: { value: "phở" },
+      });
+      const menuCalls = () =>
+        fetchMock.mock.calls.filter(([p]) => p === "/catalog/tables").length;
+      const before = menuCalls();
+
+      await act(async () => {
+        vi.advanceTimersByTime(5000);
+      });
+      expect(menuCalls()).toBe(before + 1);
+      expect(screen.getByLabelText("Tìm món")).toHaveValue("phở");
+      expect(screen.getByTestId("cart-total")).toHaveTextContent("65.000 ₫");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

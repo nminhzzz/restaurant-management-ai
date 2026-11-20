@@ -12,7 +12,13 @@ from app.core.dependencies import Principal, require_roles
 from app.core.errors import BusinessRuleError, NotFoundError
 from app.modules.inventory import queries
 from app.modules.inventory import service as svc
-from app.modules.inventory.schemas import CountIn, IssueCreate, ReceiptCreate, ReceiptUpdate
+from app.modules.inventory.schemas import (
+    CountIn,
+    IssueCreate,
+    IssueReject,
+    ReceiptCreate,
+    ReceiptUpdate,
+)
 from app.shared.roles import Role
 
 router = APIRouter(prefix="/inventory", tags=["Inventory"])
@@ -159,6 +165,51 @@ async def create_issue(
     )
     await session.commit()
     return {"MaPhieuXuat": iss.id}
+
+
+async def _user_name(session: AsyncSession, user_id: int | None) -> str | None:
+    if user_id is None:
+        return None
+    from app.modules.settings.models import User
+
+    return await session.scalar(select(User.full_name).where(User.id == user_id))
+
+
+@router.post("/issues/propose-expired")
+async def propose_expired_issue(
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    session: AsyncSession = Depends(get_session),
+):
+    """Propose now what the schedule would: one voucher for the expired lots, waiting."""
+    issue = await svc.propose_expiry_write_off(session)
+    await session.commit()
+    return {"MaPhieuXuat": issue.id if issue else None}
+
+
+@router.post("/issues/{issue_id}/approve")
+async def approve_issue(
+    issue_id: int,
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    session: AsyncSession = Depends(get_session),
+):
+    """A manager or the kitchen posts a proposed write-off; the approver is recorded."""
+    issue = await svc.approve_issue(session, issue_id, user.user_id)
+    await session.commit()
+    return {"MaPhieuXuat": issue.id, "TrangThai": issue.status}
+
+
+@router.post("/issues/{issue_id}/reject")
+async def reject_issue(
+    issue_id: int,
+    payload: IssueReject | None = None,
+    user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
+    session: AsyncSession = Depends(get_session),
+):
+    issue = await svc.reject_issue(
+        session, issue_id, user.user_id, payload.note if payload else None
+    )
+    await session.commit()
+    return {"MaPhieuXuat": issue.id, "TrangThai": issue.status}
 
 
 @router.post("/issues/preview")
@@ -317,6 +368,7 @@ async def list_issues(
     reason: str | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
+    status: str | None = None,
     user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
     session: AsyncSession = Depends(get_session),
 ):
@@ -329,6 +381,7 @@ async def list_issues(
         reason=reason,
         date_from=date_from,
         date_to=date_to,
+        status=status,
     )
     from app.modules.inventory.models import StockIssueLine
 
@@ -357,6 +410,8 @@ async def list_issues(
                 "MaPhieuKiemKe": r.stocktake_id,
                 "Nguon": r.source,
                 "GhiChu": r.note,
+                "NguoiDuyet": r.approved_by,
+                "NgayDuyet": r.approved_at.isoformat() if r.approved_at else None,
                 "TongSoLuong": totals.get(r.id, (0.0, 0))[0],
                 "SoDong": totals.get(r.id, (0.0, 0))[1],
             }
@@ -394,7 +449,7 @@ async def get_issue(
     issue = await session.get(StockIssue, issue_id)
     if issue is None:
         raise NotFoundError("Không tìm thấy phiếu xuất kho.")
-    from app.modules.inventory.models import StockMovement
+    from app.modules.inventory.models import IngredientLot, StockMovement
 
     rows = (
         await session.execute(
@@ -415,15 +470,38 @@ async def get_issue(
         .scalars()
         .all()
     )
+    # A posted line shows the lot its movement drew; a proposed one only knows its own lot.
+    lot_of_line = {
+        line.id: next(
+            (movement.lot_id for movement in movements if movement.issue_line_id == line.id),
+            line.lot_id,
+        )
+        for line, _, _ in rows
+    }
+    lot_ids = {lot_id for lot_id in lot_of_line.values() if lot_id is not None}
+    expiry_by_lot = {
+        lot_id: expiry.isoformat() if expiry else None
+        for lot_id, expiry in (
+            await session.execute(
+                select(IngredientLot.id, IngredientLot.expiry_date).where(
+                    IngredientLot.id.in_(lot_ids)
+                )
+            )
+        ).all()
+    }
     return {
         "MaPhieuXuat": issue.id,
         "LyDo": issue.reason,
         "TrangThai": issue.status,
         "NgayTao": issue.created_at.isoformat() if issue.created_at else None,
         "NguoiLap": issue.created_by,
+        "TenNguoiLap": await _user_name(session, issue.created_by),
         "MaPhieuKiemKe": issue.stocktake_id,
         "Nguon": issue.source,
         "GhiChu": issue.note,
+        "NguoiDuyet": issue.approved_by,
+        "TenNguoiDuyet": await _user_name(session, issue.approved_by),
+        "NgayDuyet": issue.approved_at.isoformat() if issue.approved_at else None,
         "lines": [
             {
                 "MaChiTietXuat": line.id,
@@ -434,14 +512,8 @@ async def get_issue(
                 "GiaVonUocTinh": None
                 if line.estimated_cost is None
                 else float(line.estimated_cost),
-                "MaLoNguyenLieu": next(
-                    (
-                        movement.lot_id
-                        for movement in movements
-                        if movement.issue_line_id == line.id
-                    ),
-                    None,
-                ),
+                "MaLoNguyenLieu": lot_of_line[line.id],
+                "HanSuDung": expiry_by_lot.get(lot_of_line[line.id]),
                 "MaChiTietOrder": line.order_line_id,
                 "SoSuat": line.servings,
             }
@@ -454,6 +526,7 @@ async def get_issue(
 async def list_lots(
     ingredient_id: int | None = None,
     status: str | None = None,
+    in_stock: bool = False,
     page: int = 1,
     page_size: int = 20,
     user: Principal = Depends(require_roles(Role.MANAGER, Role.WAREHOUSE)),
@@ -461,7 +534,12 @@ async def list_lots(
 ):
     page, page_size = max(1, page), min(max(1, page_size), 100)
     items, total = await queries.list_lots(
-        session, ingredient_id=ingredient_id, status=status, page=page, page_size=page_size
+        session,
+        ingredient_id=ingredient_id,
+        status=status,
+        page=page,
+        page_size=page_size,
+        in_stock=in_stock,
     )
     return {"items": items, "total": total, "page": page, "page_size": page_size}
 

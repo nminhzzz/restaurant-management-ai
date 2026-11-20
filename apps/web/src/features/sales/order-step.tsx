@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { ApiError, apiFetch } from "@/lib/api-client";
 import { formatVnd } from "@/lib/format";
 import { useResource } from "@/lib/use-resource";
+import { useVisibleInterval } from "@/lib/use-visible-interval";
 import { cn } from "@/lib/utils";
 
 type Dish = {
@@ -244,6 +245,7 @@ export function OrderStep({
     countedHeldKey.current = heldKey;
     refreshMenu();
   }, [heldKey, refreshMenu]);
+  useVisibleInterval(refreshMenu, 5000, menu.status === "ready");
 
   if (menu.status === "loading") return <LoadingState rows={6} />;
   if (menu.status === "error")

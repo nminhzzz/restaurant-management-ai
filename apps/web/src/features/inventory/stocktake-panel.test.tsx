@@ -313,4 +313,122 @@ describe("StocktakePanel", () => {
       ),
     );
   });
+
+  describe("lots under each ingredient", () => {
+    const lot = (over: Record<string, unknown>) => ({
+      MaLoNguyenLieu: 12,
+      MaNguyenLieu: 1,
+      TenNguyenLieu: "Gạo",
+      DonViTinh: "kg",
+      NgayNhap: "2026-11-01",
+      HanSuDung: "2026-11-21",
+      SoLuongConLai: 4.5,
+      SoLuongGiu: 0,
+      SoLuongKhaDung: 4.5,
+      TrangThai: "Còn hạn",
+      ...over,
+    });
+
+    function routeLots(
+      pages: Record<number, { items: unknown[]; total: number }>,
+    ) {
+      fetchMock.mockImplementation(
+        (path: string, options: { method?: string } = {}) => {
+          if (path === "/inventory/stocktakes" && options.method === "POST") {
+            return Promise.resolve({ MaPhieuKiemKe: 1 });
+          }
+          if (path.startsWith("/inventory/lots")) {
+            const page = Number(/page=(\d+)/.exec(path)?.[1] ?? 1);
+            return Promise.resolve(pages[page] ?? { items: [], total: 0 });
+          }
+          if (path.startsWith("/inventory/stocktakes")) {
+            return Promise.resolve({ items: [], total: 0 });
+          }
+          if (path.startsWith("/inventory/stock")) {
+            return Promise.resolve({ items: stockItems });
+          }
+          return Promise.resolve({});
+        },
+      );
+    }
+
+    async function openDraft() {
+      render(<StocktakePanel />);
+      fireEvent.click(
+        await screen.findByRole("button", { name: "Tạo phiếu kiểm kê" }),
+      );
+    }
+
+    it("pages through the in-stock lots until the total is reached", async () => {
+      routeLots({
+        1: { items: [lot({ MaLoNguyenLieu: 11 })], total: 2 },
+        2: { items: [lot({ MaLoNguyenLieu: 12 })], total: 2 },
+      });
+      await openDraft();
+
+      expect(await screen.findByText(/Lô #12/)).toBeInTheDocument();
+      expect(screen.getByText(/Lô #11/)).toBeInTheDocument();
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/inventory/lots?in_stock=true&page=1&page_size=100",
+      );
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/inventory/lots?in_stock=true&page=2&page_size=100",
+      );
+      const lotCalls = fetchMock.mock.calls.filter(([p]) =>
+        String(p).startsWith("/inventory/lots"),
+      );
+      expect(lotCalls).toHaveLength(2);
+    });
+
+    it("renders a compact line with quantity, unit and expiry date", async () => {
+      routeLots({ 1: { items: [lot({})], total: 1 } });
+      await openDraft();
+
+      expect(
+        await screen.findByText("Lô #12 · 4,5 kg · HSD 21/11/2026"),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/Còn hạn/)).not.toBeInTheDocument();
+    });
+
+    it("omits the expiry when the lot has none", async () => {
+      routeLots({
+        1: {
+          items: [
+            lot({ MaLoNguyenLieu: 20, SoLuongConLai: 3, HanSuDung: null }),
+          ],
+          total: 1,
+        },
+      });
+      await openDraft();
+
+      const line = await screen.findByText("Lô #20 · 3 kg");
+      expect(line.textContent).not.toContain("HSD");
+    });
+
+    it("does not show the lot status, even for an expired lot", async () => {
+      routeLots({
+        1: { items: [lot({ TrangThai: "Hết hạn" })], total: 1 },
+      });
+      await openDraft();
+
+      await screen.findByText(/Lô #12/);
+      expect(screen.queryByText(/Hết hạn/)).not.toBeInTheDocument();
+    });
+
+    it("stops after one request when there are no lots", async () => {
+      routeLots({ 1: { items: [], total: 0 } });
+      await openDraft();
+
+      await screen.findByLabelText("Tồn thực tế Gạo");
+      await vi.waitFor(() =>
+        expect(fetchMock).toHaveBeenCalledWith(
+          "/inventory/lots?in_stock=true&page=1&page_size=100",
+        ),
+      );
+      const lotCalls = fetchMock.mock.calls.filter(([p]) =>
+        String(p).startsWith("/inventory/lots"),
+      );
+      expect(lotCalls).toHaveLength(1);
+    });
+  });
 });

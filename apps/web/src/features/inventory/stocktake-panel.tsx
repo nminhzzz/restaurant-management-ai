@@ -27,7 +27,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { apiFetch } from "@/lib/api-client";
-import { formatNumber } from "@/lib/format";
+import { formatDate, formatNumber } from "@/lib/format";
 import type { LotRow } from "./inventory-history";
 import { useAction } from "@/lib/use-action";
 import { useResource } from "@/lib/use-resource";
@@ -114,10 +114,19 @@ function DraftStocktake({
   // FR-INV-08: the counter checks stock before and after, and only then confirms.
   const [preview, setPreview] = useState<PreviewRow[] | null>(null);
   const { run, pending, error } = useAction();
-  const loadLots = useCallback(
-    () => apiFetch<{ items: LotRow[] }>("/inventory/lots?page_size=100"),
-    [],
-  );
+  // Only the lots that make up the book stock (something left, not cancelled), every page of
+  // them, so the lots listed under an ingredient add up to its "Tồn hệ thống".
+  const loadLots = useCallback(async () => {
+    const items: LotRow[] = [];
+    for (let page = 1; ; page += 1) {
+      const res = await apiFetch<{ items: LotRow[]; total: number }>(
+        `/inventory/lots?in_stock=true&page=${page}&page_size=100`,
+      );
+      items.push(...(res.items ?? []));
+      if (!res.items?.length || items.length >= (res.total ?? 0)) break;
+    }
+    return { items };
+  }, []);
   const lots = useResource(loadLots);
   const lotsByIngredient = new Map<number, LotRow[]>();
   if (lots.status === "ready") {
@@ -268,9 +277,11 @@ function DraftStocktake({
                     <ul className="mt-1 space-y-0.5 text-xs text-muted">
                       {lotsByIngredient.get(ing.MaNguyenLieu)?.map((lot) => (
                         <li key={lot.MaLoNguyenLieu}>
-                          Lô #{lot.MaLoNguyenLieu}:{" "}
-                          {formatNumber(lot.SoLuongConLai)} · {lot.TrangThai}
-                          {lot.HanSuDung ? ` · HSD ${lot.HanSuDung}` : ""}
+                          {`Lô #${lot.MaLoNguyenLieu} · ${formatNumber(lot.SoLuongConLai)} ${lot.DonViTinh}${
+                            lot.HanSuDung
+                              ? ` · HSD ${formatDate(lot.HanSuDung)}`
+                              : ""
+                          }`}
                         </li>
                       ))}
                     </ul>

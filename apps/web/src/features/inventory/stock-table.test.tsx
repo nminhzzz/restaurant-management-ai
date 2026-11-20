@@ -1,8 +1,17 @@
-import { cleanup, render, screen, fireEvent } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  fireEvent,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 import { StockTable } from "./stock-table";
 
-vi.mock("@/lib/api-client", () => ({ apiFetch: vi.fn() }));
+vi.mock("@/lib/api-client", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/api-client")>();
+  return { ...actual, apiFetch: vi.fn() };
+});
 import { apiFetch } from "@/lib/api-client";
 
 const fetchMock = apiFetch as unknown as ReturnType<typeof vi.fn>;
@@ -224,5 +233,65 @@ describe("stock table", () => {
         "/inventory/stock?alerting=true&page=1&page_size=20",
       ),
     );
+  });
+
+  describe("auto refresh", () => {
+    afterEach(() => vi.useRealTimers());
+
+    it("does not poll while the first load is pending, so a slow failure still shows the error", async () => {
+      vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+      let fail: (reason: Error) => void = () => {};
+      fetchMock.mockReset();
+      fetchMock.mockReturnValueOnce(
+        new Promise((_, reject) => {
+          fail = reject;
+        }),
+      );
+      render(<StockTable />);
+      await act(async () => {
+        vi.advanceTimersByTime(6000);
+      });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      await act(async () => {
+        fail(new Error("timeout"));
+      });
+      expect(await screen.findByRole("alert")).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /Thử lại/ }),
+      ).toBeInTheDocument();
+    });
+
+    it("refetches every 5 seconds without a manual refresh button and keeps the typed search", async () => {
+      vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+      fetchMock.mockResolvedValue({
+        items: [{ ...baseItems[0], ThoiDiemTinh: "2026-10-23T09:30:00+07:00" }],
+        total: 1,
+      });
+      render(<StockTable />);
+      await screen.findByText("Bột mì");
+      expect(screen.getByText(/Dữ liệu lúc/)).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Làm mới" }),
+      ).not.toBeInTheDocument();
+
+      const search = screen.getByLabelText("Tìm nguyên liệu");
+      fireEvent.change(search, { target: { value: "bột" } });
+      await vi.waitFor(() =>
+        expect(fetchMock).toHaveBeenLastCalledWith(
+          "/inventory/stock?search=b%E1%BB%99t&page=1&page_size=20",
+        ),
+      );
+      const before = fetchMock.mock.calls.length;
+
+      await act(async () => {
+        vi.advanceTimersByTime(5000);
+      });
+      expect(fetchMock.mock.calls.length).toBe(before + 1);
+      expect(fetchMock).toHaveBeenLastCalledWith(
+        "/inventory/stock?search=b%E1%BB%99t&page=1&page_size=20",
+      );
+      expect(screen.getByLabelText("Tìm nguyên liệu")).toHaveValue("bột");
+      expect(screen.getByText(/Dữ liệu lúc/)).toBeInTheDocument();
+    });
   });
 });

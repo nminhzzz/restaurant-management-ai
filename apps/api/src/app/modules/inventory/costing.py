@@ -17,7 +17,12 @@ from decimal import ROUND_HALF_UP, Decimal
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.inventory.models import AverageCostHistory, StockIssueLine, StockMovement
+from app.modules.inventory.models import (
+    AverageCostHistory,
+    StockIssue,
+    StockIssueLine,
+    StockMovement,
+)
 from app.shared import business_date
 
 CENT = Decimal("0.01")
@@ -142,8 +147,13 @@ async def _price_backlog(session: AsyncSession, ingredient_id: int, unit_cost: D
     for movement in movements:
         movement.value = movement_value(movement.qty, unit_cost)
     lines = await session.scalars(
-        select(StockIssueLine).where(
-            StockIssueLine.ingredient_id == ingredient_id, StockIssueLine.estimated_cost.is_(None)
+        select(StockIssueLine)
+        .join(StockIssue, StockIssue.id == StockIssueLine.issue_id)
+        .where(
+            StockIssueLine.ingredient_id == ingredient_id,
+            StockIssueLine.estimated_cost.is_(None),
+            # A proposed or rejected voucher costs nothing; it is priced when it is approved.
+            StockIssue.status == "Đã xác nhận",
         )
     )
     for line in lines:

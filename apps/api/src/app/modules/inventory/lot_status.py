@@ -7,6 +7,7 @@ The status is saved on the lot and refreshed in the same transaction as every st
 """
 
 import asyncio
+import logging
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -19,6 +20,8 @@ from app.shared import business_date
 from app.shared.enums import LotStatus
 
 DEFAULT_WARNING_DAYS = 3
+
+logger = logging.getLogger(__name__)
 
 
 def derive_lot_status(lot: IngredientLot, today: date, warning_days: int) -> str:
@@ -94,10 +97,26 @@ async def lot_status_tick(*, factory: async_sessionmaker[AsyncSession] | None = 
         try:
             changed = await refresh_all_lot_statuses(session)
             await session.commit()
-            return changed
         except Exception:
             await session.rollback()
             raise
+    # The proposal has its own transaction and failure handling, so a problem there never
+    # undoes or hides the status refresh above.
+    from app.modules.inventory.service import propose_expiry_write_off
+
+    try:
+        async with factory() as session:
+            try:
+                schedule = await business_date.load_business_date_schedule(session)
+                with business_date.business_date_schedule(schedule):
+                    await propose_expiry_write_off(session)
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                raise
+    except Exception:
+        logger.exception("Expiry write-off proposal failed")
+    return changed
 
 
 if __name__ == "__main__":

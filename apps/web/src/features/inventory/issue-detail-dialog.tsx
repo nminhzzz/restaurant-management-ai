@@ -18,7 +18,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { apiFetch } from "@/lib/api-client";
-import { formatDateTime, formatNumber, formatVnd } from "@/lib/format";
+import {
+  formatDate,
+  formatDateTime,
+  formatNumber,
+  formatVnd,
+} from "@/lib/format";
 import { useResource } from "@/lib/use-resource";
 
 type IssueDetail = {
@@ -29,6 +34,10 @@ type IssueDetail = {
   Nguon: string;
   MaPhieuKiemKe: number | null;
   GhiChu: string | null;
+  NguoiLap: number | null;
+  TenNguoiLap: string | null;
+  TenNguoiDuyet: string | null;
+  NgayDuyet: string | null;
   lines: {
     MaChiTietXuat: number;
     TenNguyenLieu: string;
@@ -36,6 +45,7 @@ type IssueDetail = {
     SoLuong: number;
     GiaVonUocTinh: number | null;
     MaLoNguyenLieu: number | null;
+    HanSuDung: string | null;
     MaChiTietOrder: number | null;
     SoSuat: number | null;
   }[];
@@ -75,6 +85,24 @@ export function IssueDetailDialog({
               <dd>{formatDateTime(detail.data.NgayTao)}</dd>
               <dt className="text-muted">Trạng thái</dt>
               <dd>{detail.data.TrangThai}</dd>
+              <dt className="text-muted">Người lập</dt>
+              <dd>
+                {detail.data.NguoiLap === null
+                  ? "Hệ thống"
+                  : (detail.data.TenNguoiLap ?? `#${detail.data.NguoiLap}`)}
+              </dd>
+              {detail.data.TenNguoiDuyet && (
+                <>
+                  <dt className="text-muted">Người duyệt</dt>
+                  <dd>{detail.data.TenNguoiDuyet}</dd>
+                </>
+              )}
+              {detail.data.NgayDuyet && (
+                <>
+                  <dt className="text-muted">Thời điểm duyệt</dt>
+                  <dd>{formatDateTime(detail.data.NgayDuyet)}</dd>
+                </>
+              )}
               {detail.data.MaPhieuKiemKe !== null && (
                 <>
                   <dt className="text-muted">Phiếu kiểm kê</dt>
@@ -115,7 +143,10 @@ export function IssueDetailDialog({
                     <TableCell>
                       {line.MaLoNguyenLieu === null
                         ? "—"
-                        : `#${line.MaLoNguyenLieu}`}
+                        : `#${line.MaLoNguyenLieu}` +
+                          (line.HanSuDung
+                            ? ` · HSD ${formatDate(line.HanSuDung)}`
+                            : "")}
                     </TableCell>
                     <TableCell>
                       {line.MaChiTietOrder !== null

@@ -26,6 +26,8 @@ export function ConfirmDialog({
   confirmLabel,
   danger = false,
   requireReason = false,
+  optionalReason = false,
+  reasonMaxLength,
   pending = false,
   onConfirm,
 }: {
@@ -36,10 +38,21 @@ export function ConfirmDialog({
   confirmLabel: string;
   danger?: boolean;
   requireReason?: boolean;
+  /** Shows the reason field without blocking the confirm button when it is empty. */
+  optionalReason?: boolean;
+  reasonMaxLength?: number;
   pending?: boolean;
   onConfirm: (reason: string) => void;
 }) {
   const [reason, setReason] = useState("");
+
+  // The parent closes the dialog by flipping `open` after a successful action, which
+  // does not go through onOpenChange; clear here so the next target starts empty.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (wasOpen !== open) {
+    setWasOpen(open);
+    if (!open) setReason("");
+  }
 
   return (
     <Dialog
@@ -56,11 +69,12 @@ export function ConfirmDialog({
             <DialogDescription>{description}</DialogDescription>
           ) : null}
         </DialogHeader>
-        {requireReason ? (
+        {requireReason || optionalReason ? (
           <FormField id="confirm-reason" label="Lý do">
             <Textarea
               id="confirm-reason"
               rows={3}
+              maxLength={reasonMaxLength}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
             />

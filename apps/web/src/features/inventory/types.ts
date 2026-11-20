@@ -22,6 +22,8 @@ export type StockIssue = {
   TrangThai: string;
   NgayTao?: string | null;
   NguoiLap?: number | null;
+  NguoiDuyet?: number | null;
+  NgayDuyet?: string | null;
   MaPhieuKiemKe?: number | null;
   GhiChu?: string | null;
   TongSoLuong?: number;

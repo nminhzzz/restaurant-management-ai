@@ -95,7 +95,12 @@ function IngredientFormDialog({
               }
             />
           </FormField>
-          <FormField id="ing-unit" label="Đơn vị tính" error={unitError}>
+          <FormField
+            id="ing-unit"
+            label="Đơn vị tính"
+            error={unitError}
+            help="Chọn đơn vị dùng trong công thức: lon, hộp, quả nếu dùng nguyên đơn vị; g, kg, ml, l nếu dùng một phần."
+          >
             <Input
               id="ing-unit"
               disabled={unitLocked}

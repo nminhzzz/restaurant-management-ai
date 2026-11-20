@@ -36,10 +36,19 @@ def _build_app() -> FastAPI:
 
 @pytest.fixture(scope="module")
 def guarded_client() -> Iterator[TestClient]:
-    # A context-managed client keeps one event loop for the whole module. Without it each
-    # request gets a fresh loop, and the shared engine pool cannot reuse its connections.
-    with TestClient(_build_app()) as client:
-        yield client
+    # These probes cover the role guard on the token's claims. With revalidation on, the
+    # role and username come from whatever user owns the id in the local database (the
+    # seeded manager is id 1), so the outcome would depend on the data, not on the guard.
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setenv("ENVIRONMENT", "local")
+        patch.setenv("AUTH_REVALIDATE_TOKENS", "false")
+        get_settings.cache_clear()
+        # A context-managed client keeps one event loop for the whole module. Without it
+        # each request gets a fresh loop, and the shared engine pool cannot reuse its
+        # connections.
+        with TestClient(_build_app()) as client:
+            yield client
+    get_settings.cache_clear()
 
 
 def test_request_without_token_is_rejected(guarded_client: TestClient) -> None:

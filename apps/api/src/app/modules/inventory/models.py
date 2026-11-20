@@ -142,6 +142,15 @@ class StockIssue(Base):
         nullable=True,
     )
     note: Mapped[str | None] = mapped_column("GhiChu", String(500), nullable=True)
+    # A voucher the system proposes (expired lots) waits in "Chờ duyệt" until a manager or the
+    # kitchen approves or rejects it; who decided and when are kept on the voucher.
+    approved_by: Mapped[int | None] = mapped_column(
+        "NguoiDuyet",
+        BigInteger,
+        ForeignKey("NGUOI_DUNG.MaNguoiDung", ondelete="RESTRICT", onupdate="RESTRICT"),
+        nullable=True,
+    )
+    approved_at: Mapped[datetime | None] = mapped_column("NgayDuyet", DateTime3, nullable=True)
     stocktake_id: Mapped[int | None] = mapped_column(
         "MaPhieuKiemKe",
         BigInteger,
@@ -188,6 +197,12 @@ class StockIssueLine(Base):
         nullable=True,
     )
     servings: Mapped[int | None] = mapped_column("SoSuatHuy", Integer, nullable=True)
+    # The lot a proposed expiry write-off will draw once approved.
+    lot_id: Mapped[int | None] = mapped_column(
+        "MaLoNguyenLieu",
+        ForeignKey("LO_NGUYEN_LIEU.MaLoNguyenLieu", ondelete="RESTRICT", onupdate="RESTRICT"),
+        nullable=True,
+    )
     __table_args__ = (CheckConstraint("SoLuong > 0", name="quantity_positive"),)
 
 

@@ -39,4 +39,13 @@ describe("inventory history", () => {
     expect(screen.getByText("13/11/2026")).toBeInTheDocument();
     expect(screen.queryByText(/2026-11-10T/)).not.toBeInTheDocument();
   });
+
+  it("has no manual refresh button", async () => {
+    fetchMock.mockResolvedValue({ items: [], total: 0 });
+    render(<InventoryHistory ingredientId={1} />);
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    expect(
+      screen.queryByRole("button", { name: "Làm mới" }),
+    ).not.toBeInTheDocument();
+  });
 });
