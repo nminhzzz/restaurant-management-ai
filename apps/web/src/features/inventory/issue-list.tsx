@@ -880,8 +880,8 @@ export function IssueList() {
                 <TableHead>Mã phiếu</TableHead>
                 <TableHead>Thời điểm</TableHead>
                 <TableHead>Lý do</TableHead>
-                <TableHead className="text-right">Số dòng</TableHead>
-                <TableHead>Trạng thái</TableHead>
+                <TableHead className="text-center">Số dòng</TableHead>
+                <TableHead className="text-center">Trạng thái</TableHead>
                 <TableHead className="text-right">Thao tác</TableHead>
               </TableRow>
             </TableHeader>
@@ -898,12 +898,14 @@ export function IssueList() {
                   <TableCell className="font-medium tabular-nums">
                     #{it.MaPhieuXuat}
                   </TableCell>
-                  <TableCell>{formatDateTime(it.NgayTao)}</TableCell>
-                  <TableCell>{it.LyDo}</TableCell>
-                  <TableCell className="text-right tabular-nums">
+                  <TableCell className="whitespace-nowrap">
+                    {formatDateTime(it.NgayTao)}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">{it.LyDo}</TableCell>
+                  <TableCell className="text-center tabular-nums">
                     {it.SoDong ?? 0}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
                     <StatusBadge status={it.TrangThai} />
                   </TableCell>
                   <TableCell className="space-x-2 text-right">
