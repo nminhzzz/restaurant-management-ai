@@ -22,7 +22,6 @@ const TONES: Record<string, StatusTone> = {
   Ẩn: "neutral",
   "Đã khóa": "neutral",
   "Đã phục vụ": "neutral",
-  "Đã đặt": "neutral",
   Nháp: "muted",
   "Hiệu lực": "success",
   "Đang kiểm kê": "primary",
