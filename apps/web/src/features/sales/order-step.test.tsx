@@ -95,9 +95,9 @@ describe("OrderStep", () => {
     expect(screen.getByText("Còn 10 suất")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Nem rán/ })).toBeDisabled();
     expect(screen.getByText("Chưa có giá")).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /Bún chả/ }),
-    ).not.toBeInTheDocument();
+    const soldOut = screen.getByRole("button", { name: /Bún chả/ });
+    expect(soldOut).toBeDisabled();
+    expect(soldOut).toHaveTextContent("Hết nguyên liệu");
   });
 
   it("totals the cart as dishes are added", async () => {

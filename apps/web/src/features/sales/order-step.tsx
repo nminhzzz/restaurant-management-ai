@@ -78,7 +78,14 @@ type CreatedOrder = {
   rejected?: { MaMon: number; reason: string }[];
 };
 
-const UNSELLABLE = new Set(["Hết nguyên liệu", "Ẩn", "Nháp"]);
+const HIDDEN = new Set(["Ẩn", "Nháp"]);
+
+function isOutOfStock(d: Dish): boolean {
+  return (
+    d.TrangThai === "Hết nguyên liệu" ||
+    (d.SoSuatKhaDung != null && d.SoSuatKhaDung <= 0)
+  );
+}
 
 function messageOf(error: unknown, fallback: string): string {
   return error instanceof ApiError ? error.message : fallback;
@@ -120,11 +127,7 @@ async function loadMenu(orderId: number | null) {
   return {
     tables: Array.isArray(tables) ? tables : [],
     names: new Map(all.map((d) => [d.MaMon, d.TenMon])),
-    dishes: all.filter(
-      (d) =>
-        !UNSELLABLE.has(d.TrangThai ?? "") &&
-        (d.SoSuatKhaDung == null || d.SoSuatKhaDung > 0),
-    ),
+    dishes: all.filter((d) => !HIDDEN.has(d.TrangThai ?? "")),
     groups: Array.isArray(groups) ? groups : [],
     order,
   };
@@ -280,7 +283,8 @@ export function OrderStep({
   );
 
   async function addDish(dish: Dish) {
-    if (dish.GiaHienTai == null || adding === dish.MaMon) return;
+    if (dish.GiaHienTai == null || isOutOfStock(dish) || adding === dish.MaMon)
+      return;
     setError(null);
     setAdding(dish.MaMon);
     try {
@@ -610,7 +614,7 @@ export function OrderStep({
           <EmptyState
             icon={UtensilsCrossed}
             title="Không có món nào bán được"
-            description="Các món đều đang hết nguyên liệu hoặc chưa được bật bán."
+            description="Chưa có món nào được bật bán."
           />
         ) : visible.length === 0 ? (
           <p className="py-6 text-center text-muted">
@@ -620,12 +624,15 @@ export function OrderStep({
           <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-4">
             {visible.map((d) => {
               const inCart = cart.find((l) => l.MaMon === d.MaMon);
+              const outOfStock = isOutOfStock(d);
               return (
                 <button
                   key={d.MaMon}
                   type="button"
                   onClick={() => addDish(d)}
-                  disabled={d.GiaHienTai == null || adding === d.MaMon}
+                  disabled={
+                    d.GiaHienTai == null || outOfStock || adding === d.MaMon
+                  }
                   className={cn(
                     "relative flex min-h-24 flex-col justify-between gap-2 rounded-container border bg-surface p-3 text-left transition-[border-color,box-shadow,transform] active:translate-y-px disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:hover:border-border disabled:hover:shadow-none",
                     inCart
@@ -643,10 +650,16 @@ export function OrderStep({
                   ) : (
                     <span className="text-subtle">Chưa có giá</span>
                   )}
-                  {d.SoSuatKhaDung != null && (
-                    <span className="text-[11px] text-subtle">
-                      Còn {d.SoSuatKhaDung} suất
+                  {outOfStock ? (
+                    <span className="w-fit rounded-badge bg-danger/10 px-1.5 py-0.5 text-[11px] font-semibold text-danger">
+                      Hết nguyên liệu
                     </span>
+                  ) : (
+                    d.SoSuatKhaDung != null && (
+                      <span className="text-[11px] text-subtle">
+                        Còn {d.SoSuatKhaDung} suất
+                      </span>
+                    )
                   )}
                   {inCart && (
                     <span

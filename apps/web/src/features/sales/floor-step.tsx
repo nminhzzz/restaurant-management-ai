@@ -22,7 +22,6 @@ const FILTERS = [
   { key: "all", label: "Tất cả" },
   { key: "free", label: "Trống" },
   { key: "busy", label: "Có khách" },
-  { key: "booked", label: "Đã đặt" },
 ] as const;
 type FilterKey = (typeof FILTERS)[number]["key"];
 
@@ -30,7 +29,7 @@ const loadBoard = () => apiFetch<FloorBoard>("/sales/floor");
 
 function kindOf(table: FloorTable): Exclude<FilterKey, "all"> {
   if (table.TrangThai === "Đang phục vụ") return "busy";
-  return table.TrangThai === "Đã đặt" ? "booked" : "free";
+  return "free";
 }
 
 function openedAt(order: FloorOrder): string {
@@ -64,7 +63,7 @@ export function FloorStep({
     return <ErrorState message={board.message} onRetry={board.reload} />;
 
   const { tables, takeaway } = board.data;
-  const counts = { all: tables.length, free: 0, busy: 0, booked: 0 };
+  const counts = { all: tables.length, free: 0, busy: 0 };
   for (const t of tables) counts[kindOf(t)] += 1;
   const visible = tables.filter(
     (t) => filter === "all" || kindOf(t) === filter,

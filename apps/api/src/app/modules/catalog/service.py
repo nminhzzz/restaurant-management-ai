@@ -474,6 +474,8 @@ async def schedule_recipe_change(
     for _, qty in items:
         if _Decimal(str(qty)) <= 0:
             raise BusinessRuleError("Định lượng phải lớn hơn 0.")
+    if len({ing_id for ing_id, _ in items}) != len(items):
+        raise BusinessRuleError("Công thức có nguyên liệu bị trùng. Hãy gộp thành một dòng.")
     bd = business_date_val or _bd.next_business_date(_bd.now())
     current_bd = _bd.business_date_of(_bd.now())
     if bd <= current_bd:
@@ -561,10 +563,20 @@ async def assign_recipe(session, actor_id: int, dish_id: int, items: list[tuple[
     for _, qty in items:
         if _Decimal(str(qty)) <= 0:
             raise BusinessRuleError("Định lượng phải lớn hơn 0.")
+    if len({ing_id for ing_id, _ in items}) != len(items):
+        raise BusinessRuleError("Công thức có nguyên liệu bị trùng. Hãy gộp thành một dòng.")
     for ing_id, _ in items:
         ing = await session.get(_Ing, ing_id)
         if ing is None or ing.is_deleted:
             raise BusinessRuleError(f"Nguyên liệu {ing_id} không tồn tại.")
+    active = await session.scalar(
+        select(Recipe.id).where(
+            Recipe.dish_id == dish_id, Recipe.status == VersionStatus.HIEU_LUC.value
+        )
+    )
+    if active is not None:
+        # One effective recipe per dish: later changes go through apply-now or schedule.
+        raise BusinessRuleError("Món đã có công thức đang áp dụng. Hãy sửa công thức hiện tại.")
     bd = _bd.business_date_of(_bd.now())
     r = Recipe(
         dish_id=dish_id,
@@ -604,6 +616,8 @@ async def apply_recipe_directly(
     for _, qty in items:
         if _Decimal(str(qty)) <= 0:
             raise BusinessRuleError("Định lượng phải lớn hơn 0.")
+    if len({ing_id for ing_id, _ in items}) != len(items):
+        raise BusinessRuleError("Công thức có nguyên liệu bị trùng. Hãy gộp thành một dòng.")
     for ing_id, _ in items:
         ing = await session.get(_Ing, ing_id)
         if ing is None or ing.is_deleted:
@@ -615,6 +629,7 @@ async def apply_recipe_directly(
         )
     )
     current_rows = list(cur.scalars().all())
+    first_recipe = d.missing_recipe and not current_rows
     superseded_recipes = [{"MaCongThuc": row.id} for row in current_rows]
     for row in current_rows:
         row.status = VersionStatus.HET_HIEU_LUC.value
@@ -625,7 +640,7 @@ async def apply_recipe_directly(
         dish_id=dish_id,
         business_date=bd,
         status=VersionStatus.HIEU_LUC.value,
-        change_type="Cập nhật",
+        change_type="Tạo mới" if first_recipe else "Cập nhật",
         created_by=actor_id,
         effective_from=_bd.now(),
     )

@@ -1,6 +1,6 @@
 import pytest
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.core.database import get_session
 from app.core.security import create_access_token, hash_password
@@ -286,3 +286,60 @@ async def test_listing_recipes_for_a_missing_dish_is_404(session):
         resp = await list_recipes(c, h, 999999)
     app.dependency_overrides.clear()
     assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_assigning_again_cannot_create_a_second_active_recipe(
+    session, dish_with_recipe, flour
+):
+    from app.modules.catalog.models import Recipe
+    from app.shared.enums import VersionStatus
+
+    h = await _headers(session)
+    async with await _make_client(session) as c:
+        resp = await assign_recipe(c, h, dish_with_recipe.id, items=[(flour.id, "0.3")])
+    app.dependency_overrides.clear()
+    assert resp.status_code == 422
+    active = await session.scalar(
+        select(func.count())
+        .select_from(Recipe)
+        .where(Recipe.dish_id == dish_with_recipe.id, Recipe.status == VersionStatus.HIEU_LUC.value)
+    )
+    assert active == 1
+
+
+@pytest.mark.asyncio
+async def test_the_first_recipe_applied_now_is_labelled_new(session, draft_dish, flour):
+    h = await _headers(session)
+    async with await _make_client(session) as c:
+        first = await apply_recipe_now(c, h, draft_dish.id, items=[(flour.id, "0.2")])
+        second = await apply_recipe_now(c, h, draft_dish.id, items=[(flour.id, "0.3")])
+    app.dependency_overrides.clear()
+    assert first.status_code == 201 and second.status_code == 201
+    from app.modules.catalog.models import Recipe
+
+    labels = {
+        row.id: row.change_type
+        for row in (
+            await session.execute(
+                select(Recipe.id, Recipe.change_type).where(Recipe.dish_id == draft_dish.id)
+            )
+        ).all()
+    }
+    assert labels[first.json()["MaCongThuc"]] == "Tạo mới"
+    assert labels[second.json()["MaCongThuc"]] == "Cập nhật"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("save_recipe", [apply_recipe_now, schedule_recipe])
+async def test_a_recipe_cannot_list_the_same_ingredient_twice(
+    session, dish_with_recipe, flour, save_recipe
+):
+    h = await _headers(session)
+    async with await _make_client(session) as c:
+        resp = await save_recipe(
+            c, h, dish_with_recipe.id, items=[(flour.id, "0.2"), (flour.id, "0.1")]
+        )
+    app.dependency_overrides.clear()
+    assert resp.status_code == 422
+    assert "trùng" in resp.json()["error"]["message"]

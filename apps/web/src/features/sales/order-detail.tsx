@@ -146,7 +146,8 @@ export function OrderDetail({ orderId }: { orderId: number }) {
   const lines = order.lines ?? [];
   const locked = order.TrangThai !== "Đang mở";
   const freeTables = tables.filter(
-    (t) => t.MaBan !== order.MaBan && (t.TrangThai ?? "Trống") === "Trống",
+    // A released order may be re-seated on any free table, its old one included.
+    (t) => (t.TrangThai ?? "Trống") === "Trống",
   );
 
   async function addDish(dish: PickableDish, quantity: number, note: string) {
