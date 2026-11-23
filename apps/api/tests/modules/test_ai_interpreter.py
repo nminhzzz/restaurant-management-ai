@@ -1,9 +1,12 @@
 """Phase 6 Task 4 — chart choice and result interpretation (FR-AI-07, FR-AI-08, FR-AI-09)."""
 
+from datetime import datetime
+
 import pytest
 
 from app.modules.ai.charts import choose_chart
-from app.modules.ai.pipeline.interpreter import interpret, scope_note
+from app.modules.ai.pipeline.interpreter import fallback, interpret, scope_note
+from app.shared import business_date
 from app.shared.roles import Role
 
 time_series_rows = [
@@ -55,6 +58,14 @@ def test_a_single_number_gets_no_chart():
 
 def test_two_columns_that_are_not_a_series_get_no_chart():
     assert choose_chart(columns=["TenNguyenLieu", "DonViTinh"], rows=plain_rows) is None
+
+
+NOW = datetime(2026, 10, 23, 12, 0, tzinfo=business_date.VN_TZ)
+
+
+@pytest.fixture(autouse=True)
+def reference_day(monkeypatch):
+    monkeypatch.setattr(business_date, "now", lambda: NOW)
 
 
 TWO_DAYS = [
@@ -110,7 +121,6 @@ def test_a_single_day_result_is_still_a_visible_chart() -> None:
 
 def test_fallback_still_reports_the_numbers_when_prose_times_out():
     """A timeout must not produce a blank answer: sum and peak stay available."""
-    from app.modules.ai.pipeline.interpreter import fallback
 
     result = fallback(time_series_rows, Role.MANAGER)
 
@@ -130,7 +140,6 @@ def test_fallback_still_reports_the_numbers_when_prose_times_out():
 )
 def test_fallback_only_formats_money_columns_as_currency(rows, expected, unexpected):
     """A count of receipts is not an amount of money (smoke test 26/10: "0 ₫")."""
-    from app.modules.ai.pipeline.interpreter import fallback
 
     result = fallback(rows, Role.MANAGER)
 
@@ -143,10 +152,10 @@ def test_fallback_only_formats_money_columns_as_currency(rows, expected, unexpec
 @pytest.mark.parametrize(
     ("rows", "headline"),
     [
-        ([{"SoDon": 42}], "Số đơn: 42."),
-        ([{"TongTienMat": 185000}], "Tong Tien Mat: 185.000 ₫."),
-        ([{"DoanhThu": None}], "Doanh thu: chưa có dữ liệu."),
-        ([{"HanSuDungLo": "2026-10-30"}], "Hạn sử dụng lô: 30/10/2026."),
+        ([{"SoDon": 42}], "Số đơn tính đến 23/10/2026: 42."),
+        ([{"TongTienMat": 185000}], "Tổng tiền mặt tính đến 23/10/2026: 185.000 ₫."),
+        ([{"DoanhThu": None}], "Doanh thu tính đến 23/10/2026: chưa có dữ liệu."),
+        ([{"HanSuDungLo": "2026-10-30"}], "Hạn sử dụng lô tính đến 23/10/2026: 30/10/2026."),
     ],
 )
 async def test_a_single_value_is_answered_without_a_model_call(session, fake_llm, rows, headline):
@@ -251,3 +260,46 @@ async def test_extremes_are_labelled_by_the_first_text_column(session, fake_llm)
     assert "Cao nhất: 30 (Phở bò)" in prompt
     assert "Thấp nhất: 12 (Bún chả)" in prompt
     assert "₫" not in prompt.split("Số liệu tính sẵn")[1]
+
+
+@pytest.mark.anyio
+async def test_a_single_value_names_the_day_its_sql_filtered_on(session, fake_llm):
+    """AI grading 14/11/2026: 267 of 456 correct answers did not name their period."""
+    sql = "SELECT COUNT(*) AS SoDonHang FROM v WHERE BusinessDate = '2026-10-23' LIMIT 500"
+    result = await interpret(
+        session, "hôm nay bao nhiêu đơn?", sql, [{"SoDonHang": 7}], Role.MANAGER
+    )
+
+    assert fake_llm.calls == 0
+    assert result.answer.headline == "Số đơn hàng ngày 23/10/2026: 7."
+
+
+@pytest.mark.anyio
+async def test_a_single_value_with_an_unreadable_period_goes_to_the_model(session, fake_llm):
+    fake_llm.reply('{"headline": "Tháng 9/2026 có 7 đơn.", "highlights": [], "follow_ups": []}')
+    sql = "SELECT COUNT(*) AS SoDon FROM v WHERE MONTH(BusinessDate) = 9"
+    result = await interpret(session, "tháng 9 bao nhiêu đơn?", sql, [{"SoDon": 7}], Role.MANAGER)
+
+    assert fake_llm.calls == 1
+    assert "Ngày kinh doanh hiện tại: 23/10/2026" in fake_llm.last_prompt
+    assert result.answer.headline == "Tháng 9/2026 có 7 đơn."
+
+
+@pytest.mark.anyio
+async def test_the_prose_prompt_carries_the_period_read_from_the_sql(session, fake_llm):
+    fake_llm.reply('{"headline": "ok", "highlights": [], "follow_ups": []}')
+    sql = (
+        "SELECT BusinessDate, SoDon FROM v WHERE BusinessDate BETWEEN '2026-10-22' AND '2026-10-23'"
+    )
+    await interpret(session, "2 ngày qua?", sql, TWO_DAYS, Role.MANAGER)
+
+    assert "Kỳ dữ liệu, đọc từ điều kiện ngày của truy vấn: từ 22/10/2026 đến 23/10/2026" in (
+        fake_llm.last_prompt
+    )
+
+
+def test_the_timeout_fallback_names_the_period_too():
+    sql = "SELECT BusinessDate, SoDon FROM v WHERE BusinessDate >= '2026-10-22'"
+    result = fallback(TWO_DAYS, Role.MANAGER, sql)
+
+    assert result.answer.headline.endswith("(từ 22/10/2026 đến 23/10/2026).")

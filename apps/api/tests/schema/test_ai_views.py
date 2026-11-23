@@ -98,9 +98,22 @@ FORBIDDEN_CASHIER = {
     "GiaBinhQuanThang",
     "TenNhaCungCap",
     "MaNguyenLieu",
+    "GiaVon",
+    "LoiNhuanGop",
+    "BienLoiNhuan",
 }
 # FR-AI-04: the warehouse role must never see revenue/invoice/amount columns.
-FORBIDDEN_WAREHOUSE = {"TongTien", "SoTien", "DonGia", "DonGiaMon", "DonGiaNhap"}
+FORBIDDEN_WAREHOUSE = {
+    "TongTien",
+    "SoTien",
+    "DonGia",
+    "DonGiaMon",
+    "DonGiaNhap",
+    "DoanhThu",
+    "GiaVon",
+    "GiaTri",
+    "LoiNhuanGop",
+}
 
 
 def test_view_column_contract_is_documented() -> None:

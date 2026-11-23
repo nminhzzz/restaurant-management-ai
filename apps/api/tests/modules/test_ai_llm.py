@@ -346,3 +346,46 @@ async def test_a_generation_option_can_route_one_call_to_another_model() -> None
     assert [body["model"] for body in sent] == ["claude-haiku-5-5", "claude-opus-5-5"]
     assert sent[0]["thinking"] == {"type": "disabled"}
     assert "thinking" not in sent[1]
+
+
+def test_fast_speed_is_sent_only_for_the_sql_model() -> None:
+    """Fast mode runs the same model faster; the interpretation model does not support it."""
+    sent: list[dict] = []
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        sent.append(json.loads(request.content))
+        return _json_response(200, _message("ok", model=sent[-1]["model"]))
+
+    client = _client(handler, speed="fast")
+    client.complete("q")
+    client._post("claude-haiku-5-5", "q")
+
+    assert sent[0]["speed"] == "fast"
+    assert "speed" not in sent[1]
+
+
+def test_standard_speed_sends_no_speed_field() -> None:
+    captured: dict = {}
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        captured.update(json.loads(request.content))
+        return _json_response(200, _message("ok"))
+
+    _client(handler).complete("q")
+
+    assert "speed" not in captured
+
+
+def test_a_fast_call_is_billed_at_the_fast_multiplier() -> None:
+    from app.modules.ai.usage import collect_usage
+
+    def handler(_: httpx2.Request) -> httpx2.Response:
+        payload = _message("SELECT 1")
+        payload["usage"] = {"input_tokens": 1000, "output_tokens": 1000, "speed": "fast"}
+        return _json_response(200, payload)
+
+    with collect_usage(input_price=4.0, output_price=20.0, fast_multiplier=2.0) as usage:
+        _client(handler, speed="fast").complete("q")
+
+    # (1000*4 + 1000*20) * 2 = 48_000 per million
+    assert usage.cost_usd == pytest.approx(0.048)

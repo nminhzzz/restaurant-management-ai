@@ -14,6 +14,8 @@ Ngày kinh doanh của phiếu nhập/xuất/kiểm kê và công thức/giá hi
 
 `vw_ai_quanly_giaodich.GiaTri` là giá trị biến động của giao dịch kho, cùng dấu với `SoLuong` (âm khi xuất, dương khi nhập/hoàn), ghi một lần theo đơn giá hiện hành lúc phát sinh. `NULL` nghĩa là chưa xác định được giá trị (nguyên liệu chưa từng có đơn giá), không coi là 0. Giá vốn nguyên liệu tiêu hao theo kỳ lấy từ tổng `GiaTri` đã ghi, khớp báo cáo FR-REP-11. Chỉ view của Quản lý có cột này; `vw_ai_kho_giaodich` và tập view của Thu ngân không có.
 
+Các view tính sẵn (`*_doanhthu`, `vw_ai_quanly_loinhuanthang`, `*_xuatnhapngay`) gom sẵn các phép phân tích hay gặp theo nhóm chỉ số, không theo từng câu hỏi đánh giá: mỗi hóa đơn kèm bàn, loại đơn, giờ và tháng; doanh thu, giá vốn, lợi nhuận gộp và biên lợi nhuận theo tháng kinh doanh (FR-REP-04 là chỉ số tháng); số lượng từng loại giao dịch kho theo ngày và nguyên liệu. Giá vốn là tổng `-GiaTri` của tiêu hao/hoàn kho thuộc order đã kết thúc (Đã thanh toán, Đã hủy, Đóng – chưa thu được tiền), xuất thủ công và điều chỉnh kiểm kê; Hủy nhập không phải giá vốn, `GiaTri` NULL bị loại thay vì tính là 0. Thu ngân chỉ có view doanh thu, Bếp chỉ có view số lượng.
+
 | View | Cột công khai |
 | --- | --- |
 | `vw_ai_kho_giaodich` | `LoaiBanGhi`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `MaGiaoDichKho`, `BusinessDate`, `SoLuong`, `LoaiGiaoDich` |
@@ -24,14 +26,17 @@ Ngày kinh doanh của phiếu nhập/xuất/kiểm kê và công thức/giá hi
 | `vw_ai_kho_suat` | `MaMon`, `TenMon`, `SoSuatKhaDung`, `ThoiDiemTinh` |
 | `vw_ai_kho_ton` | `LoaiBanGhi`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `SoLuongTon`, `ThoiDiemTinh`, `SoLuongDuDieuKien`, `SoLuongGiu`, `SoLuongKhaDung`, `MucTonToiThieu`, `CanhBaoTonThap` |
 | `vw_ai_kho_xuat` | `MaPhieuXuat`, `BusinessDate`, `TrangThai`, `LyDo`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `SoLuong` |
+| `vw_ai_kho_xuatnhapngay` | `BusinessDate`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `SoLuongNhap`, `SoLuongHuyNhap`, `SoLuongTieuHao`, `SoLuongHoanKho`, `SoLuongXuatThuCong`, `SoLuongDieuChinh` |
 | `vw_ai_quanly_ban` | `MaBan`, `TenBan`, `TrangThai`, `SoChoNgoi` |
 | `vw_ai_quanly_congthuc` | `MaCongThuc`, `MaMon`, `TenMon`, `BusinessDateApDung`, `TrangThai`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `DinhLuong` |
+| `vw_ai_quanly_doanhthu` | `MaHoaDon`, `MaOrder`, `BusinessDate`, `Thang`, `Gio`, `MaBan`, `LoaiDon`, `DoanhThu` |
 | `vw_ai_quanly_dongmon` | `LoaiBanGhi`, `MaOrder`, `BusinessDate`, `TrangThaiOrder`, `TenMon`, `TenNhom`, `SoLuongMon`, `DonGiaMon`, `ThanhTienMon` |
 | `vw_ai_quanly_giaodich` | `LoaiBanGhi`, `MaOrder`, `BusinessDate`, `TrangThaiOrder`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `MaGiaoDichKho`, `SoLuong`, `LoaiGiaoDich`, `GiaTri` |
 | `vw_ai_quanly_giavon` | `LoaiBanGhi`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `ThoiDiemHieuLuc`, `DonGiaBinhQuan`, `SoLuongTon` |
 | `vw_ai_quanly_hoadon` | `LoaiBanGhi`, `MaOrder`, `BusinessDate`, `MaHoaDon`, `ThoiDiemXuat`, `TongTien` |
 | `vw_ai_quanly_kiemke` | `MaPhieuKiemKe`, `BusinessDate`, `TrangThai`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `TonHeThong`, `TonThucTe`, `ChenhLech` |
 | `vw_ai_quanly_lo` | `LoaiBanGhi`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `MaLo`, `SoLuongConLai`, `TrangThaiLo`, `NgayNhapLo`, `HanSuDungLo` |
+| `vw_ai_quanly_loinhuanthang` | `Thang`, `DoanhThu`, `GiaVon`, `LoiNhuanGop`, `BienLoiNhuan` |
 | `vw_ai_quanly_mon` | `MaMon`, `TenMon`, `TenNhom`, `TrangThai`, `GiaBan` |
 | `vw_ai_quanly_nguyenlieu` | `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `SoNgayBaoQuan`, `MucTonToiThieu` |
 | `vw_ai_quanly_nhacungcap` | `MaNCC`, `TenNCC` |
@@ -41,7 +46,9 @@ Ngày kinh doanh của phiếu nhập/xuất/kiểm kê và công thức/giá hi
 | `vw_ai_quanly_thanhtoan` | `LoaiBanGhi`, `MaOrder`, `BusinessDate`, `MaGiaoDich`, `PhuongThuc`, `SoTien` |
 | `vw_ai_quanly_ton` | `LoaiBanGhi`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `SoLuongTon`, `ThoiDiemTinh`, `SoLuongDuDieuKien`, `MucTonToiThieu`, `SoLuongGiu`, `SoLuongKhaDung` |
 | `vw_ai_quanly_xuat` | `MaPhieuXuat`, `BusinessDate`, `TrangThai`, `LyDo`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `SoLuong` |
+| `vw_ai_quanly_xuatnhapngay` | `BusinessDate`, `MaNguyenLieu`, `TenNguyenLieu`, `DonViTinh`, `SoLuongNhap`, `SoLuongHuyNhap`, `SoLuongTieuHao`, `SoLuongHoanKho`, `SoLuongXuatThuCong`, `SoLuongDieuChinh`, `GiaVon`, `SoLuongGiaVon` |
 | `vw_ai_thungan_ban` | `MaBan`, `TenBan`, `TrangThai`, `SoChoNgoi` |
+| `vw_ai_thungan_doanhthu` | `MaHoaDon`, `MaOrder`, `BusinessDate`, `Thang`, `Gio`, `MaBan`, `LoaiDon`, `DoanhThu` |
 | `vw_ai_thungan_dongmon` | `LoaiBanGhi`, `MaOrder`, `BusinessDate`, `TrangThaiOrder`, `TenMon`, `TenNhom`, `SoLuongMon`, `DonGiaMon`, `ThanhTienMon` |
 | `vw_ai_thungan_hoadon` | `LoaiBanGhi`, `MaOrder`, `BusinessDate`, `MaHoaDon`, `ThoiDiemXuat`, `TongTien` |
 | `vw_ai_thungan_mon` | `MaMon`, `TenMon`, `TenNhom`, `TrangThai`, `GiaBan` |
