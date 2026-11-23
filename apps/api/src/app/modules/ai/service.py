@@ -129,6 +129,7 @@ async def answer(
                 settings.ai_interpretation_output_usd_per_million,
             )
         },
+        fast_multiplier=settings.ai_fast_price_multiplier,
     ):
         return await _answer(session, question, role, user_id, session_id)
 
@@ -186,7 +187,7 @@ async def _answer(
                     session, normalized, sql_text, rows, role
                 )
         except Exception:
-            interpretation = interpreter.fallback(rows, role)
+            interpretation = interpreter.fallback(rows, role, sql_text)
     except ClarificationNeeded as exc:
         await _record(
             session,

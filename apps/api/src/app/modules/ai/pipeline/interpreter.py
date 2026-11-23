@@ -18,8 +18,10 @@ from app.modules.ai.pipeline.answer_format import (
     compose_answer,
     parse_model_answer,
 )
+from app.modules.ai.pipeline.period import period_of
 from app.modules.ai.pipeline.prompt import ROLE_SCOPE_NOTE
 from app.modules.ai.scope import ROLE_VIEWS
+from app.shared import business_date
 from app.shared.roles import Role
 
 EMPTY_ANSWER = "Truy vấn hợp lệ nhưng không có dòng dữ liệu nào thỏa điều kiện của câu hỏi."
@@ -31,7 +33,9 @@ PROMPT = (
     '"follow_ups": ["tối đa 3 câu hỏi tiếp theo về dữ liệu"]}}\n'
     "Mọi chuỗi trong JSON viết bằng tiếng Việt có dấu, kể cả khi tên cột hay dữ liệu "
     "là tiếng Anh. Tiền viết dạng 185.000 ₫. Ngày viết dạng dd/mm/yyyy. "
-    "Không nhắc tới SQL, tên bảng hay tên cột.\n"
+    "Không nhắc tới SQL, tên bảng hay tên cột. "
+    "Câu kết luận phải nêu rõ kỳ dữ liệu bằng ngày cụ thể.\n"
+    "{period}\n"
     "Câu hỏi: {question}\n"
     "Câu SQL đã chạy: {sql}\n"
     "Kết quả ({count} dòng, hiển thị tối đa 20): {rows}"
@@ -43,6 +47,28 @@ FACTS_HEADER = (
 )
 # Averages and rates do not add up to anything meaningful.
 _NO_TOTAL = ("trungbinh", "tyle", "tile", "phantram", "tytrong")
+
+
+def _today() -> date:
+    # The same business day the SQL prompt resolves "hôm nay" against.
+    return business_date.business_date_of(business_date.now())
+
+
+def _period(sql: str) -> str | None:
+    return period_of(sql, _today()) if sql else None
+
+
+def _with_period(text: str, period: str | None) -> str:
+    return f"{text.rstrip('.')} ({period})." if period else text
+
+
+def _period_line(period: str | None) -> str:
+    if period:
+        return f"Kỳ dữ liệu, đọc từ điều kiện ngày của truy vấn: {period}. Nêu đúng kỳ này."
+    return (
+        f"Ngày kinh doanh hiện tại: {_today():%d/%m/%Y}. Tự xác định kỳ dữ liệu từ câu hỏi "
+        "và điều kiện ngày của truy vấn, rồi nêu bằng ngày cụ thể."
+    )
 
 
 def scope_note(role: Role) -> str:
@@ -96,9 +122,14 @@ def _amount(kind: str, value: float) -> str:
     return _number(value)
 
 
-def _single_value(rows: list[dict[str, Any]], role: Role) -> Interpretation | None:
-    """One cell needs no prose: answering it in code saves a model call (NFR-02)."""
-    if len(rows) != 1 or len(rows[0]) != 1:
+def _single_value(
+    rows: list[dict[str, Any]], role: Role, period: str | None
+) -> Interpretation | None:
+    """One cell needs no prose: answering it in code saves a model call (NFR-02).
+
+    Only when the period is known: the answer has to say which period it covers.
+    """
+    if len(rows) != 1 or len(rows[0]) != 1 or period is None:
         return None
     column, value = next(iter(rows[0].items()))
     meta = labels.describe_columns([column], rows)[0]
@@ -111,7 +142,7 @@ def _single_value(rows: list[dict[str, Any]], role: Role) -> Interpretation | No
     else:
         shown = str(value)
     note = scope_note(role)
-    answer = StructuredAnswer(headline=f"{meta['label']}: {shown}.")
+    answer = StructuredAnswer(headline=f"{meta['label']} {period}: {shown}.")
     return Interpretation(answer, compose_answer(answer, note), note)
 
 
@@ -166,15 +197,16 @@ def facts(rows: list[dict[str, Any]]) -> list[str]:
     return lines
 
 
-def fallback(rows: list[dict[str, Any]], role: Role) -> Interpretation:
+def fallback(rows: list[dict[str, Any]], role: Role, sql: str = "") -> Interpretation:
     """A truthful, numeric answer when the model cannot finish in time (NFR-02).
 
     The SQL and rows are already correct. Instead of "chưa diễn giải được", sum the
     main numeric column and point at the peak day, so the turn still answers.
     """
     note = scope_note(role)
+    period = _period(sql)
     if not rows:
-        answer = StructuredAnswer(headline=EMPTY_ANSWER)
+        answer = StructuredAnswer(headline=_with_period(EMPTY_ANSWER, period))
         return Interpretation(answer, compose_answer(answer, note), note)
 
     columns = list(rows[0])
@@ -187,8 +219,8 @@ def fallback(rows: list[dict[str, Any]], role: Role) -> Interpretation:
     highlights: list[str] = []
     if numeric:
         key = numeric[-1]
-        label = FALLBACK_LABELS.get(key, key)
-        kind = labels.describe_columns([key], rows)[0]["kind"]
+        meta = labels.describe_columns([key], rows)[0]
+        label, kind = FALLBACK_LABELS.get(key) or meta["label"].lower(), meta["kind"]
         values = [float(row[key]) for row in rows]
         total = sum(values)
         if date_column is not None:
@@ -211,7 +243,9 @@ def fallback(rows: list[dict[str, Any]], role: Role) -> Interpretation:
     else:
         headlines.append(f"Có {len(rows)} dòng dữ liệu thỏa câu hỏi.")
 
-    answer = StructuredAnswer(headline=" ".join(headlines), highlights=highlights[:4])
+    answer = StructuredAnswer(
+        headline=_with_period(" ".join(headlines), period), highlights=highlights[:4]
+    )
     return Interpretation(answer, compose_answer(answer, note), note)
 
 
@@ -225,13 +259,15 @@ async def interpret(
     """A structured Vietnamese answer; the scope note is always appended by code."""
     note = scope_note(role)
     if not rows:
-        return fallback(rows, role)
-    single = _single_value(rows, role)
+        return fallback(rows, role, sql)
+    period = _period(sql)
+    single = _single_value(rows, role, period)
     if single is not None:
         return single
 
     lines = facts(rows)
     prompt = PROMPT.format(
+        period=_period_line(period),
         question=question,
         sql=sql,
         count=len(rows),
@@ -249,5 +285,5 @@ async def interpret(
     answer = parse_model_answer(raw)
     if not answer.headline:
         # The model returned prose we cannot parse; keep the numeric summary instead.
-        return fallback(rows, role)
+        return fallback(rows, role, sql)
     return Interpretation(answer, compose_answer(answer, note), note)

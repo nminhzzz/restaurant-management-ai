@@ -342,6 +342,7 @@ async def _run(config: Config, questions: list[Any], session: AsyncSession) -> C
                         settings.ai_interpretation_output_usd_per_million,
                     )
                 },
+                fast_multiplier=settings.ai_fast_price_multiplier,
             ) as usage,
         ):
             started = time.perf_counter()
@@ -366,7 +367,7 @@ async def _run(config: Config, questions: list[Any], session: AsyncSession) -> C
                                 session, text, sql, produced, role
                             )
                         except (httpx.HTTPError, TimeoutError, anthropic.APIError):
-                            interpreted = interpreter.fallback(produced, role)
+                            interpreted = interpreter.fallback(produced, role, sql)
                     answer = interpreted.text
                     status = "sai"  # Execution correctness is determined below.
                     break

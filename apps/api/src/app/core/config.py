@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     # 5-minute prompt-cache writes bill at 1.25x input; reads at $0.20 on Opus 5.5.
     ai_cache_write_usd_per_million: float = Field(default=5.0, ge=0)
     ai_cache_read_usd_per_million: float = Field(default=0.20, ge=0)
+    # Fast mode on Opus 5.5 bills $8/$40 per million, twice the standard rate.
+    ai_fast_price_multiplier: float = Field(default=2.0, ge=1)
     ai_provider: str = "anthropic"
     # Empty defers to ANTHROPIC_API_KEY.
     ai_api_key: str = ""
@@ -52,6 +54,8 @@ class Settings(BaseSettings):
     # Opus 5.5 cannot disable thinking and defaults to "medium"; two LLM calls per
     # question then overrun the 8s budget (NFR-02), so configurations A/B run at "low".
     llm_reasoning_effort: Literal["low", "medium", "high", "xhigh", "max"] | None = "low"
+    # Fast mode: same model, up to 2.5x the output speed, at twice the price.
+    llm_speed: Literal["standard", "fast"] = "standard"
     # The prose answer runs on a faster model without thinking: on Opus 5.5 it took a
     # median 6s (max 11s), past the 5s provider timeout, against 2.4s here (26/10/2026).
     # The SQL itself stays on `llm_model`. Must accept `thinking: disabled`.
@@ -61,10 +65,12 @@ class Settings(BaseSettings):
     # Configuration C of the A/B/C experiment runs configuration B on a second model
     # (master-roadmap Q5); empty means the harness falls back to a suffixed name.
     ai_config_c_model: str = ""
-    # The full schema prompt takes ~3s; 1.5-3s made every real call time out (22/10).
-    ai_llm_timeout_seconds: float = Field(default=5.0, gt=0, le=8)
+    # NFR-02 v2 (14/11/2026): at 5s, 72 of 240 effort=high runs timed out on hard questions;
+    # measured at 20s with the precomputed views, B's p95 was 6.8s and C's 9.0s.
+    ai_llm_timeout_seconds: float = Field(default=10.0, gt=0, le=30)
     ai_max_rows: int = 500
-    ai_response_budget_seconds: float = 8.0
+    # One model call plus 2.5s for SQL and the prose (NFR-02: p95 <= 10s, at most 12.5s).
+    ai_response_budget_seconds: float = 12.5
     ai_daily_question_quota: int = 50
     ai_sql_cache_ttl_seconds: int = Field(default=300, ge=1, le=86400)
 

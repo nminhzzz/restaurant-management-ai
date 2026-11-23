@@ -685,6 +685,13 @@ async def _seed_topic_views(conn, *, sqlite=False):
                             ],
                         )
                     )
+                elif isinstance(node, exp.Hour):
+                    node.replace(
+                        sqlglot.parse_one(
+                            f"CAST(STRFTIME('%H', {node.this.sql(dialect='sqlite')}) AS INTEGER)",
+                            read="sqlite",
+                        )
+                    )
                 elif isinstance(node, exp.Timestamp) and node.args.get("zone") is not None:
                     node.replace(
                         sqlglot.parse_one(
