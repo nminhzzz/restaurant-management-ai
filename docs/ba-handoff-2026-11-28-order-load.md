@@ -55,3 +55,43 @@ Sau góp ý của giảng viên phản biện, chuyển việc tính số suất
 - [ ] Kiểm tra nhập kho, nhả hoặc hết hạn giữ, hủy phiếu nhập, xuất hủy, kiểm kê, hoàn kho và thay đổi công thức hoặc hạn dùng. Sau migration, các món trên dữ liệu cũ có số suất đúng.
 - [ ] Mở Network để xác nhận thêm hoặc bỏ món không tải lại cả bàn, nhóm món và thực đơn. Request định kỳ chỉ đọc số suất, sử dụng số đã lưu.
 - [ ] Đo trước–sau với 20 phiên, 30 món, cùng dữ liệu khởi tạo, thời lượng và kịch bản. Ghi commit, tổng request, số SQL theo nhóm thao tác, p95 giữ món, p95 từ chọn đến cập nhật xong, lỗi và số thao tác hoàn tất. Tính cả số SQL nền hoặc SQL ghi số suất phát sinh do bản sửa. Nếu số thao tác hoàn tất khác nhau, so thêm **SQL trên mỗi thao tác** để tránh kết luận sai từ tổng số SQL.
+
+---
+
+## Bổ sung nghiệp vụ phát hành hóa đơn điện tử
+
+### Luồng tại quầy
+
+1. **Trước thanh toán:** Thu ngân mở đơn, kiểm tra món và tổng tiền. Khi cần đưa khách đối chiếu, bấm **In phiếu tạm tính**. Bản in ghi rõ **PHIẾU TẠM TÍNH** và hiển thị nội dung đơn tại lúc in. Có thể in lại sau khi sửa đơn.
+2. **Khi thanh toán thành công:** Hệ thống ghi nhận giao dịch, chốt dữ liệu đơn và mở màn **Đã thanh toán**. Màn này hiển thị tổng tiền, phương thức thanh toán và khối **Hóa đơn điện tử**. Bỏ nút **In hóa đơn nội bộ** và **In lại** khỏi luồng giao chứng từ cho khách.
+3. **Phát hành:** Ngay khi thanh toán thành công, tự mở popup **Phát hành hóa đơn điện tử** cho Thu ngân hoặc Quản lý. Nếu đóng popup, có thể mở lại bằng nút **Phát hành hóa đơn điện tử** trên màn Đã thanh toán. Mở popup chưa gửi yêu cầu. Popup hiển thị nội dung đã chốt, tổng tiền và thông tin người mua theo mẫu áp dụng. Bấm **Xác nhận phát hành** để gửi yêu cầu. Khi dùng sandbox, nhận diện rõ hóa đơn thử nghiệm trên màn hình.
+4. **Sau khi phát hành thành công:** Hiện số/ký hiệu hóa đơn và nút **Xem/In hóa đơn điện tử**. Khi bấm, mở bản PDF của chính hóa đơn đã phát hành ở tab mới để thu ngân in hoặc lưu từ trình duyệt. Dùng file PDF hoặc link xem PDF từ nhà cung cấp. Khi mở lại đơn và bấm **In lại**, mở đúng PDF đó, cùng số và nội dung. Chỉ hiện thao tác in sau khi đã phát hành thành công.
+5. **Khi dịch vụ lỗi hoặc phản hồi chậm:** Màn hình vẫn hiển thị đơn đã thanh toán và trạng thái phát hành. Thu ngân xử lý tiếp ngay từ chi tiết đơn.
+
+### Bảng đọc và ghi dữ liệu
+
+| Thao tác | Đọc dữ liệu | Ghi dữ liệu |
+| --- | --- | --- |
+| In phiếu tạm tính | Dòng món, giá và tổng tiền hiện tại của đơn. | Không ghi nhận thanh toán hoặc phát hành hóa đơn. |
+| Thanh toán thành công | Đơn, dòng món và kết quả giao dịch. | Lưu giao dịch và bản chụp dữ liệu bán hàng để phát hành, đối soát và tra cứu. |
+| Xác nhận phát hành | Bản chụp đã chốt, dữ liệu người bán, mẫu, cấu hình thuế và thông tin người mua theo trường hợp áp dụng. | Tạo một yêu cầu phát hành gốc có mã tham chiếu cố định cho mỗi đơn, lưu dữ liệu gửi và trạng thái **Chờ phát hành**. Gọi dịch vụ sau khi giao dịch ghi yêu cầu đã commit. |
+| Dịch vụ trả kết quả | Đối chiếu theo mã tham chiếu. | Lưu mã giao dịch bên dịch vụ, trạng thái, số/ký hiệu, thời điểm phát hành và thông tin tra cứu nếu có. |
+| Kiểm tra trạng thái hoặc Thử lại | Yêu cầu đã lưu và tình trạng tại nhà cung cấp. | Cập nhật bản ghi hiện có. Nếu timeout thì đánh dấu **Chưa rõ kết quả**, tra cứu trước khi gửi lại. |
+| Xem, tải hoặc in hóa đơn điện tử | Bản thể hiện của hóa đơn đã phát hành. | Không lập hóa đơn mới. |
+
+### Yêu cầu triển khai
+
+- Dùng bản chụp đã chốt của đơn để lấy dòng món, số lượng, giá và tổng tiền. Tận dụng dữ liệu thanh toán và bản chụp hiện có cho luồng mới. Bản ghi cũ vẫn phải đọc được để đối soát, tránh xóa bảng hoặc dữ liệu lịch sử khi đổi giao diện.
+- Tại API, kiểm tra quyền Thu ngân hoặc Quản lý và điều kiện của đơn. Dùng ràng buộc duy nhất ở CSDL và khóa chống trùng theo nhà cung cấp. Nếu dịch vụ đã nhận nhưng client mất phản hồi, tra cứu bằng mã tham chiếu. Chỉ gửi lại khi API nhà cung cấp cho phép làm vậy mà tránh phát hành trùng.
+- Hiện trạng thái **Chưa phát hành**, **Chờ phát hành**, **Đã phát hành**, **Phát hành lỗi** hoặc **Chưa rõ kết quả**. Lỗi phát hành không đổi trạng thái thanh toán. Hiện nút phù hợp như **Phát hành**, **Kiểm tra trạng thái**, **Thử lại** hoặc **Xem/Tải**.
+- Đầu nối nhà cung cấp chạy ở backend. Khóa API lấy từ môi trường. Tách sandbox với môi trường thật và tránh ghi khóa hoặc dữ liệu người mua vào log. Nếu dùng webhook, xác thực thông báo và xử lý thông báo trùng hoặc sai thứ tự.
+- **Phạm vi sandbox:** Dùng kịch bản khách kết thúc bữa ăn và thanh toán tại quầy. Trước khi bật môi trường thật, chốt nhà cung cấp, mẫu, cấu hình thuế, thời điểm lập theo nghiệp vụ áp dụng và quy trình hoàn tiền/điều chỉnh hóa đơn. Luồng demo sau thanh toán chỉ mô tả kịch bản này. [Nghị định 254/2026/NĐ-CP](https://vanban.chinhphu.vn/?docid=218689&orggroupid=2&pageid=27160)
+- Điểm nối hiện có gồm [màn thanh toán](../apps/web/src/features/sales/payment-panel.tsx), [màn hoàn tất](../apps/web/src/features/sales/done-step.tsx), [API bán hàng](../apps/api/src/app/modules/sales/router.py) và [logic thanh toán](../apps/api/src/app/modules/sales/payments.py).
+
+### Tiêu chí nghiệm thu
+
+- [ ] Mở đơn sandbox có 2 suất gà rang 80.000 đ/suất và 1 suất cơm 20.000 đ. In phiếu tạm tính 180.000 đ trước khi thu tiền. Kiểm tra bản in có nhãn **PHIẾU TẠM TÍNH**.
+- [ ] Thanh toán 180.000 đ. Màn hoàn tất tự mở popup **Phát hành hóa đơn điện tử**. Xác nhận phát hành qua sandbox và đối chiếu dòng món, tổng tiền, số hóa đơn và trạng thái với nhà cung cấp.
+- [ ] Đơn chưa thanh toán trong kịch bản demo, tài khoản thiếu quyền hoặc dữ liệu thiếu bị chặn trước khi gửi. Bấm hai lần hoặc hai phiên cùng bấm chỉ tạo một hóa đơn gốc.
+- [ ] Khi timeout sau khi dịch vụ đã nhận, tra cứu lại được đúng hóa đơn. Khi dịch vụ lỗi, đơn vẫn đã thanh toán và có thể mở lại để xử lý tiếp.
+- [ ] Thay đổi giá món sau thanh toán rồi mở lại đơn. Hóa đơn điện tử vẫn dùng dữ liệu đã chốt. Nút **Xem/In** mở PDF ở tab mới, nút **In lại** mở đúng PDF đã phát hành. Các thao tác này không tạo bản phát hành mới.
